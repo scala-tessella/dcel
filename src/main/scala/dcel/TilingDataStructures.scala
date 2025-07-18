@@ -2,45 +2,64 @@ package io.github.scala_tessella
 package dcel
 
 import scala.annotation.tailrec
-import scala.math.{atan2, cos, sin, toDegrees, toRadians}
+import scala.collection.mutable
+import scala.math.*
 
 /**
- * Represents a vertex in the tiling.
+ * Represents a single vertex in the DCEL.
  *
- * @param id A unique identifier for the vertex.
- * @param x  The x-coordinate of the vertex.
- * @param y  The y-coordinate of the vertex.
+ * @param id      A unique identifier for the vertex.
+ * @param x       The x-coordinate of the vertex.
+ * @param y       The y-coordinate of the vertex.
+ * @param leaving An optional reference to one of the half-edges originating from this vertex.
  */
-case class Vertex(id: String, x: Double, y: Double):
-  var leaving: Option[HalfEdge] = None
-  override def toString: String = s"Vertex($id)"
+case class Vertex(id: String, x: Double, y: Double, var leaving: Option[HalfEdge] = None):
+  override def equals(obj: Any): Boolean =
+    obj match
+      case that: Vertex => this.id == that.id
+      case _ => false
+
+  override def hashCode(): Int = id.hashCode
 
 /**
- * Represents a directed edge segment.
+ * Represents a single face in the DCEL.
  *
- * @param origin The vertex where this half-edge starts.
+ * @param id             A unique identifier for the face.
+ * @param outerComponent An optional reference to one of the half-edges on the face's outer boundary.
+ * @param innerComponents A list of optional references to half-edges, one for each inner boundary (hole).
  */
-case class HalfEdge(origin: Vertex):
-  var twin: Option[HalfEdge] = None
-  var incidentFace: Option[Face] = None
-  var next: Option[HalfEdge] = None
-  var prev: Option[HalfEdge] = None
-  var angle: Double = 0.0
+case class Face(id: String, var outerComponent: Option[HalfEdge] = None, var innerComponents: List[Option[HalfEdge]] = Nil):
+  override def equals(obj: Any): Boolean =
+    obj match
+      case that: Face => this.id == that.id
+      case _ => false
 
-  override def toString: String =
-    // Safely get the destination vertex's ID from the optional twin
-    val destId = twin.map(_.origin.id).getOrElse("?")
-    s"HalfEdge(${origin.id} -> $destId)"
+  override def hashCode(): Int = id.hashCode
+
 
 /**
- * Represents a face (a polygon) in the tiling.
+ * Represents a directed half-edge in the DCEL.
  *
- * @param id A unique identifier for the face.
- * @param outerComponent An optional half-edge on the boundary of the face.
+ * @param origin       The vertex from which this half-edge originates.
+ * @param twin         An optional reference to the half-edge that is its pair, running in the opposite direction.
+ * @param incidentFace An optional reference to the face to the left of this edge.
+ * @param next         An optional reference to the next half-edge in the boundary traversal of its incident face.
+ * @param prev         An optional reference to the previous half-edge in the boundary traversal.
+ * @param angle        The angle of the corner at the origin vertex, inside the incident face.
  */
-case class Face(id: String):
-  var outerComponent: Option[HalfEdge] = None
-  override def toString: String = s"Face($id)"
+case class HalfEdge(
+                     origin: Vertex,
+                     var twin: Option[HalfEdge] = None,
+                     var incidentFace: Option[Face] = None,
+                     var next: Option[HalfEdge] = None,
+                     var prev: Option[HalfEdge] = None,
+                     var angle: Double = 0.0
+                   ):
+  override def equals(obj: Any): Boolean = obj match
+    case that: HalfEdge => this eq that
+    case _ => false
+
+  override def hashCode(): Int = System.identityHashCode(this)
 
 /**
  * Represents the entire tiling structure as a container for its components.
@@ -109,6 +128,63 @@ case class TilingDCEL(
 
         collectVertices(startEdge)
         builder.result()
+
+  /**
+   * Helper method to get all half-edges forming the outer boundary loop.
+   */
+  private def getBoundaryEdges: List[HalfEdge] =
+    outerFace.outerComponent.map { start =>
+      @scala.annotation.tailrec
+      def loop(current: HalfEdge, acc: List[HalfEdge]): List[HalfEdge] = {
+        val next = current.next.getOrElse(throw new IllegalStateException("Boundary loop is not closed."))
+        // Prepend the current edge and continue with the next, until we are back at the start.
+        if (next eq start) (current :: acc).reverse
+        else loop(next, current :: acc)
+      }
+      // Start the traversal from the beginning.
+      loop(start, Nil)
+    }.getOrElse(Nil)
+
+  /**
+   * Finds a boundary half-edge that originates at the vertex with the given ID.
+   *
+   * @param vertexId The ID of the origin vertex.
+   * @return An Option containing the HalfEdge if found, otherwise None.
+   */
+  private def findBoundaryEdge(vertexId: String): Option[HalfEdge] =
+    getBoundaryEdges.find(_.origin.id == vertexId)
+
+  /**
+   * Calculates the coordinates of the new vertices for a regular polygon built upon an existing edge.
+   *
+   * @param v_start The first vertex of the base edge.
+   * @param v_end   The second vertex of the base edge.
+   * @param sides   The number of sides for the new regular polygon.
+   * @return A list of (Double, Double) tuples for the new vertex coordinates.
+   */
+  private def calculateNewVertices(v_start: Vertex, v_end: Vertex, sides: Int): List[(Double, Double)] = {
+    val interiorAngle = (sides - 2) * 180.0 / sides
+    val turnAngle = 180.0 - interiorAngle
+
+    val p_start = (v_start.x, v_start.y)
+    val p_end = (v_end.x, v_end.y)
+
+    val dx = p_end._1 - p_start._1
+    val dy = p_end._2 - p_start._2
+    var heading = atan2(dy, dx)
+    var currentPoint = p_end
+    val newPoints = List.newBuilder[(Double, Double)]
+
+    // We need to add (sides - 2) new vertices.
+    for (_ <- 1 until sides - 1) {
+      heading += toRadians(turnAngle)
+      val nextPoint = (currentPoint._1 + cos(heading), currentPoint._2 + sin(heading))
+      newPoints += nextPoint
+      currentPoint = nextPoint
+    }
+    newPoints.result()
+  }
+
   /**
    * Adds a new regular polygon to a specified boundary edge of the tiling.
    *
@@ -119,92 +195,75 @@ case class TilingDCEL(
    * @return Either an error message or a new TilingDCEL with the polygon added.
    */
   def maybeAddRegularPolygon(sides: Int, onEdgeStartingWithVertexId: String): Either[String, TilingDCEL] =
-    if sides < 3 then return Left(s"A polygon must have at least 3 sides, but $sides were specified.")
+    if (sides < 3) return Left(s"A polygon must have at least 3 sides, but $sides were specified.")
 
-    // Find the starting edge on the outer boundary
-    val boundaryEdge: Option[HalfEdge] =
-      @tailrec
-      def findEdge(current: HalfEdge, start: HalfEdge): Option[HalfEdge] =
-        if (current.origin.id == onEdgeStartingWithVertexId) Some(current)
-        else current.next match
-          case Some(next) if next ne start => findEdge(next, start)
-          case _ => None
-      outerFace.outerComponent.flatMap(start => findEdge(start, start))
+    findBoundaryEdge(onEdgeStartingWithVertexId) match {
+      case None =>
+        Left(s"No boundary edge found starting with vertex ID $onEdgeStartingWithVertexId")
+      case Some(baseEdge) =>
+        val v_start = baseEdge.origin
+        val v_end = baseEdge.twin.get.origin // Destination of baseEdge
 
-    boundaryEdge match
-      case None => Left(s"No boundary edge found starting with vertex ID '$onEdgeStartingWithVertexId'")
-      case Some(edgeToBuildOn) =>
-        val v1 = edgeToBuildOn.origin
-        val v2 = edgeToBuildOn.twin.get.origin
+        // 1. Calculate new vertex positions and create Vertex objects
+        val newVertexCoords = calculateNewVertices(v_start, v_end, sides)
+        val maxVertexNum = this.vertices.map(_.id.filter(_.isDigit).toInt).maxOption.getOrElse(-1)
+        val newVertices = newVertexCoords.zipWithIndex.map { case ((x, y), i) =>
+          Vertex(s"V${maxVertexNum + 1 + i}", x, y)
+        }
 
-        // 1. Calculate new vertex coordinates
-        val newVertexCount = this.vertices.size
-        val angle = (sides - 2) * 180.0 / sides
-        val turnAngle = 180.0 - angle
-        val newVertices = List.newBuilder[Vertex]
-        var currentPoint = v2
-        var heading = toDegrees(atan2(v2.y - v1.y, v2.x - v1.x))
+        // 2. Create the new face and half-edges
+        val newFace = Face(s"F_Poly_${innerFaces.size}")
+        val polyVertices = List(v_start, v_end) ++ newVertices
+        val newInnerEdges = mutable.ListBuffer.empty[HalfEdge]
+        val newOuterEdges = mutable.ListBuffer.empty[HalfEdge]
 
-        for (i <- 0 until sides - 2)
-          heading += turnAngle
-          val newX = currentPoint.x + cos(toRadians(heading))
-          val newY = currentPoint.y + sin(toRadians(heading))
-          val newVertex = Vertex(s"V${newVertexCount + i}", newX, newY)
-          newVertices += newVertex
-          currentPoint = newVertex
-
-        val newVerticesList = newVertices.result()
-        val newPolygonVertices = List(v1, v2) ++ newVerticesList
-
-        // 2. Create new DCEL components
-        val newFace = Face(s"F${this.innerFaces.size + 1}")
-        val newEdgePairs = (1 until sides).map { i =>
-          val p1 = newPolygonVertices(i)
-          val p2 = newPolygonVertices((i + 1) % sides)
-          val inner = HalfEdge(p1)
-          val outer = HalfEdge(p2)
+        // Create sides-1 new pairs of half-edges
+        for (i <- 1 until sides) {
+          val p1 = polyVertices(i)
+          val p2 = polyVertices((i + 1) % sides)
+          val inner = HalfEdge(p1, incidentFace = Some(newFace))
+          val outer = HalfEdge(p2, incidentFace = Some(outerFace))
           inner.twin = Some(outer)
           outer.twin = Some(inner)
-          (inner, outer)
+          newInnerEdges.addOne(inner)
+          newOuterEdges.addOne(outer)
         }
-        val newInnerEdges = newEdgePairs.map(_._1)
-        val newOuterEdges = newEdgePairs.map(_._2).reverse
 
-        // 3. Link the new polygon's inner cycle (CCW)
-        val allInnerEdges = edgeToBuildOn :: newInnerEdges.toList
-        for (i <- allInnerEdges.indices)
+        // 3. Stitch the new elements into the DCEL graph
+        // Update the original base edge to be part of the new inner face
+        val oldPrev = baseEdge.prev.get
+        val oldNext = baseEdge.next.get
+        baseEdge.incidentFace = Some(newFace)
+
+        // Link the inner loop for the new face
+        val allInnerEdges = baseEdge +: newInnerEdges.toList
+        for (i <- 0 until sides) {
           val current = allInnerEdges(i)
           val next = allInnerEdges((i + 1) % sides)
-          current.next = Some(next); next.prev = Some(current)
-          current.incidentFace = Some(newFace)
+          current.next = Some(next)
+          next.prev = Some(current)
+          // Set leaving edge for new vertices
+          if (i >= 1) { // polyVertices(1) is v_end, polyVertices(2) is the first new vertex
+            polyVertices(i).leaving = Some(current)
+          }
+        }
+        newFace.outerComponent = Some(baseEdge)
 
-        newFace.outerComponent = Some(edgeToBuildOn)
+        // Link the new outer boundary edges
+        val outerChain = newOuterEdges.reverse.toList
+        oldPrev.next = Some(outerChain.head)
+        outerChain.head.prev = Some(oldPrev)
+        outerChain.last.next = Some(oldNext)
+        oldNext.prev = Some(outerChain.last)
 
-        // 4. Link the new outer boundary cycle (CW)
-        val oldPrevOuter = edgeToBuildOn.prev.get
-        val oldNextOuter = edgeToBuildOn.next.get
+        for (i <- 0 until outerChain.size - 1) {
+          outerChain(i).next = Some(outerChain(i + 1))
+          outerChain(i + 1).prev = Some(outerChain(i))
+        }
 
-        // Connect the new outer edges to the existing boundary
-        oldPrevOuter.next = Some(newOuterEdges.head)
-        newOuterEdges.head.prev = Some(oldPrevOuter)
-        newOuterEdges.last.next = Some(oldNextOuter)
-        oldNextOuter.prev = Some(newOuterEdges.last)
-
-        // Link the new outer edges together
-        for (i <- newOuterEdges.indices)
-          newOuterEdges(i).incidentFace = Some(this.outerFace)
-          if i < newOuterEdges.length - 1 then
-            newOuterEdges(i).next = Some(newOuterEdges(i + 1))
-            newOuterEdges(i + 1).prev = Some(newOuterEdges(i))
-
-        // Update the outer face's component reference if necessary
-        if outerFace.outerComponent.contains(edgeToBuildOn) then
-          outerFace.outerComponent = Some(newOuterEdges.head)
-
-        // 5. Assemble and return the new TilingDCEL
-        Right(TilingDCEL(
-          vertices = this.vertices ++ newVerticesList,
-          halfEdges = this.halfEdges ++ newInnerEdges ++ newOuterEdges.reverse,
-          innerFaces = this.innerFaces :+ newFace,
-          outerFace = this.outerFace
+        Right(this.copy(
+          vertices = this.vertices ++ newVertices,
+          halfEdges = this.halfEdges ++ newInnerEdges ++ newOuterEdges,
+          innerFaces = this.innerFaces :+ newFace
         ))
+    }

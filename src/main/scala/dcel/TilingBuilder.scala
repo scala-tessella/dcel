@@ -135,8 +135,8 @@ object TilingBuilder:
     val fOuter = Face("F_Outer")
 
     // Create all inner and outer half-edges, indexed by their origin vertex
-    val innerEdges = vertices.map(HalfEdge.apply)
-    val outerEdges = vertices.map(HalfEdge.apply)
+    val innerEdges = vertices.map(HalfEdge.apply(_))
+    val outerEdges = vertices.map(HalfEdge.apply(_))
 
     // Link all components together
     for (i <- 0 until n)
