@@ -41,6 +41,6 @@ class TilingAddPolygonSpec extends AnyFlatSpec with Matchers with EitherValues:
     newTiling.innerFaces.length shouldBe 2
 
     // The new boundary should bypass V1 and V2
-    val newBoundaryIds = newTiling.boundary.map(_.id)
+    val newBoundaryIds = newTiling.boundarySafe.map(_.id)
     newBoundaryIds shouldBe Vector("V0", "V3", "V2", "V5", "V4", "V1")
   }

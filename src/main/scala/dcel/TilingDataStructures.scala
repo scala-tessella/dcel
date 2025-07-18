@@ -86,6 +86,26 @@ case class TilingDCEL(
         collectVertices(startEdge)
         builder.result()
 
+  def boundarySafe: Vector[Vertex] =
+    outerFace.outerComponent match
+      case None => Vector.empty
+      case Some(startEdge) =>
+        val builder = Vector.newBuilder[Vertex]
+        val visited = scala.collection.mutable.Set.empty[HalfEdge]
+
+        @tailrec
+        def collectVertices(edge: HalfEdge): Unit =
+          if !visited.contains(edge) then
+            builder += edge.origin
+            visited += edge
+            edge.next match
+              case Some(nextEdge) if nextEdge ne startEdge => collectVertices(nextEdge)
+              case _ => () // Traversal complete or malformed loop
+        // else: already visited, break to avoid infinite loop
+
+        collectVertices(startEdge)
+        builder.result()
+  
   /**
    * Adds a new regular polygon to a specified boundary edge of the tiling.
    *
