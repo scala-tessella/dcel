@@ -158,16 +158,23 @@ case class TilingDCEL(
         newFace.outerComponent = Some(edgeToBuildOn)
 
         // 4. Link the new outer boundary cycle (CW)
-        val oldPrevOuter = edgeToBuildOn.prev.get; val oldNextOuter = edgeToBuildOn.next.get
-        oldPrevOuter.next = Some(newOuterEdges.head); newOuterEdges.head.prev = Some(oldPrevOuter)
-        newOuterEdges.last.next = Some(oldNextOuter); oldNextOuter.prev = Some(newOuterEdges.last)
+        val oldPrevOuter = edgeToBuildOn.prev.get
+        val oldNextOuter = edgeToBuildOn.next.get
 
+        // Connect the new outer edges to the existing boundary
+        oldPrevOuter.next = Some(newOuterEdges.head)
+        newOuterEdges.head.prev = Some(oldPrevOuter)
+        newOuterEdges.last.next = Some(oldNextOuter)
+        oldNextOuter.prev = Some(newOuterEdges.last)
+
+        // Link the new outer edges together
         for (i <- newOuterEdges.indices)
           newOuterEdges(i).incidentFace = Some(this.outerFace)
           if i < newOuterEdges.length - 1 then
             newOuterEdges(i).next = Some(newOuterEdges(i + 1))
             newOuterEdges(i + 1).prev = Some(newOuterEdges(i))
 
+        // Update the outer face's component reference if necessary
         if outerFace.outerComponent.contains(edgeToBuildOn) then
           outerFace.outerComponent = Some(newOuterEdges.head)
 
