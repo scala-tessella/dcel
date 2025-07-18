@@ -95,17 +95,20 @@ case class TilingDCEL(
 
         @tailrec
         def collectVertices(edge: HalfEdge): Unit =
-          if !visited.contains(edge) then
+          if visited.contains(edge) then
+            if edge eq startEdge then
+              () // completed loop: that's fine
+            else
+              throw new Error("Malformed loop detected") // repeated non-start: broken!
+          else
             builder += edge.origin
             visited += edge
             edge.next match
-              case Some(nextEdge) if nextEdge ne startEdge => collectVertices(nextEdge)
-              case _ => () // Traversal complete or malformed loop
-        // else: already visited, break to avoid infinite loop
+              case Some(nextEdge) => collectVertices(nextEdge)
+              case None => throw new Error("Open chain")
 
         collectVertices(startEdge)
         builder.result()
-  
   /**
    * Adds a new regular polygon to a specified boundary edge of the tiling.
    *
