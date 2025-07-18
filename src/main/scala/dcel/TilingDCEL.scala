@@ -105,7 +105,7 @@ case class TilingDCEL(
    * @param sides   The number of sides for the new regular polygon.
    * @return A list of (Double, Double) tuples for the new vertex coordinates.
    */
-  private def calculateNewVertices(v_start: Vertex, v_end: Vertex, sides: Int): List[(Double, Double)] = {
+  private def calculateNewVertices(v_start: Vertex, v_end: Vertex, sides: Int): List[(Double, Double)] =
     val interiorAngle = (sides - 2) * 180.0 / sides
     val turnAngle = 180.0 - interiorAngle
 
@@ -125,7 +125,6 @@ case class TilingDCEL(
       newPoints += nextPoint
       currentPoint = nextPoint
     newPoints.result()
-  }
 
   /**
    * Adds a new regular polygon to a specified boundary edge of the tiling.
@@ -204,3 +203,72 @@ case class TilingDCEL(
           halfEdges = this.halfEdges ++ newInnerEdges ++ newOuterEdges,
           innerFaces = this.innerFaces :+ newFace
         ))
+
+  /**
+   * Generates an SVG representation of the tiling.
+   *
+   * @param width       The desired width of the SVG canvas.
+   * @param height      The desired height of the SVG canvas.
+   * @param strokeWidth The width of the edge lines.
+   * @param padding     The padding around the tiling within the SVG viewBox.
+   * @param scale       The factor by which to scale the tiling coordinates.
+   * @return A String containing the SVG markup.
+   */
+  def toSVG(
+    width: Int = 800,
+    height: Int = 600,
+    strokeWidth: Double = 1.0,
+    padding: Double = 20.0,
+    scale: Double = 50.0
+  ): String =
+    if vertices.isEmpty then return s"""<svg width="$width" height="$height"></svg>"""
+
+    // Calculate the bounding box of the SCALED vertices to set the viewBox
+    val minX = vertices.map(_.x).min * scale
+    val maxX = vertices.map(_.x).max * scale
+    val minY = vertices.map(_.y).min * scale
+    val maxY = vertices.map(_.y).max * scale
+
+    val viewBoxMinX = minX - padding
+    val viewBoxMinY = minY - padding
+    val viewBoxWidth = (maxX - minX) + 2 * padding
+    val viewBoxHeight = (maxY - minY) + 2 * padding
+
+    // Use a mutable set to ensure each edge is drawn only once
+    val drawnEdges = mutable.Set.empty[HalfEdge]
+    val edgeLines = halfEdges.map { edge =>
+      if drawnEdges.contains(edge) || edge.twin.isEmpty then None
+      else
+        val twinEdge = edge.twin.get
+        val p1 = edge.origin
+        val p2 = twinEdge.origin
+        drawnEdges ++= List(edge, twinEdge) // Mark both halves as drawn
+        // Y-coordinates are negated to be flipped back by the group transform.
+        Some(s"""      <line x1="${p1.x * scale}" y1="${-p1.y * scale}" x2="${p2.x * scale}" y2="${-p2.y * scale}" />""")
+    }.filter(_.isDefined).map(_.get).mkString("\n")
+
+    val vertexCircles = vertices.map { v =>
+      s"""      <circle cx="${v.x * scale}" cy="${-v.y * scale}" r="${strokeWidth * 2}" />"""
+    }.mkString("\n")
+
+    val vertexLabels = vertices.map { v =>
+      s"""      <text x="${v.x * scale + strokeWidth * 2.5}" y="${-v.y * scale - strokeWidth * 2.5}">${v.id}</text>"""
+    }.mkString("\n")
+
+    s"""<svg width="$width" height="$height" viewBox="$viewBoxMinX $viewBoxMinY $viewBoxWidth $viewBoxHeight" xmlns="http://www.w3.org/2000/svg">
+       |  <g transform="scale(1, 1)">
+       |    <!-- Edges -->
+       |    <g stroke="black" stroke-width="$strokeWidth">
+       |$edgeLines
+       |    </g>
+       |    <!-- Vertices -->
+       |    <g fill="red">
+       |$vertexCircles
+       |    </g>
+       |    <!-- Vertex Labels -->
+       |    <g font-size="${(strokeWidth * 8).toInt}" fill="darkblue">
+       |$vertexLabels
+       |    </g>
+       |  </g>
+       |</svg>
+       |""".stripMargin
