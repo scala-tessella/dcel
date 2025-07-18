@@ -15,9 +15,9 @@ import scala.math.*
  */
 case class TilingDCEL(
   vertices: List[Vertex],
-   halfEdges: List[HalfEdge],
-    innerFaces: List[Face],
-     outerFace: Face
+  halfEdges: List[HalfEdge],
+  innerFaces: List[Face],
+  outerFace: Face
 ):
 
   /** @return a list of all faces, both inner and outer */
