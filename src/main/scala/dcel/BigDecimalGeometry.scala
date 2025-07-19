@@ -5,6 +5,7 @@ import spire.implicits.*
 import spire.math.Rational
 
 import scala.annotation.targetName
+import scala.util.boundary
 
 /**
  * Planar geometry toolbox using Spire for precise calculations.
@@ -157,15 +158,16 @@ object BigDecimalGeometry:
 
       val segments = (0 until n).map(i => BigLineSegment(points(i), points((i + 1) % n))).toList
 
-      for i <- 0 until n do
-        for j <- i + 1 until n do
-          val s1 = segments(i)
-          val s2 = segments(j)
+      boundary:
+        for i <- 0 until n do
+          for j <- i + 1 until n do
+            val s1 = segments(i)
+            val s2 = segments(j)
 
-          // Non-adjacent segments
-          if i != (j + 1) % n && j != (i + 1) % n then
-            if BigLineSegment.doIntersect(s1, s2) then return false
-      true
+            // Non-adjacent segments
+            if i != (j + 1) % n && j != (i + 1) % n then
+              if BigLineSegment.doIntersect(s1, s2) then boundary.break(false)
+        true
 
   /** A line segment in the plane defined by its 2 endpoints using [[spire.math.BigDecimal]]. */
   case class BigLineSegment(p1: BigPoint, p2: BigPoint):
