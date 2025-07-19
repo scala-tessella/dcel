@@ -1,6 +1,8 @@
 package io.github.scala_tessella
 package dcel
 
+import BigDecimalGeometry.BigPoint
+
 import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -27,7 +29,7 @@ class TilingBoundarySpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "return an empty vector if the outer face has no outer component" in {
     // Create a DCEL where the outer face is not linked to any edges
-    val vertex = Vertex("V0", 0, 0)
+    val vertex = Vertex("V0", BigPoint(0, 0))
     val outerFace = Face("F_Outer") // Note: outerFace.outerComponent is None
     val tiling = TilingDCEL(
       vertices = List(vertex),
@@ -41,7 +43,7 @@ class TilingBoundarySpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "return the single vertex of a boundary loop of one edge" in {
     // A strange but valid case for the traversal logic
-    val v = Vertex("V0", 0, 0)
+    val v = Vertex("V0", BigPoint(0, 0))
     val f = Face("F_Outer")
     val edge = HalfEdge(v)
     edge.next = Some(edge) // Edge loops back to itself

@@ -1,82 +1,14 @@
 package io.github.scala_tessella
 package dcel
 
+import BigDecimalGeometry.*
+
+import spire.implicits.*
+import spire.math.*
+
 import scala.collection.mutable.ListBuffer
-import scala.math.*
 
 object TilingBuilder:
-
-  // A small tolerance for floating-point comparisons
-  private val Epsilon = 1E-9
-
-  /**
-   * Contains geometric helper types and functions.
-   */
-  private object Geometry:
-    /**
-     * Internal representation of a 2D point for geometric calculations.
-     */
-    case class Point(x: Double, y: Double)
-
-    /**
-     * Represents a line segment defined by two points.
-     */
-    case class Segment(p1: Point, p2: Point)
-
-    /**
-     * Finds the orientation of the ordered triplet (p, q, r).
-     * @return 0 if points are collinear, 1 if clockwise, 2 if counterclockwise
-     */
-    private def orientation(p: Point, q: Point, r: Point): Int =
-      val v = (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y)
-      if (abs(v) < Epsilon) 0 // Collinear
-      else if (v > 0) 1       // Clockwise
-      else 2                  // Counterclockwise
-
-    /**
-     * Checks if point q lies on segment pr, assuming they are collinear.
-     */
-    private def onSegment(p: Point, q: Point, r: Point): Boolean =
-      q.x <= Math.max(p.x, r.x) && q.x >= Math.min(p.x, r.x) &&
-        q.y <= Math.max(p.y, r.y) && q.y >= Math.min(p.y, r.y)
-
-    /**
-     * Checks if two line segments, s1 and s2, intersect.
-     */
-    private def doIntersect(s1: Segment, s2: Segment): Boolean =
-      val o1 = orientation(s1.p1, s1.p2, s2.p1)
-      val o2 = orientation(s1.p1, s1.p2, s2.p2)
-      val o3 = orientation(s2.p1, s2.p2, s1.p1)
-      val o4 = orientation(s2.p1, s2.p2, s1.p2)
-
-      // General case: segments cross each other
-      if o1 != 0 && o2 != 0 && o3 != 0 && o4 != 0 then
-        o1 != o2 && o3 != o4
-      // Special Cases for collinear points
-      else
-        (o1 == 0 && onSegment(s1.p1, s2.p1, s1.p2)) ||
-          (o2 == 0 && onSegment(s1.p1, s2.p2, s1.p2)) ||
-          (o3 == 0 && onSegment(s2.p1, s1.p1, s2.p2)) ||
-          (o4 == 0 && onSegment(s2.p1, s1.p2, s2.p2))
-
-    /**
-     * Checks if a polygon defined by a list of points is simple (does not self-intersect).
-     */
-    def isSimple(points: List[Point]): Boolean =
-      val n = points.length
-      if n < 4 then return true // Triangles cannot self-intersect
-
-      val segments = (0 until n).map(i => Segment(points(i), points((i + 1) % n))).toList
-
-      for i <- 0 until n do
-        for j <- i + 1 until n do
-          val s1 = segments(i)
-          val s2 = segments(j)
-
-          // Non-adjacent segments
-          if i != (j + 1) % n && j != (i + 1) % n then
-            if doIntersect(s1, s2) then return false
-      true
 
   /**
    * Creates a TilingDCEL for a single simple polygon with unit-length sides.
@@ -93,7 +25,7 @@ object TilingBuilder:
     // Preliminary check: The sum of the interior angles of a simple n-gon is (n-2) * 180 degrees.
     val angleSum = angles.sum
     val expectedAngleSum = (n - 2) * 180.0
-    if abs(angleSum - expectedAngleSum) > Epsilon then
+    if spire.math.abs(angleSum - expectedAngleSum) > ACCURACY then
       return Left(f"The sum of interior angles is incorrect for a polygon with $n sides. Expected $expectedAngleSum%.2f, but got $angleSum%.2f.")
 
     // 1. First, validate the geometry and get vertex positions
@@ -124,11 +56,11 @@ object TilingBuilder:
   /**
    * Given validated points and angles, builds the TilingDCEL structure.
    */
-  private def buildDCELFromPoints(points: List[Geometry.Point], angles: List[Double]): Either[String, TilingDCEL] =
+  private def buildDCELFromPoints(points: List[BigPoint], angles: List[Double]): Either[String, TilingDCEL] =
     val n = points.length
 
     // Create vertices from the calculated points
-    val vertices = points.zipWithIndex.map { case (p, i) => Vertex(s"V$i", p.x, p.y) }
+    val vertices = points.zipWithIndex.map { case (p, i) => Vertex(s"V$i", p) }
 
     // Create the two faces: one for the polygon, one for the outside
     val fPoly = Face("F_Poly")
@@ -183,12 +115,11 @@ object TilingBuilder:
    * Calculates the coordinates of a polygon's vertices and validates that it's a closed polygon
    * with the correct side lengths and angles.
    */
-  private def calculateVertexPoints(angles: List[Double], performSimplicityCheck: Boolean): Either[String, List[Geometry.Point]] =
-    import Geometry.Point
+  private def calculateVertexPoints(angles: List[Double], performSimplicityCheck: Boolean): Either[String, List[BigPoint]] =
     val n = angles.length
     // Start with V0 at the origin and V1 on the X-axis
-    val points = ListBuffer(Point(0.0, 0.0), Point(1.0, 0.0))
-    var currentPoint = Point(1.0, 0.0)
+    val points = ListBuffer(BigPoint(0.0, 0.0), BigPoint(1.0, 0.0))
+    var currentPoint = BigPoint(1.0, 0.0)
     var heading = 0.0 // The heading of the segment V0->V1 is 0 degrees
 
     // Calculate the positions of V2 through V(n-1)
@@ -197,11 +128,14 @@ object TilingBuilder:
       val turnAngle = 180.0 - interiorAngle
       heading += turnAngle
 
-      currentPoint = Point(currentPoint.x + cos(toRadians(heading)), currentPoint.y + sin(toRadians(heading)))
+      currentPoint = BigPoint(
+        currentPoint.x + spire.math.cos(spire.math.toRadians(heading)),
+        currentPoint.y + spire.math.sin(spire.math.toRadians(heading))
+      )
       points.append(currentPoint)
 
     val pointsList = points.toList
-    if performSimplicityCheck && !Geometry.isSimple(pointsList) then
+    if performSimplicityCheck && !BigPoint.isSimple(pointsList) then
       return Left("The polygon is not simple (it intersects itself).")
 
     // --- Validation ---
@@ -210,26 +144,27 @@ object TilingBuilder:
     val p_0 = points.head
     val dx = p_0.x - p_n_minus_1.x
     val dy = p_0.y - p_n_minus_1.y
-    val lastEdgeLength = sqrt(dx * dx + dy * dy)
+    val lastEdgeLength = spire.math.sqrt(dx * dx + dy * dy)
 
-    if abs(lastEdgeLength - 1.0) > Epsilon then
+    if spire.math.abs(lastEdgeLength - 1.0) > ACCURACY then
       return Left(f"The polygon does not close. The final edge has length $lastEdgeLength%.4f instead of 1.0.")
 
     // Check the last interior angle at V(n-1)
-    val heading_n_minus_1_to_0 = toDegrees(math.atan2(dy, dx))
+    // @TODO why the conversion toDouble is needed?  
+    val heading_n_minus_1_to_0 = spire.math.toDegrees(spire.math.atan2(dy.toDouble, dx.toDouble))
     var turn_at_n_minus_1 = heading_n_minus_1_to_0 - heading
     while (turn_at_n_minus_1 <= -180) turn_at_n_minus_1 += 360
     val calculatedFinalAngle = 180.0 - turn_at_n_minus_1
 
-    if abs(calculatedFinalAngle - angles.last) > Epsilon then
-      return Left(f"Angle at V${n-1} is incorrect. Expected ${angles.last}%.2f, but calculated ${calculatedFinalAngle}%.2f.")
+    if spire.math.abs(calculatedFinalAngle - angles.last) > ACCURACY then
+      return Left(f"Angle at V${n-1} is incorrect. Expected ${angles.last}%.2f, but calculated $calculatedFinalAngle%.2f.")
 
     // Check the first interior angle at V0
     var turn_at_0 = 0.0 - heading_n_minus_1_to_0
     while (turn_at_0 <= -180) turn_at_0 += 360
     val calculatedFirstAngle = 180.0 - turn_at_0
 
-    if abs(calculatedFirstAngle - angles.head) > Epsilon then
-      return Left(f"Angle at V0 is incorrect. Expected ${angles.head}%.2f, but calculated ${calculatedFirstAngle}%.2f.")
+    if spire.math.abs(calculatedFirstAngle - angles.head) > ACCURACY then
+      return Left(f"Angle at V0 is incorrect. Expected ${angles.head}%.2f, but calculated $calculatedFirstAngle%.2f.")
 
     Right(pointsList)

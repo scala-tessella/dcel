@@ -1,6 +1,8 @@
 package io.github.scala_tessella
 package dcel
 
+import BigDecimalGeometry.BigPoint
+
 object TilingExample:
 
   def main(args: Array[String]): Unit =
@@ -13,10 +15,10 @@ object TilingExample:
    */
   def createTwoTrianglesTiling(): TilingDCEL =
     // 1. Define vertices
-    val vA = Vertex("A", 0.0, 0.0)
-    val vB = Vertex("B", 1.0, 0.0)
-    val vC = Vertex("C", 0.5, 0.866)
-    val vD = Vertex("D", -0.5, 0.866)
+    val vA = Vertex("A", BigPoint(0.0, 0.0))
+    val vB = Vertex("B", BigPoint(1.0, 0.0))
+    val vC = Vertex("C", BigPoint(0.5, 0.866))
+    val vD = Vertex("D", BigPoint(-0.5, 0.866))
 
     // 2. Define faces
     val fABC = Face("F_ABC")

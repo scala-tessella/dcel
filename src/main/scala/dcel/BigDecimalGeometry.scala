@@ -129,6 +129,44 @@ object BigDecimalGeometry:
     def createPolar(rho: BigDecimal, theta: BigRadian): BigPoint =
       BigPoint(rho * spire.math.cos(theta), rho * spire.math.sin(theta))
 
+    /**
+     * Finds the orientation of the ordered triplet (p, q, r).
+     *
+     * @return 0 if points are collinear, 1 if clockwise, 2 if counterclockwise
+     */
+    def orientation(p: BigPoint, q: BigPoint, r: BigPoint): Int =
+      val v = (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y)
+      if spire.math.abs(v) < ACCURACY then 0 // Collinear
+      else if (v > 0) then 1 // Clockwise
+      else 2 // Counterclockwise
+
+    /**
+     * Checks if point q lies on segment pr, assuming they are collinear.
+     */
+    def onSegment(p: BigPoint, q: BigPoint, r: BigPoint): Boolean =
+      q.x <= spire.math.max(p.x, r.x) && q.x >= spire.math.min(p.x, r.x)
+        && q.y <= spire.math.max(p.y, r.y) && q.y >= spire.math.min(p.y, r.y)
+
+    /**
+     * Checks if a polygon defined by a list of points is simple (does not self-intersect).
+     */
+    def isSimple(points: List[BigPoint]): Boolean =
+
+      val n = points.length
+      if n < 4 then return true // Triangles cannot self-intersect
+
+      val segments = (0 until n).map(i => BigLineSegment(points(i), points((i + 1) % n))).toList
+
+      for i <- 0 until n do
+        for j <- i + 1 until n do
+          val s1 = segments(i)
+          val s2 = segments(j)
+
+          // Non-adjacent segments
+          if i != (j + 1) % n && j != (i + 1) % n then
+            if BigLineSegment.doIntersect(s1, s2) then return false
+      true
+
   /** A line segment in the plane defined by its 2 endpoints using [[spire.math.BigDecimal]]. */
   case class BigLineSegment(p1: BigPoint, p2: BigPoint):
     /** The length of the line segment. */
@@ -141,7 +179,28 @@ object BigDecimalGeometry:
     /** The horizontal angle of the line segment. */
     def horizontalAngle: BigRadian =
       spire.math.atan2(p2.y - p1.y, p2.x - p1.x)
-    
+
+  object BigLineSegment:
+
+    /**
+     * Checks if two line segments, s1 and s2, intersect.
+     */
+    def doIntersect(s1: BigLineSegment, s2: BigLineSegment): Boolean =
+      val o1 = BigPoint.orientation(s1.p1, s1.p2, s2.p1)
+      val o2 = BigPoint.orientation(s1.p1, s1.p2, s2.p2)
+      val o3 = BigPoint.orientation(s2.p1, s2.p2, s1.p1)
+      val o4 = BigPoint.orientation(s2.p1, s2.p2, s1.p2)
+
+      // General case: segments cross each other
+      if o1 != 0 && o2 != 0 && o3 != 0 && o4 != 0 then
+        o1 != o2 && o3 != o4
+      // Special Cases for collinear points
+      else
+        (o1 == 0 && BigPoint.onSegment(s1.p1, s2.p1, s1.p2))
+          || (o2 == 0 && BigPoint.onSegment(s1.p1, s2.p2, s1.p2))
+          || (o3 == 0 && BigPoint.onSegment(s2.p1, s1.p1, s2.p2))
+          || (o4 == 0 && BigPoint.onSegment(s2.p1, s1.p2, s2.p2))
+
   case class BigBox(x0: BigDecimal, x1: BigDecimal, y0: BigDecimal, y1: BigDecimal):
 
     def contains(point: BigPoint): Boolean =

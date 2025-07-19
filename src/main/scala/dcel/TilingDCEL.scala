@@ -1,6 +1,10 @@
 package io.github.scala_tessella
 package dcel
 
+import io.github.scala_tessella.dcel.BigDecimalGeometry.BigPoint
+import spire.implicits.*
+import spire.math.*
+
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.math.*
@@ -105,23 +109,20 @@ case class TilingDCEL(
    * @param sides   The number of sides for the new regular polygon.
    * @return A list of (Double, Double) tuples for the new vertex coordinates.
    */
-  private def calculateNewVertices(v_start: Vertex, v_end: Vertex, sides: Int): List[(Double, Double)] =
+  private def calculateNewVertices(v_start: Vertex, v_end: Vertex, sides: Int): List[BigPoint] =
     val interiorAngle = (sides - 2) * 180.0 / sides
     val turnAngle = 180.0 - interiorAngle
 
-    val p_start = (v_start.x, v_start.y)
-    val p_end = (v_end.x, v_end.y)
-
-    val dx = p_end._1 - p_start._1
-    val dy = p_end._2 - p_start._2
-    var heading = atan2(dy, dx)
-    var currentPoint = p_end
-    val newPoints = List.newBuilder[(Double, Double)]
+    val dx = v_end.coords.x - v_start.coords.x
+    val dy = v_end.coords.y - v_start.coords.y
+    var heading = spire.math.atan2(dy, dx)
+    var currentPoint = v_end.coords
+    val newPoints = List.newBuilder[BigPoint]
 
     // We need to add (sides - 2) new vertices.
     for (_ <- 1 until sides - 1)
-      heading += toRadians(turnAngle)
-      val nextPoint = (currentPoint._1 + cos(heading), currentPoint._2 + sin(heading))
+      heading += spire.math.toRadians(turnAngle)
+      val nextPoint = BigPoint(currentPoint.x + spire.math.cos(heading), currentPoint.y + spire.math.sin(heading))
       newPoints += nextPoint
       currentPoint = nextPoint
     newPoints.result()
@@ -148,8 +149,8 @@ case class TilingDCEL(
         // 1. Calculate new vertex positions and create Vertex objects
         val newVertexCoords = calculateNewVertices(v_start, v_end, sides)
         val maxVertexNum = this.vertices.map(_.id.filter(_.isDigit).toInt).maxOption.getOrElse(-1)
-        val newVertices = newVertexCoords.zipWithIndex.map { case ((x, y), i) =>
-          Vertex(s"V${maxVertexNum + 1 + i}", x, y)
+        val newVertices = newVertexCoords.zipWithIndex.map { case (bigPoint, i) =>
+          Vertex(s"V${maxVertexNum + 1 + i}", bigPoint)
         }
 
         // 2. Create the new face and half-edges
@@ -224,10 +225,10 @@ case class TilingDCEL(
     if vertices.isEmpty then return s"""<svg width="$width" height="$height"></svg>"""
 
     // Calculate the bounding box of the SCALED vertices to set the viewBox
-    val minX = vertices.map(_.x).min * scale
-    val maxX = vertices.map(_.x).max * scale
-    val minY = vertices.map(_.y).min * scale
-    val maxY = vertices.map(_.y).max * scale
+    val minX = vertices.map(_.coords.x).min * scale
+    val maxX = vertices.map(_.coords.x).max * scale
+    val minY = vertices.map(_.coords.y).min * scale
+    val maxY = vertices.map(_.coords.y).max * scale
 
     val viewBoxMinX = minX - padding
     val viewBoxMinY = minY - padding
@@ -244,15 +245,15 @@ case class TilingDCEL(
         val p2 = twinEdge.origin
         drawnEdges ++= List(edge, twinEdge) // Mark both halves as drawn
         // Y-coordinates are negated to be flipped back by the group transform.
-        Some(s"""      <line x1="${p1.x * scale}" y1="${-p1.y * scale}" x2="${p2.x * scale}" y2="${-p2.y * scale}" />""")
+        Some(s"""      <line x1="${p1.coords.x * scale}" y1="${-p1.coords.y * scale}" x2="${p2.coords.x * scale}" y2="${-p2.coords.y * scale}" />""")
     }.filter(_.isDefined).map(_.get).mkString("\n")
 
     val vertexCircles = vertices.map { v =>
-      s"""      <circle cx="${v.x * scale}" cy="${-v.y * scale}" r="${strokeWidth * 2}" />"""
+      s"""      <circle cx="${v.coords.x * scale}" cy="${-v.coords.y * scale}" r="${strokeWidth * 2}" />"""
     }.mkString("\n")
 
     val vertexLabels = vertices.map { v =>
-      s"""      <text x="${v.x * scale + strokeWidth * 2.5}" y="${-v.y * scale - strokeWidth * 2.5}">${v.id}</text>"""
+      s"""      <text x="${v.coords.x * scale + strokeWidth * 2.5}" y="${-v.coords.y * scale - strokeWidth * 2.5}">${v.id}</text>"""
     }.mkString("\n")
 
     s"""<svg width="$width" height="$height" viewBox="$viewBoxMinX $viewBoxMinY $viewBoxWidth $viewBoxHeight" xmlns="http://www.w3.org/2000/svg">

@@ -1,6 +1,8 @@
 package io.github.scala_tessella
 package dcel
 
+import BigDecimalGeometry.BigPoint
+
 /**
  * Represents a single vertex in the DCEL.
  *
@@ -11,8 +13,7 @@ package dcel
  */
 case class Vertex(
   id: String,
-  x: Double,
-  y: Double,
+  coords: BigPoint,
   var leaving: Option[HalfEdge] = None
 ):
   override def equals(obj: Any): Boolean =
