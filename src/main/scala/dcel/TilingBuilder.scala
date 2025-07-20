@@ -3,9 +3,7 @@ package dcel
 
 import BigDecimalGeometry.*
 
-import spire.compat.numeric
 import spire.implicits.*
-import spire.math.*
 
 import scala.collection.mutable.ListBuffer
 
@@ -23,21 +21,13 @@ object TilingBuilder:
     if n < 3 then
       return Left(s"A polygon must have at least 3 sides, but $n were specified.")
 
-    // Preliminary check: no angle should be a full circle, otherwise the boundary would backtrack on itself
-    if angles.exists(_.isFullCircle) then
-      return Left("The polygon cannot have full circles as interior angles.")
-
-    // Preliminary check: The sum of the normalised interior angles of a simple n-gon is (n-2) * 180 degrees.
-    val angleSum = angles.map(_.normalised.toRational).sum
-    val expectedAngleSum = AngleDegree(180) * (n - 2)
-    if spire.math.abs(angleSum - expectedAngleSum.toRational) > ACCURACY then
-      return Left(f"The sum of interior angles is incorrect for a polygon with $n sides. Expected ${expectedAngleSum.toRational.toDouble}%.2f, but got ${angleSum.toDouble}%.2f.")
-
-    // 1. First, validate the geometry and get vertex positions
-    calculateVertexPoints(angles, performSimplicityCheck = true).flatMap(points =>
-      // 2. If geometry is valid, construct the DCEL
-      buildDCELFromPoints(points, angles)
-    )
+    AngleDegree.validatePolygonAngles(angles).flatMap { _ =>
+      // 1. First, validate the geometry and get vertex positions
+      calculateVertexPoints(angles, performSimplicityCheck = true).flatMap(points =>
+        // 2. If geometry is valid, construct the DCEL
+        buildDCELFromPoints(points, angles)
+      )
+    }
 
   /**
    * Creates a TilingDCEL for a single regular polygon with unit-length sides.
@@ -49,8 +39,7 @@ object TilingBuilder:
     if sides < 3 then
       return Left(s"A regular polygon must have at least 3 sides, but $sides were specified.")
 
-    val angle: AngleDegree = AngleDegree(180) * (sides - 2) / sides
-    val angles = List.fill(sides)(angle)
+    val angles = List.fill(sides)(AngleDegree.regularPolygonInteriorAngle(sides))
 
     // Regular polygons are always simple, so we can skip the self-intersection check.
     // The angle sum is also correct by definition.

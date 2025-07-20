@@ -38,20 +38,19 @@ case class TilingDCEL(
    *         Returns an empty Vector if the outer face has no boundary component.
    */
   def boundary: Vector[Vertex] =
-    outerFace.outerComponent match
-      case None => Vector.empty
-      case Some(startEdge) =>
-        val builder = Vector.newBuilder[Vertex]
+    outerFace.outerComponent.map { startEdge =>
+      val builder = Vector.newBuilder[Vertex]
 
-        @tailrec
-        def collectVertices(edge: HalfEdge): Unit =
-          builder += edge.origin
-          edge.next match
-            case Some(nextEdge) if nextEdge ne startEdge => collectVertices(nextEdge)
-            case _ => // Traversal complete or malformed loop
+      @tailrec
+      def collectVertices(edge: HalfEdge): Unit =
+        builder += edge.origin
+        edge.next match
+          case Some(nextEdge) if nextEdge ne startEdge => collectVertices(nextEdge)
+          case _ => // Traversal complete or malformed loop
 
-        collectVertices(startEdge)
-        builder.result()
+      collectVertices(startEdge)
+      builder.result()
+    }.getOrElse(Vector.empty)
 
   def boundarySafe: Vector[Vertex] =
     outerFace.outerComponent match
