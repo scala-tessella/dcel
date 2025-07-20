@@ -140,8 +140,8 @@ object TilingBuilder:
       points.append(currentPoint)
 
     val pointsList = points.toList
-    if performSimplicityCheck && !BigPoint.isSimple(pointsList) then
-      return Left("The polygon is not simple (it intersects itself).")
+    if performSimplicityCheck && !BigPoint.hasNoAlmostEqualPoints(pointsList) then
+      return Left("The polygon is not simple (it has vertices that are equal, which is not allowed).")
 
     // --- Validation ---
     // Check if the final edge, from V(n-1) back to V0, has the correct length and angles

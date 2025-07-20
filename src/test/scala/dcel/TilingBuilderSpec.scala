@@ -84,7 +84,7 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with EitherValues:
     val result = TilingBuilder.createSimplePolygon(intersectingAngles)
 
     result.isLeft shouldBe true
-    result.left.value should include ("The polygon is not simple (it intersects itself)")
+    result.left.value should include ("The polygon is not simple (it has vertices that are equal, which is not allowed)")
   }
 
   it should "fail if the polygon does not close geometrically, even with correct angle sum" in {
