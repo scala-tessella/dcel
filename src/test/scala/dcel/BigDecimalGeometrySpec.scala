@@ -52,6 +52,16 @@ class BigDecimalGeometrySpec extends AnyFlatSpec with Matchers {
     AngleDegree(Rational(1, 2)).isFullCircle shouldBe false
   }
 
+  it should "normalise an angle to be >= 0 and < 360" in {
+    AngleDegree(450).normalised.toRational shouldBe Rational(90)
+    AngleDegree(360).normalised.toRational shouldBe Rational(0)
+    AngleDegree(90).normalised.toRational shouldBe Rational(90)
+    AngleDegree(0).normalised.toRational shouldBe Rational(0)
+    AngleDegree(-90).normalised.toRational shouldBe Rational(270)
+    AngleDegree(-360).normalised.toRational shouldBe Rational(0)
+    AngleDegree(-450).normalised.toRational shouldBe Rational(270)
+  }
+
   behavior of "BigRadian"
 
   it should "support arithmetic and comparison" in {

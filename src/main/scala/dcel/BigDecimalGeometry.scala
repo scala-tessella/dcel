@@ -35,8 +35,11 @@ object BigDecimalGeometry:
     def toBigRadian: BigRadian =
       BigDecimal(spire.math.pi) * (d / 180).toDouble
 
+    def normalised: AngleDegree =
+      d.toRational.fmod(Rational(360))
+
     def isFullCircle: Boolean =
-      (d / 360).isWhole
+      normalised == Rational(0)
 
     def inverted: AngleDegree =
       -d
