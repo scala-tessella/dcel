@@ -23,11 +23,12 @@ object TilingBuilder:
     if n < 3 then
       return Left(s"A polygon must have at least 3 sides, but $n were specified.")
 
-    if angles.exists(_.isFullCircle) then 
+    // Preliminary check: no angle should be a full circle, otherwise the boundary would backtrack on itself
+    if angles.exists(_.isFullCircle) then
       return Left("The polygon cannot have full circles as interior angles.")
-      
-    // Preliminary check: The sum of the interior angles of a simple n-gon is (n-2) * 180 degrees.
-    val angleSum = angles.map(_.toRational).sum
+
+    // Preliminary check: The sum of the normalised interior angles of a simple n-gon is (n-2) * 180 degrees.
+    val angleSum = angles.map(_.normalised.toRational).sum
     val expectedAngleSum = AngleDegree(180) * (n - 2)
     if spire.math.abs(angleSum - expectedAngleSum.toRational) > ACCURACY then
       return Left(f"The sum of interior angles is incorrect for a polygon with $n sides. Expected ${expectedAngleSum.toRational.toDouble}%.2f, but got ${angleSum.toDouble}%.2f.")
