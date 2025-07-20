@@ -21,15 +21,13 @@ object TilingBuilder:
    * @return       Either a String explaining the validation error, or the successfully created TilingDCEL.
    */
   def createSimplePolygon(angles: List[AngleDegree]): Either[String, TilingDCEL] =
-    validateSides(angles.length, "simple").flatMap { _ =>
-      SimplePolygon.validatePolygonAngles(angles).flatMap { _ =>
-        // 1. First, validate the geometry and get vertex positions
-        calculateVertexPoints(angles, performSimplicityCheck = true).flatMap(points =>
-          // 2. If geometry is valid, construct the DCEL
-          buildDCELFromPoints(points, angles)
-        )
-      }
-    }
+    for
+      _      <- validateSides(angles.length, "simple")
+      _      <- SimplePolygon.validatePolygonAngles(angles)
+      points <- calculateVertexPoints(angles, performSimplicityCheck = true)
+      result <- buildDCELFromPoints(points, angles)
+    yield
+      result
 
   /**
    * Creates a TilingDCEL for a single regular polygon with unit-length sides.
@@ -38,17 +36,18 @@ object TilingBuilder:
    * @return      Either a String explaining the validation error, or the successfully created TilingDCEL.
    */
   def createRegularPolygon(sides: Int): Either[String, TilingDCEL] =
-    validateSides(sides, "regular").flatMap { _ =>
-      val angle = RegularPolygon(sides).alphaDegree
-      val angles = List.fill(sides)(angle)
+    for
+      _      <- validateSides(sides, "regular")
+      angle = RegularPolygon(sides).alphaDegree
+      angles = List.fill(sides)(angle)
       // Regular polygons are always simple, so we can skip the self-intersection check.
       // The angle sum is also correct by definition.
-      calculateVertexPoints(angles, performSimplicityCheck = false).flatMap(points =>
-        buildDCELFromPoints(points, angles)
-      )
-    }
+      points <- calculateVertexPoints(angles, performSimplicityCheck = false)
+      result <- buildDCELFromPoints(points, angles)
+    yield
+      result
 
-  /**
+        /**
    * Given validated points and angles, builds the TilingDCEL structure.
    */
   private def buildDCELFromPoints(points: List[BigPoint], angles: List[AngleDegree]): Either[String, TilingDCEL] =
