@@ -3,7 +3,7 @@ package dcel
 
 import BigDecimalGeometry.BigPoint
 import Polygon.RegularPolygon
-
+import io.github.scala_tessella.dcel.TilingBuilder.validateSides
 import spire.implicits.*
 
 import scala.annotation.tailrec
@@ -136,73 +136,74 @@ case class TilingDCEL(
    * @return Either an error message or a new TilingDCEL with the polygon added.
    */
   def maybeAddRegularPolygon(sides: Int, onEdgeStartingWithVertexId: String): Either[String, TilingDCEL] =
-    if sides < 3 then return Left(s"A polygon must have at least 3 sides, but $sides were specified.")
+    TilingBuilder.validateSides(sides, "regular").flatMap { _ =>
 
-    findBoundaryEdge(onEdgeStartingWithVertexId) match
-      case None =>
-        Left(s"No boundary edge found starting with vertex ID $onEdgeStartingWithVertexId")
-      case Some(baseEdge) =>
-        val v_start = baseEdge.origin
-        val v_end = baseEdge.twin.get.origin // Destination of baseEdge
+      findBoundaryEdge(onEdgeStartingWithVertexId) match
+        case None =>
+          Left(s"No boundary edge found starting with vertex ID $onEdgeStartingWithVertexId")
+        case Some(baseEdge) =>
+          val v_start = baseEdge.origin
+          val v_end = baseEdge.twin.get.origin // Destination of baseEdge
 
-        // 1. Calculate new vertex positions and create Vertex objects
-        val newVertexCoords = calculateNewVertices(v_start, v_end, sides)
-        val maxVertexNum = this.vertices.map(_.id.filter(_.isDigit).toInt).maxOption.getOrElse(-1)
-        val newVertices = newVertexCoords.zipWithIndex.map { case (bigPoint, i) =>
-          Vertex(s"V${maxVertexNum + 1 + i}", bigPoint)
-        }
+          // 1. Calculate new vertex positions and create Vertex objects
+          val newVertexCoords = calculateNewVertices(v_start, v_end, sides)
+          val maxVertexNum = this.vertices.map(_.id.filter(_.isDigit).toInt).maxOption.getOrElse(-1)
+          val newVertices = newVertexCoords.zipWithIndex.map { case (bigPoint, i) =>
+            Vertex(s"V${maxVertexNum + 1 + i}", bigPoint)
+          }
 
-        // 2. Create the new face and half-edges
-        val newFace = Face(s"F_Poly_${innerFaces.size}")
-        val polyVertices = List(v_start, v_end) ++ newVertices
-        val newInnerEdges = mutable.ListBuffer.empty[HalfEdge]
-        val newOuterEdges = mutable.ListBuffer.empty[HalfEdge]
+          // 2. Create the new face and half-edges
+          val newFace = Face(s"F_Poly_${innerFaces.size}")
+          val polyVertices = List(v_start, v_end) ++ newVertices
+          val newInnerEdges = mutable.ListBuffer.empty[HalfEdge]
+          val newOuterEdges = mutable.ListBuffer.empty[HalfEdge]
 
-        // Create sides-1 new pairs of half-edges
-        for (i <- 1 until sides)
-          val p1 = polyVertices(i)
-          val p2 = polyVertices((i + 1) % sides)
-          val inner = HalfEdge(p1, incidentFace = Some(newFace))
-          val outer = HalfEdge(p2, incidentFace = Some(outerFace))
-          inner.twin = Some(outer)
-          outer.twin = Some(inner)
-          newInnerEdges.addOne(inner)
-          newOuterEdges.addOne(outer)
+          // Create sides-1 new pairs of half-edges
+          for (i <- 1 until sides)
+            val p1 = polyVertices(i)
+            val p2 = polyVertices((i + 1) % sides)
+            val inner = HalfEdge(p1, incidentFace = Some(newFace))
+            val outer = HalfEdge(p2, incidentFace = Some(outerFace))
+            inner.twin = Some(outer)
+            outer.twin = Some(inner)
+            newInnerEdges.addOne(inner)
+            newOuterEdges.addOne(outer)
 
-        // 3. Stitch the new elements into the DCEL graph
-        // Update the original base edge to be part of the new inner face
-        val oldPrev = baseEdge.prev.get
-        val oldNext = baseEdge.next.get
-        baseEdge.incidentFace = Some(newFace)
+          // 3. Stitch the new elements into the DCEL graph
+          // Update the original base edge to be part of the new inner face
+          val oldPrev = baseEdge.prev.get
+          val oldNext = baseEdge.next.get
+          baseEdge.incidentFace = Some(newFace)
 
-        // Link the inner loop for the new face
-        val allInnerEdges = baseEdge +: newInnerEdges.toList
-        for (i <- 0 until sides)
-          val current = allInnerEdges(i)
-          val next = allInnerEdges((i + 1) % sides)
-          current.next = Some(next)
-          next.prev = Some(current)
-          // Set leaving edge for new vertices
-          if i >= 1 then // polyVertices(1) is v_end, polyVertices(2) is the first new vertex
-            polyVertices(i).leaving = Some(current)
-        newFace.outerComponent = Some(baseEdge)
+          // Link the inner loop for the new face
+          val allInnerEdges = baseEdge +: newInnerEdges.toList
+          for (i <- 0 until sides)
+            val current = allInnerEdges(i)
+            val next = allInnerEdges((i + 1) % sides)
+            current.next = Some(next)
+            next.prev = Some(current)
+            // Set leaving edge for new vertices
+            if i >= 1 then // polyVertices(1) is v_end, polyVertices(2) is the first new vertex
+              polyVertices(i).leaving = Some(current)
+          newFace.outerComponent = Some(baseEdge)
 
-        // Link the new outer boundary edges
-        val outerChain = newOuterEdges.reverse.toList
-        oldPrev.next = Some(outerChain.head)
-        outerChain.head.prev = Some(oldPrev)
-        outerChain.last.next = Some(oldNext)
-        oldNext.prev = Some(outerChain.last)
+          // Link the new outer boundary edges
+          val outerChain = newOuterEdges.reverse.toList
+          oldPrev.next = Some(outerChain.head)
+          outerChain.head.prev = Some(oldPrev)
+          outerChain.last.next = Some(oldNext)
+          oldNext.prev = Some(outerChain.last)
 
-        for (i <- 0 until outerChain.size - 1)
-          outerChain(i).next = Some(outerChain(i + 1))
-          outerChain(i + 1).prev = Some(outerChain(i))
+          for (i <- 0 until outerChain.size - 1)
+            outerChain(i).next = Some(outerChain(i + 1))
+            outerChain(i + 1).prev = Some(outerChain(i))
 
-        Right(this.copy(
-          vertices = this.vertices ++ newVertices,
-          halfEdges = this.halfEdges ++ newInnerEdges ++ newOuterEdges,
-          innerFaces = this.innerFaces :+ newFace
-        ))
+          Right(this.copy(
+            vertices = this.vertices ++ newVertices,
+            halfEdges = this.halfEdges ++ newInnerEdges ++ newOuterEdges,
+            innerFaces = this.innerFaces :+ newFace
+          ))
+    }
 
   /**
    * Generates an SVG representation of the tiling.

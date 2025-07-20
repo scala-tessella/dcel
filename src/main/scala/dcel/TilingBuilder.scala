@@ -9,7 +9,7 @@ import scala.collection.mutable.ListBuffer
 
 object TilingBuilder:
 
-  private def validateSides(sides: Int, polygonType: String): Either[String, Unit] =
+  def validateSides(sides: Int, polygonType: String): Either[String, Unit] =
     if sides >= 3 then Right(())
     else Left(s"A $polygonType polygon must have at least 3 sides, but $sides were specified.")
 
