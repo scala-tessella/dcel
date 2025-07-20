@@ -57,7 +57,3 @@ object Polygon:
 
     def alphaRad: BigRadian =
       BigRadian.TAU_2 * (sides - 2) / sides
-
-    /** Measure of the area with unit side. */
-    def area: BigDecimal =
-      sides / 4.0 / spire.math.tan((BigRadian.TAU_2.toBigDecimal / sides))
