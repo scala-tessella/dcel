@@ -35,6 +35,9 @@ object BigDecimalGeometry:
     def toBigRadian: BigRadian =
       BigDecimal(spire.math.pi) * (d / 180).toDouble
 
+    def isFullCircle: Boolean =
+      (d / 360).isWhole
+
     def inverted: AngleDegree =
       -d
 
