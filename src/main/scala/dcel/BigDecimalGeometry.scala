@@ -5,6 +5,7 @@ import spire.implicits.*
 import spire.math.Rational
 
 import scala.annotation.targetName
+import scala.collection.mutable
 import scala.util.boundary
 
 /**
@@ -153,6 +154,52 @@ object BigDecimalGeometry:
     def onSegment(p: BigPoint, q: BigPoint, r: BigPoint): Boolean =
       q.x <= spire.math.max(p.x, r.x) && q.x >= spire.math.min(p.x, r.x)
         && q.y <= spire.math.max(p.y, r.y) && q.y >= spire.math.min(p.y, r.y)
+
+    /**
+     * Checks if a list of points contains any pair of `almostEquals` points at a given accuracy.
+     *
+     * This method uses a grid-based approach (spatial hashing) for efficient checking.
+     * Its performance is typically O(n) for uniformly distributed data, which is much
+     * faster than a naive O(n^2) pair-wise comparison. In the worst case (all points
+     * in the same grid cell), performance degrades to O(n^2).
+     *
+     * The algorithm partitions the 2D space into a grid of cells, where each cell's
+     * dimension is determined by the `accuracy`. Each point is placed into a cell.
+     * To check for duplicates, each point only needs to be compared with other points
+     * in its own cell and the eight adjacent cells.
+     *
+     * @param points   The list of points to check.
+     * @param accuracy The tolerance value. Two points are `almostEquals` if their x and y
+     *                 coordinate differences are both less than this value.
+     * @return `true` if no two points are almost equal, `false` otherwise.
+     */
+    def hasNoAlmostEqualPoints(points: List[BigPoint], accuracy: Double = ACCURACY): Boolean =
+      if (points.length < 2) return true
+
+      // Accuracy must be positive for the grid logic to work.
+      val bigDecimalAccuracy = BigDecimal(accuracy).abs
+
+      val grid = mutable.Map.empty[(Long, Long), mutable.ListBuffer[BigPoint]]
+
+      boundary:
+        for (p <- points)
+          val cellX = (p.x / bigDecimalAccuracy).toLong
+          val cellY = (p.y / bigDecimalAccuracy).toLong
+
+          // Check current and 8 neighboring cells for almost equal points.
+          for (i <- -1 to 1; j <- -1 to 1)
+            val key = (cellX + i, cellY + j)
+            grid.get(key) match
+              case Some(neighbors) =>
+                if neighbors.exists(_.almostEquals(p, accuracy)) then
+                  boundary.break(false)
+              case None => ()
+
+          // Add the current point to its cell in the grid.
+          val cellKey = (cellX, cellY)
+          grid.getOrElseUpdate(cellKey, scala.collection.mutable.ListBuffer.empty).append(p)
+
+        true
 
     /**
      * Checks if a polygon defined by a list of points is simple (does not self-intersect).
