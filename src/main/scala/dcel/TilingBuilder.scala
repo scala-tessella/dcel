@@ -2,7 +2,7 @@ package io.github.scala_tessella
 package dcel
 
 import BigDecimalGeometry.*
-
+import io.github.scala_tessella.dcel.Polygon.{RegularPolygon, SimplePolygon}
 import spire.implicits.*
 
 import scala.collection.mutable.ListBuffer
@@ -21,7 +21,7 @@ object TilingBuilder:
     if n < 3 then
       return Left(s"A polygon must have at least 3 sides, but $n were specified.")
 
-    AngleDegree.validatePolygonAngles(angles).flatMap { _ =>
+    SimplePolygon.validatePolygonAngles(angles).flatMap { _ =>
       // 1. First, validate the geometry and get vertex positions
       calculateVertexPoints(angles, performSimplicityCheck = true).flatMap(points =>
         // 2. If geometry is valid, construct the DCEL
@@ -39,7 +39,8 @@ object TilingBuilder:
     if sides < 3 then
       return Left(s"A regular polygon must have at least 3 sides, but $sides were specified.")
 
-    val angles = List.fill(sides)(AngleDegree.regularPolygonInteriorAngle(sides))
+    val angle = RegularPolygon(sides).alphaDegree
+    val angles = List.fill(sides)(angle)
 
     // Regular polygons are always simple, so we can skip the self-intersection check.
     // The angle sum is also correct by definition.
