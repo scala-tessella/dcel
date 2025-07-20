@@ -3,12 +3,13 @@ package dcel
 
 import BigDecimalGeometry.{ACCURACY, AngleDegree, BigRadian}
 import Polygon.{RegularPolygon, SimplePolygon}
+
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.EitherValues
 import spire.math.*
 
-class PolygonSpec extends AnyFlatSpec with Matchers with EitherValues {
+class PolygonSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   private val bigDecimalAccuracy = BigDecimal(ACCURACY)
 
@@ -75,5 +76,3 @@ class PolygonSpec extends AnyFlatSpec with Matchers with EitherValues {
     val hexagonRad = RegularPolygon(6).alphaRad
     hexagonRad.almostEquals(BigRadian.TAU_3, ACCURACY) shouldBe true
   }
-
-}
