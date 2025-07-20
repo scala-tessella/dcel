@@ -1,7 +1,7 @@
 package io.github.scala_tessella
 package dcel
 
-import BigDecimalGeometry.BigPoint
+import BigDecimalGeometry.{AngleDegree, BigPoint}
 
 object TilingExample:
 
@@ -54,27 +54,27 @@ object TilingExample:
     hAB.next = Some(hBC); hBC.prev = Some(hAB)
     hBC.next = Some(hCA); hCA.prev = Some(hBC)
     hCA.next = Some(hAB); hAB.prev = Some(hCA)
-    hAB.incidentFace = Some(fABC); hAB.angle = 60.0
-    hBC.incidentFace = Some(fABC); hBC.angle = 60.0
-    hCA.incidentFace = Some(fABC); hCA.angle = 60.0
+    hAB.incidentFace = Some(fABC); hAB.angle = AngleDegree(60)
+    hBC.incidentFace = Some(fABC); hBC.angle = AngleDegree(60)
+    hCA.incidentFace = Some(fABC); hCA.angle = AngleDegree(60)
 
     // --- Triangle ACD ---
     hAC.next = Some(hCD); hCD.prev = Some(hAC)
     hCD.next = Some(hDA); hDA.prev = Some(hCD)
     hDA.next = Some(hAC); hAC.prev = Some(hDA)
-    hAC.incidentFace = Some(fACD); hAC.angle = 60.0
-    hCD.incidentFace = Some(fACD); hCD.angle = 60.0
-    hDA.incidentFace = Some(fACD); hDA.angle = 60.0
+    hAC.incidentFace = Some(fACD); hAC.angle = AngleDegree(60)
+    hCD.incidentFace = Some(fACD); hCD.angle = AngleDegree(60)
+    hDA.incidentFace = Some(fACD); hDA.angle = AngleDegree(60)
 
     // --- Outer Face ---
     hBA.next = Some(hAD); hAD.prev = Some(hBA)
     hAD.next = Some(hDC); hDC.prev = Some(hAD)
     hDC.next = Some(hCB); hCB.prev = Some(hDC)
     hCB.next = Some(hBA); hBA.prev = Some(hCB)
-    hBA.incidentFace = Some(fOuter); hBA.angle = 300.0
-    hCB.incidentFace = Some(fOuter); hCB.angle = 240.0
-    hDC.incidentFace = Some(fOuter); hDC.angle = 300.0
-    hAD.incidentFace = Some(fOuter); hAD.angle = 240.0
+    hBA.incidentFace = Some(fOuter); hBA.angle = AngleDegree(300)
+    hCB.incidentFace = Some(fOuter); hCB.angle = AngleDegree(240)
+    hDC.incidentFace = Some(fOuter); hDC.angle = AngleDegree(300)
+    hAD.incidentFace = Some(fOuter); hAD.angle = AngleDegree(240)
 
     // 5. Populate and return the Tiling container
     TilingDCEL(

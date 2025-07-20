@@ -1,7 +1,7 @@
 package io.github.scala_tessella
 package dcel
 
-import BigDecimalGeometry.BigPoint
+import BigDecimalGeometry.{AngleDegree, BigPoint}
 
 /**
  * Represents a single vertex in the DCEL.
@@ -58,7 +58,7 @@ case class HalfEdge(
   var incidentFace: Option[Face] = None,
   var next: Option[HalfEdge] = None,
   var prev: Option[HalfEdge] = None,
-  var angle: Double = 0.0
+  var angle: AngleDegree = AngleDegree(0.0)
 ):
   override def equals(obj: Any): Boolean = obj match
     case that: HalfEdge => this eq that
