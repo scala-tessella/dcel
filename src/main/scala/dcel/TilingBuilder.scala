@@ -2,7 +2,7 @@ package io.github.scala_tessella
 package dcel
 
 import BigDecimalGeometry.*
-import io.github.scala_tessella.dcel.Polygon.{RegularPolygon, SimplePolygon}
+import Polygon.{RegularPolygon, SimplePolygon}
 import spire.implicits.*
 
 import scala.collection.mutable.ListBuffer
