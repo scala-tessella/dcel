@@ -30,7 +30,6 @@ object Polygon:
         else
           Right(())
 
-
   /** Unit regular polygon of given number of sides */
   opaque type RegularPolygon = Int
 
