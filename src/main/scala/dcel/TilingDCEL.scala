@@ -136,9 +136,9 @@ case class TilingDCEL(
    * @return Either an error message or a new TilingDCEL with the polygon added.
    */
   def maybeAddRegularPolygon(sides: Int, onEdgeStartingWithVertexId: String): Either[String, TilingDCEL] =
-    TilingBuilder.validateSides(sides, "regular").flatMap { _ =>
-
-      findBoundaryEdge(onEdgeStartingWithVertexId) match
+    for
+      _      <- TilingBuilder.validateSides(sides, "regular")
+      result <- findBoundaryEdge(onEdgeStartingWithVertexId) match
         case None =>
           Left(s"No boundary edge found starting with vertex ID $onEdgeStartingWithVertexId")
         case Some(baseEdge) =>
@@ -203,7 +203,8 @@ case class TilingDCEL(
             halfEdges = this.halfEdges ++ newInnerEdges ++ newOuterEdges,
             innerFaces = this.innerFaces :+ newFace
           ))
-    }
+    yield
+      result
 
   /**
    * Generates an SVG representation of the tiling.
