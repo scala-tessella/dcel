@@ -58,6 +58,15 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with EitherValues:
     result.left.value should include ("at least 3 sides")
   }
 
+  it should "fail if an interior angle is a full circle" in {
+    // The sum is correct, but the check for full circle angles comes first.
+    val anglesWithFullCircle = List(AngleDegree(180), AngleDegree(0), AngleDegree(0), AngleDegree(180))
+    val result = TilingBuilder.createSimplePolygon(anglesWithFullCircle)
+
+    result.isLeft shouldBe true
+    result.left.value shouldBe "The polygon cannot have full circles as interior angles."
+  }
+
   it should "fail if the sum of interior angles is incorrect" in {
     val wrongSumAngles = List(AngleDegree(60), AngleDegree(60), AngleDegree(70)) // Sum is 190, should be 180 for a triangle
     val result = TilingBuilder.createSimplePolygon(wrongSumAngles)
