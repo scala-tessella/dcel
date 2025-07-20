@@ -28,7 +28,6 @@ object BigDecimalGeometry:
     def apply(i: Int): AngleDegree =
       Rational(i)
 
-
   extension (d: AngleDegree)
 
     def toRational: Rational =
@@ -116,7 +115,7 @@ object BigDecimalGeometry:
 
     /** New point moved by polar coordinates */
     def plusPolar(rho: BigDecimal)(theta: BigRadian): BigPoint =
-      plus(BigPoint.createPolar(rho, theta))
+      plus(BigPoint.fromPolar(rho, theta))
 
     /** New point moved by distance 1.0 */
     def plusPolarUnit: BigRadian => BigPoint =
@@ -130,12 +129,15 @@ object BigDecimalGeometry:
     def distanceTo(other: BigPoint): BigDecimal =
       BigLineSegment(this, other).length
 
+  enum Orientation:
+    case Collinear, Clockwise, Counterclockwise
+
   object BigPoint:
     /** Creates a point at origin (0,0) */
     def apply(): BigPoint = BigPoint(BigDecimal(0), BigDecimal(0))
 
     /** Creates a point from polar coordinates */
-    def createPolar(rho: BigDecimal, theta: BigRadian): BigPoint =
+    def fromPolar(rho: BigDecimal, theta: BigRadian): BigPoint =
       BigPoint(rho * spire.math.cos(theta), rho * spire.math.sin(theta))
 
     /**
@@ -143,11 +145,11 @@ object BigDecimalGeometry:
      *
      * @return 0 if points are collinear, 1 if clockwise, 2 if counterclockwise
      */
-    def orientation(p: BigPoint, q: BigPoint, r: BigPoint): Int =
+    def orientation(p: BigPoint, q: BigPoint, r: BigPoint): Orientation =
       val v = (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y)
-      if spire.math.abs(v) < ACCURACY then 0 // Collinear
-      else if (v > 0) then 1 // Clockwise
-      else 2 // Counterclockwise
+      if spire.math.abs(v) < ACCURACY then Orientation.Collinear
+      else if v > 0 then Orientation.Clockwise
+      else Orientation.Counterclockwise
 
     /**
      * Checks if point q lies on segment pr, assuming they are collinear.
@@ -155,6 +157,8 @@ object BigDecimalGeometry:
     def onSegment(p: BigPoint, q: BigPoint, r: BigPoint): Boolean =
       q.x <= spire.math.max(p.x, r.x) && q.x >= spire.math.min(p.x, r.x)
         && q.y <= spire.math.max(p.y, r.y) && q.y >= spire.math.min(p.y, r.y)
+
+  extension (points: List[BigPoint])
 
     /**
      * Checks if a list of points contains any pair of `almostEquals` points at a given accuracy.
@@ -174,7 +178,7 @@ object BigDecimalGeometry:
      *                 coordinate differences are both less than this value.
      * @return `true` if no two points are almost equal, `false` otherwise.
      */
-    def hasNoAlmostEqualPoints(points: List[BigPoint], accuracy: Double = ACCURACY): Boolean =
+    def hasNoAlmostEqualPoints(accuracy: Double = ACCURACY): Boolean =
       if (points.length < 2) return true
 
       // Accuracy must be positive for the grid logic to work.
@@ -205,7 +209,7 @@ object BigDecimalGeometry:
     /**
      * Checks if a polygon defined by a list of points is simple (does not self-intersect).
      */
-    def isSimple(points: List[BigPoint]): Boolean =
+    def isSimplePolygon: Boolean =
 
       val n = points.length
       if n < 4 then return true // Triangles cannot self-intersect
@@ -248,14 +252,17 @@ object BigDecimalGeometry:
       val o4 = BigPoint.orientation(s2.p1, s2.p2, s1.p2)
 
       // General case: segments cross each other
-      if o1 != 0 && o2 != 0 && o3 != 0 && o4 != 0 then
+      if o1 != Orientation.Collinear
+        && o2 != Orientation.Collinear
+        && o3 != Orientation.Collinear
+        && o4 != Orientation.Collinear then
         o1 != o2 && o3 != o4
       // Special Cases for collinear points
       else
-        (o1 == 0 && BigPoint.onSegment(s1.p1, s2.p1, s1.p2))
-          || (o2 == 0 && BigPoint.onSegment(s1.p1, s2.p2, s1.p2))
-          || (o3 == 0 && BigPoint.onSegment(s2.p1, s1.p1, s2.p2))
-          || (o4 == 0 && BigPoint.onSegment(s2.p1, s1.p2, s2.p2))
+        (o1 == Orientation.Collinear && BigPoint.onSegment(s1.p1, s2.p1, s1.p2))
+          || (o2 == Orientation.Collinear && BigPoint.onSegment(s1.p1, s2.p2, s1.p2))
+          || (o3 == Orientation.Collinear && BigPoint.onSegment(s2.p1, s1.p1, s2.p2))
+          || (o4 == Orientation.Collinear && BigPoint.onSegment(s2.p1, s1.p2, s2.p2))
 
   case class BigBox(x0: BigDecimal, x1: BigDecimal, y0: BigDecimal, y1: BigDecimal):
 

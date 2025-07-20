@@ -9,6 +9,10 @@ import scala.collection.mutable.ListBuffer
 
 object TilingBuilder:
 
+  private def validateSides(sides: Int, polygonType: String): Either[String, Unit] =
+    if sides >= 3 then Right(())
+    else Left(s"A $polygonType polygon must have at least 3 sides, but $sides were specified.")
+
   /**
    * Creates a TilingDCEL for a single simple polygon with unit-length sides.
    *
@@ -17,16 +21,14 @@ object TilingBuilder:
    * @return       Either a String explaining the validation error, or the successfully created TilingDCEL.
    */
   def createSimplePolygon(angles: List[AngleDegree]): Either[String, TilingDCEL] =
-    val n = angles.length
-    if n < 3 then
-      return Left(s"A polygon must have at least 3 sides, but $n were specified.")
-
-    SimplePolygon.validatePolygonAngles(angles).flatMap { _ =>
-      // 1. First, validate the geometry and get vertex positions
-      calculateVertexPoints(angles, performSimplicityCheck = true).flatMap(points =>
-        // 2. If geometry is valid, construct the DCEL
-        buildDCELFromPoints(points, angles)
-      )
+    validateSides(angles.length, "simple").flatMap { _ =>
+      SimplePolygon.validatePolygonAngles(angles).flatMap { _ =>
+        // 1. First, validate the geometry and get vertex positions
+        calculateVertexPoints(angles, performSimplicityCheck = true).flatMap(points =>
+          // 2. If geometry is valid, construct the DCEL
+          buildDCELFromPoints(points, angles)
+        )
+      }
     }
 
   /**
@@ -36,17 +38,15 @@ object TilingBuilder:
    * @return      Either a String explaining the validation error, or the successfully created TilingDCEL.
    */
   def createRegularPolygon(sides: Int): Either[String, TilingDCEL] =
-    if sides < 3 then
-      return Left(s"A regular polygon must have at least 3 sides, but $sides were specified.")
-
-    val angle = RegularPolygon(sides).alphaDegree
-    val angles = List.fill(sides)(angle)
-
-    // Regular polygons are always simple, so we can skip the self-intersection check.
-    // The angle sum is also correct by definition.
-    calculateVertexPoints(angles, performSimplicityCheck = false).flatMap(points =>
-      buildDCELFromPoints(points, angles)
-    )
+    validateSides(sides, "regular").flatMap { _ =>
+      val angle = RegularPolygon(sides).alphaDegree
+      val angles = List.fill(sides)(angle)
+      // Regular polygons are always simple, so we can skip the self-intersection check.
+      // The angle sum is also correct by definition.
+      calculateVertexPoints(angles, performSimplicityCheck = false).flatMap(points =>
+        buildDCELFromPoints(points, angles)
+      )
+    }
 
   /**
    * Given validated points and angles, builds the TilingDCEL structure.
@@ -130,7 +130,7 @@ object TilingBuilder:
       points.append(currentPoint)
 
     val pointsList = points.toList
-    if performSimplicityCheck && !BigPoint.hasNoAlmostEqualPoints(pointsList) then
+    if performSimplicityCheck && !pointsList.hasNoAlmostEqualPoints() then
       return Left("The polygon is not simple (it has vertices that are equal, which is not allowed).")
 
     // --- Validation ---

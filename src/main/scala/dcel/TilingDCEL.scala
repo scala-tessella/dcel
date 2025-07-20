@@ -2,6 +2,8 @@ package io.github.scala_tessella
 package dcel
 
 import BigDecimalGeometry.BigPoint
+import Polygon.RegularPolygon
+
 import spire.implicits.*
 
 import scala.annotation.tailrec
@@ -107,7 +109,7 @@ case class TilingDCEL(
    * @return A list of (Double, Double) tuples for the new vertex coordinates.
    */
   private def calculateNewVertices(v_start: Vertex, v_end: Vertex, sides: Int): List[BigPoint] =
-    val interiorAngle = (sides - 2) * 180.0 / sides
+    val interiorAngle = RegularPolygon(sides).alphaDegree.toRational.toDouble
     val turnAngle = 180.0 - interiorAngle
 
     val dx = v_end.coords.x - v_start.coords.x

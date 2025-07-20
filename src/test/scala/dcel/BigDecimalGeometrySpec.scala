@@ -92,7 +92,7 @@ class BigDecimalGeometrySpec extends AnyFlatSpec with Matchers {
   }
 
   it should "be created from polar coordinates" in {
-    val p_polar = BigPoint.createPolar(BigDecimal(1.0), BigRadian.TAU_4)
+    val p_polar = BigPoint.fromPolar(BigDecimal(1.0), BigRadian.TAU_4)
     p_polar.almostEquals(p3, accuracy) shouldBe true
   }
 
@@ -113,9 +113,9 @@ class BigDecimalGeometrySpec extends AnyFlatSpec with Matchers {
   }
 
   it should "determine orientation of three points" in {
-    BigPoint.orientation(p0, p1, p3) shouldBe 2 // counterclockwise
-    BigPoint.orientation(p0, p3, p1) shouldBe 1 // clockwise
-    BigPoint.orientation(p0, p1, BigPoint(2, 0)) shouldBe 0 // collinear
+    BigPoint.orientation(p0, p1, p3) shouldBe Orientation.Counterclockwise
+    BigPoint.orientation(p0, p3, p1) shouldBe Orientation.Clockwise
+    BigPoint.orientation(p0, p1, BigPoint(2, 0)) shouldBe Orientation.Collinear
   }
 
   it should "check if a point is on a segment" in {
@@ -125,9 +125,9 @@ class BigDecimalGeometrySpec extends AnyFlatSpec with Matchers {
 
   it should "check if a polygon is simple" in {
     val square = List(p0, p1, p2, p3)
-    BigPoint.isSimple(square) shouldBe true
+    square.isSimplePolygon shouldBe true
     val hourglass = List(p0, p2, p1, p3)
-    BigPoint.isSimple(hourglass) shouldBe false
+    hourglass.isSimplePolygon shouldBe false
   }
 
   it should "check for almost equal points in a list" in {
@@ -138,32 +138,32 @@ class BigDecimalGeometrySpec extends AnyFlatSpec with Matchers {
     val p_A_almost = BigPoint(1.0 + acc / 2, 1.0)
 
     // No duplicates
-    BigPoint.hasNoAlmostEqualPoints(List(p_A, p_B, p_C), acc) shouldBe true
+    List(p_A, p_B, p_C).hasNoAlmostEqualPoints(acc) shouldBe true
 
     // Empty and single-element lists
-    BigPoint.hasNoAlmostEqualPoints(List.empty, acc) shouldBe true
-    BigPoint.hasNoAlmostEqualPoints(List(p_A), acc) shouldBe true
+    List.empty.hasNoAlmostEqualPoints(acc) shouldBe true
+    List(p_A).hasNoAlmostEqualPoints(acc) shouldBe true
 
     // With identical points
-    BigPoint.hasNoAlmostEqualPoints(List(p_A, p_B, p_A), acc) shouldBe false
+    List(p_A, p_B, p_A).hasNoAlmostEqualPoints(acc) shouldBe false
 
     // With almost-equal points
-    BigPoint.hasNoAlmostEqualPoints(List(p_A, p_B, p_A_almost), acc) shouldBe false
+    List(p_A, p_B, p_A_almost).hasNoAlmostEqualPoints(acc) shouldBe false
 
     // Points that are close but outside the accuracy
     val p_A_close = BigPoint(1.0 + acc * 1.5, 1.0)
-    BigPoint.hasNoAlmostEqualPoints(List(p_A, p_B, p_A_close), acc) shouldBe true
+    List(p_A, p_B, p_A_close).hasNoAlmostEqualPoints(acc) shouldBe true
 
     // Test case with points in adjacent cells that are almost equal
     val p_D = BigPoint(1.0, 1.0)
     val p_E = BigPoint(1.0 + acc * 0.9, 1.0 + acc * 0.9) // adjacent cell, but almost equal
-    BigPoint.hasNoAlmostEqualPoints(List(p_D, p_E), acc) shouldBe false
+    List(p_D, p_E).hasNoAlmostEqualPoints(acc) shouldBe false
 
     // Test case with points in adjacent cells that are not almost equal
     val large_acc = 1.0
     val p_F = BigPoint(0.1, 0.1)
     val p_G = BigPoint(0.1, 1.2) // p_G is in an adjacent cell to p_F
-    BigPoint.hasNoAlmostEqualPoints(List(p_F, p_G), large_acc) shouldBe true
+    List(p_F, p_G).hasNoAlmostEqualPoints(large_acc) shouldBe true
   }
 
   behavior of "BigLineSegment"
