@@ -3,7 +3,6 @@ package dcel
 
 import BigDecimalGeometry.BigPoint
 import Polygon.RegularPolygon
-import io.github.scala_tessella.dcel.TilingBuilder.validateSides
 import spire.implicits.*
 
 import scala.annotation.tailrec
