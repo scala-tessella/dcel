@@ -1,13 +1,11 @@
 package io.github.scala_tessella
 package dcel
 
-import io.github.scala_tessella.dcel.BigDecimalGeometry.BigPoint
+import BigDecimalGeometry.BigPoint
 import spire.implicits.*
-import spire.math.*
 
 import scala.annotation.tailrec
 import scala.collection.mutable
-import scala.math.*
 
 /**
  * Represents the entire tiling structure as a container for its components.
