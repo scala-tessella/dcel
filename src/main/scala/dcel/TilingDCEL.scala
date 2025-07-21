@@ -231,22 +231,6 @@ case class TilingDCEL(
     yield
       result
 
-  /**
-   * Helper method to get all half-edges forming a face loop.
-   */
-  private def getFaceEdges(face: Face): List[HalfEdge] =
-    face.outerComponent.map { start =>
-      @tailrec
-      def loop(current: HalfEdge, acc: List[HalfEdge], visited: Set[HalfEdge]): List[HalfEdge] = {
-        if (visited.contains(current)) return acc.reverse
-        current.next match {
-          case Some(next) if next ne start => loop(next, current :: acc, visited + current)
-          case _ => (current :: acc).reverse
-        }
-      }
-
-      loop(start, Nil, Set.empty)
-    }.getOrElse(Nil)
 
   /**
    * Deletes an inner polygon (face) from the tiling.
@@ -265,7 +249,7 @@ case class TilingDCEL(
     innerFaces.find(_.id == faceId) match
       case None => Left(s"Inner face with ID $faceId not found.")
       case Some(faceToDelete) =>
-        val faceEdges = getFaceEdges(faceToDelete)
+        val faceEdges = faceToDelete.halfEdges
         val twinEdges = faceEdges.map(_.twin.get)
         val (boundaryTwins, innerTwins) = twinEdges.partition(_.incidentFace.contains(outerFace))
 
@@ -275,7 +259,7 @@ case class TilingDCEL(
         val neighborInnerFaces = innerTwins.map(_.incidentFace.get).distinct
         if neighborInnerFaces.length > 1 then
           val adjacency = neighborInnerFaces.map { f =>
-            f -> getFaceEdges(f).map(_.twin.get.incidentFace.get).filter(neighborInnerFaces.contains)
+            f -> f.halfEdges.map(_.twin.get.incidentFace.get).filter(neighborInnerFaces.contains)
           }.toMap
           val visited = mutable.Set[Face]()
           val q = mutable.Queue[Face](neighborInnerFaces.head)

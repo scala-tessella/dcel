@@ -3,6 +3,8 @@ package dcel
 
 import BigDecimalGeometry.{AngleDegree, BigPoint}
 
+import scala.annotation.tailrec
+
 /**
  * Represents a single vertex in the DCEL.
  *
@@ -18,25 +20,6 @@ case class Vertex(
   override def equals(obj: Any): Boolean =
     obj match
       case that: Vertex => this.id == that.id
-      case _ => false
-
-  override def hashCode(): Int = id.hashCode
-
-/**
- * Represents a single face in the DCEL.
- *
- * @param id             A unique identifier for the face.
- * @param outerComponent An optional reference to one of the half-edges on the face's outer boundary.
- * @param innerComponents A list of optional references to half-edges, one for each inner boundary (hole).
- */
-case class Face(
-  id: String,
-  var outerComponent: Option[HalfEdge] = None,
-  var innerComponents: List[Option[HalfEdge]] = Nil
-):
-  override def equals(obj: Any): Boolean =
-    obj match
-      case that: Face => this.id == that.id
       case _ => false
 
   override def hashCode(): Int = id.hashCode
@@ -64,3 +47,37 @@ case class HalfEdge(
     case _ => false
 
   override def hashCode(): Int = System.identityHashCode(this)
+
+/**
+ * Represents a single face in the DCEL.
+ *
+ * @param id             A unique identifier for the face.
+ * @param outerComponent An optional reference to one of the half-edges on the face's outer boundary.
+ * @param innerComponents A list of optional references to half-edges, one for each inner boundary (hole).
+ */
+case class Face(
+  id: String,
+  var outerComponent: Option[HalfEdge] = None,
+  var innerComponents: List[Option[HalfEdge]] = Nil
+):
+  override def equals(obj: Any): Boolean =
+    obj match
+      case that: Face => this.id == that.id
+      case _ => false
+
+  override def hashCode(): Int = id.hashCode
+
+  /**
+   * Get all half-edges forming a face loop.
+   */
+  def halfEdges: List[HalfEdge] =
+    outerComponent.map { start =>
+      @tailrec
+      def loop(current: HalfEdge, acc: List[HalfEdge], visited: Set[HalfEdge]): List[HalfEdge] =
+        if visited.contains(current) then return acc.reverse
+        current.next match
+          case Some(next) if next ne start => loop(next, current :: acc, visited + current)
+          case _ => (current :: acc).reverse
+
+      loop(start, Nil, Set.empty)
+    }.getOrElse(Nil)
