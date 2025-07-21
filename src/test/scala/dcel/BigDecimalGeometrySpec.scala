@@ -8,7 +8,7 @@ import org.scalatest.matchers.should.Matchers
 import spire.math.Rational
 import spire.implicits.*
 
-class BigDecimalGeometrySpec extends AnyFlatSpec with Matchers {
+class BigDecimalGeometrySpec extends AnyFlatSpec with Matchers:
 
   private val accuracy = 1.0E-12
   private val bigDecimalAccuracy = BigDecimal(accuracy)
@@ -218,4 +218,3 @@ class BigDecimalGeometrySpec extends AnyFlatSpec with Matchers {
     enlargedBox.y1 shouldBe BigDecimal(1.5)
     enlargedBox.contains(BigPoint(1.5, 1.5)) shouldBe true
   }
-}
