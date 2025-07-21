@@ -7,8 +7,7 @@ import BigDecimalGeometry.{AngleDegree, BigPoint}
  * Represents a single vertex in the DCEL.
  *
  * @param id      A unique identifier for the vertex.
- * @param x       The x-coordinate of the vertex.
- * @param y       The y-coordinate of the vertex.
+ * @param coords  The coordinates of the vertex.
  * @param leaving An optional reference to one of the half-edges originating from this vertex.
  */
 case class Vertex(
