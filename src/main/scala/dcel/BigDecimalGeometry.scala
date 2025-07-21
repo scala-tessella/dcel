@@ -263,13 +263,31 @@ object BigDecimalGeometry:
           || (o3 == Orientation.Collinear && BigPoint.onSegment(s2.p1, s1.p1, s2.p2))
           || (o4 == Orientation.Collinear && BigPoint.onSegment(s2.p1, s1.p2, s2.p2))
 
-  case class BigBox(x0: BigDecimal, x1: BigDecimal, y0: BigDecimal, y1: BigDecimal):
+  case class BigBox(minX: BigDecimal, minY: BigDecimal, maxX: BigDecimal, maxY: BigDecimal):
 
     def contains(point: BigPoint): Boolean =
-      if point.x < x0 then false
-      else if point.y < y0 then false
-      else if point.x > x1 then false
-      else !(point.y > y1)
+      if point.x < minX then false
+      else if point.y < minY then false
+      else if point.x > maxX then false
+      else !(point.y > maxY)
 
-    def enlarge(r: BigDecimal): BigBox =
-      BigBox(x0 - r, x1 + r, y0 - r, y1 + r)
+    /** Checks if this bounding box intersects with another one. */
+    def intersects(that: BigBox): Boolean =
+      !(that.minX > this.maxX || that.maxX < this.minX || that.minY > this.maxY || that.maxY < this.minY)
+
+    /** Expands the bounding box by a given amount in all directions. */
+    def expand(by: BigDecimal): BigBox =
+      BigBox(minX - by, minY - by, maxX + by, maxY + by)
+
+  object BigBox:
+    /** Creates a BoundingBox that encloses a collection of points. */
+    def fromPoints(points: Iterable[BigPoint]): BigBox =
+      if points.isEmpty then BigBox(0, 0, 0, 0)
+      else
+        val xs = points.map(_.x)
+        val ys = points.map(_.y)
+        BigBox(xs.min, ys.min, xs.max, ys.max)
+
+    /** Creates a BoundingBox for a single line segment. */
+    def fromSegment(segment: BigLineSegment): BigBox =
+      fromPoints(List(segment.p1, segment.p2))

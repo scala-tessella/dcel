@@ -1,7 +1,7 @@
 package io.github.scala_tessella
 package dcel
 
-import BigDecimalGeometry.{BigLineSegment, BigPoint}
+import BigDecimalGeometry.{BigBox, BigLineSegment, BigPoint}
 import Polygon.RegularPolygon
 import spire.implicits.*
 
@@ -136,7 +136,7 @@ case class TilingDCEL(
    */
   def maybeAddRegularPolygon(sides: Int, onEdgeStartingWithVertexId: String): Either[String, TilingDCEL] =
     for
-      _      <- TilingBuilder.validateSides(sides, "regular")
+      _ <- TilingBuilder.validateSides(sides, "regular")
       result <- findBoundaryEdge(onEdgeStartingWithVertexId) match
         case None =>
           Left(s"No boundary edge found starting with vertex ID $onEdgeStartingWithVertexId")
@@ -148,20 +148,27 @@ case class TilingDCEL(
           val newVertexCoords = calculateNewVertices(v_start, v_end, sides)
 
           // 2. Check for boundary intersections before modifying the DCEL
-          val newPolygonPoints = v_end.coords +: newVertexCoords :+ v_start.coords
-          val newPolygonSegments = (0 until newPolygonPoints.length - 1).map { i =>
-            BigLineSegment(newPolygonPoints(i), newPolygonPoints(i + 1))
-          }.toList
+          val newEdgesPoints = v_end.coords +: newVertexCoords :+ v_start.coords
+          val newEdgeSegments = newEdgesPoints.sliding(2).collect { case Seq(p1, p2) => BigLineSegment(p1, p2) }.toList
 
+          // Create a bounding box for the new polygon and expand it by 1 unit.
+          val newPolygonBBox = BigBox.fromPoints(newEdgesPoints)
+          val searchBBox = newPolygonBBox.expand(BigDecimal(1.0))
+
+          // Filter boundary edges to check only those within the search area.
           val boundaryEdgesToCheck = getBoundaryEdges.filterNot { edge =>
             edge == baseEdge || edge == baseEdge.next.get || edge == baseEdge.prev.get
           }
-          val boundarySegmentsToCheck = boundaryEdgesToCheck.map { edge =>
-            BigLineSegment(edge.origin.coords, edge.twin.get.origin.coords)
+          val nearbyBoundarySegments = boundaryEdgesToCheck.collect {
+            case edge if {
+              val segment = BigLineSegment(edge.origin.coords, edge.twin.get.origin.coords)
+              val edgeBBox = BigBox.fromSegment(segment)
+              searchBBox.intersects(edgeBBox)
+            } => BigLineSegment(edge.origin.coords, edge.twin.get.origin.coords)
           }
 
-          val intersects = newPolygonSegments.exists { newSeg =>
-            boundarySegmentsToCheck.exists(boundarySeg => BigLineSegment.doIntersect(newSeg, boundarySeg))
+          val intersects = newEdgeSegments.exists { newSeg =>
+            nearbyBoundarySegments.exists(boundarySeg => BigLineSegment.doIntersect(newSeg, boundarySeg))
           }
 
           if intersects then

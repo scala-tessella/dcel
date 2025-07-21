@@ -202,7 +202,7 @@ class BigDecimalGeometrySpec extends AnyFlatSpec with Matchers:
 
   behavior of "BigBox"
 
-  private val box = BigBox(0, 1, 0, 1)
+  private val box = BigBox(0, 0, 1, 1)
 
   it should "check if it contains a point" in {
     box.contains(BigPoint(0.5, 0.5)) shouldBe true
@@ -212,10 +212,10 @@ class BigDecimalGeometrySpec extends AnyFlatSpec with Matchers:
   }
 
   it should "be enlarged" in {
-    val enlargedBox = box.enlarge(BigDecimal(0.5))
-    enlargedBox.x0 shouldBe BigDecimal(-0.5)
-    enlargedBox.x1 shouldBe BigDecimal(1.5)
-    enlargedBox.y0 shouldBe BigDecimal(-0.5)
-    enlargedBox.y1 shouldBe BigDecimal(1.5)
+    val enlargedBox = box.expand(BigDecimal(0.5))
+    enlargedBox.minX shouldBe BigDecimal(-0.5)
+    enlargedBox.maxX shouldBe BigDecimal(1.5)
+    enlargedBox.minY shouldBe BigDecimal(-0.5)
+    enlargedBox.maxY shouldBe BigDecimal(1.5)
     enlargedBox.contains(BigPoint(1.5, 1.5)) shouldBe true
   }
