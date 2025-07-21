@@ -51,7 +51,5 @@ class TilingAddPolygonSpec extends AnyFlatSpec with Matchers with EitherValues:
         .maybeAddRegularPolygon(4, "V1").value
         .maybeAddRegularPolygon(4, "V1").value
         .maybeAddRegularPolygon(5, "V1")
-    val newTiling = result.value
-    println(newTiling.toSVG())
     result.isRight shouldBe false
   }
