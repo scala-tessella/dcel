@@ -1,4 +1,5 @@
-package io.github.scala_tessella.dcel
+package io.github.scala_tessella
+package dcel
 
 import BigDecimalGeometry.*
 import BigRadian.*
