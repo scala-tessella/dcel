@@ -131,7 +131,9 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with EitherValues:
     result.isRight shouldBe true
     val tiling = result.value
     tiling.vertices.length shouldBe 4
+    tiling.vertices.map(_.id).mkString(", ") shouldBe "V0, V1, V2, V3"
     tiling.faces.length shouldBe 2
+    tiling.faces.map(_.id).mkString(", ") shouldBe "F_Outer, F_Poly"
     tiling.halfEdges.length shouldBe 8
   }
 

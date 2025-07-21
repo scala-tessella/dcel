@@ -232,6 +232,26 @@ case class TilingDCEL(
       result
 
   /**
+   * Deletes a polygon from the tiling
+   *
+   * @param faceId The identifier of the face to be removed.
+   * @return An `Either` containing the modified `TilingDCEL` on success, or an error message on failure.
+   */
+  def maybeDeletePolygon(faceId: String): Either[String, TilingDCEL] =
+    // Find the face to delete
+    innerFaces.find(_.id == faceId) match
+      case None =>
+        Left(s"Face with id '$faceId' not found")
+      case Some(faceToDelete) =>
+        // Special case: if this is the only polygon, return an empty tiling
+        if innerFaces.length == 1 then
+          Right(TilingBuilder.empty)
+        else
+          // For now, we only handle the case of deleting the single polygon
+          // More complex deletions would require careful handling of shared edges
+          Left("Deletion of polygons from multi-polygon tilings is not yet implemented")
+
+  /**
    * Generates an SVG representation of the tiling.
    *
    * @param width       The desired width of the SVG canvas.
