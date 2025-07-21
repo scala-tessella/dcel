@@ -232,24 +232,114 @@ case class TilingDCEL(
       result
 
   /**
-   * Deletes a polygon from the tiling
+   * Helper method to get all half-edges forming a face loop.
+   */
+  private def getFaceEdges(face: Face): List[HalfEdge] =
+    face.outerComponent.map { start =>
+      @tailrec
+      def loop(current: HalfEdge, acc: List[HalfEdge], visited: Set[HalfEdge]): List[HalfEdge] = {
+        if (visited.contains(current)) return acc.reverse
+        current.next match {
+          case Some(next) if next ne start => loop(next, current :: acc, visited + current)
+          case _ => (current :: acc).reverse
+        }
+      }
+
+      loop(start, Nil, Set.empty)
+    }.getOrElse(Nil)
+
+  /**
+   * Deletes an inner polygon (face) from the tiling.
+   *
+   * The method includes checks to ensure that the face is removable without compromising the tiling's integrity.
+   * Specifically, it verifies that:
+   * 1. The face exists.
+   * 2. The face is adjacent to the outer boundary of the tiling.
+   * 3. Removing the face will not partition the tiling into disconnected components.
    *
    * @param faceId The identifier of the face to be removed.
-   * @return An `Either` containing the modified `TilingDCEL` on success, or an error message on failure.
+   * @return An `Either` containing a new `TilingDCEL` instance if the deletion is successful,
+   *         or a `String` with an error message if the deletion is not possible.
    */
   def maybeDeletePolygon(faceId: String): Either[String, TilingDCEL] =
-    // Find the face to delete
     innerFaces.find(_.id == faceId) match
-      case None =>
-        Left(s"Face with id '$faceId' not found")
+      case None => Left(s"Inner face with ID $faceId not found.")
       case Some(faceToDelete) =>
-        // Special case: if this is the only polygon, return an empty tiling
+        val faceEdges = getFaceEdges(faceToDelete)
+        val twinEdges = faceEdges.map(_.twin.get)
+        val (boundaryTwins, innerTwins) = twinEdges.partition(_.incidentFace.contains(outerFace))
+
+        if boundaryTwins.isEmpty then
+          return Left(s"Face ${faceToDelete.id} is not adjacent to the outer boundary.")
+
+        val neighborInnerFaces = innerTwins.map(_.incidentFace.get).distinct
+        if neighborInnerFaces.length > 1 then
+          val adjacency = neighborInnerFaces.map { f =>
+            f -> getFaceEdges(f).map(_.twin.get.incidentFace.get).filter(neighborInnerFaces.contains)
+          }.toMap
+          val visited = mutable.Set[Face]()
+          val q = mutable.Queue[Face](neighborInnerFaces.head)
+          visited += neighborInnerFaces.head
+          while q.nonEmpty do
+            val current = q.dequeue()
+            adjacency.getOrElse(current, Nil).foreach(n =>
+              if !visited.contains(n) then
+                visited += n
+                q.enqueue(n)
+            )
+          if visited.size != neighborInnerFaces.length then
+            return Left(s"Removing face ${faceToDelete.id} would partition the tiling.")
+
         if innerFaces.length == 1 then
-          Right(TilingBuilder.empty)
-        else
-          // For now, we only handle the case of deleting the single polygon
-          // More complex deletions would require careful handling of shared edges
-          Left("Deletion of polygons from multi-polygon tilings is not yet implemented")
+          return Right(TilingBuilder.empty)
+
+        innerTwins.foreach(_.incidentFace = Some(outerFace))
+
+        if outerFace.outerComponent.isDefined then
+          val boundaryEdges = getBoundaryEdges
+          val twinIndices = boundaryTwins.map(boundaryEdges.indexOf).sorted
+          val firstTwin = boundaryEdges(twinIndices.head)
+          val lastTwin = boundaryEdges(twinIndices.last)
+          val prevEdge = firstTwin.prev.get
+          val nextEdge = lastTwin.next.get
+          val newSegment = innerTwins.sortBy(twin => faceEdges.indexOf(twin.twin.get))
+
+          if newSegment.isEmpty then
+            prevEdge.next = Some(nextEdge)
+            nextEdge.prev = Some(prevEdge)
+            if boundaryTwins.contains(outerFace.outerComponent.get) then
+              outerFace.outerComponent = Some(nextEdge)
+          else
+            prevEdge.next = Some(newSegment.head)
+            newSegment.head.prev = Some(prevEdge)
+            newSegment.last.next = Some(nextEdge)
+            nextEdge.prev = Some(newSegment.last)
+            if boundaryTwins.contains(outerFace.outerComponent.get) then
+              outerFace.outerComponent = Some(newSegment.head)
+
+        val verticesOfFace = faceEdges.map(_.origin).distinct
+        val verticesToRemove = verticesOfFace.filter { v =>
+          v.leaving.map { startEdge =>
+            @tailrec
+            def check(edge: HalfEdge): Boolean =
+              // check if this edge is connected to a surviving inner face
+              val isConnectedToInnerFace = edge.incidentFace.exists(f => f != faceToDelete && f != outerFace)
+              if isConnectedToInnerFace then
+                false // The vertex is NOT dangling, do not remove.
+              else
+                val nextEdge = edge.twin.get.next.get
+                if nextEdge eq startEdge then true // Cycled through all edges, none are connected. Vertex IS dangling. Remove.
+                else check(nextEdge)
+
+            check(startEdge)
+          }.getOrElse(true) // if no leaving edges, it's dangling.
+        }
+        val newVertices = vertices.filterNot(verticesToRemove.contains)
+        val edgesToRemove = faceEdges ++ boundaryTwins
+        val newHalfEdges = halfEdges.filterNot(edgesToRemove.contains).filterNot(e => verticesToRemove.contains(e.origin))
+        val newInnerFaces = innerFaces.filterNot(_ == faceToDelete)
+
+        Right(TilingDCEL(newVertices, newHalfEdges, newInnerFaces, outerFace))
 
   /**
    * Generates an SVG representation of the tiling.
