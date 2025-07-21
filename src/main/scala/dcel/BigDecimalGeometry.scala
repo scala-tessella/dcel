@@ -173,13 +173,12 @@ object BigDecimalGeometry:
      * To check for duplicates, each point only needs to be compared with other points
      * in its own cell and the eight adjacent cells.
      *
-     * @param points   The list of points to check.
      * @param accuracy The tolerance value. Two points are `almostEquals` if their x and y
      *                 coordinate differences are both less than this value.
      * @return `true` if no two points are almost equal, `false` otherwise.
      */
     def hasNoAlmostEqualPoints(accuracy: Double = ACCURACY): Boolean =
-      if (points.length < 2) return true
+      if points.length < 2 then return true
 
       // Accuracy must be positive for the grid logic to work.
       val bigDecimalAccuracy = BigDecimal(accuracy).abs
