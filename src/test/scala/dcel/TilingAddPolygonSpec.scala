@@ -44,3 +44,14 @@ class TilingAddPolygonSpec extends AnyFlatSpec with Matchers with EitherValues:
     val newBoundaryIds = newTiling.boundary.map(_.id)
     newBoundaryIds shouldBe Vector("V0", "V3", "V2", "V1", "V5", "V4")
   }
+
+  it should "fail if the added polygon crosses the boundary" in {
+    val result =
+      TilingBuilder.createRegularPolygon(4).value
+        .maybeAddRegularPolygon(4, "V1").value
+        .maybeAddRegularPolygon(4, "V1").value
+        .maybeAddRegularPolygon(5, "V1")
+    val newTiling = result.value
+    println(newTiling.toSVG())
+    result.isRight shouldBe false
+  }
