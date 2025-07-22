@@ -113,21 +113,28 @@ case class TilingDCEL(
    * @return A list of (Double, Double) tuples for the new vertex coordinates.
    */
   private def calculateNewVertices(v_start: Vertex, v_end: Vertex, sides: Int): List[BigPoint] =
-    val interiorAngle = RegularPolygon(sides).alphaDegree.toRational.toDouble
-    val turnAngle = 180.0 - interiorAngle
+    val edgeVector = (v_end.coords.x - v_start.coords.x, v_end.coords.y - v_start.coords.y)
+    val turnAngle = calculateTurnAngle(sides)
+    generatePolygonVertices(v_end.coords, edgeVector, turnAngle, sides)
 
-    val dx = v_end.coords.x - v_start.coords.x
-    val dy = v_end.coords.y - v_start.coords.y
-    var heading = spire.math.atan2(dy, dx)
-    var currentPoint = v_end.coords
+  private def calculateTurnAngle(sides: Int): Double =
+    val interiorAngle = RegularPolygon(sides).alphaDegree.toRational.toDouble
+    180.0 - interiorAngle
+
+  private def generatePolygonVertices(startPoint: BigPoint, edgeVector: (BigDecimal, BigDecimal), turnAngle: Double, sides: Int): List[BigPoint] =
+    var heading = spire.math.atan2(edgeVector._2, edgeVector._1)
+    var currentPoint = startPoint
     val newPoints = List.newBuilder[BigPoint]
 
-    // We need to add (sides - 2) new vertices.
     for (_ <- 1 until sides - 1)
       heading += spire.math.toRadians(turnAngle)
-      val nextPoint = BigPoint(currentPoint.x + spire.math.cos(heading), currentPoint.y + spire.math.sin(heading))
+      val nextPoint = BigPoint(
+        currentPoint.x + spire.math.cos(heading),
+        currentPoint.y + spire.math.sin(heading)
+      )
       newPoints += nextPoint
       currentPoint = nextPoint
+
     newPoints.result()
 
   private def polygonWouldIntersectBoundary(
@@ -161,10 +168,20 @@ case class TilingDCEL(
    * Creates new vertices for a regular polygon based on calculated coordinates.
    */
   private def createNewVertices(newVertexCoords: List[BigPoint]): List[Vertex] =
-    val maxVertexNum = vertices.map(_.id.filter(_.isDigit).toInt).maxOption.getOrElse(-1)
+    val nextVertexId = getNextVertexId
     newVertexCoords.zipWithIndex.map { case (bigPoint, i) =>
-      Vertex(s"V${maxVertexNum + 1 + i}", bigPoint)
+      Vertex(s"V${nextVertexId + i}", bigPoint)
     }
+
+  /**
+   * Gets the next available vertex ID number.
+   */
+  private def getNextVertexId: Int =
+    vertices
+      .map(_.id)
+      .collect { case id if id.startsWith("V") && id.drop(1).forall(_.isDigit) => id.drop(1).toInt }
+      .maxOption
+      .getOrElse(-1) + 1
 
   /**
    * Creates pairs of half-edges for the new polygon edges.
@@ -236,7 +253,7 @@ case class TilingDCEL(
 
     // 2. Check for boundary intersections
     if polygonWouldIntersectBoundary(baseEdge, v_start, v_end, newVertexCoords) then
-      Left("The new polygon would cross a boundary edge.")
+      Left(s"The new ${sides}-sided polygon would intersect with existing boundary edges.")
     else
       // 3. Create the new face and half-edges
       val newVertices = createNewVertices(newVertexCoords)
