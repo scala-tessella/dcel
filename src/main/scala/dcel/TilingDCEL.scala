@@ -1,7 +1,7 @@
 package io.github.scala_tessella
 package dcel
 
-import BigDecimalGeometry.{BigBox, BigLineSegment, BigPoint}
+import BigDecimalGeometry.{AngleDegree, BigBox, BigLineSegment, BigPoint}
 import Polygon.RegularPolygon
 import spire.implicits.*
 
@@ -117,17 +117,16 @@ case class TilingDCEL(
     val turnAngle = calculateTurnAngle(sides)
     generatePolygonVertices(v_end.coords, edgeVector, turnAngle, sides)
 
-  private def calculateTurnAngle(sides: Int): Double =
-    val interiorAngle = RegularPolygon(sides).alphaDegree.toRational.toDouble
-    180.0 - interiorAngle
+  private def calculateTurnAngle(sides: Int): AngleDegree =
+    AngleDegree(180) - RegularPolygon(sides).alphaDegree
 
-  private def generatePolygonVertices(startPoint: BigPoint, edgeVector: (BigDecimal, BigDecimal), turnAngle: Double, sides: Int): List[BigPoint] =
-    var heading = spire.math.atan2(edgeVector._2, edgeVector._1)
+  private def generatePolygonVertices(startPoint: BigPoint, edgeVector: (BigDecimal, BigDecimal), turnAngle: AngleDegree, sides: Int): List[BigPoint] =
+    var heading: BigDecimal = spire.math.atan2(edgeVector._2, edgeVector._1)
     var currentPoint = startPoint
     val newPoints = List.newBuilder[BigPoint]
-
+    val turnAngleRadians = turnAngle.toBigRadian.toBigDecimal
     for (_ <- 1 until sides - 1)
-      heading += spire.math.toRadians(turnAngle)
+      heading = heading + turnAngleRadians
       val nextPoint = BigPoint(
         currentPoint.x + spire.math.cos(heading),
         currentPoint.y + spire.math.sin(heading)
@@ -186,9 +185,10 @@ case class TilingDCEL(
   /**
    * Creates pairs of half-edges for the new polygon edges.
    */
-  private def createHalfEdgePairs(polyVertices: List[Vertex], sides: Int, newFace: Face): (List[HalfEdge], List[HalfEdge]) =
+  private def createHalfEdgePairs(polyVertices: List[Vertex], newFace: Face): (List[HalfEdge], List[HalfEdge]) =
     val newInnerEdges = mutable.ListBuffer.empty[HalfEdge]
     val newOuterEdges = mutable.ListBuffer.empty[HalfEdge]
+    val sides = polyVertices.length
 
     // Create sides-1 new pairs of half-edges
     for (i <- 1 until sides)
@@ -211,8 +211,7 @@ case class TilingDCEL(
     newInnerEdges: List[HalfEdge],
     newOuterEdges: List[HalfEdge],
     polyVertices: List[Vertex],
-    newFace: Face,
-    sides: Int
+    newFace: Face
   ): Unit =
     // Get the edges that will be connected to the new outer boundary
     val oldPrev = baseEdge.prev.get
@@ -221,6 +220,7 @@ case class TilingDCEL(
 
     // Link the inner loop for the new face
     val allInnerEdges = baseEdge +: newInnerEdges
+    val sides = allInnerEdges.length
     for (i <- 0 until sides)
       val current = allInnerEdges(i)
       val next = allInnerEdges((i + 1) % sides)
@@ -258,11 +258,11 @@ case class TilingDCEL(
       // 3. Create the new face and half-edges
       val newVertices = createNewVertices(newVertexCoords)
       val newFace = Face(s"F_Poly_${innerFaces.size}")
-      val polyVertices = List(v_start, v_end) ++ newVertices
-      val (newInnerEdges, newOuterEdges) = createHalfEdgePairs(polyVertices, sides, newFace)
+      val polyVertices = v_start :: v_end :: newVertices
+      val (newInnerEdges, newOuterEdges) = createHalfEdgePairs(polyVertices, newFace)
 
       // 4. Stitch the new elements into the DCEL graph
-      stitchPolygonEdges(baseEdge, newInnerEdges, newOuterEdges, polyVertices, newFace, sides)
+      stitchPolygonEdges(baseEdge, newInnerEdges, newOuterEdges, polyVertices, newFace)
 
       Right(this.copy(
         vertices = this.vertices ++ newVertices,
