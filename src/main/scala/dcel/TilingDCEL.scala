@@ -80,14 +80,19 @@ case class TilingDCEL(
    */
   private def getBoundaryEdges: List[HalfEdge] =
     outerFace.outerComponent.map { start =>
-      @scala.annotation.tailrec
-      def loop(current: HalfEdge, acc: List[HalfEdge]): List[HalfEdge] =
+      @tailrec
+      def loop(current: HalfEdge, acc: List[HalfEdge], visited: Set[HalfEdge]): List[HalfEdge] =
+        if visited(current) then
+          throw new IllegalStateException("Malformed boundary: an edge was visited twice.")
+
         val next = current.next.getOrElse(throw new IllegalStateException("Boundary loop is not closed."))
-        // Prepend the current edge and continue with the next, until we are back at the start.
-        if next eq start then (current :: acc).reverse
-        else loop(next, current :: acc)
-      // Start the traversal from the beginning.
-      loop(start, Nil)
+
+        if next eq start then
+          (current :: acc).reverse
+        else
+          loop(next, current :: acc, visited + current)
+
+      loop(start, Nil, Set.empty)
     }.getOrElse(Nil)
 
   /**
