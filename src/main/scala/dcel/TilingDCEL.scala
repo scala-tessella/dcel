@@ -167,6 +167,26 @@ case class TilingDCEL(
     }
 
   /**
+   * Creates pairs of half-edges for the new polygon edges.
+   */
+  private def createHalfEdgePairs(polyVertices: List[Vertex], sides: Int, newFace: Face): (List[HalfEdge], List[HalfEdge]) =
+    val newInnerEdges = mutable.ListBuffer.empty[HalfEdge]
+    val newOuterEdges = mutable.ListBuffer.empty[HalfEdge]
+
+    // Create sides-1 new pairs of half-edges
+    for (i <- 1 until sides)
+      val p1 = polyVertices(i)
+      val p2 = polyVertices((i + 1) % sides)
+      val inner = HalfEdge(p1, incidentFace = Some(newFace))
+      val outer = HalfEdge(p2, incidentFace = Some(outerFace))
+      inner.twin = Some(outer)
+      outer.twin = Some(inner)
+      newInnerEdges.addOne(inner)
+      newOuterEdges.addOne(outer)
+
+    (newInnerEdges.toList, newOuterEdges.toList)
+
+  /**
    * Adds a new regular polygon to a specified boundary edge of the tiling.
    *
    * This method checks for self-intersections with the boundary.
@@ -197,19 +217,7 @@ case class TilingDCEL(
 
           val newFace = Face(s"F_Poly_${innerFaces.size}")
           val polyVertices = List(v_start, v_end) ++ newVertices
-          val newInnerEdges = mutable.ListBuffer.empty[HalfEdge]
-          val newOuterEdges = mutable.ListBuffer.empty[HalfEdge]
-
-          // Create sides-1 new pairs of half-edges
-          for (i <- 1 until sides)
-            val p1 = polyVertices(i)
-            val p2 = polyVertices((i + 1) % sides)
-            val inner = HalfEdge(p1, incidentFace = Some(newFace))
-            val outer = HalfEdge(p2, incidentFace = Some(outerFace))
-            inner.twin = Some(outer)
-            outer.twin = Some(inner)
-            newInnerEdges.addOne(inner)
-            newOuterEdges.addOne(outer)
+          val (newInnerEdges, newOuterEdges) = createHalfEdgePairs(polyVertices, sides, newFace)
 
           // 4. Stitch the new elements into the DCEL graph
           val oldPrev = baseEdge.prev.get
