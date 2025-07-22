@@ -141,102 +141,100 @@ case class TilingDCEL(
    */
   def maybeAddRegularPolygon(sides: Int, onEdgeStartingWithVertexId: String): Either[String, TilingDCEL] =
     for
-      _ <- TilingBuilder.validateSides(sides, "regular")
-      result <- findBoundaryEdge(onEdgeStartingWithVertexId) match
-        case None =>
-          Left(s"No boundary edge found starting with vertex ID $onEdgeStartingWithVertexId")
-        case Some(baseEdge) =>
-          val v_start = baseEdge.origin
-          val v_end = baseEdge.twin.get.origin // Destination of baseEdge
+      _        <- TilingBuilder.validateSides(sides, "regular")
+      baseEdge <- findBoundaryEdge(onEdgeStartingWithVertexId)
+        .toRight(s"No boundary edge found starting with vertex ID $onEdgeStartingWithVertexId")
+      twin     <- baseEdge.twin.toRight("Boundary edge has no twin, which should not happen.")
+      result   <-
+        val v_start = baseEdge.origin
+        val v_end = twin.origin // Destination of baseEdge
 
-          // 1. Calculate new vertex positions
-          val newVertexCoords = calculateNewVertices(v_start, v_end, sides)
+        // 1. Calculate new vertex positions
+        val newVertexCoords = calculateNewVertices(v_start, v_end, sides)
 
-          // 2. Check for boundary intersections before modifying the DCEL
-          val newEdgesPoints = v_end.coords +: newVertexCoords :+ v_start.coords
-          val newEdgeSegments = newEdgesPoints.sliding(2).collect { case Seq(p1, p2) => BigLineSegment(p1, p2) }.toList
+        // 2. Check for boundary intersections before modifying the DCEL
+        val newEdgesPoints = v_end.coords +: newVertexCoords :+ v_start.coords
+        val newEdgeSegments = newEdgesPoints.sliding(2).collect { case Seq(p1, p2) => BigLineSegment(p1, p2) }.toList
 
-          // Create a bounding box for the new polygon and expand it by 1 unit.
-          val newPolygonBBox = BigBox.fromPoints(newEdgesPoints)
-          val searchBBox = newPolygonBBox.expand(BigDecimal(1.0))
+        // Create a bounding box for the new polygon and expand it by 1 unit.
+        val newPolygonBBox = BigBox.fromPoints(newEdgesPoints)
+        val searchBBox = newPolygonBBox.expand(BigDecimal(1.0))
 
-          // Filter boundary edges to check only those within the search area.
-          val boundaryEdgesToCheck = getBoundaryEdges.filterNot { edge =>
-            edge == baseEdge || edge == baseEdge.next.get || edge == baseEdge.prev.get
+        // Filter boundary edges to check only those within the search area.
+        val boundaryEdgesToCheck = getBoundaryEdges.filterNot { edge =>
+          edge == baseEdge || edge == baseEdge.next.get || edge == baseEdge.prev.get
+        }
+
+        val nearbyBoundarySegments = for {
+          edge <- boundaryEdgesToCheck
+          twin <- edge.twin
+          segment = BigLineSegment(edge.origin.coords, twin.origin.coords)
+          if searchBBox.intersects(BigBox.fromSegment(segment))
+        } yield segment
+
+        val intersects = newEdgeSegments.exists { newSeg =>
+          nearbyBoundarySegments.exists(boundarySeg => BigLineSegment.doIntersect(newSeg, boundarySeg))
+        }
+
+        if intersects then
+          Left("The new polygon would cross a boundary edge.")
+        else
+          // 3. Create the new face and half-edges
+          val maxVertexNum = this.vertices.map(_.id.filter(_.isDigit).toInt).maxOption.getOrElse(-1)
+          val newVertices = newVertexCoords.zipWithIndex.map { case (bigPoint, i) =>
+            Vertex(s"V${maxVertexNum + 1 + i}", bigPoint)
           }
 
-          val nearbyBoundarySegments =
-            for
-              edge <- boundaryEdgesToCheck
-              twin <- edge.twin
-              segment = BigLineSegment(edge.origin.coords, twin.origin.coords)
-              if searchBBox.intersects(BigBox.fromSegment(segment))
-            yield segment
+          val newFace = Face(s"F_Poly_${innerFaces.size}")
+          val polyVertices = List(v_start, v_end) ++ newVertices
+          val newInnerEdges = mutable.ListBuffer.empty[HalfEdge]
+          val newOuterEdges = mutable.ListBuffer.empty[HalfEdge]
 
-          val intersects = newEdgeSegments.exists { newSeg =>
-            nearbyBoundarySegments.exists(boundarySeg => BigLineSegment.doIntersect(newSeg, boundarySeg))
-          }
+          // Create sides-1 new pairs of half-edges
+          for (i <- 1 until sides)
+            val p1 = polyVertices(i)
+            val p2 = polyVertices((i + 1) % sides)
+            val inner = HalfEdge(p1, incidentFace = Some(newFace))
+            val outer = HalfEdge(p2, incidentFace = Some(outerFace))
+            inner.twin = Some(outer)
+            outer.twin = Some(inner)
+            newInnerEdges.addOne(inner)
+            newOuterEdges.addOne(outer)
 
-          if intersects then
-            Left("The new polygon would cross a boundary edge.")
-          else
-            // 3. Create the new face and half-edges
-            val maxVertexNum = this.vertices.map(_.id.filter(_.isDigit).toInt).maxOption.getOrElse(-1)
-            val newVertices = newVertexCoords.zipWithIndex.map { case (bigPoint, i) =>
-              Vertex(s"V${maxVertexNum + 1 + i}", bigPoint)
-            }
+          // 4. Stitch the new elements into the DCEL graph
+          val oldPrev = baseEdge.prev.get
+          val oldNext = baseEdge.next.get
+          baseEdge.incidentFace = Some(newFace)
 
-            val newFace = Face(s"F_Poly_${innerFaces.size}")
-            val polyVertices = List(v_start, v_end) ++ newVertices
-            val newInnerEdges = mutable.ListBuffer.empty[HalfEdge]
-            val newOuterEdges = mutable.ListBuffer.empty[HalfEdge]
+          // Link the inner loop for the new face
+          val allInnerEdges = baseEdge +: newInnerEdges.toList
+          for (i <- 0 until sides)
+            val current = allInnerEdges(i)
+            val next = allInnerEdges((i + 1) % sides)
+            current.next = Some(next)
+            next.prev = Some(current)
+            if i >= 1 then
+              polyVertices(i).leaving = Some(current)
+          newFace.outerComponent = Some(baseEdge)
 
-            // Create sides-1 new pairs of half-edges
-            for (i <- 1 until sides)
-              val p1 = polyVertices(i)
-              val p2 = polyVertices((i + 1) % sides)
-              val inner = HalfEdge(p1, incidentFace = Some(newFace))
-              val outer = HalfEdge(p2, incidentFace = Some(outerFace))
-              inner.twin = Some(outer)
-              outer.twin = Some(inner)
-              newInnerEdges.addOne(inner)
-              newOuterEdges.addOne(outer)
+          // Link the new outer boundary edges
+          val outerChain = newOuterEdges.reverse.toList
+          oldPrev.next = Some(outerChain.head)
+          outerChain.head.prev = Some(oldPrev)
+          outerChain.last.next = Some(oldNext)
+          oldNext.prev = Some(outerChain.last)
 
-            // 4. Stitch the new elements into the DCEL graph
-            val oldPrev = baseEdge.prev.get
-            val oldNext = baseEdge.next.get
-            baseEdge.incidentFace = Some(newFace)
+          for (i <- 0 until outerChain.size - 1)
+            outerChain(i).next = Some(outerChain(i + 1))
+            outerChain(i + 1).prev = Some(outerChain(i))
 
-            // Link the inner loop for the new face
-            val allInnerEdges = baseEdge +: newInnerEdges.toList
-            for (i <- 0 until sides)
-              val current = allInnerEdges(i)
-              val next = allInnerEdges((i + 1) % sides)
-              current.next = Some(next)
-              next.prev = Some(current)
-              if i >= 1 then
-                polyVertices(i).leaving = Some(current)
-            newFace.outerComponent = Some(baseEdge)
-
-            // Link the new outer boundary edges
-            val outerChain = newOuterEdges.reverse.toList
-            oldPrev.next = Some(outerChain.head)
-            outerChain.head.prev = Some(oldPrev)
-            outerChain.last.next = Some(oldNext)
-            oldNext.prev = Some(outerChain.last)
-
-            for (i <- 0 until outerChain.size - 1)
-              outerChain(i).next = Some(outerChain(i + 1))
-              outerChain(i + 1).prev = Some(outerChain(i))
-
-            Right(this.copy(
-              vertices = this.vertices ++ newVertices,
-              halfEdges = this.halfEdges ++ newInnerEdges ++ newOuterEdges,
-              innerFaces = this.innerFaces :+ newFace
-            ))
+          Right(this.copy(
+            vertices = this.vertices ++ newVertices,
+            halfEdges = this.halfEdges ++ newInnerEdges ++ newOuterEdges,
+            innerFaces = this.innerFaces :+ newFace
+          ))
     yield
       result
-
 
   /**
    * Deletes an inner polygon (face) from the tiling.
