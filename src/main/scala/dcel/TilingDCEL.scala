@@ -187,6 +187,73 @@ case class TilingDCEL(
     (newInnerEdges.toList, newOuterEdges.toList)
 
   /**
+   * Links the edges of the new polygon into the DCEL structure.
+   */
+  private def stitchPolygonEdges(
+    baseEdge: HalfEdge,
+    newInnerEdges: List[HalfEdge],
+    newOuterEdges: List[HalfEdge],
+    polyVertices: List[Vertex],
+    newFace: Face,
+    sides: Int
+  ): Unit =
+    // Get the edges that will be connected to the new outer boundary
+    val oldPrev = baseEdge.prev.get
+    val oldNext = baseEdge.next.get
+    baseEdge.incidentFace = Some(newFace)
+
+    // Link the inner loop for the new face
+    val allInnerEdges = baseEdge +: newInnerEdges
+    for (i <- 0 until sides)
+      val current = allInnerEdges(i)
+      val next = allInnerEdges((i + 1) % sides)
+      current.next = Some(next)
+      next.prev = Some(current)
+      if i >= 1 then
+        polyVertices(i).leaving = Some(current)
+    newFace.outerComponent = Some(baseEdge)
+
+    // Link the new outer boundary edges
+    val outerChain = newOuterEdges.reverse
+    oldPrev.next = Some(outerChain.head)
+    outerChain.head.prev = Some(oldPrev)
+    outerChain.last.next = Some(oldNext)
+    oldNext.prev = Some(outerChain.last)
+
+    for (i <- 0 until outerChain.size - 1)
+      outerChain(i).next = Some(outerChain(i + 1))
+      outerChain(i + 1).prev = Some(outerChain(i))
+
+  /**
+   * Builds and integrates a new polygon on the given base edge.
+   */
+  private def buildPolygonOnEdge(baseEdge: HalfEdge, twin: HalfEdge, sides: Int): Either[String, TilingDCEL] =
+    val v_start = baseEdge.origin
+    val v_end = twin.origin // Destination of baseEdge
+
+    // 1. Calculate new vertex positions
+    val newVertexCoords = calculateNewVertices(v_start, v_end, sides)
+
+    // 2. Check for boundary intersections
+    if polygonWouldIntersectBoundary(baseEdge, v_start, v_end, newVertexCoords) then
+      Left("The new polygon would cross a boundary edge.")
+    else
+      // 3. Create the new face and half-edges
+      val newVertices = createNewVertices(newVertexCoords)
+      val newFace = Face(s"F_Poly_${innerFaces.size}")
+      val polyVertices = List(v_start, v_end) ++ newVertices
+      val (newInnerEdges, newOuterEdges) = createHalfEdgePairs(polyVertices, sides, newFace)
+
+      // 4. Stitch the new elements into the DCEL graph
+      stitchPolygonEdges(baseEdge, newInnerEdges, newOuterEdges, polyVertices, newFace, sides)
+
+      Right(this.copy(
+        vertices = this.vertices ++ newVertices,
+        halfEdges = this.halfEdges ++ newInnerEdges ++ newOuterEdges,
+        innerFaces = this.innerFaces :+ newFace
+      ))
+
+  /**
    * Adds a new regular polygon to a specified boundary edge of the tiling.
    *
    * This method checks for self-intersections with the boundary.
@@ -197,62 +264,12 @@ case class TilingDCEL(
    */
   def maybeAddRegularPolygon(sides: Int, onEdgeStartingWithVertexId: String): Either[String, TilingDCEL] =
     for
-      _        <- TilingBuilder.validateSides(sides, "regular")
+      _ <- TilingBuilder.validateSides(sides, "regular")
       baseEdge <- findBoundaryEdge(onEdgeStartingWithVertexId)
         .toRight(s"No boundary edge found starting with vertex ID $onEdgeStartingWithVertexId")
-      twin     <- baseEdge.twin.toRight("Boundary edge has no twin, which should not happen.")
-      result   <-
-        val v_start = baseEdge.origin
-        val v_end = twin.origin // Destination of baseEdge
-
-        // 1. Calculate new vertex positions
-        val newVertexCoords = calculateNewVertices(v_start, v_end, sides)
-
-        // 2. Check for boundary intersections
-        if polygonWouldIntersectBoundary(baseEdge, v_start, v_end, newVertexCoords) then
-          Left("The new polygon would cross a boundary edge.")
-        else
-          // 3. Create the new face and half-edges
-          val newVertices = createNewVertices(newVertexCoords)
-
-          val newFace = Face(s"F_Poly_${innerFaces.size}")
-          val polyVertices = List(v_start, v_end) ++ newVertices
-          val (newInnerEdges, newOuterEdges) = createHalfEdgePairs(polyVertices, sides, newFace)
-
-          // 4. Stitch the new elements into the DCEL graph
-          val oldPrev = baseEdge.prev.get
-          val oldNext = baseEdge.next.get
-          baseEdge.incidentFace = Some(newFace)
-
-          // Link the inner loop for the new face
-          val allInnerEdges = baseEdge +: newInnerEdges.toList
-          for (i <- 0 until sides)
-            val current = allInnerEdges(i)
-            val next = allInnerEdges((i + 1) % sides)
-            current.next = Some(next)
-            next.prev = Some(current)
-            if i >= 1 then
-              polyVertices(i).leaving = Some(current)
-          newFace.outerComponent = Some(baseEdge)
-
-          // Link the new outer boundary edges
-          val outerChain = newOuterEdges.reverse.toList
-          oldPrev.next = Some(outerChain.head)
-          outerChain.head.prev = Some(oldPrev)
-          outerChain.last.next = Some(oldNext)
-          oldNext.prev = Some(outerChain.last)
-
-          for (i <- 0 until outerChain.size - 1)
-            outerChain(i).next = Some(outerChain(i + 1))
-            outerChain(i + 1).prev = Some(outerChain(i))
-
-          Right(this.copy(
-            vertices = this.vertices ++ newVertices,
-            halfEdges = this.halfEdges ++ newInnerEdges ++ newOuterEdges,
-            innerFaces = this.innerFaces :+ newFace
-          ))
-    yield
-      result
+      twin <- baseEdge.twin.toRight("Boundary edge has no twin, which should not happen.")
+      result <- buildPolygonOnEdge(baseEdge, twin, sides)
+    yield result
 
   /**
    * Deletes an inner polygon (face) from the tiling.
