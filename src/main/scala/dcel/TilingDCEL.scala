@@ -130,6 +130,33 @@ case class TilingDCEL(
       currentPoint = nextPoint
     newPoints.result()
 
+  private def polygonWouldIntersectBoundary(
+    baseEdge: HalfEdge,
+    v_start: Vertex,
+    v_end: Vertex,
+    newVertexCoords: List[BigPoint]
+  ): Boolean =
+    val newEdgesPoints = v_end.coords +: newVertexCoords :+ v_start.coords
+    val newEdgeSegments = newEdgesPoints.sliding(2).collect { case Seq(p1, p2) => BigLineSegment(p1, p2) }.toList
+
+    val newPolygonBBox = BigBox.fromPoints(newEdgesPoints)
+    val searchBBox = newPolygonBBox.expand(BigDecimal(1.0))
+
+    val boundaryEdgesToCheck = getBoundaryEdges.filterNot { edge =>
+      edge == baseEdge || baseEdge.next.contains(edge) || baseEdge.prev.contains(edge)
+    }
+
+    val nearbyBoundarySegments = for {
+      edge <- boundaryEdgesToCheck
+      twin <- edge.twin
+      segment = BigLineSegment(edge.origin.coords, twin.origin.coords)
+      if searchBBox.intersects(BigBox.fromSegment(segment))
+    } yield segment
+
+    newEdgeSegments.exists { newSeg =>
+      nearbyBoundarySegments.exists(boundarySeg => BigLineSegment.doIntersect(newSeg, boundarySeg))
+    }
+
   /**
    * Adds a new regular polygon to a specified boundary edge of the tiling.
    *
@@ -152,31 +179,8 @@ case class TilingDCEL(
         // 1. Calculate new vertex positions
         val newVertexCoords = calculateNewVertices(v_start, v_end, sides)
 
-        // 2. Check for boundary intersections before modifying the DCEL
-        val newEdgesPoints = v_end.coords +: newVertexCoords :+ v_start.coords
-        val newEdgeSegments = newEdgesPoints.sliding(2).collect { case Seq(p1, p2) => BigLineSegment(p1, p2) }.toList
-
-        // Create a bounding box for the new polygon and expand it by 1 unit.
-        val newPolygonBBox = BigBox.fromPoints(newEdgesPoints)
-        val searchBBox = newPolygonBBox.expand(BigDecimal(1.0))
-
-        // Filter boundary edges to check only those within the search area.
-        val boundaryEdgesToCheck = getBoundaryEdges.filterNot { edge =>
-          edge == baseEdge || edge == baseEdge.next.get || edge == baseEdge.prev.get
-        }
-
-        val nearbyBoundarySegments = for {
-          edge <- boundaryEdgesToCheck
-          twin <- edge.twin
-          segment = BigLineSegment(edge.origin.coords, twin.origin.coords)
-          if searchBBox.intersects(BigBox.fromSegment(segment))
-        } yield segment
-
-        val intersects = newEdgeSegments.exists { newSeg =>
-          nearbyBoundarySegments.exists(boundarySeg => BigLineSegment.doIntersect(newSeg, boundarySeg))
-        }
-
-        if intersects then
+        // 2. Check for boundary intersections
+        if polygonWouldIntersectBoundary(baseEdge, v_start, v_end, newVertexCoords) then
           Left("The new polygon would cross a boundary edge.")
         else
           // 3. Create the new face and half-edges
