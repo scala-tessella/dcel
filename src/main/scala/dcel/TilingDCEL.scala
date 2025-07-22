@@ -246,126 +246,182 @@ case class TilingDCEL(
    *         or a `String` with an error message if the deletion is not possible.
    */
   def maybeDeletePolygon(faceId: String): Either[String, TilingDCEL] =
-    innerFaces.find(_.id == faceId) match
-      case None => Left(s"Inner face with ID $faceId not found.")
-      case Some(faceToDelete) =>
-        val faceEdges = faceToDelete.halfEdges
-        val twinEdges = faceEdges.map(_.twin.get)
-        val (boundaryTwins, innerTwins) = twinEdges.partition(_.incidentFace.contains(outerFace))
+    for
+      faceToDelete <- findInnerFace(faceId)
+      edgeClassification <- classifyFaceEdges(faceToDelete)
+      _ <- validateFaceDeletion(faceToDelete, edgeClassification)
+    yield
+      if innerFaces.length == 1 then TilingBuilder.empty
+      else performFaceDeletion(faceToDelete, edgeClassification)
 
-        if boundaryTwins.isEmpty then
-          return Left(s"Face ${faceToDelete.id} is not adjacent to the outer boundary.")
+  private case class EdgeClassification(
+    faceEdges: List[HalfEdge],
+    boundaryTwins: List[HalfEdge],
+    innerTwins: List[HalfEdge]
+  )
 
-        val neighborInnerFaces = innerTwins.map(_.incidentFace.get).distinct
-        if neighborInnerFaces.length > 1 then
-          val adjacency = neighborInnerFaces.map { f =>
-            f -> f.halfEdges.map(_.twin.get.incidentFace.get).filter(neighborInnerFaces.contains)
-          }.toMap
-          val visited = mutable.Set[Face]()
-          val q = mutable.Queue[Face](neighborInnerFaces.head)
-          visited += neighborInnerFaces.head
-          while q.nonEmpty do
-            val current = q.dequeue()
-            adjacency.getOrElse(current, Nil).foreach(n =>
-              if !visited.contains(n) then
-                visited += n
-                q.enqueue(n)
-            )
-          if visited.size != neighborInnerFaces.length then
-            return Left(s"Removing face ${faceToDelete.id} would partition the tiling.")
+  private def findInnerFace(faceId: String): Either[String, Face] =
+    innerFaces.find(_.id == faceId)
+      .toRight(s"Inner face with ID $faceId not found.")
 
-        if innerFaces.length == 1 then
-          return Right(TilingBuilder.empty)
+  private def classifyFaceEdges(face: Face): Either[String, EdgeClassification] =
+    val faceEdges = face.halfEdges
+    val twinEdges = faceEdges.map(_.twin.get)
+    val (boundaryTwins, innerTwins) = twinEdges.partition(_.incidentFace.contains(outerFace))
+    Right(EdgeClassification(faceEdges, boundaryTwins, innerTwins))
 
-        // Mark edges that were twins of the deleted face as belonging to the outer face
-        innerTwins.foreach(_.incidentFace = Some(outerFace))
+  private def validateFaceDeletion(face: Face, classification: EdgeClassification): Either[String, Unit] =
+    for
+      _ <- validateFaceIsBoundaryAdjacent(face, classification.boundaryTwins)
+      _ <- validateDeletionWontPartition(face, classification.innerTwins)
+    yield ()
 
-        // Rebuild the outer boundary by connecting the boundary twins and inner twins
-        if outerFace.outerComponent.isDefined then
-          val boundaryEdges = getBoundaryEdges
-          val twinIndices = boundaryTwins.map(boundaryEdges.indexOf).sorted
+  private def validateFaceIsBoundaryAdjacent(face: Face, boundaryTwins: List[HalfEdge]): Either[String, Unit] =
+    if boundaryTwins.isEmpty then
+      Left(s"Face ${face.id} is not adjacent to the outer boundary.")
+    else
+      Right(())
 
-          if twinIndices.nonEmpty then
-            val firstTwinIndex = twinIndices.head
-            val lastTwinIndex = twinIndices.last
-            val firstTwin = boundaryEdges(firstTwinIndex)
-            val lastTwin = boundaryEdges(lastTwinIndex)
-            val prevEdge = firstTwin.prev.get
-            val nextEdge = lastTwin.next.get
+  private def validateDeletionWontPartition(face: Face, innerTwins: List[HalfEdge]): Either[String, Unit] =
+    val neighborInnerFaces = innerTwins.map(_.incidentFace.get).distinct
+    if neighborInnerFaces.length <= 1 then
+      Right(())
+    else
+      checkConnectivity(neighborInnerFaces)
+        .toRight(s"Removing face ${face.id} would partition the tiling.")
 
-            // Sort inner twins by their position around the deleted face
-            val newSegment = innerTwins.sortBy(twin => faceEdges.indexOf(twin.twin.get))
+  private def checkConnectivity(faces: List[Face]): Option[Unit] =
+    val adjacency = buildAdjacencyMap(faces)
+    val visited = breadthFirstSearch(faces.head, adjacency)
+    Option.when(visited.size == faces.length)(())
 
-            if newSegment.isEmpty then
-              // No inner twins to insert, just connect prev to next
-              prevEdge.next = Some(nextEdge)
-              nextEdge.prev = Some(prevEdge)
-            else
-              // Insert the chain of inner twins between prevEdge and nextEdge
-              prevEdge.next = Some(newSegment.head)
-              newSegment.head.prev = Some(prevEdge)
-              newSegment.last.next = Some(nextEdge)
-              nextEdge.prev = Some(newSegment.last)
+  private def buildAdjacencyMap(faces: List[Face]): Map[Face, List[Face]] =
+    faces.map { f =>
+      f -> f.halfEdges
+        .map(_.twin.get.incidentFace.get)
+        .filter(faces.contains)
+    }.toMap
 
-              // Link the inner twins together
-              for (i <- 0 until newSegment.size - 1)
-                newSegment(i).next = Some(newSegment(i + 1))
-                newSegment(i + 1).prev = Some(newSegment(i))
+  private def breadthFirstSearch(start: Face, adjacency: Map[Face, List[Face]]): Set[Face] =
+    val visited = mutable.Set[Face](start)
+    val queue = mutable.Queue[Face](start)
 
-            // Update the outer face component if needed
-            if boundaryTwins.contains(outerFace.outerComponent.get) then
-              if newSegment.nonEmpty then
-                outerFace.outerComponent = Some(newSegment.head)
-              else
-                outerFace.outerComponent = Some(nextEdge)
+    while queue.nonEmpty do
+      val current = queue.dequeue()
+      adjacency.getOrElse(current, Nil).foreach { neighbor =>
+        if !visited.contains(neighbor) then
+          visited += neighbor
+          queue.enqueue(neighbor)
+      }
 
-        // Determine which vertices to remove more carefully
-        val remainingInnerFaces = innerFaces.filterNot(_ == faceToDelete)
+    visited.toSet
 
-        // Get all vertices that are still needed by remaining inner faces
-        val verticesUsedByRemainingFaces = remainingInnerFaces.flatMap(_.halfEdges.map(_.origin)).toSet
+  private def performFaceDeletion(faceToDelete: Face, classification: EdgeClassification): TilingDCEL =
+    // Update edge incident faces
+    classification.innerTwins.foreach(_.incidentFace = Some(outerFace))
 
+    // Reconstruct boundary
+    reconstructBoundary(classification)
 
-        // Also keep vertices that will be endpoints of inner twin edges (they become boundary vertices)
-        val verticesOfInnerTwins = innerTwins.flatMap(edge => List(edge.origin, edge.twin.get.origin)).toSet
+    // Determine vertices and edges to keep
+    val remainingElements = calculateRemainingElements(faceToDelete, classification)
 
-        val verticesToKeep = verticesUsedByRemainingFaces ++ verticesOfInnerTwins
-        val verticesToRemove = vertices.filterNot(verticesToKeep.contains)
+    // Update vertex leaving edges
+    updateVertexLeavingEdges(remainingElements.verticesToRemove, classification.faceEdges, classification.boundaryTwins)
 
-//        println(
-//          s"""
-//             |Vertices used by remaining faces: ${verticesUsedByRemainingFaces.map(_.id).mkString(", ")}
-//             |Vertices of inner twins: ${verticesOfInnerTwins.map(_.id).mkString(", ")}
-//             |Vertices to keep: ${verticesToKeep.map(_.id).mkString(", ")}
-//             |Vertices to remove: ${verticesToRemove.map(_.id).mkString(", ")}
-//             |""".stripMargin)
+    // Create new tiling
+    TilingDCEL(
+      vertices = remainingElements.vertices,
+      halfEdges = remainingElements.halfEdges,
+      innerFaces = remainingElements.innerFaces,
+      outerFace = outerFace
+    )
 
-        // Update leaving edge references for vertices that will remain
-        vertices.foreach { v =>
-          if !verticesToRemove.contains(v) then
-            // Find a leaving edge that doesn't belong to removed edges
-            val validLeavingEdge = halfEdges.find { e =>
-              e.origin == v &&
-                !faceEdges.contains(e) &&
-                !boundaryTwins.contains(e) &&
-                !verticesToRemove.contains(e.twin.get.origin)
-            }
-            v.leaving = validLeavingEdge
+  private def reconstructBoundary(classification: EdgeClassification): Unit =
+    outerFace.outerComponent.foreach { _ =>
+      val boundaryEdges = getBoundaryEdges
+      val twinIndices = classification.boundaryTwins.map(boundaryEdges.indexOf).sorted
+
+      twinIndices.headOption.foreach { firstTwinIndex =>
+        val lastTwinIndex = twinIndices.last
+        val firstTwin = boundaryEdges(firstTwinIndex)
+        val lastTwin = boundaryEdges(lastTwinIndex)
+        val prevEdge = firstTwin.prev.get
+        val nextEdge = lastTwin.next.get
+
+        val newSegment = classification.innerTwins.sortBy(twin =>
+          classification.faceEdges.indexOf(twin.twin.get))
+
+        if newSegment.isEmpty then
+          linkEdges(prevEdge, nextEdge)
+        else
+          insertBoundarySegment(prevEdge, nextEdge, newSegment)
+          updateOuterFaceComponent(classification.boundaryTwins, newSegment, nextEdge)
+      }
+    }
+
+  private def linkEdges(prev: HalfEdge, next: HalfEdge): Unit =
+    prev.next = Some(next)
+    next.prev = Some(prev)
+
+  private def insertBoundarySegment(prevEdge: HalfEdge, nextEdge: HalfEdge, segment: List[HalfEdge]): Unit =
+    linkEdges(prevEdge, segment.head)
+    linkEdges(segment.last, nextEdge)
+    segment.sliding(2).foreach {
+      case List(current, next) => linkEdges(current, next)
+      case _ => // Single element, no linking needed
+    }
+
+  private def updateOuterFaceComponent(boundaryTwins: List[HalfEdge], newSegment: List[HalfEdge], nextEdge: HalfEdge): Unit =
+    if boundaryTwins.contains(outerFace.outerComponent.get) then
+      outerFace.outerComponent = Some(
+        if newSegment.nonEmpty then newSegment.head else nextEdge
+      )
+
+  private case class RemainingElements(
+    vertices: List[Vertex],
+    halfEdges: List[HalfEdge],
+    innerFaces: List[Face],
+    verticesToRemove: List[Vertex]
+  )
+
+  private def calculateRemainingElements(faceToDelete: Face, classification: EdgeClassification): RemainingElements =
+    val remainingInnerFaces = innerFaces.filterNot(_ == faceToDelete)
+    val verticesUsedByRemainingFaces = remainingInnerFaces.flatMap(_.halfEdges.map(_.origin)).toSet
+    val verticesOfInnerTwins = classification.innerTwins.flatMap(edge =>
+      List(edge.origin, edge.twin.get.origin)).toSet
+
+    val verticesToKeep = verticesUsedByRemainingFaces ++ verticesOfInnerTwins
+    val verticesToRemove = vertices.filterNot(verticesToKeep.contains)
+    val edgesToRemove = classification.faceEdges ++ classification.boundaryTwins
+
+    val newHalfEdges = halfEdges
+      .filterNot(edgesToRemove.contains)
+      .filterNot(e => verticesToRemove.contains(e.origin) ||
+        verticesToRemove.contains(e.twin.get.origin))
+
+    RemainingElements(
+      vertices = vertices.filterNot(verticesToRemove.contains),
+      halfEdges = newHalfEdges,
+      innerFaces = remainingInnerFaces,
+      verticesToRemove = verticesToRemove
+    )
+
+  private def updateVertexLeavingEdges(
+    verticesToRemove: List[Vertex],
+    faceEdges: List[HalfEdge],
+    boundaryTwins: List[HalfEdge]
+  ): Unit =
+    vertices.foreach { vertex =>
+      if !verticesToRemove.contains(vertex) then
+        val validLeavingEdge = halfEdges.find { edge =>
+          edge.origin == vertex &&
+            !faceEdges.contains(edge) &&
+            !boundaryTwins.contains(edge) &&
+            !verticesToRemove.contains(edge.twin.get.origin)
         }
-
-        val newVertices = vertices.filterNot(verticesToRemove.contains)
-        val edgesToRemove = faceEdges ++ boundaryTwins
-        val newHalfEdges = halfEdges.filterNot(edgesToRemove.contains).filterNot(e =>
-          verticesToRemove.contains(e.origin) || verticesToRemove.contains(e.twin.get.origin)
-        )
-        val newInnerFaces = remainingInnerFaces
-
-//        println(
-//          s"""
-//             |New vertices: ${newVertices.map(_.id).mkString(", ")}
-//             |""".stripMargin)
-
-        Right(TilingDCEL(newVertices, newHalfEdges, newInnerFaces, outerFace))
+        vertex.leaving = validLeavingEdge
+    }
 
   /**
    * Generates an SVG representation of the tiling.
