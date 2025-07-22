@@ -25,6 +25,43 @@ case class Vertex(
 
   override def hashCode(): Int = id.hashCode
 
+object Vertex:
+
+  /**
+   * Builds an adjacency map for vertices that are connected through boundary edges.
+   * Only includes vertices that are in the sharedVertices set.
+   */
+  def buildBoundaryVertexAdjacency(boundaryEdges: List[HalfEdge], sharedVertices: Set[Vertex]): Map[Vertex, List[Vertex]] =
+    boundaryEdges
+      .filter(edge => sharedVertices.contains(edge.origin))
+      .groupBy(_.origin)
+      .view
+      .mapValues { edges =>
+        edges.flatMap { edge =>
+          val destination = edge.twin.get.origin
+          Option.when(sharedVertices.contains(destination))(destination)
+        }
+      }
+      .toMap
+
+  /**
+   * Performs a traversal to check if all target vertices are reachable from the start vertex
+   * through the boundary path.
+   */
+  def checkConnectivity(start: Vertex, targetVertices: Set[Vertex], adjacency: Map[Vertex, List[Vertex]]): Option[Unit] =
+    val visited = mutable.Set[Vertex](start)
+    val queue = mutable.Queue[Vertex](start)
+
+    while queue.nonEmpty do
+      val current = queue.dequeue()
+      adjacency.getOrElse(current, Nil).foreach { neighbor =>
+        if !visited.contains(neighbor) then
+          visited += neighbor
+          queue.enqueue(neighbor)
+      }
+
+    Option.when(visited == targetVertices)(())
+
 /**
  * Represents a directed half-edge in the DCEL.
  *

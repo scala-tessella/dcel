@@ -311,50 +311,10 @@ case class TilingDCEL(
 
     // Build adjacency map for these vertices through the boundary of the outer face
     val boundaryEdges = getBoundaryEdges
-    val boundaryVertexAdjacency = buildBoundaryVertexAdjacency(boundaryEdges, sharedVertices.toSet)
+    val boundaryVertexAdjacency = Vertex.buildBoundaryVertexAdjacency(boundaryEdges, sharedVertices.toSet)
 
     // Check if all shared vertices are connected through the boundary path
-    checkVertexConnectivity(sharedVertices.head, sharedVertices.toSet, boundaryVertexAdjacency)
-
-  /**
-   * Builds an adjacency map for vertices that are connected through boundary edges.
-   * Only includes vertices that are in the sharedVertices set.
-   */
-  private def buildBoundaryVertexAdjacency(boundaryEdges: List[HalfEdge], sharedVertices: Set[Vertex]): Map[Vertex, List[Vertex]] =
-    boundaryEdges
-      .filter(edge => sharedVertices.contains(edge.origin))
-      .groupBy(_.origin)
-      .view
-      .mapValues { edges =>
-        edges.flatMap { edge =>
-          val destination = edge.twin.get.origin
-          Option.when(sharedVertices.contains(destination))(destination)
-        }
-      }
-      .toMap
-
-  /**
-   * Performs a traversal to check if all target vertices are reachable from the start vertex
-   * through the boundary path.
-   */
-  private def checkVertexConnectivity(start: Vertex, targetVertices: Set[Vertex], adjacency: Map[Vertex, List[Vertex]]): Option[Unit] =
-    val visited = mutable.Set[Vertex](start)
-    val queue = mutable.Queue[Vertex](start)
-
-    while queue.nonEmpty do
-      val current = queue.dequeue()
-      adjacency.getOrElse(current, Nil).foreach { neighbor =>
-        if !visited.contains(neighbor) then
-          visited += neighbor
-          queue.enqueue(neighbor)
-      }
-
-    Option.when(visited == targetVertices)(())
-
-  private def checkConnectivity(faces: List[Face]): Option[Unit] =
-    val adjacency = Face.adjacencyMap(faces)
-    val visited = Face.breadthFirstSearch(faces.head, adjacency)
-    Option.when(visited.size == faces.length)(())
+    Vertex.checkConnectivity(sharedVertices.head, sharedVertices.toSet, boundaryVertexAdjacency)
 
   private def performFaceDeletion(faceToDelete: Face, classification: EdgeClassification): TilingDCEL =
     // Update edge incident faces
