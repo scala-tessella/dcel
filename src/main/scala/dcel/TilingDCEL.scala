@@ -164,13 +164,14 @@ case class TilingDCEL(
           val boundaryEdgesToCheck = getBoundaryEdges.filterNot { edge =>
             edge == baseEdge || edge == baseEdge.next.get || edge == baseEdge.prev.get
           }
-          val nearbyBoundarySegments = boundaryEdgesToCheck.collect {
-            case edge if {
-              val segment = BigLineSegment(edge.origin.coords, edge.twin.get.origin.coords)
-              val edgeBBox = BigBox.fromSegment(segment)
-              searchBBox.intersects(edgeBBox)
-            } => BigLineSegment(edge.origin.coords, edge.twin.get.origin.coords)
-          }
+
+          val nearbyBoundarySegments =
+            for
+              edge <- boundaryEdgesToCheck
+              twin <- edge.twin
+              segment = BigLineSegment(edge.origin.coords, twin.origin.coords)
+              if searchBBox.intersects(BigBox.fromSegment(segment))
+            yield segment
 
           val intersects = newEdgeSegments.exists { newSeg =>
             nearbyBoundarySegments.exists(boundarySeg => BigLineSegment.doIntersect(newSeg, boundarySeg))
