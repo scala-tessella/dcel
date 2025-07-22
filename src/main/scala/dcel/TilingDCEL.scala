@@ -287,8 +287,69 @@ case class TilingDCEL(
     if neighborInnerFaces.length <= 1 then
       Right(())
     else
-      checkConnectivity(neighborInnerFaces)
-        .toRight(s"Removing face ${face.id} would partition the tiling.")
+      // Check if the boundary vertices shared by the face form a connected path
+      checkBoundaryVertexConnectivity(face, innerTwins) match
+        case Some(_) => Right(())
+        case None => Left(s"Removing face ${face.id} would partition the tiling.")
+
+  /**
+   * Checks if the boundary vertices that the deleted face shares with neighbor inner faces
+   * form a connected path. If they do, removing the face won't partition the tiling.
+   *
+   * This is much more efficient than doing BFS on all faces, as we only need to check
+   * the local connectivity around the face being deleted.
+   */
+  private def checkBoundaryVertexConnectivity(face: Face, innerTwins: List[HalfEdge]): Option[Unit] =
+    if innerTwins.isEmpty then return Some(())
+
+    // Get vertices where the deleted face connects to other inner faces
+    val sharedVertices = innerTwins.flatMap(edge => List(edge.origin, edge.twin.get.origin)).distinct
+
+    if sharedVertices.length <= 1 then
+      // If there's only one or no shared vertex, deletion won't partition
+      return Some(())
+
+    // Build adjacency map for these vertices through the boundary of the outer face
+    val boundaryEdges = getBoundaryEdges
+    val boundaryVertexAdjacency = buildBoundaryVertexAdjacency(boundaryEdges, sharedVertices.toSet)
+
+    // Check if all shared vertices are connected through the boundary path
+    checkVertexConnectivity(sharedVertices.head, sharedVertices.toSet, boundaryVertexAdjacency)
+
+  /**
+   * Builds an adjacency map for vertices that are connected through boundary edges.
+   * Only includes vertices that are in the sharedVertices set.
+   */
+  private def buildBoundaryVertexAdjacency(boundaryEdges: List[HalfEdge], sharedVertices: Set[Vertex]): Map[Vertex, List[Vertex]] =
+    boundaryEdges
+      .filter(edge => sharedVertices.contains(edge.origin))
+      .groupBy(_.origin)
+      .view
+      .mapValues { edges =>
+        edges.flatMap { edge =>
+          val destination = edge.twin.get.origin
+          Option.when(sharedVertices.contains(destination))(destination)
+        }
+      }
+      .toMap
+
+  /**
+   * Performs a traversal to check if all target vertices are reachable from the start vertex
+   * through the boundary path.
+   */
+  private def checkVertexConnectivity(start: Vertex, targetVertices: Set[Vertex], adjacency: Map[Vertex, List[Vertex]]): Option[Unit] =
+    val visited = mutable.Set[Vertex](start)
+    val queue = mutable.Queue[Vertex](start)
+
+    while queue.nonEmpty do
+      val current = queue.dequeue()
+      adjacency.getOrElse(current, Nil).foreach { neighbor =>
+        if !visited.contains(neighbor) then
+          visited += neighbor
+          queue.enqueue(neighbor)
+      }
+
+    Option.when(visited == targetVertices)(())
 
   private def checkConnectivity(faces: List[Face]): Option[Unit] =
     val adjacency = Face.adjacencyMap(faces)
