@@ -4,6 +4,7 @@ package dcel
 import BigDecimalGeometry.{AngleDegree, BigPoint}
 
 import scala.annotation.tailrec
+import scala.collection.mutable
 
 /**
  * Represents a single vertex in the DCEL.
@@ -48,6 +49,20 @@ case class HalfEdge(
 
   override def hashCode(): Int = System.identityHashCode(this)
 
+object HalfEdge:
+
+  def linkEdges(prev: HalfEdge, next: HalfEdge): Unit =
+    prev.next = Some(next)
+    next.prev = Some(prev)
+
+  def insertBoundarySegment(prevEdge: HalfEdge, nextEdge: HalfEdge, segment: List[HalfEdge]): Unit =
+    HalfEdge.linkEdges(prevEdge, segment.head)
+    HalfEdge.linkEdges(segment.last, nextEdge)
+    segment.sliding(2).foreach {
+      case List(current, next) => HalfEdge.linkEdges(current, next)
+      case _ => // Single element, no linking needed
+    }
+
 /**
  * Represents a single face in the DCEL.
  *
@@ -81,3 +96,26 @@ case class Face(
 
       loop(start, Nil, Set.empty)
     }.getOrElse(Nil)
+    
+object Face:
+
+  def adjacencyMap(faces: List[Face]): Map[Face, List[Face]] =
+    faces.map { face =>
+      face -> face.halfEdges
+        .map(_.twin.get.incidentFace.get)
+        .filter(faces.contains)
+    }.toMap
+
+  def breadthFirstSearch(start: Face, adjacency: Map[Face, List[Face]]): Set[Face] =
+    val visited = mutable.Set[Face](start)
+    val queue = mutable.Queue[Face](start)
+
+    while queue.nonEmpty do
+      val current = queue.dequeue()
+      adjacency.getOrElse(current, Nil).foreach { neighbor =>
+        if !visited.contains(neighbor) then
+          visited += neighbor
+          queue.enqueue(neighbor)
+      }
+
+    visited.toSet

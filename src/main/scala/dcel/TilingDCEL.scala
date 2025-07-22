@@ -291,30 +291,9 @@ case class TilingDCEL(
         .toRight(s"Removing face ${face.id} would partition the tiling.")
 
   private def checkConnectivity(faces: List[Face]): Option[Unit] =
-    val adjacency = buildAdjacencyMap(faces)
-    val visited = breadthFirstSearch(faces.head, adjacency)
+    val adjacency = Face.adjacencyMap(faces)
+    val visited = Face.breadthFirstSearch(faces.head, adjacency)
     Option.when(visited.size == faces.length)(())
-
-  private def buildAdjacencyMap(faces: List[Face]): Map[Face, List[Face]] =
-    faces.map { f =>
-      f -> f.halfEdges
-        .map(_.twin.get.incidentFace.get)
-        .filter(faces.contains)
-    }.toMap
-
-  private def breadthFirstSearch(start: Face, adjacency: Map[Face, List[Face]]): Set[Face] =
-    val visited = mutable.Set[Face](start)
-    val queue = mutable.Queue[Face](start)
-
-    while queue.nonEmpty do
-      val current = queue.dequeue()
-      adjacency.getOrElse(current, Nil).foreach { neighbor =>
-        if !visited.contains(neighbor) then
-          visited += neighbor
-          queue.enqueue(neighbor)
-      }
-
-    visited.toSet
 
   private def performFaceDeletion(faceToDelete: Face, classification: EdgeClassification): TilingDCEL =
     // Update edge incident faces
@@ -353,23 +332,11 @@ case class TilingDCEL(
           classification.faceEdges.indexOf(twin.twin.get))
 
         if newSegment.isEmpty then
-          linkEdges(prevEdge, nextEdge)
+          HalfEdge.linkEdges(prevEdge, nextEdge)
         else
-          insertBoundarySegment(prevEdge, nextEdge, newSegment)
+          HalfEdge.insertBoundarySegment(prevEdge, nextEdge, newSegment)
           updateOuterFaceComponent(classification.boundaryTwins, newSegment, nextEdge)
       }
-    }
-
-  private def linkEdges(prev: HalfEdge, next: HalfEdge): Unit =
-    prev.next = Some(next)
-    next.prev = Some(prev)
-
-  private def insertBoundarySegment(prevEdge: HalfEdge, nextEdge: HalfEdge, segment: List[HalfEdge]): Unit =
-    linkEdges(prevEdge, segment.head)
-    linkEdges(segment.last, nextEdge)
-    segment.sliding(2).foreach {
-      case List(current, next) => linkEdges(current, next)
-      case _ => // Single element, no linking needed
     }
 
   private def updateOuterFaceComponent(boundaryTwins: List[HalfEdge], newSegment: List[HalfEdge], nextEdge: HalfEdge): Unit =
