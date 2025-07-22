@@ -253,7 +253,7 @@ case class TilingDCEL(
 
     // 2. Check for boundary intersections
     if polygonWouldIntersectBoundary(baseEdge, v_start, v_end, newVertexCoords) then
-      Left(s"The new ${sides}-sided polygon would intersect with existing boundary edges.")
+      Left(s"The new $sides-sided polygon would intersect with existing boundary edges.")
     else
       // 3. Create the new face and half-edges
       val newVertices = createNewVertices(newVertexCoords)
@@ -344,7 +344,7 @@ case class TilingDCEL(
       Right(())
     else
       // Check if the boundary vertices shared by the face form a connected path
-      checkBoundaryVertexConnectivity(face, innerTwins) match
+      checkBoundaryVertexConnectivity(innerTwins) match
         case Some(_) => Right(())
         case None => Left(s"Removing face ${face.id} would partition the tiling.")
 
@@ -355,7 +355,7 @@ case class TilingDCEL(
    * This is much more efficient than doing BFS on all faces, as we only need to check
    * the local connectivity around the face being deleted.
    */
-  private def checkBoundaryVertexConnectivity(face: Face, innerTwins: List[HalfEdge]): Option[Unit] =
+  private def checkBoundaryVertexConnectivity(innerTwins: List[HalfEdge]): Option[Unit] =
     if innerTwins.isEmpty then return Some(())
 
     // Get vertices where the deleted face connects to other inner faces
