@@ -277,51 +277,93 @@ case class TilingDCEL(
         if innerFaces.length == 1 then
           return Right(TilingBuilder.empty)
 
+        // Mark edges that were twins of the deleted face as belonging to the outer face
         innerTwins.foreach(_.incidentFace = Some(outerFace))
 
+        // Rebuild the outer boundary by connecting the boundary twins and inner twins
         if outerFace.outerComponent.isDefined then
           val boundaryEdges = getBoundaryEdges
           val twinIndices = boundaryTwins.map(boundaryEdges.indexOf).sorted
-          val firstTwin = boundaryEdges(twinIndices.head)
-          val lastTwin = boundaryEdges(twinIndices.last)
-          val prevEdge = firstTwin.prev.get
-          val nextEdge = lastTwin.next.get
-          val newSegment = innerTwins.sortBy(twin => faceEdges.indexOf(twin.twin.get))
 
-          if newSegment.isEmpty then
-            prevEdge.next = Some(nextEdge)
-            nextEdge.prev = Some(prevEdge)
-            if boundaryTwins.contains(outerFace.outerComponent.get) then
-              outerFace.outerComponent = Some(nextEdge)
-          else
-            prevEdge.next = Some(newSegment.head)
-            newSegment.head.prev = Some(prevEdge)
-            newSegment.last.next = Some(nextEdge)
-            nextEdge.prev = Some(newSegment.last)
-            if boundaryTwins.contains(outerFace.outerComponent.get) then
-              outerFace.outerComponent = Some(newSegment.head)
+          if twinIndices.nonEmpty then
+            val firstTwinIndex = twinIndices.head
+            val lastTwinIndex = twinIndices.last
+            val firstTwin = boundaryEdges(firstTwinIndex)
+            val lastTwin = boundaryEdges(lastTwinIndex)
+            val prevEdge = firstTwin.prev.get
+            val nextEdge = lastTwin.next.get
 
-        val verticesOfFace = faceEdges.map(_.origin).distinct
-        val verticesToRemove = verticesOfFace.filter { v =>
-          v.leaving.map { startEdge =>
-            @tailrec
-            def check(edge: HalfEdge): Boolean =
-              // check if this edge is connected to a surviving inner face
-              val isConnectedToInnerFace = edge.incidentFace.exists(f => f != faceToDelete && f != outerFace)
-              if isConnectedToInnerFace then
-                false // The vertex is NOT dangling, do not remove.
+            // Sort inner twins by their position around the deleted face
+            val newSegment = innerTwins.sortBy(twin => faceEdges.indexOf(twin.twin.get))
+
+            if newSegment.isEmpty then
+              // No inner twins to insert, just connect prev to next
+              prevEdge.next = Some(nextEdge)
+              nextEdge.prev = Some(prevEdge)
+            else
+              // Insert the chain of inner twins between prevEdge and nextEdge
+              prevEdge.next = Some(newSegment.head)
+              newSegment.head.prev = Some(prevEdge)
+              newSegment.last.next = Some(nextEdge)
+              nextEdge.prev = Some(newSegment.last)
+
+              // Link the inner twins together
+              for (i <- 0 until newSegment.size - 1)
+                newSegment(i).next = Some(newSegment(i + 1))
+                newSegment(i + 1).prev = Some(newSegment(i))
+
+            // Update the outer face component if needed
+            if boundaryTwins.contains(outerFace.outerComponent.get) then
+              if newSegment.nonEmpty then
+                outerFace.outerComponent = Some(newSegment.head)
               else
-                val nextEdge = edge.twin.get.next.get
-                if nextEdge eq startEdge then true // Cycled through all edges, none are connected. Vertex IS dangling. Remove.
-                else check(nextEdge)
+                outerFace.outerComponent = Some(nextEdge)
 
-            check(startEdge)
-          }.getOrElse(true) // if no leaving edges, it's dangling.
+        // Determine which vertices to remove more carefully
+        val remainingInnerFaces = innerFaces.filterNot(_ == faceToDelete)
+
+        // Get all vertices that are still needed by remaining inner faces
+        val verticesUsedByRemainingFaces = remainingInnerFaces.flatMap(_.halfEdges.map(_.origin)).toSet
+
+
+        // Also keep vertices that will be endpoints of inner twin edges (they become boundary vertices)
+        val verticesOfInnerTwins = innerTwins.flatMap(edge => List(edge.origin, edge.twin.get.origin)).toSet
+
+        val verticesToKeep = verticesUsedByRemainingFaces ++ verticesOfInnerTwins
+        val verticesToRemove = vertices.filterNot(verticesToKeep.contains)
+
+//        println(
+//          s"""
+//             |Vertices used by remaining faces: ${verticesUsedByRemainingFaces.map(_.id).mkString(", ")}
+//             |Vertices of inner twins: ${verticesOfInnerTwins.map(_.id).mkString(", ")}
+//             |Vertices to keep: ${verticesToKeep.map(_.id).mkString(", ")}
+//             |Vertices to remove: ${verticesToRemove.map(_.id).mkString(", ")}
+//             |""".stripMargin)
+
+        // Update leaving edge references for vertices that will remain
+        vertices.foreach { v =>
+          if !verticesToRemove.contains(v) then
+            // Find a leaving edge that doesn't belong to removed edges
+            val validLeavingEdge = halfEdges.find { e =>
+              e.origin == v &&
+                !faceEdges.contains(e) &&
+                !boundaryTwins.contains(e) &&
+                !verticesToRemove.contains(e.twin.get.origin)
+            }
+            v.leaving = validLeavingEdge
         }
+
         val newVertices = vertices.filterNot(verticesToRemove.contains)
         val edgesToRemove = faceEdges ++ boundaryTwins
-        val newHalfEdges = halfEdges.filterNot(edgesToRemove.contains).filterNot(e => verticesToRemove.contains(e.origin))
-        val newInnerFaces = innerFaces.filterNot(_ == faceToDelete)
+        val newHalfEdges = halfEdges.filterNot(edgesToRemove.contains).filterNot(e =>
+          verticesToRemove.contains(e.origin) || verticesToRemove.contains(e.twin.get.origin)
+        )
+        val newInnerFaces = remainingInnerFaces
+
+//        println(
+//          s"""
+//             |New vertices: ${newVertices.map(_.id).mkString(", ")}
+//             |""".stripMargin)
 
         Right(TilingDCEL(newVertices, newHalfEdges, newInnerFaces, outerFace))
 
