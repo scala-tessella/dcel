@@ -158,6 +158,15 @@ case class TilingDCEL(
     }
 
   /**
+   * Creates new vertices for a regular polygon based on calculated coordinates.
+   */
+  private def createNewVertices(newVertexCoords: List[BigPoint]): List[Vertex] =
+    val maxVertexNum = vertices.map(_.id.filter(_.isDigit).toInt).maxOption.getOrElse(-1)
+    newVertexCoords.zipWithIndex.map { case (bigPoint, i) =>
+      Vertex(s"V${maxVertexNum + 1 + i}", bigPoint)
+    }
+
+  /**
    * Adds a new regular polygon to a specified boundary edge of the tiling.
    *
    * This method checks for self-intersections with the boundary.
@@ -184,10 +193,7 @@ case class TilingDCEL(
           Left("The new polygon would cross a boundary edge.")
         else
           // 3. Create the new face and half-edges
-          val maxVertexNum = this.vertices.map(_.id.filter(_.isDigit).toInt).maxOption.getOrElse(-1)
-          val newVertices = newVertexCoords.zipWithIndex.map { case (bigPoint, i) =>
-            Vertex(s"V${maxVertexNum + 1 + i}", bigPoint)
-          }
+          val newVertices = createNewVertices(newVertexCoords)
 
           val newFace = Face(s"F_Poly_${innerFaces.size}")
           val polyVertices = List(v_start, v_end) ++ newVertices
