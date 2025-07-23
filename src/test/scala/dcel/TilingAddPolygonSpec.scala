@@ -129,3 +129,21 @@ class TilingAddPolygonSpec extends AnyFlatSpec with Matchers with EitherValues:
     newTiling.innerFaces.length shouldBe 4
   }
 
+
+  it should "add an ensuing triangle" in {
+    val result =
+      TilingBuilder.createRegularPolygon(4).value
+        .maybeAddRegularPolygon(3, "V1").value
+        .maybeAddRegularPolygon(3, "V3").value
+        .maybeAddRegularPolygon(4, "V5").value
+        .maybeAddRegularPolygon(3, "V6").value
+        .maybeAddRegularPolygon(4, "V1").value
+        .maybeAddRegularPolygon(3, "V1", true)
+    result.isRight shouldBe true
+
+    val newTiling = result.value
+    newTiling.vertices.length shouldBe 11
+    newTiling.innerFaces.length shouldBe 8
+
+  }
+
