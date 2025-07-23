@@ -136,12 +136,33 @@ case class TilingDCEL(
 
     newPoints.result()
 
-  private def polygonWouldIntersectBoundary(
+  /**
+   * Result of intersection check between a new polygon and existing boundaries.
+   *
+   * @param hasProperIntersection True if there are edge crossings outside of vertices
+   * @param hasVertexOnlyIntersection True if intersection exists only through shared vertex coordinates
+   */
+  private case class IntersectionCheck(
+    hasProperIntersection: Boolean,
+    hasVertexOnlyIntersection: Boolean
+  )
+
+  /**
+   * Checks if a new polygon would intersect with existing boundary edges,
+   * distinguishing between proper edge crossings and vertex-only intersections.
+   *
+   * @param baseEdge The base edge of the existing boundary
+   * @param v_start The starting vertex of the base edge
+   * @param v_end The ending vertex of the base edge
+   * @param newVertexCoords The coordinates of the new vertices to be added
+   * @return IntersectionCheck indicating the type of intersection
+   */
+  private def checkPolygonIntersection(
     baseEdge: HalfEdge,
     v_start: Vertex,
     v_end: Vertex,
     newVertexCoords: List[BigPoint]
-  ): Boolean =
+  ): IntersectionCheck =
     val newEdgesPoints = v_end.coords +: newVertexCoords :+ v_start.coords
     val newEdgeSegments = newEdgesPoints.sliding(2).collect { case Seq(p1, p2) => BigLineSegment(p1, p2) }.toList
 
@@ -159,9 +180,43 @@ case class TilingDCEL(
       if searchBBox.intersects(BigBox.fromSegment(segment))
     } yield segment
 
-    newEdgeSegments.exists { newSeg =>
-      nearbyBoundarySegments.exists(boundarySeg => newSeg.intersects(boundarySeg))
+    var hasProperIntersection = false
+    var hasVertexOnlyIntersection = false
+
+    // Check each new edge segment against nearby boundary segments
+    for
+      newSeg <- newEdgeSegments
+      boundarySeg <- nearbyBoundarySegments
+      if newSeg.intersects(boundarySeg)
+    do
+      // Check if this is a proper intersection (crossing) or just vertex sharing
+      if newSeg.properlyIntersects(boundarySeg) then
+        hasProperIntersection = true
+      else
+        hasVertexOnlyIntersection = true
+
+    // Also check if any new vertices coincide with existing boundary vertices
+    val existingBoundaryPoints = boundaryEdgesToCheck.flatMap { edge =>
+      List(edge.origin.coords, edge.twin.get.origin.coords)
+    }.distinct
+
+    val newVerticesCoincideWithExisting = newVertexCoords.exists { newPoint =>
+      existingBoundaryPoints.exists(_.almostEquals(newPoint))
     }
+
+    if newVerticesCoincideWithExisting then
+      hasVertexOnlyIntersection = true
+
+    IntersectionCheck(hasProperIntersection, hasVertexOnlyIntersection)
+
+  private def polygonWouldIntersectBoundary(
+    baseEdge: HalfEdge,
+    v_start: Vertex,
+    v_end: Vertex,
+    newVertexCoords: List[BigPoint]
+  ): Boolean =
+    val intersectionCheck = checkPolygonIntersection(baseEdge, v_start, v_end, newVertexCoords)
+    intersectionCheck.hasProperIntersection
 
   /**
    * Creates new vertices for a regular polygon based on calculated coordinates.
@@ -244,7 +299,12 @@ case class TilingDCEL(
   /**
    * Builds and integrates a new polygon on the given base edge.
    */
-  private def buildPolygonOnEdge(baseEdge: HalfEdge, twin: HalfEdge, sides: Int): Either[String, TilingDCEL] =
+  private def buildPolygonOnEdge(
+    baseEdge: HalfEdge,
+    twin: HalfEdge,
+    sides: Int,
+    allowVertexOnlyIntersection: Boolean = false
+  ): Either[String, TilingDCEL] =
     val v_start = baseEdge.origin
     val v_end = twin.origin // Destination of baseEdge
 
@@ -252,8 +312,12 @@ case class TilingDCEL(
     val newVertexCoords = calculateNewVertices(v_start, v_end, sides)
 
     // 2. Check for boundary intersections
-    if polygonWouldIntersectBoundary(baseEdge, v_start, v_end, newVertexCoords) then
+    val intersectionCheck = checkPolygonIntersection(baseEdge, v_start, v_end, newVertexCoords)
+
+    if intersectionCheck.hasProperIntersection then
       Left(s"The new $sides-sided polygon would intersect with existing boundary edges.")
+    else if intersectionCheck.hasVertexOnlyIntersection && !allowVertexOnlyIntersection then
+      Left(s"The new $sides-sided polygon would intersect with existing vertices. Set allowVertexOnlyIntersection=true to allow this.")
     else
       // 3. Create the new face and half-edges
       val newVertices = createNewVertices(newVertexCoords)
@@ -277,15 +341,22 @@ case class TilingDCEL(
    *
    * @param sides The number of sides of the regular polygon to add.
    * @param onEdgeStartingWithVertexId The ID of the vertex where the boundary edge starts.
+   * @param allowVertexOnlyIntersection If true, allows the polygon to be added even if new vertices
+   *                                   share coordinates with existing ones, as long as there are no
+   *                                   proper edge crossings outside of vertices.
    * @return Either an error message or a new TilingDCEL with the polygon added.
    */
-  def maybeAddRegularPolygon(sides: Int, onEdgeStartingWithVertexId: String): Either[String, TilingDCEL] =
+  def maybeAddRegularPolygon(
+    sides: Int,
+    onEdgeStartingWithVertexId: String,
+    allowVertexOnlyIntersection: Boolean = false
+  ): Either[String, TilingDCEL] =
     for
       _ <- TilingBuilder.validateSides(sides, "regular")
       baseEdge <- findBoundaryEdge(onEdgeStartingWithVertexId)
         .toRight(s"No boundary edge found starting with vertex ID $onEdgeStartingWithVertexId")
       twin <- baseEdge.twin.toRight("Boundary edge has no twin, which should not happen.")
-      result <- buildPolygonOnEdge(baseEdge, twin, sides)
+      result <- buildPolygonOnEdge(baseEdge, twin, sides, allowVertexOnlyIntersection)
     yield result
 
   /**
@@ -311,10 +382,10 @@ case class TilingDCEL(
       else performFaceDeletion(faceToDelete, edgeClassification)
 
   private case class EdgeClassification(
-    faceEdges: List[HalfEdge],
-    boundaryTwins: List[HalfEdge],
-    innerTwins: List[HalfEdge]
-  )
+                                         faceEdges: List[HalfEdge],
+                                         boundaryTwins: List[HalfEdge],
+                                         innerTwins: List[HalfEdge]
+                                       )
 
   private def findInnerFace(faceId: String): Either[String, Face] =
     innerFaces.find(_.id == faceId)

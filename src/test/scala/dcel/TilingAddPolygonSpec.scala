@@ -65,15 +65,15 @@ class TilingAddPolygonSpec extends AnyFlatSpec with Matchers with EitherValues:
     val result = initialTiling
       .maybeAddRegularPolygon(6, "V1").value
       .maybeAddRegularPolygon(6, "V3").value
-      .maybeAddRegularPolygon(6, "V1")
+      .maybeAddRegularPolygon(6, "V1", true)
     result.isRight shouldBe true
 
-//    val newTiling = result.value
+    val newTiling = result.value
 //    println(newTiling.toSVG())
-//    // Should add 2 new vertices (V4, V5)
-//    newTiling.vertices.length shouldBe 14
-//    // Should add 1 new inner face
-//    newTiling.innerFaces.length shouldBe 3
+    // Should add 1 new inner face
+    newTiling.innerFaces.length shouldBe 4
+    // Should add 2 new vertices (V4, V5)
+    newTiling.vertices.length shouldBe 14
 
   }
 

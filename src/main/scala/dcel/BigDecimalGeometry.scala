@@ -259,6 +259,24 @@ object BigDecimalGeometry:
           || (o3 == Orientation.Collinear && BigPoint.onSegment(that.p1, this.p1, that.p2))
           || (o4 == Orientation.Collinear && BigPoint.onSegment(that.p1, this.p2, that.p2))
 
+    def properlyIntersects(that: BigLineSegment): Boolean =
+
+      // If segments share an endpoint, it's not a proper intersection
+      val thisPoints = Set(this.p1, this.p2)
+      val thatPoints = Set(that.p1, that.p2)
+    
+      if thisPoints.exists(p1 => thatPoints.exists(p2 => p1.almostEquals(p2))) then
+        false
+      else
+        // Check if the intersection point is in the interior of both segments
+        val o1 = BigPoint.orientation(this.p1, this.p2, that.p1)
+        val o2 = BigPoint.orientation(this.p1, this.p2, that.p2)
+        val o3 = BigPoint.orientation(that.p1, that.p2, this.p1)
+        val o4 = BigPoint.orientation(that.p1, that.p2, this.p2)
+    
+        // General case: segments cross each other in their interiors
+        o1 != o2 && o3 != o4
+      
   case class BigBox(minX: BigDecimal, minY: BigDecimal, maxX: BigDecimal, maxY: BigDecimal):
 
     def contains(point: BigPoint): Boolean =
