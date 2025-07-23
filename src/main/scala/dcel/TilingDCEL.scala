@@ -266,21 +266,38 @@ case class TilingDCEL(
 
       existingBoundaryEdge match
         case Some(existing) =>
+          println(s"DEBUG: Reusing existing boundary edge from ${p1.id} to ${p2.id}")
           // Reuse the existing boundary edge for the inner face
           existing.incidentFace = Some(newFace)
-          newInnerEdges.addOne(existing)
-        // The twin becomes part of a merged boundary segment
-
+        // Don't add to newInnerEdges - it's already in the tiling's halfEdges
         case None =>
-          // Create new edge pair as before
-          val inner = HalfEdge(p1, incidentFace = Some(newFace))
-          val outer = HalfEdge(p2, incidentFace = Some(outerFace))
-          inner.twin = Some(outer)
-          outer.twin = Some(inner)
-          newInnerEdges.addOne(inner)
-          newOuterEdges.addOne(outer)
+          println(s"DEBUG: Creating new edge pair from ${p1.id} to ${p2.id}")
+          // Create new pair of half-edges
+          val innerEdge = HalfEdge(p1)
+          val outerEdge = HalfEdge(p2)
 
+          innerEdge.twin = Some(outerEdge)
+          outerEdge.twin = Some(innerEdge)
+          innerEdge.incidentFace = Some(newFace)
+          outerEdge.incidentFace = Some(outerFace)
+
+          newInnerEdges.addOne(innerEdge)
+          newOuterEdges.addOne(outerEdge)
+
+    println(s"DEBUG: Created ${newInnerEdges.length} inner edges and ${newOuterEdges.length} outer edges")
     (newInnerEdges.toList, newOuterEdges.toList)
+
+  def checkForDuplicateHalfEdges(): Unit =
+    val edgeSignatures = halfEdges.map { edge =>
+      val twinOrigin = edge.twin.map(_.origin.id).getOrElse("NO_TWIN")
+      s"${edge.origin.id}->$twinOrigin"
+    }
+
+    val duplicates = edgeSignatures.groupBy(identity).filter(_._2.length > 1)
+    if duplicates.nonEmpty then
+      println(s"DEBUG: Found duplicate edges: ${duplicates.keys.mkString(", ")}")
+    else
+      println("DEBUG: No duplicate edges found")
 
   /**
    * Enhanced stitching that handles boundary merging when vertices are shared.
@@ -456,13 +473,16 @@ case class TilingDCEL(
     onEdgeStartingWithVertexId: String,
     allowVertexOnlyIntersection: Boolean = false
   ): Either[String, TilingDCEL] =
+    println(s"DEBUG: Before adding polygon - Half-edges: ${halfEdges.length}, Vertices: ${vertices.length}")
     for
       _ <- TilingBuilder.validateSides(sides, "regular")
       baseEdge <- findBoundaryEdge(onEdgeStartingWithVertexId)
         .toRight(s"No boundary edge found starting with vertex ID $onEdgeStartingWithVertexId")
       twin <- baseEdge.twin.toRight("Boundary edge has no twin, which should not happen.")
       result <- buildPolygonOnEdge(baseEdge, twin, sides, allowVertexOnlyIntersection)
-    yield result
+    yield
+      println(s"DEBUG: After adding polygon - Half-edges: ${result.halfEdges.length}, Vertices: ${result.vertices.length}")
+      result
 
   /**
    * Deletes an inner polygon (face) from the tiling.
