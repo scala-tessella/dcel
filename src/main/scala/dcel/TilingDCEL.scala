@@ -139,7 +139,7 @@ case class TilingDCEL(
   /**
    * Enhanced intersection check that identifies which existing vertices should be reused.
    *
-   * @param hasProperIntersection     True if there are edge crossings outside of vertices  
+   * @param hasProperIntersection     True if there are edge crossings outside of vertices
    * @param hasVertexOnlyIntersection True if intersection exists only through shared vertex coordinates
    * @param vertexMatches             Map from new vertex indices to existing vertices that should be reused
    */
@@ -367,40 +367,47 @@ case class TilingDCEL(
     oldPrev: HalfEdge,
     oldNext: HalfEdge
   ): Unit =
-    // This is a complex operation that needs to:
-    // 1. Remove the segments that are now "inside" the merged polygon
-    // 2. Connect the remaining boundary properly
-    // 3. Update the outer face component if needed
+    // Instead of trying to reconstruct from getBoundaryEdges (which may be malformed),
+    // we need to carefully link the boundary by following the existing structure
 
-    val remainingBoundaryEdges = mutable.ListBuffer.empty[HalfEdge]
-    val segmentEdges = segmentsToMerge.flatten.toSet
-
-    // Keep edges that are not being merged
-    getBoundaryEdges.foreach { edge =>
-      if !segmentEdges.contains(edge) then
-        remainingBoundaryEdges.addOne(edge)
-    }
-
-    // Insert new outer edges where appropriate
     val outerChain = newOuterEdges.reverse
 
-    // Link everything together (simplified version - needs more sophisticated logic)
-    if remainingBoundaryEdges.nonEmpty && outerChain.nonEmpty then
-      // Find connection points and link appropriately
+    if outerChain.nonEmpty then
+      // Link the new outer chain into the boundary
       oldPrev.next = Some(outerChain.head)
       outerChain.head.prev = Some(oldPrev)
       outerChain.last.next = Some(oldNext)
       oldNext.prev = Some(outerChain.last)
 
+      // Link the outer chain internally
+      for (i <- 0 until outerChain.size - 1)
+        outerChain(i).next = Some(outerChain(i + 1))
+        outerChain(i + 1).prev = Some(outerChain(i))
+    else
+      // No new outer edges, just connect prev to next
+      oldPrev.next = Some(oldNext)
+      oldNext.prev = Some(oldPrev)
+
+    // Update the outer face component if it was pointing to a segment being merged
+    outerFace.outerComponent match
+      case Some(component) =>
+        val segmentEdges = segmentsToMerge.flatten.toSet
+        if segmentEdges.contains(component) then
+          // Point to a safe edge that's still part of the boundary
+          outerFace.outerComponent = Some(
+            if outerChain.nonEmpty then outerChain.head else oldNext
+          )
+      case None => // Nothing to update
+
   /**
    * Enhanced polygon building with vertex reuse capability.
    */
   private def buildPolygonOnEdge(
-                                  baseEdge: HalfEdge,
-                                  twin: HalfEdge,
-                                  sides: Int,
-                                  allowVertexOnlyIntersection: Boolean = false
-                                ): Either[String, TilingDCEL] =
+    baseEdge: HalfEdge,
+    twin: HalfEdge,
+    sides: Int,
+    allowVertexOnlyIntersection: Boolean = false
+  ): Either[String, TilingDCEL] =
     val v_start = baseEdge.origin
     val v_end = twin.origin // Destination of baseEdge
 

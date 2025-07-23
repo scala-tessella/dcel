@@ -96,7 +96,7 @@ class TilingAddPolygonSpec extends AnyFlatSpec with Matchers with EitherValues:
     newTiling.vertices.length shouldBe 16
   }
 
-  it should "successfully add at a different vertex the same hexagon with coincident vertices" in {
+  it should "successfully add at a different vertex the same hexagon with coincident vertices in both directions" in {
     // Start with a single hexagon (V0-V1-V2-V3-V4-V5)
     val initialTiling = TilingBuilder.createRegularPolygon(6).value
     initialTiling.vertices.length shouldBe 6
