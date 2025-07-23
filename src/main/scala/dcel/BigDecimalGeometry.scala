@@ -223,7 +223,7 @@ object BigDecimalGeometry:
 
             // Non-adjacent segments
             if i != (j + 1) % n && j != (i + 1) % n then
-              if BigLineSegment.doIntersect(s1, s2) then boundary.break(false)
+              if s1.intersects(s2) then boundary.break(false)
         true
 
   /** A line segment in the plane defined by its 2 endpoints using [[spire.math.BigDecimal]]. */
@@ -239,17 +239,13 @@ object BigDecimalGeometry:
     def horizontalAngle: BigRadian =
       spire.math.atan2(p2.y - p1.y, p2.x - p1.x)
 
-  object BigLineSegment:
-
-    /**
-     * Checks if two line segments, s1 and s2, intersect.
-     */
-    def doIntersect(s1: BigLineSegment, s2: BigLineSegment): Boolean =
-      val o1 = BigPoint.orientation(s1.p1, s1.p2, s2.p1)
-      val o2 = BigPoint.orientation(s1.p1, s1.p2, s2.p2)
-      val o3 = BigPoint.orientation(s2.p1, s2.p2, s1.p1)
-      val o4 = BigPoint.orientation(s2.p1, s2.p2, s1.p2)
-
+    /** Checks if this bounding box intersects with another one. */
+    def intersects(that: BigLineSegment): Boolean =
+      val o1 = BigPoint.orientation(this.p1, this.p2, that.p1)
+      val o2 = BigPoint.orientation(this.p1, this.p2, that.p2)
+      val o3 = BigPoint.orientation(that.p1, that.p2, this.p1)
+      val o4 = BigPoint.orientation(that.p1, that.p2, this.p2)
+    
       // General case: segments cross each other
       if o1 != Orientation.Collinear
         && o2 != Orientation.Collinear
@@ -258,10 +254,11 @@ object BigDecimalGeometry:
         o1 != o2 && o3 != o4
       // Special Cases for collinear points
       else
-        (o1 == Orientation.Collinear && BigPoint.onSegment(s1.p1, s2.p1, s1.p2))
-          || (o2 == Orientation.Collinear && BigPoint.onSegment(s1.p1, s2.p2, s1.p2))
-          || (o3 == Orientation.Collinear && BigPoint.onSegment(s2.p1, s1.p1, s2.p2))
-          || (o4 == Orientation.Collinear && BigPoint.onSegment(s2.p1, s1.p2, s2.p2))
+        (o1 == Orientation.Collinear && BigPoint.onSegment(this.p1, that.p1, this.p2))
+          || (o2 == Orientation.Collinear && BigPoint.onSegment(this.p1, that.p2, this.p2))
+          || (o3 == Orientation.Collinear && BigPoint.onSegment(that.p1, this.p1, that.p2))
+          || (o4 == Orientation.Collinear && BigPoint.onSegment(that.p1, this.p2, that.p2))
+
 
   case class BigBox(minX: BigDecimal, minY: BigDecimal, maxX: BigDecimal, maxY: BigDecimal):
 

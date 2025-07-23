@@ -189,15 +189,15 @@ class BigDecimalGeometrySpec extends AnyFlatSpec with Matchers:
 
   it should "check for intersection with another segment" in {
     // General case intersection
-    BigLineSegment.doIntersect(s_diag, BigLineSegment(p1, p3)) shouldBe true
+    s_diag.intersects(BigLineSegment(p1, p3)) shouldBe true
     // No intersection
-    BigLineSegment.doIntersect(s_horiz, BigLineSegment(p3, p2)) shouldBe false
+    s_horiz.intersects(BigLineSegment(p3, p2)) shouldBe false
     // Collinear and overlapping
-    BigLineSegment.doIntersect(BigLineSegment(p0, p2), BigLineSegment(BigPoint(0.5, 0.5), BigPoint(2, 2))) shouldBe true
+    BigLineSegment(p0, p2).intersects(BigLineSegment(BigPoint(0.5, 0.5), BigPoint(2, 2))) shouldBe true
     // Collinear and not overlapping
-    BigLineSegment.doIntersect(s_horiz, BigLineSegment(BigPoint(2, 0), BigPoint(3, 0))) shouldBe false
+    s_horiz.intersects(BigLineSegment(BigPoint(2, 0), BigPoint(3, 0))) shouldBe false
     // Touching at endpoint
-    BigLineSegment.doIntersect(s_horiz, s_vert) shouldBe true
+    s_horiz.intersects(s_vert) shouldBe true
   }
 
   behavior of "BigBox"

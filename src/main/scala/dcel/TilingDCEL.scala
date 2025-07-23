@@ -160,7 +160,7 @@ case class TilingDCEL(
     } yield segment
 
     newEdgeSegments.exists { newSeg =>
-      nearbyBoundarySegments.exists(boundarySeg => BigLineSegment.doIntersect(newSeg, boundarySeg))
+      nearbyBoundarySegments.exists(boundarySeg => newSeg.intersects(boundarySeg))
     }
 
   /**
