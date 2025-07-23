@@ -137,25 +137,26 @@ case class TilingDCEL(
     newPoints.result()
 
   /**
-   * Result of intersection check between a new polygon and existing boundaries.
+   * Enhanced intersection check that identifies which existing vertices should be reused.
    *
-   * @param hasProperIntersection True if there are edge crossings outside of vertices
+   * @param hasProperIntersection     True if there are edge crossings outside of vertices  
    * @param hasVertexOnlyIntersection True if intersection exists only through shared vertex coordinates
+   * @param vertexMatches             Map from new vertex indices to existing vertices that should be reused
    */
   private case class IntersectionCheck(
     hasProperIntersection: Boolean,
-    hasVertexOnlyIntersection: Boolean
+    hasVertexOnlyIntersection: Boolean,
+    vertexMatches: Map[Int, Vertex] = Map.empty
   )
 
   /**
-   * Checks if a new polygon would intersect with existing boundary edges,
-   * distinguishing between proper edge crossings and vertex-only intersections.
+   * Enhanced polygon intersection check that identifies vertex matches for reuse.
    *
-   * @param baseEdge The base edge of the existing boundary
-   * @param v_start The starting vertex of the base edge
-   * @param v_end The ending vertex of the base edge
+   * @param baseEdge        The base edge of the existing boundary
+   * @param v_start         The starting vertex of the base edge
+   * @param v_end           The ending vertex of the base edge
    * @param newVertexCoords The coordinates of the new vertices to be added
-   * @return IntersectionCheck indicating the type of intersection
+   * @return IntersectionCheck with vertex matching information
    */
   private def checkPolygonIntersection(
     baseEdge: HalfEdge,
@@ -195,79 +196,110 @@ case class TilingDCEL(
       else
         hasVertexOnlyIntersection = true
 
-    // Also check if any new vertices coincide with existing boundary vertices
-    val existingBoundaryPoints = boundaryEdgesToCheck.flatMap { edge =>
-      List(edge.origin.coords, edge.twin.get.origin.coords)
-    }.distinct
+    // Find existing boundary vertices that match new vertex coordinates
+    val existingBoundaryVertices = getBoundaryEdges.map(_.origin)
+    val vertexMatches = mutable.Map.empty[Int, Vertex]
 
-    val newVerticesCoincideWithExisting = newVertexCoords.exists { newPoint =>
-      existingBoundaryPoints.exists(_.almostEquals(newPoint))
-    }
-
-    if newVerticesCoincideWithExisting then
+    for
+      (newPoint, index) <- newVertexCoords.zipWithIndex
+      existingVertex <- existingBoundaryVertices
+      if existingVertex.coords.almostEquals(newPoint)
+    do
+      vertexMatches(index) = existingVertex
       hasVertexOnlyIntersection = true
 
-    IntersectionCheck(hasProperIntersection, hasVertexOnlyIntersection)
-
-  private def polygonWouldIntersectBoundary(
-    baseEdge: HalfEdge,
-    v_start: Vertex,
-    v_end: Vertex,
-    newVertexCoords: List[BigPoint]
-  ): Boolean =
-    val intersectionCheck = checkPolygonIntersection(baseEdge, v_start, v_end, newVertexCoords)
-    intersectionCheck.hasProperIntersection
+    IntersectionCheck(hasProperIntersection, hasVertexOnlyIntersection, vertexMatches.toMap)
 
   /**
-   * Creates new vertices for a regular polygon based on calculated coordinates.
+   * Gets the next available vertex ID by finding the maximum existing ID number.
    */
-  private def createNewVertices(newVertexCoords: List[BigPoint]): List[Vertex] =
+  private def getNextVertexId: Int =
+    val existingIds = vertices.map(_.id).collect {
+      case id if id.startsWith("V") && id.drop(1).forall(_.isDigit) => id.drop(1).toInt
+    }
+    if existingIds.nonEmpty then existingIds.max + 1 else 0
+
+  /**
+   * Creates new vertices for a regular polygon, reusing existing vertices where matches are found.
+   *
+   * @param newVertexCoords The coordinates for new vertices
+   * @param vertexMatches   Map of indices to existing vertices that should be reused
+   * @return List of vertices (mix of new and existing)
+   */
+  private def createNewVerticesWithReuse(
+    newVertexCoords: List[BigPoint],
+    vertexMatches: Map[Int, Vertex]
+  ): List[Vertex] =
     val nextVertexId = getNextVertexId
+    var newVertexCounter = 0
+
     newVertexCoords.zipWithIndex.map { case (bigPoint, i) =>
-      Vertex(s"V${nextVertexId + i}", bigPoint)
+      vertexMatches.get(i) match
+        case Some(existingVertex) => existingVertex
+        case None =>
+          val vertex = Vertex(s"V${nextVertexId + newVertexCounter}", bigPoint)
+          newVertexCounter += 1
+          vertex
     }
 
   /**
-   * Gets the next available vertex ID number.
+   * Enhanced edge creation that handles vertex reuse correctly.
    */
-  private def getNextVertexId: Int =
-    vertices
-      .map(_.id)
-      .collect { case id if id.startsWith("V") && id.drop(1).forall(_.isDigit) => id.drop(1).toInt }
-      .maxOption
-      .getOrElse(-1) + 1
-
-  /**
-   * Creates pairs of half-edges for the new polygon edges.
-   */
-  private def createHalfEdgePairs(polyVertices: List[Vertex], newFace: Face): (List[HalfEdge], List[HalfEdge]) =
+  private def createHalfEdgePairsWithReuse(
+    polyVertices: List[Vertex],
+    newFace: Face,
+    vertexMatches: Map[Int, Vertex]
+  ): (List[HalfEdge], List[HalfEdge]) =
     val newInnerEdges = mutable.ListBuffer.empty[HalfEdge]
     val newOuterEdges = mutable.ListBuffer.empty[HalfEdge]
     val sides = polyVertices.length
 
-    // Create sides-1 new pairs of half-edges
+    // Create sides-1 new pairs of half-edges, but skip edges that would duplicate existing boundary edges
     for (i <- 1 until sides)
       val p1 = polyVertices(i)
       val p2 = polyVertices((i + 1) % sides)
-      val inner = HalfEdge(p1, incidentFace = Some(newFace))
-      val outer = HalfEdge(p2, incidentFace = Some(outerFace))
-      inner.twin = Some(outer)
-      outer.twin = Some(inner)
-      newInnerEdges.addOne(inner)
-      newOuterEdges.addOne(outer)
+
+      // Check if this edge already exists as a boundary edge
+      val existingBoundaryEdge = getBoundaryEdges.find { edge =>
+        edge.origin == p1 && edge.twin.exists(_.origin == p2)
+      }
+
+      existingBoundaryEdge match
+        case Some(existing) =>
+          // Reuse the existing boundary edge for the inner face
+          existing.incidentFace = Some(newFace)
+          newInnerEdges.addOne(existing)
+        // The twin becomes part of a merged boundary segment
+
+        case None =>
+          // Create new edge pair as before
+          val inner = HalfEdge(p1, incidentFace = Some(newFace))
+          val outer = HalfEdge(p2, incidentFace = Some(outerFace))
+          inner.twin = Some(outer)
+          outer.twin = Some(inner)
+          newInnerEdges.addOne(inner)
+          newOuterEdges.addOne(outer)
 
     (newInnerEdges.toList, newOuterEdges.toList)
 
   /**
-   * Links the edges of the new polygon into the DCEL structure.
+   * Enhanced stitching that handles boundary merging when vertices are shared.
    */
-  private def stitchPolygonEdges(
+  private def stitchPolygonEdgesWithReuse(
     baseEdge: HalfEdge,
     newInnerEdges: List[HalfEdge],
     newOuterEdges: List[HalfEdge],
     polyVertices: List[Vertex],
-    newFace: Face
+    newFace: Face,
+    vertexMatches: Map[Int, Vertex]
   ): Unit =
+    // Identify boundary segments that need to be merged
+    val boundaryEdges = getBoundaryEdges
+    val sharedVertices = vertexMatches.values.toSet
+
+    // Find boundary segments between shared vertices
+    val segmentsToMerge = findBoundarySegmentsBetweenSharedVertices(boundaryEdges, sharedVertices)
+
     // Get the edges that will be connected to the new outer boundary
     val oldPrev = baseEdge.prev.get
     val oldNext = baseEdge.next.get
@@ -281,37 +313,101 @@ case class TilingDCEL(
       val next = allInnerEdges((i + 1) % sides)
       current.next = Some(next)
       next.prev = Some(current)
-      if i >= 1 then
+      if i >= 1 && !vertexMatches.contains(i - 1) then // Only update leaving edge for new vertices
         polyVertices(i).leaving = Some(current)
     newFace.outerComponent = Some(baseEdge)
 
-    // Link the new outer boundary edges
-    val outerChain = newOuterEdges.reverse
-    oldPrev.next = Some(outerChain.head)
-    outerChain.head.prev = Some(oldPrev)
-    outerChain.last.next = Some(oldNext)
-    oldNext.prev = Some(outerChain.last)
+    // Handle boundary reconstruction with merged segments
+    if segmentsToMerge.nonEmpty then
+      mergeBoundarySegments(segmentsToMerge, newOuterEdges, oldPrev, oldNext)
+    else
+      // Standard boundary linking
+      val outerChain = newOuterEdges.reverse
+      oldPrev.next = Some(outerChain.head)
+      outerChain.head.prev = Some(oldPrev)
+      outerChain.last.next = Some(oldNext)
+      oldNext.prev = Some(outerChain.last)
 
-    for (i <- 0 until outerChain.size - 1)
-      outerChain(i).next = Some(outerChain(i + 1))
-      outerChain(i + 1).prev = Some(outerChain(i))
+      for (i <- 0 until outerChain.size - 1)
+        outerChain(i).next = Some(outerChain(i + 1))
+        outerChain(i + 1).prev = Some(outerChain(i))
 
   /**
-   * Builds and integrates a new polygon on the given base edge.
+   * Finds boundary segments that lie between shared vertices and should be merged.
+   */
+  private def findBoundarySegmentsBetweenSharedVertices(
+    boundaryEdges: List[HalfEdge],
+    sharedVertices: Set[Vertex]
+  ): List[List[HalfEdge]] =
+    val segments = mutable.ListBuffer.empty[List[HalfEdge]]
+    var currentSegment = mutable.ListBuffer.empty[HalfEdge]
+    var inSegment = false
+
+    for (edge <- boundaryEdges)
+      if sharedVertices.contains(edge.origin) then
+        if inSegment && currentSegment.nonEmpty then
+          segments.addOne(currentSegment.toList)
+          currentSegment.clear()
+        inSegment = !inSegment
+      else if inSegment then
+        currentSegment.addOne(edge)
+
+    // Handle wrap-around case
+    if inSegment && currentSegment.nonEmpty then
+      segments.addOne(currentSegment.toList)
+
+    segments.toList
+
+  /**
+   * Merges boundary segments when vertices are shared between polygons.
+   */
+  private def mergeBoundarySegments(
+    segmentsToMerge: List[List[HalfEdge]],
+    newOuterEdges: List[HalfEdge],
+    oldPrev: HalfEdge,
+    oldNext: HalfEdge
+  ): Unit =
+    // This is a complex operation that needs to:
+    // 1. Remove the segments that are now "inside" the merged polygon
+    // 2. Connect the remaining boundary properly
+    // 3. Update the outer face component if needed
+
+    val remainingBoundaryEdges = mutable.ListBuffer.empty[HalfEdge]
+    val segmentEdges = segmentsToMerge.flatten.toSet
+
+    // Keep edges that are not being merged
+    getBoundaryEdges.foreach { edge =>
+      if !segmentEdges.contains(edge) then
+        remainingBoundaryEdges.addOne(edge)
+    }
+
+    // Insert new outer edges where appropriate
+    val outerChain = newOuterEdges.reverse
+
+    // Link everything together (simplified version - needs more sophisticated logic)
+    if remainingBoundaryEdges.nonEmpty && outerChain.nonEmpty then
+      // Find connection points and link appropriately
+      oldPrev.next = Some(outerChain.head)
+      outerChain.head.prev = Some(oldPrev)
+      outerChain.last.next = Some(oldNext)
+      oldNext.prev = Some(outerChain.last)
+
+  /**
+   * Enhanced polygon building with vertex reuse capability.
    */
   private def buildPolygonOnEdge(
-    baseEdge: HalfEdge,
-    twin: HalfEdge,
-    sides: Int,
-    allowVertexOnlyIntersection: Boolean = false
-  ): Either[String, TilingDCEL] =
+                                  baseEdge: HalfEdge,
+                                  twin: HalfEdge,
+                                  sides: Int,
+                                  allowVertexOnlyIntersection: Boolean = false
+                                ): Either[String, TilingDCEL] =
     val v_start = baseEdge.origin
     val v_end = twin.origin // Destination of baseEdge
 
     // 1. Calculate new vertex positions
     val newVertexCoords = calculateNewVertices(v_start, v_end, sides)
 
-    // 2. Check for boundary intersections
+    // 2. Enhanced intersection check with vertex matching
     val intersectionCheck = checkPolygonIntersection(baseEdge, v_start, v_end, newVertexCoords)
 
     if intersectionCheck.hasProperIntersection then
@@ -319,17 +415,19 @@ case class TilingDCEL(
     else if intersectionCheck.hasVertexOnlyIntersection && !allowVertexOnlyIntersection then
       Left(s"The new $sides-sided polygon would intersect with existing vertices. Set allowVertexOnlyIntersection=true to allow this.")
     else
-      // 3. Create the new face and half-edges
-      val newVertices = createNewVertices(newVertexCoords)
+      // 3. Create vertices with reuse
+      val newVertices = createNewVerticesWithReuse(newVertexCoords, intersectionCheck.vertexMatches)
+      val actuallyNewVertices = newVertices.filterNot(intersectionCheck.vertexMatches.values.toSet.contains)
+
       val newFace = Face(s"F_Poly_${innerFaces.size}")
       val polyVertices = v_start :: v_end :: newVertices
-      val (newInnerEdges, newOuterEdges) = createHalfEdgePairs(polyVertices, newFace)
+      val (newInnerEdges, newOuterEdges) = createHalfEdgePairsWithReuse(polyVertices, newFace, intersectionCheck.vertexMatches)
 
-      // 4. Stitch the new elements into the DCEL graph
-      stitchPolygonEdges(baseEdge, newInnerEdges, newOuterEdges, polyVertices, newFace)
+      // 4. Enhanced stitching with vertex reuse
+      stitchPolygonEdgesWithReuse(baseEdge, newInnerEdges, newOuterEdges, polyVertices, newFace, intersectionCheck.vertexMatches)
 
       Right(this.copy(
-        vertices = this.vertices ++ newVertices,
+        vertices = this.vertices ++ actuallyNewVertices,
         halfEdges = this.halfEdges ++ newInnerEdges ++ newOuterEdges,
         innerFaces = this.innerFaces :+ newFace
       ))

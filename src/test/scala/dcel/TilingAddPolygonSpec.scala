@@ -69,11 +69,53 @@ class TilingAddPolygonSpec extends AnyFlatSpec with Matchers with EitherValues:
     result.isRight shouldBe true
 
     val newTiling = result.value
-//    println(newTiling.toSVG())
     // Should add 1 new inner face
     newTiling.innerFaces.length shouldBe 4
     // Should add 2 new vertices (V4, V5)
-    newTiling.vertices.length shouldBe 14
-
+    newTiling.vertices.length shouldBe 16
   }
+
+  it should "successfully add at a specular vertex the same hexagon with coincident vertices" in {
+    // Start with a single hexagon (V0-V1-V2-V3-V4-V5)
+    val initialTiling = TilingBuilder.createRegularPolygon(6).value
+    initialTiling.vertices.length shouldBe 6
+    initialTiling.innerFaces.length shouldBe 1
+    initialTiling.boundary.map(_.id) shouldBe Vector("V0", "V5", "V4", "V3", "V2", "V1")
+
+    // Add another hexagon onto the edge starting at V1 (which is edge V1 -> V2)
+    val result = initialTiling
+      .maybeAddRegularPolygon(6, "V1").value
+      .maybeAddRegularPolygon(6, "V3").value
+      .maybeAddRegularPolygon(6, "V10", true)
+    result.isRight shouldBe true
+
+    val newTiling = result.value
+    // Should add 1 new inner face
+    newTiling.innerFaces.length shouldBe 4
+    // Should add 2 new vertices (V4, V5)
+    newTiling.vertices.length shouldBe 16
+  }
+
+  it should "successfully add at a different vertex the same hexagon with coincident vertices" in {
+    // Start with a single hexagon (V0-V1-V2-V3-V4-V5)
+    val initialTiling = TilingBuilder.createRegularPolygon(6).value
+    initialTiling.vertices.length shouldBe 6
+    initialTiling.innerFaces.length shouldBe 1
+    initialTiling.boundary.map(_.id) shouldBe Vector("V0", "V5", "V4", "V3", "V2", "V1")
+
+    // Add another hexagon onto the edge starting at V1 (which is edge V1 -> V2)
+    val result = initialTiling
+      .maybeAddRegularPolygon(6, "V1").value
+      .maybeAddRegularPolygon(6, "V3").value
+      .maybeAddRegularPolygon(6, "V2", true)
+    result.isRight shouldBe true
+
+    val newTiling = result.value
+    println(newTiling.toSVG())
+    // Should add 1 new inner face
+    newTiling.innerFaces.length shouldBe 4
+    // Should add 2 new vertices (V4, V5)
+    newTiling.vertices.length shouldBe 16
+  }
+
 
