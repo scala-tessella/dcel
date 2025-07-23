@@ -259,7 +259,6 @@ object BigDecimalGeometry:
           || (o3 == Orientation.Collinear && BigPoint.onSegment(that.p1, this.p1, that.p2))
           || (o4 == Orientation.Collinear && BigPoint.onSegment(that.p1, this.p2, that.p2))
 
-
   case class BigBox(minX: BigDecimal, minY: BigDecimal, maxX: BigDecimal, maxY: BigDecimal):
 
     def contains(point: BigPoint): Boolean =
