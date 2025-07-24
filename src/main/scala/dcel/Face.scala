@@ -111,8 +111,13 @@ object Face:
   def adjacencyMap(faces: List[Face]): Map[Face, List[Face]] =
     faces.map { face =>
       face -> face.halfEdgesSafe
-        .map(_.twin.get.incidentFace.get)
-        .filter(faces.contains)
+        .flatMap(edge =>
+          for
+            twin <- edge.twin
+            incidentFace <- twin.incidentFace
+            if faces.contains(incidentFace)
+          yield incidentFace
+        )
     }.toMap
 
   def breadthFirstSearch(start: Face, adjacency: Map[Face, List[Face]]): Set[Face] =
