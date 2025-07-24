@@ -96,8 +96,45 @@ object TilingSVG:
 
       val innerFaceArrows = innerFaceHalfEdges.flatMap(_._1).mkString("\n")
 
-      // Calculate angle labels positioned inside the polygon
-      val angleLabels = tilingDCEL.innerFaces.flatMap { face =>
+      // Create outer face half-edge visualizations with direction arrows
+      val outerFaceHalfEdges = tilingDCEL.getBoundaryEdges.map { halfEdge =>
+        val origin = halfEdge.origin
+        val destination = halfEdge.twin.get.origin
+
+        // Calculate midpoint for arrow
+        val midX = (origin.coords.x + destination.coords.x) * scale / 2
+        val midY = -(origin.coords.y + destination.coords.y) * scale / 2
+
+        // Calculate direction vector for arrow
+        val dx = (destination.coords.x - origin.coords.x) * scale
+        val dy = -(destination.coords.y - origin.coords.y) * scale
+        val length = spire.math.sqrt(dx * dx + dy * dy)
+        val arrowSize = strokeWidth * 3
+
+        val arrow = if length > 0 then
+          val unitX = dx / length
+          val unitY = dy / length
+
+          // Arrow tip (slightly offset from midpoint towards destination)
+          val tipX = midX + unitX * arrowSize
+          val tipY = midY + unitY * arrowSize
+
+          // Arrow base (perpendicular to direction)
+          val perpX = -unitY * arrowSize * 0.4
+          val perpY = unitX * arrowSize * 0.4
+          val baseX1 = midX + perpX
+          val baseY1 = midY + perpY
+          val baseX2 = midX - perpX
+          val baseY2 = midY - perpY
+
+          Some(s"""      <polygon points="$tipX,$tipY $baseX1,$baseY1 $baseX2,$baseY2" />""")
+        else None
+
+        arrow
+      }.filter(_.isDefined).map(_.get).mkString("\n")
+
+      // Calculate angle labels positioned inside the polygon for inner faces
+      val innerAngleLabels = tilingDCEL.innerFaces.flatMap { face =>
         val faceVertices = face.getVertices
         val halfEdges = face.halfEdges
 
@@ -153,6 +190,62 @@ object TilingSVG:
 
           s"""      <text x="$angleLabelX" y="$angleLabelY" font-size="${(strokeWidth * 5).toInt}" fill="purple" text-anchor="middle" dominant-baseline="middle">$angleText</text>"""
         }
+      }.mkString("\n")
+
+      // Calculate angle labels positioned outside the polygon for outer face
+      val outerAngleLabels = tilingDCEL.getBoundaryEdges.map { halfEdge =>
+        val origin = halfEdge.origin
+        val angleText = f"${halfEdge.angle.toRational.toDouble}%.0f°"
+
+        // Calculate outward direction (opposite to inner face direction)
+        // Use the face centroid to determine inward direction, then negate it
+        val innerFaceVertices = tilingDCEL.innerFaces.head.getVertices // assuming single inner face for now
+        val centroidX = if innerFaceVertices.nonEmpty then innerFaceVertices.map(_.coords.x).sum / innerFaceVertices.length else BigDecimal(0)
+        val centroidY = if innerFaceVertices.nonEmpty then innerFaceVertices.map(_.coords.y).sum / innerFaceVertices.length else BigDecimal(0)
+
+        val toCentroidX = centroidX - origin.coords.x
+        val toCentroidY = centroidY - origin.coords.y
+        val toCentroidLength = spire.math.sqrt(toCentroidX * toCentroidX + toCentroidY * toCentroidY)
+
+        val (outwardX, outwardY) = if toCentroidLength > 0 then
+          // Outward is opposite to centroid direction
+          (-toCentroidX / toCentroidLength, -toCentroidY / toCentroidLength)
+        else
+          // Fallback: use angle bisector of outer face edges, pointing outward
+          val prevEdge = halfEdge.prev.get
+          val nextEdge = halfEdge.next.get
+
+          val prevDestination = prevEdge.origin
+          val nextDestination = nextEdge.twin.get.origin
+
+          // Calculate normalized vectors from origin to adjacent vertices
+          val toPrevX = prevDestination.coords.x - origin.coords.x
+          val toPrevY = prevDestination.coords.y - origin.coords.y
+          val toPrevLength = spire.math.sqrt(toPrevX * toPrevX + toPrevY * toPrevY)
+
+          val toNextX = nextDestination.coords.x - origin.coords.x
+          val toNextY = nextDestination.coords.y - origin.coords.y
+          val toNextLength = spire.math.sqrt(toNextX * toNextX + toNextY * toNextY)
+
+          if toPrevLength > 0 && toNextLength > 0 then
+            // Angle bisector direction (outward for outer face)
+            val bisectorX = -(toPrevX / toPrevLength + toNextX / toNextLength)
+            val bisectorY = -(toPrevY / toPrevLength + toNextY / toNextLength)
+            val bisectorLength = spire.math.sqrt(bisectorX * bisectorX + bisectorY * bisectorY)
+
+            if bisectorLength > 0 then
+              (bisectorX / bisectorLength, bisectorY / bisectorLength)
+            else
+              (BigDecimal(-0.1), BigDecimal(-0.1)) // Default fallback (outward)
+          else
+            (BigDecimal(-0.1), BigDecimal(-0.1)) // Default fallback (outward)
+
+        // Position label outside the polygon
+        val labelDistance = strokeWidth * 8 // Distance from vertex towards exterior
+        val angleLabelX = origin.coords.x * scale + outwardX * labelDistance
+        val angleLabelY = -origin.coords.y * scale - outwardY * labelDistance
+
+        s"""      <text x="$angleLabelX" y="$angleLabelY" font-size="${(strokeWidth * 5).toInt}" fill="orange" text-anchor="middle" dominant-baseline="middle">$angleText</text>"""
       }.mkString("\n")
 
       // Create boundary polygon with direction arrows
@@ -235,10 +328,18 @@ object TilingSVG:
            |    </g>""".stripMargin
       else ""
 
-      val angleSection = if angleLabels.nonEmpty then
+      val outerFaceSection = if outerFaceHalfEdges.nonEmpty then
+        s"""    <!-- Outer Face Half-Edge Direction Arrows -->
+           |    <g fill="black" stroke="black" stroke-width="${strokeWidth * 0.5}">
+           |$outerFaceHalfEdges
+           |    </g>""".stripMargin
+      else ""
+
+      val angleSection = if innerAngleLabels.nonEmpty || outerAngleLabels.nonEmpty then
         s"""    <!-- Angle Labels -->
            |    <g>
-           |$angleLabels
+           |$innerAngleLabels
+           |$outerAngleLabels
            |    </g>""".stripMargin
       else ""
 
@@ -250,6 +351,7 @@ object TilingSVG:
          |    </g>
          |$boundarySection
          |$innerFaceSection
+         |$outerFaceSection
          |    <!-- Vertices -->
          |    <g fill="red">
          |$vertexCircles
