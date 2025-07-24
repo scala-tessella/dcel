@@ -322,17 +322,25 @@ case class TilingDCEL(
     val oldNext = baseEdge.next.get
     baseEdge.incidentFace = Some(newFace)
 
+    // Calculate the interior angle for regular polygon
+    val sides = polyVertices.length
+    val interiorAngle = RegularPolygon(sides).alphaDegree
+    val exteriorAngle = AngleDegree(360) - interiorAngle
+
     // Link the inner loop for the new face
     val allInnerEdges = baseEdge +: newInnerEdges
-    val sides = allInnerEdges.length
     for (i <- 0 until sides)
       val current = allInnerEdges(i)
       val next = allInnerEdges((i + 1) % sides)
       current.next = Some(next)
       next.prev = Some(current)
+      current.angle = interiorAngle // Set the interior angle for the new face
       if i >= 1 && !vertexMatches.contains(i - 1) then // Only update leaving edge for new vertices
         polyVertices(i).leaving = Some(current)
     newFace.outerComponent = Some(baseEdge)
+
+    // Set angles for outer edges
+    newOuterEdges.foreach(_.angle = exteriorAngle)
 
     // Handle boundary reconstruction with merged segments
     if segmentsToMerge.nonEmpty then
