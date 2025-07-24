@@ -54,6 +54,58 @@ object TilingSVG:
           Some(s"""      <line x1="${p1.coords.x * scale}" y1="${-p1.coords.y * scale}" x2="${p2.coords.x * scale}" y2="${-p2.coords.y * scale}" />""")
       }.filter(_.isDefined).map(_.get).mkString("\n")
 
+      // Create inner face half-edge visualizations with direction arrows and angle labels
+      val innerFaceHalfEdges = tilingDCEL.innerFaces.flatMap { face =>
+        val halfEdges = face.halfEdges
+        halfEdges.map { halfEdge =>
+          val origin = halfEdge.origin
+          val destination = halfEdge.twin.get.origin
+
+          // Calculate midpoint for arrow and angle label
+          val midX = (origin.coords.x + destination.coords.x) * scale / 2
+          val midY = -(origin.coords.y + destination.coords.y) * scale / 2
+
+          // Calculate direction vector for arrow
+          val dx = (destination.coords.x - origin.coords.x) * scale
+          val dy = -(destination.coords.y - origin.coords.y) * scale
+          val length = spire.math.sqrt(dx * dx + dy * dy)
+          val arrowSize = strokeWidth * 3
+
+          val arrow = if length > 0 then
+            val unitX = dx / length
+            val unitY = dy / length
+
+            // Arrow tip (slightly offset from midpoint towards destination)
+            val tipX = midX + unitX * arrowSize
+            val tipY = midY + unitY * arrowSize
+
+            // Arrow base (perpendicular to direction)
+            val perpX = -unitY * arrowSize * 0.4
+            val perpY = unitX * arrowSize * 0.4
+            val baseX1 = midX + perpX
+            val baseY1 = midY + perpY
+            val baseX2 = midX - perpX
+            val baseY2 = midY - perpY
+
+            Some(s"""      <polygon points="$tipX,$tipY $baseX1,$baseY1 $baseX2,$baseY2" />""")
+          else None
+
+          // Create angle label at the origin vertex
+          val angleText = f"${halfEdge.angle.toRational.toDouble}%.0f°"
+          val labelOffsetX = strokeWidth * 3
+          val labelOffsetY = strokeWidth * 3
+          val angleLabelX = origin.coords.x * scale + labelOffsetX
+          val angleLabelY = -origin.coords.y * scale - labelOffsetY
+
+          val angleLabel = s"""      <text x="$angleLabelX" y="$angleLabelY" font-size="${(strokeWidth * 5).toInt}" fill="purple">$angleText</text>"""
+
+          (arrow, angleLabel)
+        }
+      }
+
+      val innerFaceArrows = innerFaceHalfEdges.flatMap(_._1).mkString("\n")
+      val angleLabels = innerFaceHalfEdges.map(_._2).mkString("\n")
+
       // Create boundary polygon with direction arrows
       val (boundaryPolygon, boundaryArrows) = tilingDCEL.boundary match
         case vertices if vertices.nonEmpty =>
@@ -127,6 +179,20 @@ object TilingSVG:
              |    </g>""".stripMargin
         case None => ""
 
+      val innerFaceSection = if innerFaceArrows.nonEmpty then
+        s"""    <!-- Inner Face Half-Edge Direction Arrows -->
+           |    <g fill="blue" stroke="blue" stroke-width="${strokeWidth * 0.5}">
+           |$innerFaceArrows
+           |    </g>""".stripMargin
+      else ""
+
+      val angleSection = if angleLabels.nonEmpty then
+        s"""    <!-- Angle Labels -->
+           |    <g>
+           |$angleLabels
+           |    </g>""".stripMargin
+      else ""
+
       s"""<svg width="$width" height="$height" viewBox="$viewBoxMinX $viewBoxMinY $viewBoxWidth $viewBoxHeight" xmlns="http://www.w3.org/2000/svg">
          |  <g>
          |    <!-- Edges -->
@@ -134,6 +200,7 @@ object TilingSVG:
          |$edgeLines
          |    </g>
          |$boundarySection
+         |$innerFaceSection
          |    <!-- Vertices -->
          |    <g fill="red">
          |$vertexCircles
@@ -146,5 +213,6 @@ object TilingSVG:
          |    <g font-size="${(strokeWidth * 6).toInt}" fill="green">
          |$faceLabels
          |    </g>
+         |$angleSection
          |  </g>
          |</svg>""".stripMargin

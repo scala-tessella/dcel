@@ -220,8 +220,8 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with EitherValues:
     // Count the number of text elements
     val textCount = "<text".r.findAllIn(svg).size
 
-    // For a triangle, we should have exactly 4 text labels (one for each vertex plus one for the inner face)
-    textCount shouldBe 4
+    // For a triangle, we should have exactly 7 text labels (two for each vertex, id and angle, plus one for the inner face)
+    textCount shouldBe 7
   }
 
   it should "include vertex IDs in labels" in {
