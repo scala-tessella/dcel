@@ -1,6 +1,8 @@
 package io.github.scala_tessella
 package dcel
 
+import spire.implicits.*
+
 import scala.collection.mutable
 
 object TilingSVG:
@@ -17,10 +19,10 @@ object TilingSVG:
      * @return A String containing the SVG markup.
      */
     def toScalableVectorGraphics(
-      strokeWidth: Double = 1.0,
-      padding: Double = 20.0,
-      scale: Double = 50.0
-    ): String =
+                                  strokeWidth: Double = 1.0,
+                                  padding: Double = 20.0,
+                                  scale: Double = 50.0
+                                ): String =
       if tilingDCEL.vertices.isEmpty then return """<svg width="0" height="0"></svg>"""
 
       // Calculate the bounding box of the DRAWN coordinates (including Y-flip)
@@ -52,6 +54,48 @@ object TilingSVG:
           Some(s"""      <line x1="${p1.coords.x * scale}" y1="${-p1.coords.y * scale}" x2="${p2.coords.x * scale}" y2="${-p2.coords.y * scale}" />""")
       }.filter(_.isDefined).map(_.get).mkString("\n")
 
+      // Create boundary polygon with direction arrows
+      val (boundaryPolygon, boundaryArrows) = tilingDCEL.boundary match
+        case vertices if vertices.nonEmpty =>
+          val points = vertices.map { v =>
+            s"${v.coords.x * scale},${-v.coords.y * scale}"
+          }.mkString(" ")
+
+          // Create arrows at the midpoint of each boundary edge
+          val arrows = vertices.zipWithIndex.map { case (v1, i) =>
+            val v2 = vertices((i + 1) % vertices.length)
+            val midX = (v1.coords.x + v2.coords.x) * scale / 2
+            val midY = -(v1.coords.y + v2.coords.y) * scale / 2
+
+            // Calculate direction vector and normalize it
+            val dx = (v2.coords.x - v1.coords.x) * scale
+            val dy = -(v2.coords.y - v1.coords.y) * scale
+            val length = spire.math.sqrt(dx * dx + dy * dy)
+            val arrowSize = strokeWidth * 4
+
+            if length > 0 then
+              val unitX = dx / length
+              val unitY = dy / length
+
+              // Arrow tip
+              val tipX = midX + unitX * arrowSize
+              val tipY = midY + unitY * arrowSize
+
+              // Arrow base (perpendicular to direction)
+              val perpX = -unitY * arrowSize * 0.5
+              val perpY = unitX * arrowSize * 0.5
+              val baseX1 = midX + perpX
+              val baseY1 = midY + perpY
+              val baseX2 = midX - perpX
+              val baseY2 = midY - perpY
+
+              Some(s"""      <polygon points="$tipX,$tipY $baseX1,$baseY1 $baseX2,$baseY2" />""")
+            else None
+          }.filter(_.isDefined).map(_.get).mkString("\n")
+
+          (Some(s"""      <polygon points="$points" />"""), arrows)
+        case _ => (None, "")
+
       val vertexCircles = tilingDCEL.vertices.map { v =>
         s"""      <circle cx="${v.coords.x * scale}" cy="${-v.coords.y * scale}" r="${strokeWidth * 2}" />"""
       }.mkString("\n")
@@ -71,12 +115,25 @@ object TilingSVG:
           None
       }.filter(_.isDefined).map(_.get).mkString("\n")
 
+      val boundarySection = boundaryPolygon match
+        case Some(polygon) =>
+          s"""    <!-- Boundary Highlight -->
+             |    <g stroke="red" stroke-width="${strokeWidth * 3}" fill="none">
+             |$polygon
+             |    </g>
+             |    <!-- Boundary Direction Arrows -->
+             |    <g fill="red" stroke="red" stroke-width="${strokeWidth * 0.5}">
+             |$boundaryArrows
+             |    </g>""".stripMargin
+        case None => ""
+
       s"""<svg width="$width" height="$height" viewBox="$viewBoxMinX $viewBoxMinY $viewBoxWidth $viewBoxHeight" xmlns="http://www.w3.org/2000/svg">
          |  <g>
          |    <!-- Edges -->
          |    <g stroke="black" stroke-width="$strokeWidth">
          |$edgeLines
          |    </g>
+         |$boundarySection
          |    <!-- Vertices -->
          |    <g fill="red">
          |$vertexCircles

@@ -79,7 +79,7 @@ case class TilingDCEL(
   /**
    * Helper method to get all half-edges forming the outer boundary loop.
    */
-  private def getBoundaryEdges: List[HalfEdge] =
+  def getBoundaryEdges: List[HalfEdge] =
     outerFace.outerComponent.map { start =>
       @tailrec
       def loop(current: HalfEdge, acc: List[HalfEdge], visited: Set[HalfEdge]): List[HalfEdge] =
