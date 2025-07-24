@@ -61,7 +61,7 @@ object TilingSVG:
           val origin = halfEdge.origin
           val destination = halfEdge.twin.get.origin
 
-          // Calculate midpoint for arrow and angle label
+          // Calculate midpoint for arrow
           val midX = (origin.coords.x + destination.coords.x) * scale / 2
           val midY = -(origin.coords.y + destination.coords.y) * scale / 2
 
@@ -90,21 +90,70 @@ object TilingSVG:
             Some(s"""      <polygon points="$tipX,$tipY $baseX1,$baseY1 $baseX2,$baseY2" />""")
           else None
 
-          // Create angle label at the origin vertex
-          val angleText = f"${halfEdge.angle.toRational.toDouble}%.0f°"
-          val labelOffsetX = strokeWidth * 3
-          val labelOffsetY = strokeWidth * 3
-          val angleLabelX = origin.coords.x * scale + labelOffsetX
-          val angleLabelY = -origin.coords.y * scale - labelOffsetY
-
-          val angleLabel = s"""      <text x="$angleLabelX" y="$angleLabelY" font-size="${(strokeWidth * 5).toInt}" fill="purple">$angleText</text>"""
-
-          (arrow, angleLabel)
+          (arrow, halfEdge)
         }
       }
 
       val innerFaceArrows = innerFaceHalfEdges.flatMap(_._1).mkString("\n")
-      val angleLabels = innerFaceHalfEdges.map(_._2).mkString("\n")
+
+      // Calculate angle labels positioned inside the polygon
+      val angleLabels = tilingDCEL.innerFaces.flatMap { face =>
+        val faceVertices = face.getVertices
+        val halfEdges = face.halfEdges
+
+        // Calculate face centroid for reference
+        val centroidX = if faceVertices.nonEmpty then faceVertices.map(_.coords.x).sum / faceVertices.length else BigDecimal(0)
+        val centroidY = if faceVertices.nonEmpty then faceVertices.map(_.coords.y).sum / faceVertices.length else BigDecimal(0)
+
+        halfEdges.map { halfEdge =>
+          val origin = halfEdge.origin
+          val angleText = f"${halfEdge.angle.toRational.toDouble}%.0f°"
+
+          // Calculate inward direction from vertex towards face centroid
+          val toCentroidX = centroidX - origin.coords.x
+          val toCentroidY = centroidY - origin.coords.y
+          val toCentroidLength = spire.math.sqrt(toCentroidX * toCentroidX + toCentroidY * toCentroidY)
+
+          val (inwardX, inwardY) = if toCentroidLength > 0 then
+            (toCentroidX / toCentroidLength, toCentroidY / toCentroidLength)
+          else
+            // Fallback: use angle bisector if centroid calculation fails
+            val prevEdge = halfEdge.prev.get
+            val nextEdge = halfEdge.next.get
+
+            val prevDestination = prevEdge.origin
+            val nextDestination = nextEdge.twin.get.origin
+
+            // Calculate normalized vectors from origin to adjacent vertices
+            val toPrevX = prevDestination.coords.x - origin.coords.x
+            val toPrevY = prevDestination.coords.y - origin.coords.y
+            val toPrevLength = spire.math.sqrt(toPrevX * toPrevX + toPrevY * toPrevY)
+
+            val toNextX = nextDestination.coords.x - origin.coords.x
+            val toNextY = nextDestination.coords.y - origin.coords.y
+            val toNextLength = spire.math.sqrt(toNextX * toNextX + toNextY * toNextY)
+
+            if toPrevLength > 0 && toNextLength > 0 then
+              // Angle bisector direction (inward)
+              val bisectorX = (toPrevX / toPrevLength + toNextX / toNextLength)
+              val bisectorY = (toPrevY / toPrevLength + toNextY / toNextLength)
+              val bisectorLength = spire.math.sqrt(bisectorX * bisectorX + bisectorY * bisectorY)
+
+              if bisectorLength > 0 then
+                (bisectorX / bisectorLength, bisectorY / bisectorLength)
+              else
+                (BigDecimal(0.1), BigDecimal(0.1)) // Default fallback
+            else
+              (BigDecimal(0.1), BigDecimal(0.1)) // Default fallback
+
+          // Position label inside the polygon
+          val labelDistance = strokeWidth * 8 // Distance from vertex towards interior
+          val angleLabelX = origin.coords.x * scale + inwardX * labelDistance
+          val angleLabelY = -origin.coords.y * scale - inwardY * labelDistance
+
+          s"""      <text x="$angleLabelX" y="$angleLabelY" font-size="${(strokeWidth * 5).toInt}" fill="purple" text-anchor="middle" dominant-baseline="middle">$angleText</text>"""
+        }
+      }.mkString("\n")
 
       // Create boundary polygon with direction arrows
       val (boundaryPolygon, boundaryArrows) = tilingDCEL.boundary match
