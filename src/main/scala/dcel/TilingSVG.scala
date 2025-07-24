@@ -10,6 +10,16 @@ object TilingSVG:
   extension (tilingDCEL: TilingDCEL)
 
     /**
+     * Formats a decimal number to a maximum of 6 decimal places, removing trailing zeros.
+     */
+    private def formatCoordinate(value: BigDecimal): String =
+      val formatted = f"${value.toDouble}%.6f"
+      if formatted.contains('.') then
+        formatted.replaceAll("0+$", "").replaceAll("\\.$", "")
+      else
+        formatted
+
+    /**
      * Generates an SVG representation of the tiling.
      * The width, height, and viewBox are automatically calculated to fit the tiling at the given scale.
      *
@@ -51,7 +61,11 @@ object TilingSVG:
           val p2 = twinEdge.origin
           drawnEdges ++= List(edge, twinEdge) // Mark both halves as drawn
           // Y-coordinates are negated for proper SVG orientation
-          Some(s"""      <line x1="${p1.coords.x * scale}" y1="${-p1.coords.y * scale}" x2="${p2.coords.x * scale}" y2="${-p2.coords.y * scale}" />""")
+          val x1 = formatCoordinate(p1.coords.x * scale)
+          val y1 = formatCoordinate(-p1.coords.y * scale)
+          val x2 = formatCoordinate(p2.coords.x * scale)
+          val y2 = formatCoordinate(-p2.coords.y * scale)
+          Some(s"""      <line x1="$x1" y1="$y1" x2="$x2" y2="$y2" />""")
       }.filter(_.isDefined).map(_.get).mkString("\n")
 
       // Create inner face half-edge visualizations with direction arrows and angle labels
@@ -76,16 +90,16 @@ object TilingSVG:
             val unitY = dy / length
 
             // Arrow tip (slightly offset from midpoint towards destination)
-            val tipX = midX + unitX * arrowSize
-            val tipY = midY + unitY * arrowSize
+            val tipX = formatCoordinate(midX + unitX * arrowSize)
+            val tipY = formatCoordinate(midY + unitY * arrowSize)
 
             // Arrow base (perpendicular to direction)
             val perpX = -unitY * arrowSize * 0.4
             val perpY = unitX * arrowSize * 0.4
-            val baseX1 = midX + perpX
-            val baseY1 = midY + perpY
-            val baseX2 = midX - perpX
-            val baseY2 = midY - perpY
+            val baseX1 = formatCoordinate(midX + perpX)
+            val baseY1 = formatCoordinate(midY + perpY)
+            val baseX2 = formatCoordinate(midX - perpX)
+            val baseY2 = formatCoordinate(midY - perpY)
 
             Some(s"""      <polygon points="$tipX,$tipY $baseX1,$baseY1 $baseX2,$baseY2" />""")
           else None
@@ -116,16 +130,16 @@ object TilingSVG:
           val unitY = dy / length
 
           // Arrow tip (slightly offset from midpoint towards destination)
-          val tipX = midX + unitX * arrowSize
-          val tipY = midY + unitY * arrowSize
+          val tipX = formatCoordinate(midX + unitX * arrowSize)
+          val tipY = formatCoordinate(midY + unitY * arrowSize)
 
           // Arrow base (perpendicular to direction)
           val perpX = -unitY * arrowSize * 0.4
           val perpY = unitX * arrowSize * 0.4
-          val baseX1 = midX + perpX
-          val baseY1 = midY + perpY
-          val baseX2 = midX - perpX
-          val baseY2 = midY - perpY
+          val baseX1 = formatCoordinate(midX + perpX)
+          val baseY1 = formatCoordinate(midY + perpY)
+          val baseX2 = formatCoordinate(midX - perpX)
+          val baseY2 = formatCoordinate(midY - perpY)
 
           Some(s"""      <polygon points="$tipX,$tipY $baseX1,$baseY1 $baseX2,$baseY2" />""")
         else None
@@ -185,8 +199,8 @@ object TilingSVG:
 
           // Position label inside the polygon
           val labelDistance = strokeWidth * 8 // Distance from vertex towards interior
-          val angleLabelX = origin.coords.x * scale + inwardX * labelDistance
-          val angleLabelY = -origin.coords.y * scale - inwardY * labelDistance
+          val angleLabelX = formatCoordinate(origin.coords.x * scale + inwardX * labelDistance)
+          val angleLabelY = formatCoordinate(-origin.coords.y * scale - inwardY * labelDistance)
 
           s"""      <text x="$angleLabelX" y="$angleLabelY" font-size="${(strokeWidth * 5).toInt}" fill="purple" text-anchor="middle" dominant-baseline="middle">$angleText</text>"""
         }
@@ -242,8 +256,8 @@ object TilingSVG:
 
         // Position label outside the polygon
         val labelDistance = strokeWidth * 8 // Distance from vertex towards exterior
-        val angleLabelX = origin.coords.x * scale + outwardX * labelDistance
-        val angleLabelY = -origin.coords.y * scale - outwardY * labelDistance
+        val angleLabelX = formatCoordinate(origin.coords.x * scale + outwardX * labelDistance)
+        val angleLabelY = formatCoordinate(-origin.coords.y * scale - outwardY * labelDistance)
 
         s"""      <text x="$angleLabelX" y="$angleLabelY" font-size="${(strokeWidth * 5).toInt}" fill="orange" text-anchor="middle" dominant-baseline="middle">$angleText</text>"""
       }.mkString("\n")
@@ -252,7 +266,7 @@ object TilingSVG:
       val (boundaryPolygon, boundaryArrows) = tilingDCEL.boundary match
         case vertices if vertices.nonEmpty =>
           val points = vertices.map { v =>
-            s"${v.coords.x * scale},${-v.coords.y * scale}"
+            s"${formatCoordinate(v.coords.x * scale)},${formatCoordinate(-v.coords.y * scale)}"
           }.mkString(" ")
 
           // Create arrows at the midpoint of each boundary edge
@@ -272,16 +286,16 @@ object TilingSVG:
               val unitY = dy / length
 
               // Arrow tip
-              val tipX = midX + unitX * arrowSize
-              val tipY = midY + unitY * arrowSize
+              val tipX = formatCoordinate(midX + unitX * arrowSize)
+              val tipY = formatCoordinate(midY + unitY * arrowSize)
 
               // Arrow base (perpendicular to direction)
               val perpX = -unitY * arrowSize * 0.5
               val perpY = unitX * arrowSize * 0.5
-              val baseX1 = midX + perpX
-              val baseY1 = midY + perpY
-              val baseX2 = midX - perpX
-              val baseY2 = midY - perpY
+              val baseX1 = formatCoordinate(midX + perpX)
+              val baseY1 = formatCoordinate(midY + perpY)
+              val baseX2 = formatCoordinate(midX - perpX)
+              val baseY2 = formatCoordinate(midY - perpY)
 
               Some(s"""      <polygon points="$tipX,$tipY $baseX1,$baseY1 $baseX2,$baseY2" />""")
             else None
@@ -291,11 +305,15 @@ object TilingSVG:
         case _ => (None, "")
 
       val vertexCircles = tilingDCEL.vertices.map { v =>
-        s"""      <circle cx="${v.coords.x * scale}" cy="${-v.coords.y * scale}" r="${strokeWidth * 2}" />"""
+        val cx = formatCoordinate(v.coords.x * scale)
+        val cy = formatCoordinate(-v.coords.y * scale)
+        s"""      <circle cx="$cx" cy="$cy" r="${strokeWidth * 2}" />"""
       }.mkString("\n")
 
       val vertexLabels = tilingDCEL.vertices.map { v =>
-        s"""      <text x="${v.coords.x * scale + strokeWidth * 2.5}" y="${-v.coords.y * scale - strokeWidth * 2.5}">${v.id}</text>"""
+        val x = formatCoordinate(v.coords.x * scale + strokeWidth * 2.5)
+        val y = formatCoordinate(-v.coords.y * scale - strokeWidth * 2.5)
+        s"""      <text x="$x" y="$y">${v.id}</text>"""
       }.mkString("\n")
 
       // Calculate face labels at the centroid of each inner face
@@ -304,7 +322,9 @@ object TilingSVG:
         if faceVertices.nonEmpty then
           val centroidX = faceVertices.map(_.coords.x).sum / faceVertices.length
           val centroidY = faceVertices.map(_.coords.y).sum / faceVertices.length
-          Some(s"""      <text x="${centroidX * scale}" y="${-centroidY * scale}" text-anchor="middle" dominant-baseline="middle">${face.id}</text>""")
+          val x = formatCoordinate(centroidX * scale)
+          val y = formatCoordinate(-centroidY * scale)
+          Some(s"""      <text x="$x" y="$y" text-anchor="middle" dominant-baseline="middle">${face.id}</text>""")
         else
           None
       }.filter(_.isDefined).map(_.get).mkString("\n")
@@ -343,7 +363,13 @@ object TilingSVG:
            |    </g>""".stripMargin
       else ""
 
-      s"""<svg width="$width" height="$height" viewBox="$viewBoxMinX $viewBoxMinY $viewBoxWidth $viewBoxHeight" xmlns="http://www.w3.org/2000/svg">
+      // Format viewBox coordinates
+      val formattedViewBoxMinX = formatCoordinate(viewBoxMinX)
+      val formattedViewBoxMinY = formatCoordinate(viewBoxMinY)
+      val formattedViewBoxWidth = formatCoordinate(viewBoxWidth)
+      val formattedViewBoxHeight = formatCoordinate(viewBoxHeight)
+
+      s"""<svg width="$width" height="$height" viewBox="$formattedViewBoxMinX $formattedViewBoxMinY $formattedViewBoxWidth $formattedViewBoxHeight" xmlns="http://www.w3.org/2000/svg">
          |  <g>
          |    <!-- Edges -->
          |    <g stroke="black" stroke-width="$strokeWidth">
