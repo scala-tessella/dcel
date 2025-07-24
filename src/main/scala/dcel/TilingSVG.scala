@@ -1,9 +1,7 @@
 package io.github.scala_tessella
 package dcel
 
-import BigDecimalGeometry.BigPoint
-
-import spire.implicits.*
+import BigDecimalGeometry.{BigLineSegment, BigPoint, BigRadian}
 
 import scala.collection.mutable
 
@@ -21,12 +19,8 @@ object TilingSVG:
 
   extension (bigPoint: BigPoint)
 
-    def scaled(scale: Double): BigPoint = BigPoint(bigPoint.x * scale, bigPoint.y * scale)
-
-    def flippedY: BigPoint = BigPoint(bigPoint.x, -bigPoint.y)
-
     def toSvgCoords(scale: Double): (String, String) =
-      val scaledPoint: BigPoint = scaled(scale).flippedY
+      val scaledPoint: BigPoint = bigPoint.scaled(scale).flippedY
       (formatCoordinate(scaledPoint.x), formatCoordinate(scaledPoint.y))
 
   def toBigPointFromVertex(vertex: Vertex): BigPoint = BigPoint(vertex.coords.x, vertex.coords.y)
@@ -35,24 +29,47 @@ object TilingSVG:
     def toSvgPolygon: String = s"""      <polygon points="$tipX,$tipY $baseX1,$baseY1 $baseX2,$baseY2" />"""
 
   private def createArrow(origin: BigPoint, destination: BigPoint, scale: Double, arrowSize: Double): Option[Arrow] =
-    val midPoint = BigPoint((origin.x + destination.x) / 2, (origin.y + destination.y) / 2)
-    val direction = BigPoint(destination.x - origin.x, destination.y - origin.y).scaled(scale)
-    val length = spire.math.sqrt(direction.x * direction.x + direction.y * direction.y)
+    val distance = origin.distanceTo(destination)
 
-    if length > 0 then
-      val unit = BigPoint(direction.x / length, direction.y / length)
-      val perp = BigPoint(-unit.y, unit.x)
+    if distance > BigDecimal(BigDecimalGeometry.ACCURACY) then
+      // Use the existing midPoint method from BigLineSegment
+      val segment = BigLineSegment(origin, destination)
+      val midPoint = segment.midPoint
 
-      val tip = BigPoint(midPoint.x * scale + unit.x * arrowSize, -midPoint.y * scale + unit.y * arrowSize)
-      val base1 = BigPoint(midPoint.x * scale + perp.x * arrowSize * 0.4, -midPoint.y * scale + perp.y * arrowSize * 0.4)
-      val base2 = BigPoint(midPoint.x * scale - perp.x * arrowSize * 0.4, -midPoint.y * scale - perp.y * arrowSize * 0.4)
+      // Get the direction angle using existing methods
+      val directionAngle = origin.angleTo(destination)
+
+      // Create unit vector in the direction using fromPolar
+      val unitDirection = BigPoint.fromPolar(BigDecimal(1.0), directionAngle)
+
+      // Create perpendicular vector (90 degrees counterclockwise)
+      val perpAngle = directionAngle + BigRadian.TAU_4
+      val unitPerpendicular = BigPoint.fromPolar(BigDecimal(1.0), perpAngle)
+
+      // Calculate arrow points using the scaled midpoint and unit vectors
+      val scaledMidPoint = midPoint.scaled(scale).flippedY
+      val arrowSizeBD = BigDecimal(arrowSize)
+
+      val tip = scaledMidPoint.plus(
+        BigPoint(unitDirection.x * arrowSizeBD, unitDirection.y * arrowSizeBD)
+      )
+
+      val baseOffset = arrowSizeBD * BigDecimal(0.4)
+      val base1 = scaledMidPoint.plus(
+        BigPoint(unitPerpendicular.x * baseOffset, unitPerpendicular.y * baseOffset)
+      )
+
+      val base2 = scaledMidPoint.plus(
+        BigPoint(unitPerpendicular.x * (-baseOffset), unitPerpendicular.y * (-baseOffset))
+      )
 
       Some(Arrow(
         formatCoordinate(tip.x), formatCoordinate(tip.y),
         formatCoordinate(base1.x), formatCoordinate(base1.y),
         formatCoordinate(base2.x), formatCoordinate(base2.y)
       ))
-    else None
+    else
+      None
 
   private def calculateCentroid(vertices: List[Vertex]): BigPoint =
     if vertices.nonEmpty then
@@ -62,14 +79,9 @@ object TilingSVG:
     else
       BigPoint(BigDecimal(0), BigDecimal(0))
 
-  private def calculateDirection(from: BigPoint, to: BigPoint, fallback: BigPoint = BigPoint(BigDecimal(0.1), BigDecimal(0.1))): BigPoint =
-    val direction = BigPoint(to.x - from.x, to.y - from.y)
-    val length = spire.math.sqrt(direction.x * direction.x + direction.y * direction.y)
-
-    if length > 0 then
-      BigPoint(direction.x / length, direction.y / length)
-    else
-      fallback
+  private def calculateDirection(from: BigPoint, to: BigPoint): BigPoint =
+    val angle = from.angleTo(to)
+    BigPoint.fromPolar(BigDecimal(1.0), angle)
 
   private def createAngleBisectorDirection(halfEdge: HalfEdge, inward: Boolean = true): BigPoint =
     val prevEdge = halfEdge.prev.get
@@ -160,7 +172,7 @@ object TilingSVG:
         val centroid = calculateCentroid(face.getVertices)
         face.halfEdges.map { halfEdge =>
           val origin = toBigPointFromVertex(halfEdge.origin)
-          val direction = calculateDirection(origin, centroid, createAngleBisectorDirection(halfEdge, inward = true))
+          val direction = calculateDirection(origin, centroid)
           createAngleLabel(halfEdge, direction, scale, strokeWidth, "purple")
         }
       }.mkString("\n")
@@ -171,7 +183,7 @@ object TilingSVG:
         else BigPoint(BigDecimal(0), BigDecimal(0))
 
         val origin = toBigPointFromVertex(halfEdge.origin)
-        val inwardDirection = calculateDirection(origin, centroid, createAngleBisectorDirection(halfEdge, inward = true))
+        val inwardDirection = calculateDirection(origin, centroid)
         val outwardDirection = BigPoint(-inwardDirection.x, -inwardDirection.y)
 
         createAngleLabel(halfEdge, outwardDirection, scale, strokeWidth, "orange")

@@ -129,6 +129,12 @@ object BigDecimalGeometry:
     def distanceTo(other: BigPoint): BigDecimal =
       BigLineSegment(this, other).length
 
+    def scaled(scale: Double): BigPoint =
+      BigPoint(x * scale, y * scale)
+
+    def flippedY: BigPoint =
+      BigPoint(x, -y)
+
   enum Orientation:
     case Collinear, Clockwise, Counterclockwise
 
@@ -160,7 +166,15 @@ object BigDecimalGeometry:
 
   extension (points: List[BigPoint])
 
-    /**
+    def centroid: BigPoint =
+      if points.nonEmpty then
+        val sumX = points.map(_.x).sum
+        val sumY = points.map(_.y).sum
+        BigPoint(sumX / points.length, sumY / points.length)
+      else
+        BigPoint.apply() // origin (0,0)
+
+  /**
      * Checks if a list of points contains any pair of `almostEquals` points at a given accuracy.
      *
      * This method uses a grid-based approach (spatial hashing) for efficient checking.
