@@ -60,6 +60,17 @@ object TilingSVG:
         s"""      <text x="${v.coords.x * scale + strokeWidth * 2.5}" y="${-v.coords.y * scale - strokeWidth * 2.5}">${v.id}</text>"""
       }.mkString("\n")
 
+      // Calculate face labels at the centroid of each inner face
+      val faceLabels = tilingDCEL.innerFaces.map { face =>
+        val faceVertices = face.getVertices
+        if faceVertices.nonEmpty then
+          val centroidX = faceVertices.map(_.coords.x).sum / faceVertices.length
+          val centroidY = faceVertices.map(_.coords.y).sum / faceVertices.length
+          Some(s"""      <text x="${centroidX * scale}" y="${-centroidY * scale}" text-anchor="middle" dominant-baseline="middle">${face.id}</text>""")
+        else
+          None
+      }.filter(_.isDefined).map(_.get).mkString("\n")
+
       s"""<svg width="$width" height="$height" viewBox="$viewBoxMinX $viewBoxMinY $viewBoxWidth $viewBoxHeight" xmlns="http://www.w3.org/2000/svg">
          |  <g>
          |    <!-- Edges -->
@@ -73,6 +84,10 @@ object TilingSVG:
          |    <!-- Vertex Labels -->
          |    <g font-size="${(strokeWidth * 8).toInt}" fill="darkblue">
          |$vertexLabels
+         |    </g>
+         |    <!-- Face Labels -->
+         |    <g font-size="${(strokeWidth * 6).toInt}" fill="green">
+         |$faceLabels
          |    </g>
          |  </g>
          |</svg>""".stripMargin

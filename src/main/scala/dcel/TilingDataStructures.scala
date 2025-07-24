@@ -120,6 +120,28 @@ case class Face(
   override def hashCode(): Int = id.hashCode
 
   /**
+   * Get all vertices that form the boundary of a face.
+   * Returns vertices in the order they appear around the face boundary.
+   */
+  def getVertices: List[Vertex] =
+    outerComponent match
+      case None => List.empty
+      case Some(startEdge) =>
+        val vertices = mutable.ListBuffer[Vertex]()
+        val visited = mutable.Set[HalfEdge]()
+        @tailrec
+        def traverseFace(edge: HalfEdge): Unit =
+          if !visited.contains(edge) then
+            visited += edge
+            vertices += edge.origin
+            edge.next match
+              case Some(nextEdge) if nextEdge ne startEdge => traverseFace(nextEdge)
+              case _ => // Done traversing or reached start
+
+        traverseFace(startEdge)
+        vertices.toList
+
+  /**
    * Get all half-edges forming a face loop.
    */
   def halfEdges: List[HalfEdge] =
