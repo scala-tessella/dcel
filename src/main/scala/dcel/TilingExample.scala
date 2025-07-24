@@ -54,27 +54,27 @@ object TilingExample:
     hAB.next = Some(hBC); hBC.prev = Some(hAB)
     hBC.next = Some(hCA); hCA.prev = Some(hBC)
     hCA.next = Some(hAB); hAB.prev = Some(hCA)
-    hAB.incidentFace = Some(fABC); hAB.angle = AngleDegree(60)
-    hBC.incidentFace = Some(fABC); hBC.angle = AngleDegree(60)
-    hCA.incidentFace = Some(fABC); hCA.angle = AngleDegree(60)
+    hAB.incidentFace = Some(fABC); hAB.angle = Some(AngleDegree(60))
+    hBC.incidentFace = Some(fABC); hBC.angle = Some(AngleDegree(60))
+    hCA.incidentFace = Some(fABC); hCA.angle = Some(AngleDegree(60))
 
     // --- Triangle ACD ---
     hAC.next = Some(hCD); hCD.prev = Some(hAC)
     hCD.next = Some(hDA); hDA.prev = Some(hCD)
     hDA.next = Some(hAC); hAC.prev = Some(hDA)
-    hAC.incidentFace = Some(fACD); hAC.angle = AngleDegree(60)
-    hCD.incidentFace = Some(fACD); hCD.angle = AngleDegree(60)
-    hDA.incidentFace = Some(fACD); hDA.angle = AngleDegree(60)
+    hAC.incidentFace = Some(fACD); hAC.angle = Some(AngleDegree(60))
+    hCD.incidentFace = Some(fACD); hCD.angle = Some(AngleDegree(60))
+    hDA.incidentFace = Some(fACD); hDA.angle = Some(AngleDegree(60))
 
     // --- Outer Face ---
     hBA.next = Some(hAD); hAD.prev = Some(hBA)
     hAD.next = Some(hDC); hDC.prev = Some(hAD)
     hDC.next = Some(hCB); hCB.prev = Some(hDC)
     hCB.next = Some(hBA); hBA.prev = Some(hCB)
-    hBA.incidentFace = Some(fOuter); hBA.angle = AngleDegree(300)
-    hCB.incidentFace = Some(fOuter); hCB.angle = AngleDegree(240)
-    hDC.incidentFace = Some(fOuter); hDC.angle = AngleDegree(300)
-    hAD.incidentFace = Some(fOuter); hAD.angle = AngleDegree(240)
+    hBA.incidentFace = Some(fOuter); hBA.angle = Some(AngleDegree(300))
+    hCB.incidentFace = Some(fOuter); hCB.angle = Some(AngleDegree(240))
+    hDC.incidentFace = Some(fOuter); hDC.angle = Some(AngleDegree(300))
+    hAD.incidentFace = Some(fOuter); hAD.angle = Some(AngleDegree(240))
 
     // 5. Populate and return the Tiling container
     TilingDCEL(

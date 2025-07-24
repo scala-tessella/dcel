@@ -101,7 +101,7 @@ object TilingSVG:
 
   private def createAngleLabel(halfEdge: HalfEdge, direction: BigPoint, scale: Double, strokeWidth: Double, color: String): String =
     val origin = toBigPointFromVertex(halfEdge.origin)
-    val angleText = f"${halfEdge.angle.toRational.toDouble}%.0f°"
+    val angleText = f"${halfEdge.angle.get.toRational.toDouble}%.0f°"
     val labelDistance = strokeWidth * 8
 
     val labelX = formatCoordinate(origin.x * scale + direction.x * labelDistance)

@@ -25,6 +25,9 @@ case class Vertex(
 
   override def hashCode(): Int = id.hashCode
 
+  def isUndefined: Boolean =
+    leaving.isEmpty
+
 object Vertex:
 
   /**
@@ -78,13 +81,16 @@ case class HalfEdge(
   var incidentFace: Option[Face] = None,
   var next: Option[HalfEdge] = None,
   var prev: Option[HalfEdge] = None,
-  var angle: AngleDegree = AngleDegree(0.0)
+  var angle: Option[AngleDegree] = None
 ):
   override def equals(obj: Any): Boolean = obj match
     case that: HalfEdge => this eq that
     case _ => false
 
   override def hashCode(): Int = System.identityHashCode(this)
+
+  def isUndefined: Boolean =
+    twin.isEmpty || incidentFace.isEmpty || next.isEmpty || prev.isEmpty || angle.isEmpty
 
 object HalfEdge:
 
@@ -118,6 +124,9 @@ case class Face(
       case _ => false
 
   override def hashCode(): Int = id.hashCode
+
+  def isUndefined: Boolean =
+    outerComponent.isEmpty || innerComponents.isEmpty
 
   /**
    * Get all vertices that form the boundary of a face.

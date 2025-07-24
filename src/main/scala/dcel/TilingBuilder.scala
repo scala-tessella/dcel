@@ -89,7 +89,7 @@ object TilingBuilder:
       inner_current.next = Some(inner_next)
       inner_next.prev = Some(inner_current)
       inner_current.incidentFace = Some(fPoly)
-      inner_current.angle = angles(i)
+      inner_current.angle = Some(angles(i))
 
       // The twin of the inner edge V_i -> V_{i+1} is the outer edge V_{i+1} -> V_i
       inner_current.twin = Some(outer_next)
@@ -101,7 +101,7 @@ object TilingBuilder:
       outer_current.next = Some(outer_prev)
       outer_prev.prev = Some(outer_current)
       outer_current.incidentFace = Some(fOuter)
-      outer_current.angle = AngleDegree(360) - angles(i)
+      outer_current.angle = Some(AngleDegree(360) - angles(i))
 
     fPoly.outerComponent = innerEdges.headOption
     fOuter.outerComponent = outerEdges.headOption
