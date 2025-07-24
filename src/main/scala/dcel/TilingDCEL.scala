@@ -107,22 +107,19 @@ case class TilingDCEL(
 
   /**
    * Generates an SVG representation of the tiling.
+   * The width, height, and viewBox are automatically calculated to fit the tiling at the given scale.
    *
-   * @param width       The desired width of the SVG canvas.
-   * @param height      The desired height of the SVG canvas.
    * @param strokeWidth The width of the edge lines.
    * @param padding     The padding around the tiling within the SVG viewBox.
    * @param scale       The factor by which to scale the tiling coordinates.
    * @return A String containing the SVG markup.
    */
   def toSVG(
-    width: Int = 800,
-    height: Int = 600,
     strokeWidth: Double = 1.0,
     padding: Double = 20.0,
     scale: Double = 50.0
   ): String =
-   this.toScalableVectorGraphics(width, height, strokeWidth, padding, scale)
+    this.toScalableVectorGraphics(strokeWidth, padding, scale)
 
 object TilingDCEL:
 

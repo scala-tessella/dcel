@@ -9,22 +9,19 @@ object TilingSVG:
 
     /**
      * Generates an SVG representation of the tiling.
+     * The width, height, and viewBox are automatically calculated to fit the tiling at the given scale.
      *
-     * @param width       The desired width of the SVG canvas.
-     * @param height      The desired height of the SVG canvas.
      * @param strokeWidth The width of the edge lines.
      * @param padding     The padding around the tiling within the SVG viewBox.
      * @param scale       The factor by which to scale the tiling coordinates.
      * @return A String containing the SVG markup.
      */
     def toScalableVectorGraphics(
-       width: Int = 800,
-       height: Int = 600,
-       strokeWidth: Double = 1.0,
-       padding: Double = 20.0,
-       scale: Double = 50.0
-     ): String =
-      if tilingDCEL.vertices.isEmpty then return s"""<svg width="$width" height="$height"></svg>"""
+      strokeWidth: Double = 1.0,
+      padding: Double = 20.0,
+      scale: Double = 50.0
+    ): String =
+      if tilingDCEL.vertices.isEmpty then return """<svg width="0" height="0"></svg>"""
 
       // Calculate the bounding box of the SCALED vertices to set the viewBox
       val minX = tilingDCEL.vertices.map(_.coords.x).min * scale
@@ -36,6 +33,10 @@ object TilingSVG:
       val viewBoxMinY = minY - padding
       val viewBoxWidth = (maxX - minX) + 2 * padding
       val viewBoxHeight = (maxY - minY) + 2 * padding
+
+      // Calculate the SVG canvas dimensions to match the viewBox
+      val width = viewBoxWidth.toInt
+      val height = viewBoxHeight.toInt
 
       // Use a mutable set to ensure each edge is drawn only once
       val drawnEdges = mutable.Set.empty[HalfEdge]
