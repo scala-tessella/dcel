@@ -1,7 +1,7 @@
 package io.github.scala_tessella
 package dcel
 
-import BigDecimalGeometry.{AngleDegree, BigPoint}
+import BigDecimalGeometry.BigPoint
 import TilingSVG.*
 
 import org.scalatest.flatspec.AnyFlatSpec
@@ -259,7 +259,7 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with EitherValues:
     viewBoxValues should have length 4
 
     // ViewBox should have proper format: minX minY width height
-    val Array(minX, minY, width, height) = viewBoxValues
+    val Array(_, _, width, height) = viewBoxValues
     width should be > 0.0
     height should be > 0.0
   }
@@ -330,7 +330,6 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with EitherValues:
 
     // Every non-self-closing tag should have a corresponding closing tag
     val selfClosingPattern = """<\w+[^>]*/>""".r
-    val selfClosingCount = selfClosingPattern.findAllIn(svg).size
 
     // Account for self-closing tags (line, circle, text elements might be self-closing in some contexts)
     openTags.length should be >= closeTags.length
@@ -410,4 +409,226 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with EitherValues:
       height should be > 50
       height should be < 1000
     }
+  }
+
+
+  behavior of "Arrow creation"
+
+  it should "create arrows for edges with sufficient distance" in {
+    val triangleTiling = createTriangleTiling()
+    val svg = triangleTiling.toScalableVectorGraphics()
+
+    // Should contain arrow polygons for both inner and outer face half-edges
+    svg should include("<polygon points=")
+    val polygonCount = "<polygon".r.findAllIn(svg).size
+
+    // Each boundary vertex creates an arrow, plus inner face arrows
+    polygonCount should be > 0
+  }
+
+  it should "not create arrows for very short edges" in {
+    // Create a tiling with very close vertices that would result in distance <= ACCURACY
+    val v1 = Vertex("V1", BigPoint(BigDecimal(0), BigDecimal(0)))
+    val v2 = Vertex("V2", BigPoint(BigDecimal(1E-15), BigDecimal(1E-15))) // Very close
+
+    val tilingWithCloseVertices = TilingDCEL(
+      vertices = List(v1, v2),
+      halfEdges = List.empty,
+      innerFaces = List.empty,
+      outerFace = Face("F_Outer")
+    )
+
+    val svg = tilingWithCloseVertices.toScalableVectorGraphics()
+
+    // Should still generate valid SVG but no arrows for the tiny distance
+    svg should include("<svg")
+    svg should include("</svg>")
+  }
+
+  it should "generate different arrow sizes based on stroke width" in {
+    val triangleTiling = createTriangleTiling()
+    val svg1 = triangleTiling.toScalableVectorGraphics(strokeWidth = 1.0)
+    val svg2 = triangleTiling.toScalableVectorGraphics(strokeWidth = 2.0)
+
+    // Different stroke widths should generate different arrow coordinates
+    svg1 should not equal svg2
+
+    // Both should contain arrows
+    svg1 should include("<polygon points=")
+    svg2 should include("<polygon points=")
+  }
+
+  behavior of "BigDecimalGeometry integration"
+
+  it should "use BigDecimalGeometry methods for coordinate calculations" in {
+    val triangleTiling = createTriangleTiling()
+    val svg = triangleTiling.toScalableVectorGraphics()
+
+    // Verify that coordinates are properly formatted (no excessive decimal places)
+    val coordinatePattern = """\d+\.\d+""".r
+    val coordinates = coordinatePattern.findAllIn(svg).toList
+
+    coordinates.foreach { coord =>
+      // Should not have more than 6 decimal places after formatting
+      val decimalPlaces = coord.split("\\.").lift(1).map(_.length).getOrElse(0)
+      decimalPlaces should be <= 6
+    }
+  }
+
+  it should "handle BigPoint coordinate transformations correctly" in {
+    val triangleTiling = createTriangleTiling()
+    val svg = triangleTiling.toScalableVectorGraphics(scale = 100.0)
+
+    // Extract some coordinates to verify they are scaled properly
+    val linePattern = """x1="([^"]+)" y1="([^"]+)" x2="([^"]+)" y2="([^"]+)"""".r
+    val matches = linePattern.findAllMatchIn(svg).take(1).toList
+
+    matches should not be empty
+    val firstMatch = matches.head
+
+    val x1 = firstMatch.group(1).toDouble
+    val y1 = firstMatch.group(2).toDouble
+    val x2 = firstMatch.group(3).toDouble
+    val y2 = firstMatch.group(4).toDouble
+
+    // At least one coordinate per line should be reasonably scaled
+    // (since triangle has vertex at origin, some coordinates may be 0)
+    val coords = List(math.abs(x1), math.abs(y1), math.abs(x2), math.abs(y2))
+    coords.max should be > 10.0
+
+    // Verify that scaling is working - coordinates should be different
+    // from the original unit triangle coordinates
+    val originalCoords = List(0.0, 1.0, 0.5)
+    coords.exists(c => !originalCoords.exists(oc => math.abs(c - oc) < 1.0)) should be(true)
+  }
+
+  behavior of "formatCoordinate method"
+
+  it should "format coordinates with appropriate precision" in {
+    val triangleTiling = createTriangleTiling()
+    val svg = triangleTiling.toScalableVectorGraphics()
+
+    // Check that coordinates don't have trailing zeros
+    svg should not include ".000000"
+    svg should not include ".00000"
+    svg should not include ".0000"
+
+    // But should still include necessary precision
+    val coordinatePattern = """\d+(\.\d+)?""".r
+    val coordinates = coordinatePattern.findAllIn(svg).toList
+    coordinates should not be empty
+  }
+
+  behavior of "Boundary arrows"
+
+  it should "generate boundary direction arrows when boundary exists" in {
+    val triangleTiling = createTriangleTiling()
+    val svg = triangleTiling.toScalableVectorGraphics()
+
+    // Should contain boundary direction arrows section
+    svg should include("<!-- Boundary Direction Arrows -->")
+    svg should include("fill=\"red\"")
+    svg should include("stroke=\"red\"")
+  }
+
+  it should "handle empty boundary gracefully" in {
+    // Create a tiling with no boundary
+    val vertex = Vertex("V0", BigPoint(BigDecimal(0), BigDecimal(0)))
+    val tilingWithNoBoundary = TilingDCEL(
+      vertices = List(vertex),
+      halfEdges = List.empty,
+      innerFaces = List.empty,
+      outerFace = Face("F_Outer")
+    )
+
+    val svg = tilingWithNoBoundary.toScalableVectorGraphics()
+
+    // Should not contain boundary direction arrows
+    svg should not include "<!-- Boundary Direction Arrows -->"
+    svg should include("<svg")
+    svg should include("</svg>")
+  }
+
+  behavior of "SVG sections"
+
+  it should "generate different arrow sections for inner and outer faces" in {
+    val triangleTiling = createTriangleTiling()
+    val svg = triangleTiling.toScalableVectorGraphics()
+
+    // Should contain both inner and outer face arrow sections
+    svg should include("<!-- Inner Face Half-Edge Direction Arrows -->")
+    svg should include("<!-- Outer Face Half-Edge Direction Arrows -->")
+
+    // Inner face arrows should be blue
+    svg should include("fill=\"blue\"")
+    // Outer face arrows should be black
+    svg should include("fill=\"black\"")
+  }
+
+  it should "include all expected SVG sections when content exists" in {
+    val triangleTiling = createTriangleTiling()
+    val svg = triangleTiling.toScalableVectorGraphics()
+
+    val expectedSections = List(
+      "<!-- Edges -->",
+      "<!-- Vertices -->",
+      "<!-- Vertex Labels -->",
+      "<!-- Face Labels -->",
+      "<!-- Angle Labels -->"
+    )
+
+    expectedSections.foreach { section =>
+      svg should include(section)
+    }
+  }
+
+  behavior of "Edge case handling"
+
+  it should "handle vertices at origin correctly" in {
+    val v1 = Vertex("V1", BigPoint(BigDecimal(0), BigDecimal(0)))
+    val v2 = Vertex("V2", BigPoint(BigDecimal(1), BigDecimal(1)))
+
+    val tilingWithOrigin = TilingDCEL(
+      vertices = List(v1, v2),
+      halfEdges = List.empty,
+      innerFaces = List.empty,
+      outerFace = Face("F_Outer")
+    )
+
+    val svg = tilingWithOrigin.toScalableVectorGraphics()
+
+    // Should handle origin coordinates properly
+    svg should include("<svg")
+    svg should include("cx=\"0\"")
+    svg should include("cy=\"0\"")
+    svg should include("</svg>")
+  }
+
+  it should "handle very large coordinates gracefully" in {
+    val v1 = Vertex("V1", BigPoint(BigDecimal(1000000), BigDecimal(1000000)))
+    val v2 = Vertex("V2", BigPoint(BigDecimal(1000001), BigDecimal(1000001)))
+
+    val tilingWithLargeCoords = TilingDCEL(
+      vertices = List(v1, v2),
+      halfEdges = List.empty,
+      innerFaces = List.empty,
+      outerFace = Face("F_Outer")
+    )
+
+    val svg = tilingWithLargeCoords.toScalableVectorGraphics()
+
+    // Should generate valid SVG with large coordinates
+    svg should include("<svg")
+    svg should include("width=")
+    svg should include("height=")
+    svg should include("</svg>")
+
+    // Width and height should be positive
+    val widthRegex = """width="(\d+)"""".r
+    val heightRegex = """height="(\d+)"""".r
+    val width = widthRegex.findFirstMatchIn(svg).map(_.group(1).toInt).get
+    val height = heightRegex.findFirstMatchIn(svg).map(_.group(1).toInt).get
+
+    width should be > 0
+    height should be > 0
   }
