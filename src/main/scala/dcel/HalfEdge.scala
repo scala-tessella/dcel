@@ -1,0 +1,75 @@
+package io.github.scala_tessella
+package dcel
+
+import BigDecimalGeometry.AngleDegree
+
+import scala.annotation.tailrec
+import scala.collection.mutable
+
+/**
+ * Represents a directed half-edge in the DCEL.
+ *
+ * @param origin       The vertex from which this half-edge originates.
+ * @param twin         An optional reference to the half-edge that is its pair, running in the opposite direction.
+ * @param incidentFace An optional reference to the face to the left of this edge.
+ * @param next         An optional reference to the next half-edge in the boundary traversal of its incident face.
+ * @param prev         An optional reference to the previous half-edge in the boundary traversal.
+ * @param angle        The angle of the corner at the origin vertex, inside the incident face.
+ */
+case class HalfEdge(
+  origin: Vertex,
+  var twin: Option[HalfEdge] = None,
+  var incidentFace: Option[Face] = None,
+  var next: Option[HalfEdge] = None,
+  var prev: Option[HalfEdge] = None,
+  var angle: Option[AngleDegree] = None
+):
+  override def equals(obj: Any): Boolean = obj match
+    case that: HalfEdge => this eq that
+    case _ => false
+
+  override def hashCode(): Int = System.identityHashCode(this)
+
+  def destination: Option[Vertex] =
+    twin.map(_.origin)
+
+  def isComplete: Boolean =
+    twin.isDefined && incidentFace.isDefined && next.isDefined && prev.isDefined && angle.isDefined
+
+  def validate(): Either[String, Unit] =
+    val errors = List(
+      Option.when(twin.isEmpty)("Missing twin edge"),
+      Option.when(incidentFace.isEmpty)("Missing incident face"),
+      Option.when(next.isEmpty)("Missing next edge"),
+      Option.when(prev.isEmpty)("Missing previous edge"),
+      Option.when(angle.isEmpty)("Missing angle")
+    ).flatten
+
+    if errors.isEmpty then Right(())
+    else Left(errors.mkString(", "))
+
+object HalfEdge:
+
+  def createTwinPair(v1: Vertex, v2: Vertex): (HalfEdge, HalfEdge) =
+    val edge1 = HalfEdge(v1)
+    val edge2 = HalfEdge(v2)
+    edge1.twin = Some(edge2)
+    edge2.twin = Some(edge1)
+    (edge1, edge2)
+
+  def linkEdges(prev: HalfEdge, next: HalfEdge): Unit =
+    prev.next = Some(next)
+    next.prev = Some(prev)
+
+  def linkChain(edges: List[HalfEdge]): Unit =
+    edges.zip(edges.tail :+ edges.head).foreach { case (current, next) =>
+      linkEdges(current, next)
+    }
+  
+  def insertBoundarySegment(prevEdge: HalfEdge, nextEdge: HalfEdge, segment: List[HalfEdge]): Unit =
+    HalfEdge.linkEdges(prevEdge, segment.head)
+    HalfEdge.linkEdges(segment.last, nextEdge)
+    segment.sliding(2).foreach {
+      case List(current, next) => HalfEdge.linkEdges(current, next)
+      case _ => // Single element, no linking needed
+    }
