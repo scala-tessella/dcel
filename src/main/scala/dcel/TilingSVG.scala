@@ -1,4 +1,3 @@
-
 package io.github.scala_tessella
 package dcel
 
@@ -24,17 +23,17 @@ object TilingSVG:
     ): String =
       if tilingDCEL.vertices.isEmpty then return """<svg width="0" height="0"></svg>"""
 
-      // Calculate the bounding box of the ORIGINAL vertices (before Y-flip)
-      val originalMinX = tilingDCEL.vertices.map(_.coords.x).min * scale
-      val originalMaxX = tilingDCEL.vertices.map(_.coords.x).max * scale
-      val originalMinY = tilingDCEL.vertices.map(_.coords.y).min * scale
-      val originalMaxY = tilingDCEL.vertices.map(_.coords.y).max * scale
+      // Calculate the bounding box of the DRAWN coordinates (including Y-flip)
+      val drawnMinX = tilingDCEL.vertices.map(_.coords.x).min * scale
+      val drawnMaxX = tilingDCEL.vertices.map(_.coords.x).max * scale
+      val drawnMinY = tilingDCEL.vertices.map(v => -v.coords.y).min * scale  // Note the negation
+      val drawnMaxY = tilingDCEL.vertices.map(v => -v.coords.y).max * scale  // Note the negation
 
-      // Calculate viewBox based on original coordinates
-      val viewBoxMinX = originalMinX - padding
-      val viewBoxMinY = originalMinY - padding
-      val viewBoxWidth = (originalMaxX - originalMinX) + 2 * padding
-      val viewBoxHeight = (originalMaxY - originalMinY) + 2 * padding
+      // Calculate viewBox based on actual drawn coordinates
+      val viewBoxMinX = drawnMinX - padding
+      val viewBoxMinY = drawnMinY - padding
+      val viewBoxWidth = (drawnMaxX - drawnMinX) + 2 * padding
+      val viewBoxHeight = (drawnMaxY - drawnMinY) + 2 * padding
 
       // Calculate the SVG canvas dimensions to match the viewBox
       val width = viewBoxWidth.toInt
