@@ -44,10 +44,10 @@ class TilingAddPolygonSpec extends AnyFlatSpec with Matchers with EitherValues:
     val newBoundaryIds = newTiling.boundary.map(_.id)
     newBoundaryIds shouldBe Vector("V0", "V2", "V1", "V3")
     newTiling.halfEdges.length shouldBe 10
-    newTiling.outerFace.halfEdges.map(_.angle).mkString(", ") shouldBe "300, 240, 300, 240"
-    newTiling.outerFace.halfEdges.map(_.incidentFace.get.id).mkString(", ") shouldBe "F_Outer, F_Outer, F_Outer, F_Outer"
     newTiling.innerFaces.map(_.halfEdges.map(_.angle).mkString(", ")) shouldBe List("60, 60, 60", "60, 60, 60")
     newTiling.innerFaces.map(_.halfEdges.map(_.incidentFace.get.id).mkString(", ")) shouldBe List("F_Poly, F_Poly, F_Poly", "F_Poly_1, F_Poly_1, F_Poly_1")
+    newTiling.outerFace.halfEdges.map(_.angle).mkString(", ") shouldBe "300, 240, 300, 240"
+    newTiling.outerFace.halfEdges.map(_.incidentFace.get.id).mkString(", ") shouldBe "F_Outer, F_Outer, F_Outer, F_Outer"
   }
 
   it should "successfully add a square to the side of another square" in {
