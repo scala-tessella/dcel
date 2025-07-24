@@ -23,6 +23,33 @@ class TilingAddPolygonSpec extends AnyFlatSpec with Matchers with EitherValues:
     result.left.value should include("No boundary edge found")
   }
 
+  it should "successfully add a triangle to the side of another triangle" in {
+    // Start with a single triangle (V0-V1-V2)
+    val initialTiling = TilingBuilder.createRegularPolygon(3).value
+    initialTiling.vertices.length shouldBe 3
+    initialTiling.innerFaces.length shouldBe 1
+    initialTiling.boundary.map(_.id) shouldBe Vector("V0", "V2", "V1")
+
+    // Add another triangle onto the edge starting at V1 (which is edge V1 -> V2)
+    val result = initialTiling.maybeAddRegularPolygon(3, "V1")
+    result.isRight shouldBe true
+
+    val newTiling = result.value
+    // Should add 1 new vertices (V3)
+    newTiling.vertices.length shouldBe 4
+    // Should add 1 new inner face
+    newTiling.innerFaces.length shouldBe 2
+
+    // The new boundary should bypass V1 and V2
+    val newBoundaryIds = newTiling.boundary.map(_.id)
+    newBoundaryIds shouldBe Vector("V0", "V2", "V1", "V3")
+    newTiling.halfEdges.length shouldBe 10
+    newTiling.outerFace.halfEdges.map(_.angle).mkString(", ") shouldBe "300, 240, 300, 240"
+    newTiling.outerFace.halfEdges.map(_.incidentFace.get.id).mkString(", ") shouldBe "F_Outer, F_Outer, F_Outer, F_Outer"
+    newTiling.innerFaces.map(_.halfEdges.map(_.angle).mkString(", ")) shouldBe List("60, 60, 60", "60, 60, 60")
+    newTiling.innerFaces.map(_.halfEdges.map(_.incidentFace.get.id).mkString(", ")) shouldBe List("F_Poly, F_Poly, F_Poly", "F_Poly_1, F_Poly_1, F_Poly_1")
+  }
+
   it should "successfully add a square to the side of another square" in {
     // Start with a single square (V0-V1-V2-V3)
     val initialTiling = TilingBuilder.createRegularPolygon(4).value
