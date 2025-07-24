@@ -73,5 +73,4 @@ object TilingSVG:
          |$vertexLabels
          |    </g>
          |  </g>
-         |</svg>
-         |""".stripMargin
+         |</svg>""".stripMargin
