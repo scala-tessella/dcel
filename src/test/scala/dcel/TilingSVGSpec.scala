@@ -181,7 +181,6 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with EitherValues:
     svg should include("xmlns=\"http://www.w3.org/2000/svg\"")
 
     // Check for groups
-    svg should include("<g transform=\"scale(1, 1)\">")
     svg should include("<!-- Edges -->")
     svg should include("<!-- Vertices -->")
     svg should include("<!-- Vertex Labels -->")

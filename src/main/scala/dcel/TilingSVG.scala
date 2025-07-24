@@ -1,3 +1,4 @@
+
 package io.github.scala_tessella
 package dcel
 
@@ -23,16 +24,17 @@ object TilingSVG:
     ): String =
       if tilingDCEL.vertices.isEmpty then return """<svg width="0" height="0"></svg>"""
 
-      // Calculate the bounding box of the SCALED vertices to set the viewBox
-      val minX = tilingDCEL.vertices.map(_.coords.x).min * scale
-      val maxX = tilingDCEL.vertices.map(_.coords.x).max * scale
-      val minY = tilingDCEL.vertices.map(_.coords.y).min * scale
-      val maxY = tilingDCEL.vertices.map(_.coords.y).max * scale
+      // Calculate the bounding box of the ORIGINAL vertices (before Y-flip)
+      val originalMinX = tilingDCEL.vertices.map(_.coords.x).min * scale
+      val originalMaxX = tilingDCEL.vertices.map(_.coords.x).max * scale
+      val originalMinY = tilingDCEL.vertices.map(_.coords.y).min * scale
+      val originalMaxY = tilingDCEL.vertices.map(_.coords.y).max * scale
 
-      val viewBoxMinX = minX - padding
-      val viewBoxMinY = minY - padding
-      val viewBoxWidth = (maxX - minX) + 2 * padding
-      val viewBoxHeight = (maxY - minY) + 2 * padding
+      // Calculate viewBox based on original coordinates
+      val viewBoxMinX = originalMinX - padding
+      val viewBoxMinY = originalMinY - padding
+      val viewBoxWidth = (originalMaxX - originalMinX) + 2 * padding
+      val viewBoxHeight = (originalMaxY - originalMinY) + 2 * padding
 
       // Calculate the SVG canvas dimensions to match the viewBox
       val width = viewBoxWidth.toInt
@@ -47,7 +49,7 @@ object TilingSVG:
           val p1 = edge.origin
           val p2 = twinEdge.origin
           drawnEdges ++= List(edge, twinEdge) // Mark both halves as drawn
-          // Y-coordinates are negated to be flipped back by the group transform.
+          // Y-coordinates are negated for proper SVG orientation
           Some(s"""      <line x1="${p1.coords.x * scale}" y1="${-p1.coords.y * scale}" x2="${p2.coords.x * scale}" y2="${-p2.coords.y * scale}" />""")
       }.filter(_.isDefined).map(_.get).mkString("\n")
 
@@ -60,7 +62,7 @@ object TilingSVG:
       }.mkString("\n")
 
       s"""<svg width="$width" height="$height" viewBox="$viewBoxMinX $viewBoxMinY $viewBoxWidth $viewBoxHeight" xmlns="http://www.w3.org/2000/svg">
-         |  <g transform="scale(1, 1)">
+         |  <g>
          |    <!-- Edges -->
          |    <g stroke="black" stroke-width="$strokeWidth">
          |$edgeLines
