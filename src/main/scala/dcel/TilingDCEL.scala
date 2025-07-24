@@ -123,3 +123,14 @@ case class TilingDCEL(
     scale: Double = 50.0
   ): String =
    this.toScalableVectorGraphics(width, height, strokeWidth, padding, scale)
+
+object TilingDCEL:
+
+  def empty: TilingDCEL =
+    TilingBuilder.empty
+
+  def createSimplePolygon(angles: List[AngleDegree]): Either[String, TilingDCEL] =
+    TilingBuilder.createSimplePolygon(angles)
+
+  def createRegularPolygon(sides: Int): Either[String, TilingDCEL] =
+    TilingBuilder.createRegularPolygon(sides): Either[String, TilingDCEL]
