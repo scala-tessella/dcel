@@ -1,11 +1,13 @@
 package io.github.scala_tessella
 package dcel
 
-import io.github.scala_tessella.dcel.BigDecimalGeometry.BigPoint
+import BigDecimalGeometry.BigPoint
+
+import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class TilingDataStructuresSpec extends AnyFlatSpec with Matchers {
+class TilingDataStructuresSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   // Mock data for testing
   val v1: Vertex = Vertex("V1", BigPoint(0, 0))
@@ -68,7 +70,7 @@ class TilingDataStructuresSpec extends AnyFlatSpec with Matchers {
 
   it should "return an empty list if the face has no outer component" in {
     val face = Face("F_empty")
-    face.halfEdges shouldBe empty
+    face.halfEdgesSafe shouldBe empty
   }
 
   it should "return all half-edges in a simple triangular face loop" in {
@@ -85,7 +87,7 @@ class TilingDataStructuresSpec extends AnyFlatSpec with Matchers {
 
     face.outerComponent = Some(he1)
 
-    val edges = face.halfEdges
+    val edges = face.halfEdgesSafe
     edges should contain theSameElementsInOrderAs List(he1, he2, he3)
   }
 
@@ -104,7 +106,7 @@ class TilingDataStructuresSpec extends AnyFlatSpec with Matchers {
 
     face.outerComponent = Some(he1)
 
-    face.halfEdges should contain theSameElementsInOrderAs List(he1, he2, he3, he4)
+    face.halfEdgesSafe should contain theSameElementsInOrderAs List(he1, he2, he3, he4)
   }
 
   it should "handle a loop where an edge points to itself" in {
@@ -113,7 +115,7 @@ class TilingDataStructuresSpec extends AnyFlatSpec with Matchers {
     he1.next = Some(he1) // A loop with a single edge
     face.outerComponent = Some(he1)
 
-    val edges = face.halfEdges
+    val edges = face.halfEdgesSafe
     edges should contain theSameElementsInOrderAs List(he1)
   }
 
@@ -129,7 +131,8 @@ class TilingDataStructuresSpec extends AnyFlatSpec with Matchers {
     face.outerComponent = Some(he1)
 
     // The implementation should detect the cycle and stop.
-    val edges = face.halfEdges
-    edges should contain theSameElementsInOrderAs List(he1, he2)
+    face.halfEdges
+    val result = face.halfEdges
+    result.isLeft shouldBe true
+    result.left.value should startWith("Cycle detected in face")
   }
-}

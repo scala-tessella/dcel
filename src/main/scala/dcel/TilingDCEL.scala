@@ -28,6 +28,22 @@ case class TilingDCEL(
   def faces: List[Face] =
     outerFace :: innerFaces
 
+  def findVertex(id: String): Option[Vertex] =
+    vertices.find(_.id == id)
+
+  def findFace(id: String): Option[Face] =
+    faces.find(_.id == id)
+
+  def findEdgeBetween(v1: Vertex, v2: Vertex): Option[HalfEdge] =
+    v1.incidentEdges.find(_.destination.contains(v2))
+
+  def isConnected: Boolean =
+    if innerFaces.isEmpty then true
+    else
+      val adjacency = Face.adjacencyMap(innerFaces)
+      val reachable = Face.breadthFirstSearch(innerFaces.head, adjacency)
+      reachable.size == innerFaces.size
+
   /**
    * Finds the outer boundary of the tiling.
    *
@@ -131,3 +147,51 @@ object TilingDCEL:
 
   def createRegularPolygon(sides: Int): Either[String, TilingDCEL] =
     TilingBuilder.createRegularPolygon(sides): Either[String, TilingDCEL]
+
+  def validate(tiling: TilingDCEL): Either[String, Unit] = {
+    val errors = mutable.ListBuffer[String]()
+
+    // Check vertex consistency
+    tiling.vertices.foreach { vertex =>
+      vertex.leaving match {
+        case None => errors += s"Vertex ${vertex.id} has no leaving edge"
+        case Some(edge) =>
+          if (edge.origin ne vertex) {
+            errors += s"Vertex ${vertex.id} leaving edge doesn't originate from it"
+          }
+      }
+    }
+
+    // Check half-edge consistency
+    tiling.halfEdges.foreach { edge =>
+      edge.twin match {
+        case None => errors += s"Edge from ${edge.origin.id} has no twin"
+        case Some(twin) =>
+          if (twin.twin.contains(edge)) () // OK
+          else errors += s"Edge from ${edge.origin.id} twin relationship is not symmetric"
+      }
+
+      edge.next match {
+        case None => errors += s"Edge from ${edge.origin.id} has no next edge"
+        case Some(next) =>
+          if (next.prev.contains(edge)) () // OK
+          else errors += s"Edge from ${edge.origin.id} next/prev relationship is broken"
+      }
+    }
+
+    // Check face consistency
+    (tiling.outerFace :: tiling.innerFaces).foreach { face =>
+      face.halfEdges match {
+        case Left(error) => errors += error
+        case Right(edges) =>
+          edges.foreach { edge =>
+            if (!edge.incidentFace.contains(face)) {
+              errors += s"Face ${face.id} contains edge that doesn't reference it back"
+            }
+          }
+      }
+    }
+
+    if (errors.isEmpty) Right(()) else Left(errors.mkString("; "))
+  }
+  

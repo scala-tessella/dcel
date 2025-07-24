@@ -164,13 +164,13 @@ object TilingSVG:
           createArrow(origin, destination, scale, strokeWidth * 3).map(_.toSvgPolygon)
         }.mkString("\n")
 
-      val innerFaceArrows = createHalfEdgeArrows(tilingDCEL.innerFaces.flatMap(_.halfEdges))
+      val innerFaceArrows = createHalfEdgeArrows(tilingDCEL.innerFaces.flatMap(_.halfEdgesSafe))
       val outerFaceArrows = createHalfEdgeArrows(tilingDCEL.getBoundaryEdges)
 
       // Generate angle labels
       val innerAngleLabels = tilingDCEL.innerFaces.flatMap { face =>
         val centroid = calculateCentroid(face.getVertices)
-        face.halfEdges.map { halfEdge =>
+        face.halfEdgesSafe.map { halfEdge =>
           val origin = toBigPointFromVertex(halfEdge.origin)
           val direction = calculateDirection(origin, centroid)
           createAngleLabel(halfEdge, direction, scale, strokeWidth, "purple")

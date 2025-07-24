@@ -25,8 +25,35 @@ case class Vertex(
 
   override def hashCode(): Int = id.hashCode
 
-  def isUndefined: Boolean =
-    leaving.isEmpty
+  def isComplete: Boolean =
+    leaving.isDefined
+
+  def validate(): Either[String, Unit] =
+    if isComplete then Right(())
+    else Left("Missing leaving edge")
+
+  def incidentEdges: List[HalfEdge] =
+    leaving match
+      case None => List.empty
+      case Some(startEdge) =>
+        @tailrec
+        def collectEdges(current: HalfEdge, acc: List[HalfEdge]): List[HalfEdge] = {
+          val updatedAcc = current :: acc
+          current.twin.flatMap(_.next) match {
+            case Some(next) if next ne startEdge => collectEdges(next, updatedAcc)
+            case _ => updatedAcc.reverse
+          }
+        }
+
+        collectEdges(startEdge, Nil)
+
+  def degree: Int = incidentEdges.length
+
+  def adjacentVertices: List[Vertex] =
+    incidentEdges.flatMap(_.destination)
+
+  def incidentFaces: List[Face] =
+    incidentEdges.flatMap(_.incidentFace)
 
 object Vertex:
 
@@ -89,15 +116,42 @@ case class HalfEdge(
 
   override def hashCode(): Int = System.identityHashCode(this)
 
-  def isUndefined: Boolean =
-    twin.isEmpty || incidentFace.isEmpty || next.isEmpty || prev.isEmpty || angle.isEmpty
+  def destination: Option[Vertex] =
+    twin.map(_.origin)
+
+  def isComplete: Boolean =
+    twin.isDefined && incidentFace.isDefined && next.isDefined && prev.isDefined && angle.isDefined
+
+  def validate(): Either[String, Unit] =
+    val errors = List(
+      Option.when(twin.isEmpty)("Missing twin edge"),
+      Option.when(incidentFace.isEmpty)("Missing incident face"),
+      Option.when(next.isEmpty)("Missing next edge"),
+      Option.when(prev.isEmpty)("Missing previous edge"),
+      Option.when(angle.isEmpty)("Missing angle")
+    ).flatten
+
+    if errors.isEmpty then Right(())
+    else Left(errors.mkString(", "))
 
 object HalfEdge:
+
+  def createTwinPair(v1: Vertex, v2: Vertex): (HalfEdge, HalfEdge) =
+    val edge1 = HalfEdge(v1)
+    val edge2 = HalfEdge(v2)
+    edge1.twin = Some(edge2)
+    edge2.twin = Some(edge1)
+    (edge1, edge2)
 
   def linkEdges(prev: HalfEdge, next: HalfEdge): Unit =
     prev.next = Some(next)
     next.prev = Some(prev)
 
+  def linkChain(edges: List[HalfEdge]): Unit =
+    edges.zip(edges.tail :+ edges.head).foreach { case (current, next) =>
+      linkEdges(current, next)
+    }
+  
   def insertBoundarySegment(prevEdge: HalfEdge, nextEdge: HalfEdge, segment: List[HalfEdge]): Unit =
     HalfEdge.linkEdges(prevEdge, segment.head)
     HalfEdge.linkEdges(segment.last, nextEdge)
@@ -125,8 +179,28 @@ case class Face(
 
   override def hashCode(): Int = id.hashCode
 
-  def isUndefined: Boolean =
-    outerComponent.isEmpty || innerComponents.isEmpty
+  // Area calculation
+  def area: BigDecimal =
+    val vertices = getVertices
+    if vertices.length < 3 then BigDecimal(0)
+    else
+      // Shoelace formula
+      val sum = vertices.zip(vertices.tail :+ vertices.head).map { case (v1, v2) =>
+        v1.coords.x * v2.coords.y - v2.coords.x * v1.coords.y
+      }.sum
+      sum.abs / 2
+
+  def isComplete: Boolean =
+    outerComponent.isDefined && innerComponents.nonEmpty
+
+  def validate(): Either[String, Unit] =
+    val errors = List(
+      Option.when(outerComponent.isEmpty)("Missing outer component edge"),
+      Option.when(innerComponents.isEmpty)("Missing inner components edges"),
+    ).flatten
+
+    if errors.isEmpty then Right(())
+    else Left(errors.mkString(", "))
 
   /**
    * Get all vertices that form the boundary of a face.
@@ -153,23 +227,46 @@ case class Face(
   /**
    * Get all half-edges forming a face loop.
    */
-  def halfEdges: List[HalfEdge] =
-    outerComponent.map { start =>
-      @tailrec
-      def loop(current: HalfEdge, acc: List[HalfEdge], visited: Set[HalfEdge]): List[HalfEdge] =
-        if visited.contains(current) then return acc.reverse
-        current.next match
-          case Some(next) if next ne start => loop(next, current :: acc, visited + current)
-          case _ => (current :: acc).reverse
+  def halfEdges: Either[String, List[HalfEdge]] = {
+    outerComponent match {
+      case None => Right(List.empty)
+      case Some(start) =>
+        try {
+          @tailrec
+          def collectEdges(current: HalfEdge, acc: List[HalfEdge], visited: Set[HalfEdge]): Either[String, List[HalfEdge]] = {
+            if (visited.contains(current)) {
+              Left(s"Cycle detected in face $id at edge originating from ${current.origin.id}")
+            } else {
+              val newVisited = visited + current
+              val newAcc = current :: acc
 
-      loop(start, Nil, Set.empty)
-    }.getOrElse(Nil)
-    
+              current.next match {
+                case Some(next) if next ne start =>
+                  collectEdges(next, newAcc, newVisited)
+                case Some(_) =>
+                  // next == start, we've completed the loop
+                  Right(newAcc.reverse)
+                case None =>
+                  Left(s"Broken edge chain in face $id at edge from ${current.origin.id}")
+              }
+            }
+          }
+
+          collectEdges(start, Nil, Set.empty)
+        } catch {
+          case e: Exception => Left(s"Error traversing face $id: ${e.getMessage}")
+        }
+    }
+  }
+
+  // Add safe version that returns empty list on error
+  def halfEdgesSafe: List[HalfEdge] = halfEdges.getOrElse(List.empty)
+
 object Face:
 
   def adjacencyMap(faces: List[Face]): Map[Face, List[Face]] =
     faces.map { face =>
-      face -> face.halfEdges
+      face -> face.halfEdgesSafe
         .map(_.twin.get.incidentFace.get)
         .filter(faces.contains)
     }.toMap
