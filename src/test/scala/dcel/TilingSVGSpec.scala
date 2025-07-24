@@ -20,17 +20,8 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with EitherValues:
   private def createSquareTiling(): TilingDCEL =
     TilingBuilder.createRegularPolygon(4).value
 
-  // Helper method to create an empty tiling
-  private def createEmptyTiling(): TilingDCEL =
-    TilingDCEL(
-      vertices = List.empty,
-      halfEdges = List.empty,
-      innerFaces = List.empty,
-      outerFace = Face("F_Outer")
-    )
-
   it should "generate valid SVG for an empty tiling" in {
-    val emptyTiling = createEmptyTiling()
+    val emptyTiling = TilingBuilder.empty
     val svg = emptyTiling.toScalableVectorGraphics()
 
     svg should include("<svg")
