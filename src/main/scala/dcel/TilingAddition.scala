@@ -9,6 +9,20 @@ import scala.collection.mutable.ListBuffer
 
 object TilingAddition:
 
+  private def calculateNewVertices(sides: Int, p1: BigPoint, p2: BigPoint): List[BigPoint] =
+    val angle = RegularPolygon(sides).alphaDegree
+    val rotation = AngleDegree(180) - angle
+    val newPoints = ListBuffer.empty[BigPoint]
+    var prev = p1
+    var curr = p2
+    for (_ <- 3 to sides)
+      val direction = prev.angleTo(curr)
+      val next = curr.plus(BigPoint.fromPolar(1, direction + rotation.toBigRadian))
+      newPoints.append(next)
+      prev = curr
+      curr = next
+    newPoints.toList
+
   extension (tilingDCEL: TilingDCEL)
 
     def addRegularPolygon(sides: Int, onEdgeStartingWithVertexId: String): Either[String, TilingDCEL] =
@@ -19,5 +33,76 @@ object TilingAddition:
           .toRight(s"Edge starting with vertex $onEdgeStartingWithVertexId not found on the boundary.")
         v_start = edgeToBuildOn.origin
         v_end <- edgeToBuildOn.destination.toRight("Edge has no destination vertex.")
-      yield
-        ???
+      yield {
+        val polygonAngle = RegularPolygon(sides).alphaDegree
+
+        // Capture original boundary links before modification
+        val originalPrev = edgeToBuildOn.prev
+        val originalNext = edgeToBuildOn.next
+
+        // 1. Calculate new vertex coordinates
+        val newVertexPoints = calculateNewVertices(sides, v_end.coords, v_start.coords)
+
+        // 2. Create new Vertex instances
+        val newVertices = newVertexPoints.zipWithIndex.map {
+          case (p, i) => Vertex(s"V${tilingDCEL.vertices.size + i + 1}", p)
+        }.toList
+
+        // 3. Create new Face
+        val newFace = Face(s"F${tilingDCEL.innerFaces.size + 1}")
+
+        // 4. The shared edge's half-edge that was on the boundary now becomes an inner edge.
+        edgeToBuildOn.incidentFace = Some(newFace)
+        edgeToBuildOn.angle = Some(polygonAngle)
+
+        val allVerticesForNewEdges = List(v_start) ++ newVertices ++ List(v_end)
+
+        // 5. Create the new half-edges for the polygon boundary and their inner twins.
+        val newEdges = allVerticesForNewEdges.sliding(2).map {
+          case List(o, d) =>
+            val boundaryEdge = HalfEdge(origin = o, incidentFace = Some(tilingDCEL.outerFace))
+            val innerEdge = HalfEdge(origin = d, twin = Some(boundaryEdge), incidentFace = Some(newFace), angle = Some(polygonAngle))
+            boundaryEdge.twin = Some(innerEdge)
+            (boundaryEdge, innerEdge)
+        }.toList
+
+        val (newBoundaryEdges, newInnerEdges) = newEdges.unzip
+
+        // 7. Link all inner edges of the new face
+        val allNewInnerEdges = edgeToBuildOn :: newInnerEdges.reverse
+        allNewInnerEdges.zip(allNewInnerEdges.tail :+ allNewInnerEdges.head).foreach { case (curr, next) =>
+          curr.next = Some(next)
+          next.prev = Some(curr)
+        }
+        newFace.outerComponent = Some(edgeToBuildOn)
+
+        // 8. Link new boundary edges into the outer boundary
+        originalPrev.foreach(p => p.next = Some(newBoundaryEdges.head))
+        newBoundaryEdges.head.prev = originalPrev
+
+        originalNext.foreach(n => n.prev = Some(newBoundaryEdges.last))
+        newBoundaryEdges.last.next = originalNext
+
+        newBoundaryEdges.zip(newBoundaryEdges.tail).foreach { case (p, n) =>
+          p.next = Some(n)
+          n.prev = Some(p)
+        }
+
+        if (tilingDCEL.outerFace.outerComponent.contains(edgeToBuildOn)) {
+          tilingDCEL.outerFace.outerComponent = Some(newBoundaryEdges.head)
+        }
+
+        // 9. Update leaving edges for vertices
+        (v_start :: newVertices).zip(newBoundaryEdges).foreach { case (v, edge) =>
+          v.leaving = Some(edge)
+        }
+        v_end.leaving = edgeToBuildOn.twin
+
+        // 10. Return the new DCEL
+        TilingDCEL(
+          vertices = tilingDCEL.vertices ++ newVertices,
+          halfEdges = tilingDCEL.halfEdges ++ newBoundaryEdges ++ newInnerEdges,
+          innerFaces = tilingDCEL.innerFaces :+ newFace,
+          outerFace = tilingDCEL.outerFace
+        )
+      }
