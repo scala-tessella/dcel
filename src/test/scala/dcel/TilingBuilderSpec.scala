@@ -9,6 +9,16 @@ import org.scalatest.matchers.should.Matchers
 
 class TilingBuilderSpec extends AnyFlatSpec with Matchers with EitherValues:
 
+  behavior of "TilingBuilder.empty"
+
+  it should "create empty tiling" in {
+    val empty = TilingBuilder.empty
+    empty.vertices shouldBe List.empty
+    empty.halfEdges shouldBe List.empty
+    empty.innerFaces shouldBe List.empty
+    empty.outerFace.id shouldBe "F_Outer"
+  }
+
   behavior of "TilingBuilder.createSimplePolygon"
 
   // --- Success cases ---
