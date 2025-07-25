@@ -35,7 +35,7 @@ case class Vertex(
   def incidentEdges: List[HalfEdge] =
     leaving match
       case None => List.empty
-      case Some(startEdge) => startEdge.traverse
+      case Some(startEdge) => startEdge.vertexTraversal()
 
   def degree: Int = incidentEdges.length
 

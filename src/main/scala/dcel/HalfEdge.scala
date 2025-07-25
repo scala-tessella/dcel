@@ -48,19 +48,22 @@ case class HalfEdge(
     if errors.isEmpty then Right(())
     else Left(errors.mkString(", "))
 
-  def traverse: List[HalfEdge] =
+  private def traverse[T](direction: HalfEdge => Option[HalfEdge])(f: HalfEdge => T = identity): List[T] =
     val startEdge = this
 
     @tailrec
-    def collectEdges(current: HalfEdge, acc: List[HalfEdge]): List[HalfEdge] =
-      val updatedAcc = current :: acc
-      current.twin.flatMap(_.next) match
+    def collectEdges(current: HalfEdge, acc: List[T]): List[T] =
+      val updatedAcc = f(current) :: acc
+      direction(current) match
         case Some(next) if next ne startEdge => collectEdges(next, updatedAcc)
         case _ => updatedAcc.reverse
 
     collectEdges(startEdge, Nil)
 
-  def traverseWithGuards[T](f: HalfEdge => T = identity): Either[String, List[T]] =
+  def vertexTraversal[T](f: HalfEdge => T = identity): List[T] =
+    traverse[T](_.twin.flatMap(_.next))(f)
+
+  private def traverseWithGuards[T](direction: HalfEdge => Option[HalfEdge])(f: HalfEdge => T = identity): Either[String, List[T]] =
     val startEdge = this
     val visited = mutable.Set[HalfEdge]()
 
@@ -72,7 +75,7 @@ case class HalfEdge(
         visited += current
         val updatedAcc = f(current) :: acc
 
-        current.next match
+        direction(current) match
           case Some(next) if next ne startEdge =>
             collectEdges(next, updatedAcc)
           case Some(_) =>
@@ -82,6 +85,9 @@ case class HalfEdge(
             Left(s"Broken edge chain: edge from vertex ${current.origin.id} has no next")
 
     collectEdges(startEdge, Nil)
+
+  def faceTraversal[T](f: HalfEdge => T = identity): Either[String, List[T]] =
+    traverseWithGuards[T](_.next)(f)
 
 object HalfEdge:
 
