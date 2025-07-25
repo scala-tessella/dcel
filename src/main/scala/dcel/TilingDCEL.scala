@@ -3,6 +3,7 @@ package dcel
 
 import BigDecimalGeometry.{AngleDegree, BigBox, BigLineSegment, BigPoint}
 import Polygon.RegularPolygon
+import TilingAddition.*
 import TilingSVG.*
 import spire.implicits.*
 
@@ -78,6 +79,9 @@ case class TilingDCEL(
    */
   private def findBoundaryEdge(vertexId: String): Option[HalfEdge] =
     getBoundaryEdges.toOption.flatMap(_.find(_.origin.id == vertexId))
+
+  def maybeAddRegularPolygon(sides: Int, onEdgeStartingWithVertexId: String): Either[String, TilingDCEL] =
+    this.addRegularPolygon(sides, onEdgeStartingWithVertexId)
 
   /**
    * Generates an SVG representation of the tiling.
