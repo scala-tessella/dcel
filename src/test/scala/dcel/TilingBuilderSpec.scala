@@ -141,7 +141,6 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with EitherValues:
     val result = TilingBuilder.createRegularPolygon(4)
     result.isRight shouldBe true
     val tiling = result.value
-    println(tiling.toSVG())
     tiling.vertices.length shouldBe 4
     tiling.vertices.map(_.id).mkString(", ") shouldBe "V0, V1, V2, V3"
     tiling.faces.length shouldBe 2

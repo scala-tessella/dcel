@@ -234,9 +234,21 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   behavior of "TilingDCEL.validate"
 
-  it should "return Right(()) for valid well-formed tiling" in {
+  it should "return Right(()) for valid well-formed triangle" in {
     val triangle = createTriangleTiling()
     val result = TilingDCEL.validate(triangle)
+    result shouldBe Right(())
+  }
+
+  it should "return Right(()) for valid well-formed square" in {
+    val square = createSquareTiling()
+    val result = TilingDCEL.validate(square)
+    result shouldBe Right(())
+  }
+
+  it should "return Right(()) for valid well-formed hexagon" in {
+    val hexagon = createHexagonTiling()
+    val result = TilingDCEL.validate(hexagon)
     result shouldBe Right(())
   }
 
