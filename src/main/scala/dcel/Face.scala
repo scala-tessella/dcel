@@ -1,7 +1,6 @@
 package io.github.scala_tessella
 package dcel
 
-import scala.annotation.tailrec
 import scala.collection.mutable
 
 /**
