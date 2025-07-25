@@ -4,7 +4,6 @@ package dcel
 import BigDecimalGeometry.AngleDegree
 
 import scala.annotation.tailrec
-import scala.collection.mutable
 
 /**
  * Represents a directed half-edge in the DCEL.
@@ -47,6 +46,18 @@ case class HalfEdge(
 
     if errors.isEmpty then Right(())
     else Left(errors.mkString(", "))
+
+  def traverse: List[HalfEdge] =
+    val startEdge = this
+    
+    @tailrec
+    def collectEdges(current: HalfEdge, acc: List[HalfEdge]): List[HalfEdge] =
+      val updatedAcc = current :: acc
+      current.twin.flatMap(_.next) match
+        case Some(next) if next ne startEdge => collectEdges(next, updatedAcc)
+        case _ => updatedAcc.reverse
+  
+    collectEdges(startEdge, Nil)
 
 object HalfEdge:
 

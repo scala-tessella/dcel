@@ -35,17 +35,7 @@ case class Vertex(
   def incidentEdges: List[HalfEdge] =
     leaving match
       case None => List.empty
-      case Some(startEdge) =>
-        @tailrec
-        def collectEdges(current: HalfEdge, acc: List[HalfEdge]): List[HalfEdge] = {
-          val updatedAcc = current :: acc
-          current.twin.flatMap(_.next) match {
-            case Some(next) if next ne startEdge => collectEdges(next, updatedAcc)
-            case _ => updatedAcc.reverse
-          }
-        }
-
-        collectEdges(startEdge, Nil)
+      case Some(startEdge) => startEdge.traverse
 
   def degree: Int = incidentEdges.length
 
