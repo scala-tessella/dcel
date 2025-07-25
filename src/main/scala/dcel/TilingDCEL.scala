@@ -5,6 +5,7 @@ import BigDecimalGeometry.{AngleDegree, BigBox, BigLineSegment, BigPoint}
 import Polygon.RegularPolygon
 import TilingAddition.*
 import TilingSVG.*
+
 import spire.implicits.*
 
 import scala.collection.mutable
@@ -154,6 +155,42 @@ object TilingDCEL:
       }
     }
 
+    // Check sum of angles for each inner face
+    tiling.innerFaces.foreach { face =>
+      face.halfEdges match {
+        case Right(edges) =>
+          val angles = edges.flatMap(_.angle)
+          if (angles.length == edges.length) {
+            if (angles.length >= 3) {
+              Polygon.SimplePolygon.validatePolygonAngles(angles).left.foreach(error =>
+                errors += s"Face ${face.id}: $error"
+              )
+            }
+          } else {
+            errors += s"Face ${face.id} has missing angles on some edges."
+          }
+        case Left(error) =>
+          errors += s"Could not validate angles for face ${face.id} due to: $error"
+      }
+    }
+
+    // Check sum of angles for the tiling boundary
+    tiling.boundarySafe match {
+      case Right(boundaryVertices) =>
+        if (boundaryVertices.length >= 3) {
+          val boundaryAngles = boundaryVertices.map { v =>
+            v.incidentEdges
+              .filterNot(_.incidentFace.contains(tiling.outerFace))
+              .flatMap(_.angle)
+              .fold(AngleDegree(0))(_ + _)
+          }.toList
+          Polygon.SimplePolygon.validatePolygonAngles(boundaryAngles).left.foreach(error =>
+            errors += s"Boundary: $error"
+          )
+        }
+      case Left(error) =>
+        errors += s"Could not validate boundary angles due to: $error"
+    }
+
     if (errors.isEmpty) Right(()) else Left(errors.mkString("; "))
   }
-  

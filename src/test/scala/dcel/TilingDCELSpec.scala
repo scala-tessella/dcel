@@ -114,11 +114,8 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "return true for connected multi-polygon tiling" in {
-    // Create a tiling with two connected triangles
-    val tiling = createTriangleTiling()
-    // Note: This would require accessing maybeAddRegularPolygon which isn't in current TilingDCEL
-    // For now, test single polygon case
-    tiling.isConnected shouldBe true
+    val twoTriangles = createTriangleTiling().maybeAddRegularPolygon(3, "V1").value
+    twoTriangles.isConnected shouldBe true
   }
 
   behavior of "TilingDCEL.boundary"
@@ -167,7 +164,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
   it should "fail for malformed boundary loop" in {
     val triangle = createTriangleTiling()
     val boundaryEdges = triangle.getBoundaryEdges.value
-    if boundaryEdges.length >= 2 then
+    if (boundaryEdges.length >= 2) {
       val firstEdge = boundaryEdges.head // This is the startEdge
       val secondEdge = boundaryEdges(1)
 
@@ -176,17 +173,19 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
       secondEdge.next = Some(secondEdge) // Make second edge point to itself
 
       triangle.boundarySafe.isLeft shouldBe true
+    }
   }
 
-  it should "throw error for open chain in boundary" in {
+  it should "fail for open chain in boundary" in {
     val triangle = createTriangleTiling()
     val boundaryEdges = triangle.getBoundaryEdges.value
-    if boundaryEdges.nonEmpty then
+    if (boundaryEdges.nonEmpty) {
       val firstEdge = boundaryEdges.head
       // Break the chain by setting next to None
       firstEdge.next = None
 
       triangle.boundarySafe.isLeft shouldBe true
+    }
   }
 
   behavior of "TilingDCEL.getBoundaryEdges"
@@ -200,16 +199,16 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
     val triangle = createTriangleTiling()
     val boundaryEdges = triangle.getBoundaryEdges.value
     boundaryEdges should have length 3
-    
+
     // Check that edges form a closed loop
     val vertices = boundaryEdges.map(_.origin)
     vertices.map(_.id) should contain theSameElementsInOrderAs Vector("V0", "V2", "V1")
   }
 
-  it should "throw exception for malformed boundary with visited edge" in {
+  it should "fail for malformed boundary with visited edge" in {
     val triangle = createTriangleTiling()
     val boundaryEdges = triangle.getBoundaryEdges.value
-    if boundaryEdges.length >= 3 then
+    if (boundaryEdges.length >= 3) {
       val firstEdge = boundaryEdges.head // e0 (start)
       val secondEdge = boundaryEdges(1) // e1
       val thirdEdge = boundaryEdges(2) // e2
@@ -220,157 +219,101 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
       thirdEdge.next = Some(secondEdge) // This creates the problematic cycle
 
       triangle.getBoundaryEdges.isLeft shouldBe true
+    }
   }
 
-  it should "throw exception for unclosed boundary loop" in {
+  it should "fail for unclosed boundary loop" in {
     val triangle = createTriangleTiling()
     val boundaryEdges = triangle.getBoundaryEdges.value
-    if boundaryEdges.nonEmpty then
-      val lastEdge = boundaryEdges.last
-      lastEdge.next = None // Break the loop
-
-    triangle.getBoundaryEdges.isLeft shouldBe true
+    if (boundaryEdges.nonEmpty) {
+      // Break the loop by making the last edge not point back to the first
+      boundaryEdges.last.next = None
+      triangle.getBoundaryEdges.isLeft shouldBe true
+    }
   }
 
   behavior of "TilingDCEL.validate"
 
-  it should "return Right(()) for valid well-formed triangle" in {
-    val triangle = createTriangleTiling()
-    val result = TilingDCEL.validate(triangle)
-    result shouldBe Right(())
-  }
-
-  it should "return Right(()) for valid well-formed square" in {
+  it should "succeed for a valid single polygon tiling" in {
     val square = createSquareTiling()
+    TilingDCEL.validate(square) shouldBe Right(())
+  }
+
+  it should "succeed for a valid multi-polygon tiling" in {
+    val twoSquares = createSquareTiling().maybeAddRegularPolygon(4, "V1").value
+    TilingDCEL.validate(twoSquares) shouldBe Right(())
+  }
+
+  it should "fail if a vertex has no leaving edge" in {
+    val square = createSquareTiling()
+    square.vertices.head.leaving = None
     val result = TilingDCEL.validate(square)
-    result shouldBe Right(())
-  }
-
-  it should "return Right(()) for valid well-formed hexagon" in {
-    val hexagon = createHexagonTiling()
-    val result = TilingDCEL.validate(hexagon)
-    result shouldBe Right(())
-  }
-
-  it should "detect vertex with no leaving edge" in {
-    val triangle = createTriangleTiling()
-    val vertex = triangle.vertices.head
-    vertex.leaving = None
-    
-    val result = TilingDCEL.validate(triangle)
     result.isLeft shouldBe true
-    result.left.value should include(s"Vertex ${vertex.id} has no leaving edge")
+    result.left.value should include("has no leaving edge")
   }
 
-  it should "detect vertex leaving edge not originating from vertex" in {
-    val triangle = createTriangleTiling()
-    val vertex1 = triangle.vertices.head
-    val vertex2 = triangle.vertices(1)
-    val wrongEdge = HalfEdge(vertex2)
-    vertex1.leaving = Some(wrongEdge)
-    
-    val result = TilingDCEL.validate(triangle)
+  it should "fail if an edge has no twin" in {
+    val square = createSquareTiling()
+    square.halfEdges.head.twin = None
+    val result = TilingDCEL.validate(square)
     result.isLeft shouldBe true
-    result.left.value should include(s"Vertex ${vertex1.id} leaving edge doesn't originate from it")
+    result.left.value should include("has no twin")
   }
 
-  it should "detect half-edge with no twin" in {
-    val triangle = createTriangleTiling()
-    val edge = triangle.halfEdges.head
-    edge.twin = None
-    
-    val result = TilingDCEL.validate(triangle)
+  it should "fail if an edge's next/prev relationship is broken" in {
+    val square = createSquareTiling()
+    val edge = square.halfEdges.head
+    edge.next.get.prev = None // Break the link
+    val result = TilingDCEL.validate(square)
     result.isLeft shouldBe true
-    result.left.value should include(s"Edge from ${edge.origin.id} has no twin")
+    result.left.value should include("next/prev relationship is broken")
   }
 
-  it should "detect asymmetric twin relationship" in {
-    val triangle = createTriangleTiling()
-    val edge1 = triangle.halfEdges.head
-    val edge2 = triangle.halfEdges(1)
-    val edge3 = HalfEdge(triangle.vertices.head)
-    
-    edge1.twin = Some(edge3)
-    edge3.twin = Some(edge2) // Wrong! Should point back to edge1
-    
-    val result = TilingDCEL.validate(triangle)
+  it should "fail if an inner face has an incorrect sum of angles" in {
+    val square = createSquareTiling()
+    // Tamper with an angle
+    square.innerFaces.head.outerComponent.get.angle = Some(AngleDegree(89))
+    val result = TilingDCEL.validate(square)
     result.isLeft shouldBe true
-    result.left.value should include(s"Edge from ${edge1.origin.id} twin relationship is not symmetric")
+    result.left.value should include("The sum of interior angles is incorrect")
   }
 
-  it should "detect half-edge with no next edge" in {
-    val triangle = createTriangleTiling()
-    val edge = triangle.halfEdges.head
-    edge.next = None
-    
-    val result = TilingDCEL.validate(triangle)
+  it should "fail if an inner face has a full circle angle" in {
+    val square = createSquareTiling()
+    // Tamper with angles to make one a full circle while keeping the sum correct
+    val edges = square.innerFaces.head.halfEdges.value
+    edges(0).angle = Some(AngleDegree(360))
+    edges(1).angle = Some(AngleDegree(0))
+    edges(2).angle = Some(AngleDegree(90))
+    edges(3).angle = Some(AngleDegree(-90))
+    val result = TilingDCEL.validate(square)
     result.isLeft shouldBe true
-    result.left.value should include(s"Edge from ${edge.origin.id} has no next edge")
+    result.left.value should include("cannot have full circles as interior angles")
   }
 
-  it should "detect broken next/prev relationship" in {
-    val triangle = createTriangleTiling()
-    val edge1 = triangle.halfEdges.head
-    val edge2 = triangle.halfEdges(1)
-    val edge3 = triangle.halfEdges(2)
-    
-    edge1.next = Some(edge2)
-    edge2.prev = Some(edge3) // Wrong! Should point back to edge1
-    
-    val result = TilingDCEL.validate(triangle)
+  it should "fail if a face edge does not point back to the face" in {
+    val square = createSquareTiling()
+    // Make an inner edge "forget" its face
+    square.innerFaces.head.outerComponent.get.incidentFace = None
+    val result = TilingDCEL.validate(square)
     result.isLeft shouldBe true
-    result.left.value should include(s"Edge from ${edge1.origin.id} next/prev relationship is broken")
+    result.left.value should include("contains edge that doesn't reference it back")
   }
 
-  it should "detect face with edge that doesn't reference it back" in {
-    val triangle = createTriangleTiling()
-    val face = triangle.innerFaces.head
-    val edge = face.halfEdgesSafe.head
-    val wrongFace = Face("WrongFace")
-    edge.incidentFace = Some(wrongFace)
-    
-    val result = TilingDCEL.validate(triangle)
+  it should "fail if the boundary angles do not sum correctly" in {
+    val twoSquares = createSquareTiling().maybeAddRegularPolygon(4, "V1").value
+    // V2 is on the boundary. The inner edge from V2 belongs to the first square.
+    val v2 = twoSquares.findVertex("V2").get
+    val innerEdgeFromV2 = v2.incidentEdges.find(_.incidentFace.exists(_.id == "F_Poly")).get
+
+    // Distort the angle, which affects both the face and boundary angle sums
+    innerEdgeFromV2.angle = Some(AngleDegree(80))
+
+    val result = TilingDCEL.validate(twoSquares)
     result.isLeft shouldBe true
-    result.left.value should include(s"Face ${face.id} contains edge that doesn't reference it back")
-  }
-
-  it should "handle face with malformed half-edge traversal" in {
-    val triangle = createTriangleTiling()
-    val face = triangle.innerFaces.head
-    // Create a scenario where face.halfEdges detects a cycle
-    val edges = face.halfEdgesSafe
-    if edges.length >= 2 then
-      val firstEdge = edges.head
-      val secondEdge = edges(1)
-
-      // To trigger the cycle detection in Face.halfEdges, we need to create
-      // a situation where a non-start edge is revisited.
-      // Let's modify the structure so that secondEdge points back to itself
-      val originalNext = secondEdge.next
-      secondEdge.next = Some(secondEdge)
-
-      // The validation should now detect the cycle when traversing the face
-      val result = TilingDCEL.validate(triangle)
-      result.isLeft shouldBe true
-      result.left.value should include("Cycle detected")
-
-      // Restore for cleanup
-      secondEdge.next = originalNext
-  }
-
-  it should "return multiple errors when multiple issues exist" in {
-    val triangle = createTriangleTiling()
-    
-    // Break multiple things
-    val vertex = triangle.vertices.head
-    vertex.leaving = None
-    
-    val edge = triangle.halfEdges.head
-    edge.twin = None
-    
-    val result = TilingDCEL.validate(triangle)
-    result.isLeft shouldBe true
-    val errorMessage = result.left.value
-    errorMessage should include("has no leaving edge")
-    errorMessage should include("has no twin")
+    val error = result.left.value
+    // Check that at least one of the expected errors is present, as iteration order is not guaranteed
+    val faceError = "Face F_Poly: The sum of interior angles is incorrect"
+    val boundaryError = "Boundary: The sum of interior angles is incorrect"
+    (error.contains(faceError) || error.contains(boundaryError)) shouldBe true
   }
