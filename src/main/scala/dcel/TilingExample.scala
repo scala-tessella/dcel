@@ -6,6 +6,7 @@ import BigDecimalGeometry.{AngleDegree, BigPoint}
 object TilingExample:
 
   def main(args: Array[String]): Unit =
+    createTwoTrianglesTiling()
     println("This is an example object. Run tests to see the TilingBuilder in action.")
     // The test code previously here has been moved to TilingBuilderSpec.scala
 
@@ -77,9 +78,13 @@ object TilingExample:
     hAD.incidentFace = Some(fOuter); hAD.angle = Some(AngleDegree(240))
 
     // 5. Populate and return the Tiling container
-    TilingDCEL(
+    val result = TilingDCEL(
       vertices = List(vA, vB, vC, vD),
       halfEdges = List(hAB, hBA, hBC, hCB, hCA, hAC, hAD, hDA, hDC, hCD),
       innerFaces = List(fABC, fACD),
       outerFace = fOuter
     )
+
+    println(TilingDCEL.validate(result))
+
+    result
