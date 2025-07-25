@@ -60,17 +60,17 @@ case class HalfEdge(
 
     collectEdges(startEdge, Nil)
 
-  def traverseWithGuards: Either[String, List[HalfEdge]] =
+  def traverseWithGuards[T](f: HalfEdge => T = identity): Either[String, List[T]] =
     val startEdge = this
     val visited = mutable.Set[HalfEdge]()
 
     @tailrec
-    def collectEdges(current: HalfEdge, acc: List[HalfEdge]): Either[String, List[HalfEdge]] =
+    def collectEdges(current: HalfEdge, acc: List[T]): Either[String, List[T]] =
       if visited.contains(current) then
         Left(s"Cycle detected: edge from vertex ${current.origin.id} has already been visited")
       else
         visited += current
-        val updatedAcc = current :: acc
+        val updatedAcc = f(current) :: acc
 
         current.next match
           case Some(next) if next ne startEdge =>

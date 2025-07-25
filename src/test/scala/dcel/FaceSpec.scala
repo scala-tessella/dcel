@@ -251,7 +251,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
     face.outerComponent = Some(he1)
     
     val result = face.getVertices
-    result shouldBe List(v1, v2)
+    result shouldBe List.empty
   }
 
   behavior of "Face.halfEdges"

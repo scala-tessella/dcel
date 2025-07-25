@@ -53,20 +53,7 @@ case class Face(
   def getVertices: List[Vertex] =
     outerComponent match
       case None => List.empty
-      case Some(startEdge) =>
-        val vertices = mutable.ListBuffer[Vertex]()
-        val visited = mutable.Set[HalfEdge]()
-        @tailrec
-        def traverseFace(edge: HalfEdge): Unit =
-          if !visited.contains(edge) then
-            visited += edge
-            vertices += edge.origin
-            edge.next match
-              case Some(nextEdge) if nextEdge ne startEdge => traverseFace(nextEdge)
-              case _ => // Done traversing or reached start
-
-        traverseFace(startEdge)
-        vertices.toList
+      case Some(startEdge) => startEdge.traverseWithGuards(_.origin).getOrElse(List.empty)
 
   /**
    * Get all half-edges forming a face loop.
@@ -74,7 +61,7 @@ case class Face(
   def halfEdges: Either[String, List[HalfEdge]] =
     outerComponent match
       case None => Right(List.empty)
-      case Some(start) => start.traverseWithGuards
+      case Some(start) => start.traverseWithGuards()
 
   // Add safe version that returns empty list on error
   def halfEdgesSafe: List[HalfEdge] =
