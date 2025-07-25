@@ -63,6 +63,9 @@ case class HalfEdge(
   def vertexTraversal[T](f: HalfEdge => T = identity): List[T] =
     traverse[T](_.twin.flatMap(_.next))(f)
 
+  def vertexTraversalWithGuards[T](f: HalfEdge => T = identity): Either[String, List[T]] =
+    traverseWithGuards[T](_.twin.flatMap(_.next))(f)
+
   private def traverseWithGuards[T](direction: HalfEdge => Option[HalfEdge])(f: HalfEdge => T = identity): Either[String, List[T]] =
     val startEdge = this
     val visited = mutable.Set[HalfEdge]()
@@ -85,6 +88,9 @@ case class HalfEdge(
             Left(s"Broken edge chain: edge from vertex ${current.origin.id} has no next")
 
     collectEdges(startEdge, Nil)
+
+  def faceTraversal[T](f: HalfEdge => T = identity): List[T] =
+    traverse[T](_.next)(f)
 
   def faceTraversalWithGuards[T](f: HalfEdge => T = identity): Either[String, List[T]] =
     traverseWithGuards[T](_.next)(f)

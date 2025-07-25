@@ -153,18 +153,18 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "return same result as boundary for well-formed tilings" in {
     val triangle = createTriangleTiling()
-    triangle.boundarySafe shouldEqual triangle.boundary
+    triangle.boundarySafe.value shouldEqual triangle.boundary
 
     val square = createSquareTiling()
-    square.boundarySafe shouldEqual square.boundary
+    square.boundarySafe.value shouldEqual square.boundary
   }
 
   it should "return empty vector for empty tiling" in {
     val empty = TilingBuilder.empty
-    empty.boundarySafe shouldBe Vector.empty
+    empty.boundarySafe shouldBe Right(Vector.empty)
   }
 
-  it should "throw error for malformed boundary loop" in {
+  it should "fail for malformed boundary loop" in {
     val triangle = createTriangleTiling()
     val boundaryEdges = triangle.getBoundaryEdges
     if boundaryEdges.length >= 2 then
@@ -175,9 +175,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
       firstEdge.next = Some(secondEdge)
       secondEdge.next = Some(secondEdge) // Make second edge point to itself
 
-      an[Error] shouldBe thrownBy {
-        triangle.boundarySafe
-      }
+      triangle.boundarySafe.isLeft shouldBe true
   }
 
   it should "throw error for open chain in boundary" in {
@@ -188,9 +186,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
       // Break the chain by setting next to None
       firstEdge.next = None
 
-      an[Error] shouldBe thrownBy {
-        triangle.boundarySafe
-      }
+      triangle.boundarySafe.isLeft shouldBe true
   }
 
   behavior of "TilingDCEL.getBoundaryEdges"

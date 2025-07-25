@@ -54,43 +54,14 @@ case class TilingDCEL(
    *         Returns an empty Vector if the outer face has no boundary component.
    */
   def boundary: Vector[Vertex] =
-    outerFace.outerComponent.map { startEdge =>
-      val builder = Vector.newBuilder[Vertex]
-
-      @tailrec
-      def collectVertices(edge: HalfEdge): Unit =
-        builder += edge.origin
-        edge.next match
-          case Some(nextEdge) if nextEdge ne startEdge => collectVertices(nextEdge)
-          case _ => // Traversal complete or malformed loop
-
-      collectVertices(startEdge)
-      builder.result()
-    }.getOrElse(Vector.empty)
-
-  def boundarySafe: Vector[Vertex] =
     outerFace.outerComponent match
+      case Some(startEdge) => startEdge.faceTraversal(_.origin).toVector
       case None => Vector.empty
-      case Some(startEdge) =>
-        val builder = Vector.newBuilder[Vertex]
-        val visited = scala.collection.mutable.Set.empty[HalfEdge]
 
-        @tailrec
-        def collectVertices(edge: HalfEdge): Unit =
-          if visited.contains(edge) then
-            if edge eq startEdge then
-              () // completed loop: that's fine
-            else
-              throw new Error("Malformed loop detected") // repeated non-start: broken!
-          else
-            builder += edge.origin
-            visited += edge
-            edge.next match
-              case Some(nextEdge) => collectVertices(nextEdge)
-              case None => throw new Error("Open chain")
-
-        collectVertices(startEdge)
-        builder.result()
+  def boundarySafe: Either[String, Vector[Vertex]] =
+    outerFace.outerComponent match
+      case Some(startEdge) => startEdge.faceTraversalWithGuards(_.origin).map(_.toVector)
+      case None => Right(Vector.empty)
 
   /**
    * Helper method to get all half-edges forming the outer boundary loop.
