@@ -348,7 +348,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
       // The validation should now detect the cycle when traversing the face
       val result = TilingDCEL.validate(triangle)
       result.isLeft shouldBe true
-      result.left.value should include("Cycle detected in face")
+      result.left.value should include("Cycle detected")
 
       // Restore for cleanup
       secondEdge.next = originalNext

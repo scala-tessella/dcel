@@ -4,6 +4,7 @@ package dcel
 import BigDecimalGeometry.AngleDegree
 
 import scala.annotation.tailrec
+import scala.collection.mutable
 
 /**
  * Represents a directed half-edge in the DCEL.
@@ -49,14 +50,37 @@ case class HalfEdge(
 
   def traverse: List[HalfEdge] =
     val startEdge = this
-    
+
     @tailrec
     def collectEdges(current: HalfEdge, acc: List[HalfEdge]): List[HalfEdge] =
       val updatedAcc = current :: acc
       current.twin.flatMap(_.next) match
         case Some(next) if next ne startEdge => collectEdges(next, updatedAcc)
         case _ => updatedAcc.reverse
-  
+
+    collectEdges(startEdge, Nil)
+
+  def traverseWithGuards: Either[String, List[HalfEdge]] =
+    val startEdge = this
+    val visited = mutable.Set[HalfEdge]()
+
+    @tailrec
+    def collectEdges(current: HalfEdge, acc: List[HalfEdge]): Either[String, List[HalfEdge]] =
+      if visited.contains(current) then
+        Left(s"Cycle detected: edge from vertex ${current.origin.id} has already been visited")
+      else
+        visited += current
+        val updatedAcc = current :: acc
+
+        current.next match
+          case Some(next) if next ne startEdge =>
+            collectEdges(next, updatedAcc)
+          case Some(_) =>
+            // next == startEdge, we've completed the traversal
+            Right(updatedAcc.reverse)
+          case None =>
+            Left(s"Broken edge chain: edge from vertex ${current.origin.id} has no next")
+
     collectEdges(startEdge, Nil)
 
 object HalfEdge:

@@ -300,7 +300,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
     
     val result = face.halfEdges
     result.isLeft shouldBe true
-    result.left.value should include("Broken edge chain in face F_broken")
+    result.left.value should startWith("Broken edge chain")
   }
 
   it should "return Left when cycle is detected" in {
@@ -319,7 +319,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
     
     val result = face.halfEdges
     result.isLeft shouldBe true
-    result.left.value should include("Cycle detected in face F_cycle")
+    result.left.value should startWith("Cycle detected")
   }
 
   behavior of "Face.halfEdgesSafe"

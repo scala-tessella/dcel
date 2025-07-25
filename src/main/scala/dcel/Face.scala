@@ -71,40 +71,14 @@ case class Face(
   /**
    * Get all half-edges forming a face loop.
    */
-  def halfEdges: Either[String, List[HalfEdge]] = {
-    outerComponent match {
+  def halfEdges: Either[String, List[HalfEdge]] =
+    outerComponent match
       case None => Right(List.empty)
-      case Some(start) =>
-        try {
-          @tailrec
-          def collectEdges(current: HalfEdge, acc: List[HalfEdge], visited: Set[HalfEdge]): Either[String, List[HalfEdge]] = {
-            if (visited.contains(current)) {
-              Left(s"Cycle detected in face $id at edge originating from ${current.origin.id}")
-            } else {
-              val newVisited = visited + current
-              val newAcc = current :: acc
-
-              current.next match {
-                case Some(next) if next ne start =>
-                  collectEdges(next, newAcc, newVisited)
-                case Some(_) =>
-                  // next == start, we've completed the loop
-                  Right(newAcc.reverse)
-                case None =>
-                  Left(s"Broken edge chain in face $id at edge from ${current.origin.id}")
-              }
-            }
-          }
-
-          collectEdges(start, Nil, Set.empty)
-        } catch {
-          case e: Exception => Left(s"Error traversing face $id: ${e.getMessage}")
-        }
-    }
-  }
+      case Some(start) => start.traverseWithGuards
 
   // Add safe version that returns empty list on error
-  def halfEdgesSafe: List[HalfEdge] = halfEdges.getOrElse(List.empty)
+  def halfEdgesSafe: List[HalfEdge] =
+    halfEdges.getOrElse(List.empty)
 
 object Face:
 
