@@ -169,7 +169,7 @@ object TilingSVG:
 
       // Generate angle labels
       val innerAngleLabels = tilingDCEL.innerFaces.flatMap { face =>
-        val centroid = calculateCentroid(face.getVertices)
+        val centroid = calculateCentroid(face.getVertices.getOrElse(List.empty))
         face.halfEdgesSafe.map { halfEdge =>
           val origin = toBigPointFromVertex(halfEdge.origin)
           val direction = calculateDirection(origin, centroid)
@@ -179,7 +179,7 @@ object TilingSVG:
 
       val outerAngleLabels = tilingDCEL.getBoundaryEdges.map { halfEdge =>
         val centroid = if tilingDCEL.innerFaces.nonEmpty then
-          calculateCentroid(tilingDCEL.innerFaces.head.getVertices)
+          calculateCentroid(tilingDCEL.innerFaces.head.getVertices.getOrElse(List.empty))
         else BigPoint(BigDecimal(0), BigDecimal(0))
 
         val origin = toBigPointFromVertex(halfEdge.origin)
@@ -219,7 +219,7 @@ object TilingSVG:
       }.mkString("\n")
 
       val faceLabels = tilingDCEL.innerFaces.flatMap { face =>
-        val vertices = face.getVertices
+        val vertices = face.getVertices.getOrElse(List.empty)
         if vertices.nonEmpty then
           val (x, y) = calculateCentroid(vertices).toSvgCoords(scale)
           Some(s"""      <text x="$x" y="$y" text-anchor="middle" dominant-baseline="middle">${face.id}</text>""")

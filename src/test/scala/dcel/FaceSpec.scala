@@ -210,7 +210,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "return empty list when outer component is None" in {
     val face = Face("F1")
-    face.getVertices shouldBe List.empty
+    face.getVertices.toOption.get shouldBe List.empty
   }
 
   it should "return single vertex for self-loop edge" in {
@@ -220,13 +220,13 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
     edge.next = Some(edge) // Self-loop
     face.outerComponent = Some(edge)
     
-    face.getVertices shouldBe List(vertex)
+    face.getVertices.getOrElse(List.empty) shouldBe List(vertex)
   }
 
   it should "return vertices in order for triangle face" in {
     val (face, _, vertices) = createTriangleFace("F_triangle")
     
-    val result = face.getVertices
+    val result = face.getVertices.getOrElse(List.empty)
     result should have length 3
     result shouldBe vertices
   }
@@ -234,12 +234,12 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
   it should "return vertices in order for square face" in {
     val (face, _, vertices) = createSquareFace("F_square")
     
-    val result = face.getVertices
+    val result = face.getVertices.getOrElse(List.empty)
     result should have length 4
     result shouldBe vertices
   }
 
-  it should "handle broken edge chain gracefully" in {
+  it should "handle broken edge chain NOT gracefully" in {
     val v1 = createVertex("V1", 0, 0)
     val v2 = createVertex("V2", 1, 0)
     val face = Face("F1")
@@ -251,7 +251,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
     face.outerComponent = Some(he1)
     
     val result = face.getVertices
-    result shouldBe List.empty
+    result.isLeft shouldBe true
   }
 
   behavior of "Face.halfEdges"
@@ -521,7 +521,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
 
     // This should not crash even though edges don't have twins properly set
     val adjacencyMap = Face.adjacencyMap(faces)
-    adjacencyMap shouldBe a[Map[_, _]]
+    adjacencyMap shouldBe a[Map[Face, List[Face]]]
   }
 
   behavior of "Face companion object - breadthFirstSearch"

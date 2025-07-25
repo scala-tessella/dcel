@@ -25,7 +25,7 @@ case class Face(
 
   // Area calculation
   def area: BigDecimal =
-    val vertices = getVertices
+    val vertices = getVertices.getOrElse(List.empty)
     if vertices.length < 3 then BigDecimal(0)
     else
       // Shoelace formula
@@ -50,10 +50,10 @@ case class Face(
    * Get all vertices that form the boundary of a face.
    * Returns vertices in the order they appear around the face boundary.
    */
-  def getVertices: List[Vertex] =
+  def getVertices: Either[String, List[Vertex]] =
     outerComponent match
-      case None => List.empty
-      case Some(startEdge) => startEdge.traverseWithGuards(_.origin).getOrElse(List.empty)
+      case None => Right(List.empty)
+      case Some(startEdge) => startEdge.traverseWithGuards(_.origin)
 
   /**
    * Get all half-edges forming a face loop.
