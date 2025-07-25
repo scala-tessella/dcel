@@ -86,7 +86,7 @@ case class HalfEdge(
 
     collectEdges(startEdge, Nil)
 
-  def faceTraversal[T](f: HalfEdge => T = identity): Either[String, List[T]] =
+  def faceTraversalWithGuards[T](f: HalfEdge => T = identity): Either[String, List[T]] =
     traverseWithGuards[T](_.next)(f)
 
 object HalfEdge:
