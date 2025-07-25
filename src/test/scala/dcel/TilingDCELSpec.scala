@@ -166,7 +166,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "fail for malformed boundary loop" in {
     val triangle = createTriangleTiling()
-    val boundaryEdges = triangle.getBoundaryEdges
+    val boundaryEdges = triangle.getBoundaryEdges.value
     if boundaryEdges.length >= 2 then
       val firstEdge = boundaryEdges.head // This is the startEdge
       val secondEdge = boundaryEdges(1)
@@ -180,7 +180,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "throw error for open chain in boundary" in {
     val triangle = createTriangleTiling()
-    val boundaryEdges = triangle.getBoundaryEdges
+    val boundaryEdges = triangle.getBoundaryEdges.value
     if boundaryEdges.nonEmpty then
       val firstEdge = boundaryEdges.head
       // Break the chain by setting next to None
@@ -193,12 +193,12 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "return empty list for empty tiling" in {
     val empty = TilingBuilder.empty
-    empty.getBoundaryEdges shouldBe List.empty
+    empty.getBoundaryEdges shouldBe Right(List.empty)
   }
 
   it should "return boundary edges in correct order" in {
     val triangle = createTriangleTiling()
-    val boundaryEdges = triangle.getBoundaryEdges
+    val boundaryEdges = triangle.getBoundaryEdges.value
     boundaryEdges should have length 3
     
     // Check that edges form a closed loop
@@ -208,7 +208,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "throw exception for malformed boundary with visited edge" in {
     val triangle = createTriangleTiling()
-    val boundaryEdges = triangle.getBoundaryEdges
+    val boundaryEdges = triangle.getBoundaryEdges.value
     if boundaryEdges.length >= 3 then
       val firstEdge = boundaryEdges.head // e0 (start)
       val secondEdge = boundaryEdges(1) // e1
@@ -219,21 +219,17 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
       secondEdge.next = Some(thirdEdge)
       thirdEdge.next = Some(secondEdge) // This creates the problematic cycle
 
-      an[IllegalStateException] shouldBe thrownBy {
-        triangle.getBoundaryEdges
-      }
+      triangle.getBoundaryEdges.isLeft shouldBe true
   }
 
   it should "throw exception for unclosed boundary loop" in {
     val triangle = createTriangleTiling()
-    val boundaryEdges = triangle.getBoundaryEdges
+    val boundaryEdges = triangle.getBoundaryEdges.value
     if boundaryEdges.nonEmpty then
       val lastEdge = boundaryEdges.last
       lastEdge.next = None // Break the loop
 
-      an[IllegalStateException] shouldBe thrownBy {
-        triangle.getBoundaryEdges
-      }
+    triangle.getBoundaryEdges.isLeft shouldBe true
   }
 
   behavior of "TilingDCEL.validate"

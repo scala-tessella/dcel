@@ -165,7 +165,7 @@ object TilingSVG:
         }.mkString("\n")
 
       val innerFaceArrows = createHalfEdgeArrows(tilingDCEL.innerFaces.flatMap(_.halfEdgesSafe))
-      val outerFaceArrows = createHalfEdgeArrows(tilingDCEL.getBoundaryEdges)
+      val outerFaceArrows = createHalfEdgeArrows(tilingDCEL.getBoundaryEdges.toOption.get)
 
       // Generate angle labels
       val innerAngleLabels = tilingDCEL.innerFaces.flatMap { face =>
@@ -177,7 +177,7 @@ object TilingSVG:
         }
       }.mkString("\n")
 
-      val outerAngleLabels = tilingDCEL.getBoundaryEdges.map { halfEdge =>
+      val outerAngleLabels = tilingDCEL.getBoundaryEdges.toOption.get.map { halfEdge =>
         val centroid = if tilingDCEL.innerFaces.nonEmpty then
           calculateCentroid(tilingDCEL.innerFaces.head.getVertices.getOrElse(List.empty))
         else BigPoint(BigDecimal(0), BigDecimal(0))
