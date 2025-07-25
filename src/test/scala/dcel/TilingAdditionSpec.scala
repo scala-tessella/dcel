@@ -20,6 +20,12 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues {
 
     val check = TilingDCEL.validate(tiling)
     check shouldBe Right(())
+
+    tiling.outerFace.halfEdgesSafe.map(_.angle.get).mkString(", ") shouldBe "270, 270, 270, 270"
+//    tiling.outerFace.halfEdgesSafe.map(_.incidentFace.get.id).mkString(", ") shouldBe "F_Outer, F_Outer, F_Outer, F_Outer"
+//    tiling.innerFaces.map(_.halfEdgesSafe.map(_.angle.get).mkString(", ")) shouldBe List("90, 90, 90, 90")
+//    tiling.innerFaces.map(_.halfEdgesSafe.map(_.incidentFace.get.id).mkString(", ")) shouldBe List("F_Poly, F_Poly, F_Poly, F_Poly")
+
   }
 
   it should "fail to add a polygon with less than 3 sides" in {
