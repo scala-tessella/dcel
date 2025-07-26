@@ -11,7 +11,7 @@ object TilingAddition:
 
   private def calculateNewVertices(sides: Int, p1: BigPoint, p2: BigPoint): List[BigPoint] =
     val angle = RegularPolygon(sides).alphaDegree
-    val rotation = AngleDegree(180) - angle
+    val rotation = AngleDegree(180) + angle
     val newPoints = ListBuffer.empty[BigPoint]
     var prev = p1
     var curr = p2

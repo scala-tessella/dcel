@@ -13,7 +13,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "add a triangle to a triangle, producing a valid DCEL" in {
     val triangle = TilingBuilder.createRegularPolygon(3).value
-    val result = triangle.addRegularPolygon(3, "V1")
+    val result = triangle.addRegularPolygon(3, "V0")
 
     result.isRight shouldBe true
     val tiling = result.value
