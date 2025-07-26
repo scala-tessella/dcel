@@ -33,6 +33,9 @@ case class HalfEdge(
   def destination: Option[Vertex] =
     twin.map(_.origin)
 
+  def endpointsAsVertices: Option[(Vertex, Vertex)] =
+    destination.map(dest => (origin, dest))
+
   def linkWith(next: HalfEdge): Unit =
     this.next = Some(next)
     next.prev = Some(this)

@@ -6,23 +6,61 @@ import Polygon.RegularPolygon
 
 import spire.implicits.*
 
-import scala.collection.mutable.ListBuffer
-
 object TilingAddition:
 
   private def calculateNewVertices(sides: Int, p1: BigPoint, p2: BigPoint): List[BigPoint] =
     val angle = RegularPolygon(sides).alphaDegree
     val rotation = AngleDegree(180) + angle
-    val newPoints = ListBuffer.empty[BigPoint]
-    var prev = p1
-    var curr = p2
-    for (_ <- 3 to sides)
-      val direction = prev.angleTo(curr)
-      val next = curr.plus(BigPoint.fromPolar(1, direction + rotation.toBigRadian))
-      newPoints.append(next)
-      prev = curr
-      curr = next
-    newPoints.toList
+
+    LazyList.unfold((p1, p2, 3)) { case (prev, curr, step) =>
+      if step > sides then None
+      else
+        val direction = prev.angleTo(curr)
+        val next = curr.plus(BigPoint.fromPolar(1, direction + rotation.toBigRadian))
+        Some(next, (curr, next, step + 1))
+    }.toList
+
+  private def createVertices(points: List[BigPoint], startingIndex: Int): List[Vertex] =
+    points.zipWithIndex.map { (point, index) =>
+      Vertex(s"V${startingIndex + index + 1}", point)
+    }
+
+  // Extract polygon angle calculation
+  private def polygonAngle(sides: Int): AngleDegree =
+    RegularPolygon(sides).alphaDegree
+
+  // More descriptive boundary angle calculation
+  private def boundaryAngleForVertex(
+    vertex: Vertex,
+    outerFace: Face,
+    additionalInteriorAngle: AngleDegree
+  ): AngleDegree =
+    val currentInteriorSum = vertex.getCurrentInteriorAngleSum(outerFace)
+    (currentInteriorSum + additionalInteriorAngle).conjugate
+
+  // Use proper case class pattern matching instead of List extraction
+  private def createEdgePairs(
+    vertices: List[Vertex],
+    outerFace: Face,
+    newFace: Face,
+    startVertexAngle: AngleDegree,
+    newVertexAngle: AngleDegree,
+    polygonAngle: AngleDegree
+  ): List[(HalfEdge, HalfEdge)] =
+    vertices.sliding(2).zipWithIndex.map {
+      case (origin :: destination :: Nil, index) =>
+        val boundaryAngle = if index == 0 then startVertexAngle else newVertexAngle
+        HalfEdge.createTwinHalfEdges(
+          origin, destination, outerFace, newFace,
+          boundaryAngle, polygonAngle
+        )
+      case _ =>
+        throw IllegalArgumentException("Invalid vertex sequence")
+    }.toList
+
+  // Simplify face generation using template interpolation
+  private def generateFaceId(existingFaceCount: Int): String =
+    s"F${existingFaceCount + 1}"
 
   extension (tilingDCEL: TilingDCEL)
 
@@ -30,87 +68,131 @@ object TilingAddition:
       for
         _ <- TilingBuilder.validateSides(sides, "regular")
         boundaryEdges <- tilingDCEL.getBoundaryEdges
-        edgeToBuildOn <- boundaryEdges.find(_.origin.id == onEdgeStartingWithVertexId)
+        edgeToBuildOn <- boundaryEdges
+          .find(_.origin.id == onEdgeStartingWithVertexId)
           .toRight(s"Edge starting with vertex $onEdgeStartingWithVertexId not found on the boundary.")
-        v_start = edgeToBuildOn.origin
-        v_end <- edgeToBuildOn.destination.toRight("Edge has no destination vertex.")
-      yield {
-        val polygonAngle = RegularPolygon(sides).alphaDegree
+        (startVertex, endVertex) <- edgeToBuildOn.endpointsAsVertices
+          .toRight("Edge has no destination vertex.")
+      yield
+        given outerFace: Face = tilingDCEL.outerFace
 
-        // Calculate boundary angles for shared vertices
-        def calculateBoundaryAngleForVertex(vertex: Vertex): AngleDegree =
-          val currentSum = vertex.getCurrentInteriorAngleSum(tilingDCEL.outerFace)
-          (currentSum + polygonAngle).conjugate
+        val polyAngle = polygonAngle(sides)
 
-        val boundaryAngleForStartVertex = calculateBoundaryAngleForVertex(v_start)
-        val boundaryAngleForEndVertex = calculateBoundaryAngleForVertex(v_end)
-        val boundaryAngleForNewVertices = polygonAngle.conjugate
-
-        // Capture original boundary links before modification
-        val originalPrev = edgeToBuildOn.prev
-        val originalNext = edgeToBuildOn.next
-
-        // 1. Calculate new vertex coordinates and create vertices
-        val newVertexPoints = calculateNewVertices(sides, v_end.coords, v_start.coords)
-        val newVertices = newVertexPoints.zipWithIndex.map {
-          case (p, i) => Vertex(s"V${tilingDCEL.vertices.size + i + 1}", p)
-        }.toList
-
-        // 2. Create new Face
-        val newFace = Face(s"F${tilingDCEL.innerFaces.size + 1}")
-
-        // 3. Update the shared edge
-        edgeToBuildOn.incidentFace = Some(newFace)
-        edgeToBuildOn.angle = Some(polygonAngle)
-
-        // 4. Create new half-edges for the polygon boundary
-        val allVerticesForNewEdges = List(v_start) ++ newVertices ++ List(v_end)
-        val newEdges = allVerticesForNewEdges.sliding(2).map {
-          case List(origin, destination) =>
-            val boundaryAngle = origin match
-              case _ if origin == v_start => boundaryAngleForStartVertex
-              case _ => boundaryAngleForNewVertices
-
-            HalfEdge.createTwinHalfEdges(
-              origin, destination, tilingDCEL.outerFace, newFace,
-              boundaryAngle, polygonAngle
-            )
-        }.toList
-
-        val (newBoundaryEdges, newInnerEdges) = newEdges.unzip
-
-        // Update angle for the last boundary edge
-        newBoundaryEdges.lastOption.foreach(_.angle = Some(boundaryAngleForNewVertices))
-
-        // 5. Update boundary angle for existing edge from v_end
-        originalNext.foreach { nextEdge =>
-          if nextEdge.origin == v_end then
-            nextEdge.angle = Some(boundaryAngleForEndVertex)
-        }
-
-        // 6. Link all inner edges of the new face
-        val allNewInnerEdges = edgeToBuildOn :: newInnerEdges.reverse
-        allNewInnerEdges.linkInCycle()
-        newFace.outerComponent = Some(edgeToBuildOn)
-
-        // 7. Connect new boundary edges to existing boundary
-        HalfEdge.insertBoundarySegment(originalPrev.get, originalNext.get, newBoundaryEdges)
-
-        // 8. Update outer face component if necessary
-        if tilingDCEL.outerFace.outerComponent.contains(edgeToBuildOn) then
-          tilingDCEL.outerFace.outerComponent = Some(newBoundaryEdges.head)
-
-        // 9. Update leaving edges for vertices
-        (v_start :: newVertices).zip(newBoundaryEdges).foreach { case (vertex, edge) =>
-          vertex.leaving = Some(edge)
-        }
-        v_end.leaving = edgeToBuildOn.twin
-
-        // 10. Return the new DCEL
-        TilingDCEL(
-          vertices = tilingDCEL.vertices ++ newVertices,
-          halfEdges = tilingDCEL.halfEdges ++ newBoundaryEdges ++ newInnerEdges,
-          innerFaces = tilingDCEL.innerFaces :+ newFace,
-          outerFace = tilingDCEL.outerFace
+        // Calculate boundary angles
+        val boundaryAngles = BoundaryAngles(
+          start = boundaryAngleForVertex(startVertex, outerFace, polyAngle),
+          end = boundaryAngleForVertex(endVertex, outerFace, polyAngle),
+          newVertices = polyAngle.conjugate
         )
-      }
+
+        // Capture original boundary state
+        val originalBoundary = BoundaryState(edgeToBuildOn.prev, edgeToBuildOn.next)
+
+        // Create new components
+        val vertexPoints = calculateNewVertices(sides, endVertex.coords, startVertex.coords)
+        val newVertices = createVertices(vertexPoints, tilingDCEL.vertices.size)
+        val newFace = Face(generateFaceId(tilingDCEL.innerFaces.size))
+        val allVertices = startVertex :: newVertices ::: endVertex :: Nil
+        val edgePairs = createEdgePairs(allVertices, outerFace, newFace, boundaryAngles.start, boundaryAngles.newVertices, polyAngle)
+
+//        val newComponents = NewComponents(newVertices, newFace, edgePairs)
+
+        val (newBoundaryEdges, newInnerEdges) = edgePairs.unzip
+
+        // Update existing structures
+        updateExistingStructures(
+          edgeToBuildOn, newFace, polyAngle,
+          newBoundaryEdges, originalBoundary, boundaryAngles
+        )
+
+        // Link new face edges
+        linkNewFaceEdges(edgeToBuildOn, newInnerEdges.reverse, newFace)
+
+        // Connect to boundary
+        connectNewBoundaryEdges(newBoundaryEdges, originalBoundary, outerFace, edgeToBuildOn)
+
+        // Update vertex leaving edges
+        updateVertexLeavingEdges(startVertex :: newVertices, newBoundaryEdges, endVertex, edgeToBuildOn)
+
+        // Return new DCEL with updated components
+        tilingDCEL.copy(
+          vertices = tilingDCEL.vertices ::: newVertices,
+          halfEdges = tilingDCEL.halfEdges ::: newBoundaryEdges ::: newInnerEdges,
+          innerFaces = tilingDCEL.innerFaces :+ newFace
+        )
+
+  // Helper case classes for better structure
+  private case class BoundaryAngles(
+    start: AngleDegree,
+    end: AngleDegree,
+    newVertices: AngleDegree
+  )
+
+  private case class BoundaryState(
+    prev: Option[HalfEdge],
+    next: Option[HalfEdge]
+  )
+
+//  private case class NewComponents(
+//    vertices: List[Vertex],
+//    face: Face,
+//    edgePairs: List[(HalfEdge, HalfEdge)]
+//  )
+
+  // More functional helper methods
+  private def updateExistingStructures(
+    edgeToBuildOn: HalfEdge,
+    newFace: Face,
+    polyAngle: AngleDegree,
+    newBoundaryEdges: List[HalfEdge],
+    originalBoundary: BoundaryState,
+    boundaryAngles: BoundaryAngles
+  ): Unit =
+    // Update shared edge
+    edgeToBuildOn.incidentFace = Some(newFace)
+    edgeToBuildOn.angle = Some(polyAngle)
+
+    // Update last boundary edge angle
+    newBoundaryEdges.lastOption.foreach(_.angle = Some(boundaryAngles.newVertices))
+
+    // Update existing boundary edge from end vertex
+    originalBoundary.next.foreach { nextEdge =>
+      if nextEdge.origin.id == edgeToBuildOn.destination.map(_.id).getOrElse("") then
+        nextEdge.angle = Some(boundaryAngles.end)
+    }
+
+  private def linkNewFaceEdges(
+    edgeToBuildOn: HalfEdge,
+    reversedInnerEdges: List[HalfEdge],
+    newFace: Face
+  ): Unit =
+    val allInnerEdges = edgeToBuildOn :: reversedInnerEdges
+    allInnerEdges.linkInCycle()
+    newFace.outerComponent = Some(edgeToBuildOn)
+
+  private def connectNewBoundaryEdges(
+    newBoundaryEdges: List[HalfEdge],
+    originalBoundary: BoundaryState,
+    outerFace: Face,
+    edgeToBuildOn: HalfEdge
+  ): Unit =
+    HalfEdge.insertBoundarySegment(
+      originalBoundary.prev.get,
+      originalBoundary.next.get,
+      newBoundaryEdges
+    )
+
+    // Update outer face component if necessary
+    if outerFace.outerComponent.contains(edgeToBuildOn) then
+      outerFace.outerComponent = newBoundaryEdges.headOption
+
+  private def updateVertexLeavingEdges(
+    verticesWithNewEdges: List[Vertex],
+    newBoundaryEdges: List[HalfEdge],
+    endVertex: Vertex,
+    edgeToBuildOn: HalfEdge
+  ): Unit =
+    verticesWithNewEdges.zip(newBoundaryEdges).foreach { (vertex, edge) =>
+      vertex.leaving = Some(edge)
+    }
+    endVertex.leaving = edgeToBuildOn.twin
