@@ -100,7 +100,7 @@ object TilingAddition:
 
         // 6. Find and update the boundary edge that originates from v_end
         originalNext.foreach { nextEdge =>
-          if (nextEdge.origin == v_end) then
+          if nextEdge.origin == v_end then
             nextEdge.angle = Some(boundaryAngleForEndVertex)
         }
 
@@ -113,10 +113,10 @@ object TilingAddition:
         newFace.outerComponent = Some(edgeToBuildOn)
 
         // 8. Link new boundary edges into the outer boundary
-        originalPrev.foreach(p => p.next = Some(newBoundaryEdges.head))
+        originalPrev.foreach(_.next = Some(newBoundaryEdges.head))
         newBoundaryEdges.head.prev = originalPrev
 
-        originalNext.foreach(n => n.prev = Some(newBoundaryEdges.last))
+        originalNext.foreach(_.prev = Some(newBoundaryEdges.last))
         newBoundaryEdges.last.next = originalNext
 
         newBoundaryEdges.zip(newBoundaryEdges.tail).foreach { case (p, n) =>
