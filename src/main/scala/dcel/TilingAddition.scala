@@ -94,9 +94,6 @@ object TilingAddition:
         val newFace = Face(generateFaceId(tilingDCEL.innerFaces.size))
         val allVertices = startVertex :: newVertices ::: endVertex :: Nil
         val edgePairs = createEdgePairs(allVertices, outerFace, newFace, boundaryAngles.start, boundaryAngles.newVertices, polyAngle)
-
-//        val newComponents = NewComponents(newVertices, newFace, edgePairs)
-
         val (newBoundaryEdges, newInnerEdges) = edgePairs.unzip
 
         // Update existing structures
@@ -132,12 +129,6 @@ object TilingAddition:
     prev: Option[HalfEdge],
     next: Option[HalfEdge]
   )
-
-//  private case class NewComponents(
-//    vertices: List[Vertex],
-//    face: Face,
-//    edgePairs: List[(HalfEdge, HalfEdge)]
-//  )
 
   // More functional helper methods
   private def updateExistingStructures(
