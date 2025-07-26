@@ -33,6 +33,10 @@ case class HalfEdge(
   def destination: Option[Vertex] =
     twin.map(_.origin)
 
+  def linkWith(next: HalfEdge): Unit =
+    this.next = Some(next)
+    next.prev = Some(this)
+
   def isComplete: Boolean =
     twin.isDefined && incidentFace.isDefined && next.isDefined && prev.isDefined && angle.isDefined
 
@@ -104,24 +108,17 @@ object HalfEdge:
     edge2.twin = Some(edge1)
     (edge1, edge2)
 
-  def linkEdges(prev: HalfEdge, next: HalfEdge): Unit =
-    prev.next = Some(next)
-    next.prev = Some(prev)
-
   def insertBoundarySegment(prevEdge: HalfEdge, nextEdge: HalfEdge, segment: List[HalfEdge]): Unit =
-    HalfEdge.linkEdges(prevEdge, segment.head)
-    HalfEdge.linkEdges(segment.last, nextEdge)
-    segment.sliding(2).foreach {
-      case List(current, next) => HalfEdge.linkEdges(current, next)
-      case _ => // Single element, no linking needed
-    }
+    prevEdge.linkWith(segment.head)
+    segment.last.linkWith(nextEdge)
+    segment.linkInSequence()
 
   extension (halfEdges: List[HalfEdge])
 
     // Helper function to link edges in a cycle
     def linkInCycle(): Unit =
-      halfEdges.zip(halfEdges.tail :+ halfEdges.head).foreach(linkEdges)
+      halfEdges.zip(halfEdges.tail :+ halfEdges.head).foreach(_.linkWith(_))
 
     // Helper function to link edges in sequence
     def linkInSequence(): Unit =
-      halfEdges.zip(halfEdges.tail).foreach(linkEdges)
+      halfEdges.zip(halfEdges.tail).foreach(_.linkWith(_))

@@ -330,7 +330,7 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with EitherValues:
     edge1.next shouldBe None
     edge2.prev shouldBe None
     
-    HalfEdge.linkEdges(edge1, edge2)
+    edge1.linkWith(edge2)
     
     edge1.next shouldBe Some(edge2)
     edge2.prev shouldBe Some(edge1)
@@ -348,7 +348,7 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with EitherValues:
     edge4.prev = Some(edge2)
     
     // Link edge1 -> edge2
-    HalfEdge.linkEdges(edge1, edge4)
+    edge1.linkWith(edge4)
     
     edge1.next shouldBe Some(edge4)
     edge4.prev shouldBe Some(edge1)
@@ -358,7 +358,7 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with EitherValues:
     val vertex = Vertex("V1", BigPoint(0, 0))
     val edge = HalfEdge(vertex)
     
-    HalfEdge.linkEdges(edge, edge)
+    edge.linkWith(edge)
     
     edge.next shouldBe Some(edge)
     edge.prev shouldBe Some(edge)
