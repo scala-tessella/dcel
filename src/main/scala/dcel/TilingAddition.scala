@@ -75,8 +75,8 @@ object TilingAddition:
 
         // 5. Create the new half-edges for the polygon boundary and their inner twins.
         // Use appropriate boundary angles for each vertex
-        val newEdges = allVerticesForNewEdges.sliding(2).zipWithIndex.map {
-          case (List(o, d), i) =>
+        val newEdges = allVerticesForNewEdges.sliding(2).map {
+          case List(o, d) =>
             val boundaryAngle = if o == v_start then
               boundaryAngleForStartVertex
             else if o == v_end then
@@ -98,19 +98,7 @@ object TilingAddition:
         // This edge originates from the last new vertex, but terminates at v_end which is shared
         newBoundaryEdges.lastOption.foreach(_.angle = Some(boundaryAngleForNewVertices))
 
-        // 6. Update the boundary angles for existing boundary edges of shared vertices
-        // Find and update the boundary edge that comes before the edgeToBuildOn
-        originalPrev.foreach { prevEdge =>
-          if (prevEdge.origin == v_start) {
-            // This shouldn't happen in a well-formed boundary
-          } else if (prevEdge.destination.contains(v_start)) {
-            // The previous edge terminates at v_start, but we need to update the edge that originates from v_start
-            // This will be the first new boundary edge
-            // Already handled above
-          }
-        }
-
-        // Find and update the boundary edge that originates from v_end
+        // 6. Find and update the boundary edge that originates from v_end
         originalNext.foreach { nextEdge =>
           if (nextEdge.origin == v_end) then
             nextEdge.angle = Some(boundaryAngleForEndVertex)
