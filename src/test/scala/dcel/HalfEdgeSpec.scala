@@ -373,7 +373,7 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with EitherValues:
     val edge3 = HalfEdge(vertex)
     
     val edges = List(edge1, edge2, edge3)
-    HalfEdge.linkChain(edges)
+    edges.linkInCycle()
     
     // Should form a cycle: edge1 -> edge2 -> edge3 -> edge1
     edge1.next shouldBe Some(edge2)
@@ -388,7 +388,7 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with EitherValues:
     val vertex = Vertex("V1", BigPoint(0, 0))
     val edge = HalfEdge(vertex)
     
-    HalfEdge.linkChain(List(edge))
+    List(edge).linkInCycle()
     
     edge.next shouldBe Some(edge)
     edge.prev shouldBe Some(edge)
@@ -399,7 +399,7 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with EitherValues:
     val edge1 = HalfEdge(vertex)
     val edge2 = HalfEdge(vertex)
     
-    HalfEdge.linkChain(List(edge1, edge2))
+    List(edge1, edge2).linkInCycle()
     
     edge1.next shouldBe Some(edge2)
     edge2.prev shouldBe Some(edge1)
@@ -412,7 +412,7 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with EitherValues:
     // so we expect an exception to be thrown
     val vertex = Vertex("V1", BigPoint(0, 0))
     assertThrows[UnsupportedOperationException] {
-      HalfEdge.linkChain(List.empty)
+      List.empty[HalfEdge].linkInCycle()
     }
   }
 
@@ -420,7 +420,7 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with EitherValues:
     val vertex = Vertex("V1", BigPoint(0, 0))
     val edges = (1 to 5).map(_ => HalfEdge(vertex)).toList
     
-    HalfEdge.linkChain(edges)
+    edges.linkInCycle()
     
     // Verify the cycle
     edges.zipWithIndex.foreach { case (edge, i) =>
@@ -497,7 +497,7 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with EitherValues:
     val (e31, e13) = HalfEdge.createTwinPair(v3, v1)
     
     // Link the inner triangle
-    HalfEdge.linkChain(List(e12, e23, e31))
+    List(e12, e23, e31).linkInCycle()
     
     // Set face and angles
     List(e12, e23, e31).foreach { edge =>
@@ -593,10 +593,10 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with EitherValues:
     val (eRightBottom, eBottomRight) = HalfEdge.createTwinPair(vRight, vBottom)
     
     // Link left triangle: Top -> Left -> Bottom -> Top
-    HalfEdge.linkChain(List(eTopLeft, eLeftBottom, eBottomTop))
+    List(eTopLeft, eLeftBottom, eBottomTop).linkInCycle()
     
     // Link right triangle: Top -> Right -> Bottom -> Top  
-    HalfEdge.linkChain(List(eTopRight, eRightBottom, eBottomTop.twin.get))
+    List(eTopRight, eRightBottom, eBottomTop.twin.get).linkInCycle()
     
     // Set faces
     List(eTopLeft, eLeftBottom, eBottomTop).foreach(_.incidentFace = Some(leftFace))
@@ -620,8 +620,8 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with EitherValues:
     val edges = (1 to 6).map(i => HalfEdge(vertex)).toList
     
     // Create two chains
-    HalfEdge.linkChain(edges.take(3))
-    HalfEdge.linkChain(edges.drop(3))
+    edges.take(3).linkInCycle()
+    edges.drop(3).linkInCycle()
     
     // Insert one chain into the other
     HalfEdge.insertBoundarySegment(edges(0), edges(1), edges.drop(3))

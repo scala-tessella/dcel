@@ -108,11 +108,6 @@ object HalfEdge:
     prev.next = Some(next)
     next.prev = Some(prev)
 
-  def linkChain(edges: List[HalfEdge]): Unit =
-    edges.zip(edges.tail :+ edges.head).foreach { case (current, next) =>
-      linkEdges(current, next)
-    }
-  
   def insertBoundarySegment(prevEdge: HalfEdge, nextEdge: HalfEdge, segment: List[HalfEdge]): Unit =
     HalfEdge.linkEdges(prevEdge, segment.head)
     HalfEdge.linkEdges(segment.last, nextEdge)
@@ -120,3 +115,13 @@ object HalfEdge:
       case List(current, next) => HalfEdge.linkEdges(current, next)
       case _ => // Single element, no linking needed
     }
+
+  extension (halfEdges: List[HalfEdge])
+
+    // Helper function to link edges in a cycle
+    def linkInCycle(): Unit =
+      halfEdges.zip(halfEdges.tail :+ halfEdges.head).foreach(linkEdges)
+
+    // Helper function to link edges in sequence
+    def linkInSequence(): Unit =
+      halfEdges.zip(halfEdges.tail).foreach(linkEdges)

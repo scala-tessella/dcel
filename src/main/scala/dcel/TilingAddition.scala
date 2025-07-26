@@ -49,20 +49,6 @@ object TilingAddition:
     boundaryEdge.twin = Some(innerEdge)
     (boundaryEdge, innerEdge)
 
-  // Helper function to link edges in a cycle
-  private def linkEdgesInCycle(edges: List[HalfEdge]): Unit =
-    edges.zip(edges.tail :+ edges.head).foreach { case (curr, next) =>
-      curr.next = Some(next)
-      next.prev = Some(curr)
-    }
-
-  // Helper function to link edges in sequence
-  private def linkEdgesInSequence(edges: List[HalfEdge]): Unit =
-    edges.zip(edges.tail).foreach { case (prev, next) =>
-      prev.next = Some(next)
-      next.prev = Some(prev)
-    }
-
   // Helper function to connect boundary edges to existing boundary
   private def connectToBoundary(
     newEdges: List[HalfEdge],
@@ -76,7 +62,7 @@ object TilingAddition:
       originalNext.foreach(_.prev = Some(newEdges.last))
       newEdges.last.next = originalNext
 
-      linkEdgesInSequence(newEdges)
+      newEdges.linkInSequence()
 
   extension (tilingDCEL: TilingDCEL)
 
@@ -144,7 +130,7 @@ object TilingAddition:
 
         // 6. Link all inner edges of the new face
         val allNewInnerEdges = edgeToBuildOn :: newInnerEdges.reverse
-        linkEdgesInCycle(allNewInnerEdges)
+        allNewInnerEdges.linkInCycle()
         newFace.outerComponent = Some(edgeToBuildOn)
 
         // 7. Connect new boundary edges to existing boundary
