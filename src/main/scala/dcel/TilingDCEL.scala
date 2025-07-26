@@ -187,7 +187,7 @@ object TilingDCEL:
         if boundaryEdges.length >= 3 then
           val boundaryAngles = boundaryEdges.map(_.angle)
           if boundaryAngles.exists(_.isEmpty) then
-            errors += s"Undefined boundary angles"
+            errors += s"Undefined boundary angles: ${boundaryAngles.mkString("; ")}"
           else
             Polygon.SimplePolygon.validatePolygonAngles(boundaryAngles.map(_.get).map(AngleDegree(360) - _)).left.foreach(error =>
               errors += s"Boundary edge: $error"
