@@ -36,6 +36,22 @@ object TilingAddition:
       yield {
         val polygonAngle = RegularPolygon(sides).alphaDegree
 
+        // Calculate the boundary angle for shared vertices (v_start and v_end)
+        // These vertices now have an additional interior face incident to them
+        def calculateBoundaryAngleForVertex(vertex: Vertex): AngleDegree =
+          val currentInteriorAngleSum = vertex.incidentEdges
+            .filterNot(_.incidentFace.contains(tilingDCEL.outerFace))
+            .flatMap(_.angle)
+            .fold(AngleDegree(0))(_ + _)
+          val newInteriorAngleSum = currentInteriorAngleSum + polygonAngle
+          AngleDegree(360) - newInteriorAngleSum
+
+        val boundaryAngleForStartVertex = calculateBoundaryAngleForVertex(v_start)
+        val boundaryAngleForEndVertex = calculateBoundaryAngleForVertex(v_end)
+
+        // For new vertices, they only have one interior face (the new polygon)
+        val boundaryAngleForNewVertices = AngleDegree(360) - polygonAngle
+
         // Capture original boundary links before modification
         val originalPrev = edgeToBuildOn.prev
         val originalNext = edgeToBuildOn.next
@@ -58,15 +74,47 @@ object TilingAddition:
         val allVerticesForNewEdges = List(v_start) ++ newVertices ++ List(v_end)
 
         // 5. Create the new half-edges for the polygon boundary and their inner twins.
-        val newEdges = allVerticesForNewEdges.sliding(2).map {
-          case List(o, d) =>
-            val boundaryEdge = HalfEdge(origin = o, incidentFace = Some(tilingDCEL.outerFace))
+        // Use appropriate boundary angles for each vertex
+        val newEdges = allVerticesForNewEdges.sliding(2).zipWithIndex.map {
+          case (List(o, d), i) =>
+            val boundaryAngle = if o == v_start then
+              boundaryAngleForStartVertex
+            else if o == v_end then
+              // This case won't occur in the sliding window since v_end is the last element
+              boundaryAngleForNewVertices
+            else
+              // This is a new vertex
+              boundaryAngleForNewVertices
+
+            val boundaryEdge = HalfEdge(origin = o, incidentFace = Some(tilingDCEL.outerFace), angle = Some(boundaryAngle))
             val innerEdge = HalfEdge(origin = d, twin = Some(boundaryEdge), incidentFace = Some(newFace), angle = Some(polygonAngle))
             boundaryEdge.twin = Some(innerEdge)
             (boundaryEdge, innerEdge)
         }.toList
 
         val (newBoundaryEdges, newInnerEdges) = newEdges.unzip
+
+        // Update the angle of the last boundary edge (from the last new vertex to v_end)
+        // This edge originates from the last new vertex, but terminates at v_end which is shared
+        newBoundaryEdges.lastOption.foreach(_.angle = Some(boundaryAngleForNewVertices))
+
+        // 6. Update the boundary angles for existing boundary edges of shared vertices
+        // Find and update the boundary edge that comes before the edgeToBuildOn
+        originalPrev.foreach { prevEdge =>
+          if (prevEdge.origin == v_start) {
+            // This shouldn't happen in a well-formed boundary
+          } else if (prevEdge.destination.contains(v_start)) {
+            // The previous edge terminates at v_start, but we need to update the edge that originates from v_start
+            // This will be the first new boundary edge
+            // Already handled above
+          }
+        }
+
+        // Find and update the boundary edge that originates from v_end
+        originalNext.foreach { nextEdge =>
+          if (nextEdge.origin == v_end) then
+            nextEdge.angle = Some(boundaryAngleForEndVertex)
+        }
 
         // 7. Link all inner edges of the new face
         val allNewInnerEdges = edgeToBuildOn :: newInnerEdges.reverse
