@@ -1,7 +1,7 @@
 package io.github.scala_tessella
 package dcel
 
-import BigDecimalGeometry.BigPoint
+import BigDecimalGeometry.{AngleDegree, BigPoint}
 
 import scala.annotation.tailrec
 import scala.collection.mutable
@@ -36,6 +36,12 @@ case class Vertex(
     leaving match
       case None => List.empty
       case Some(startEdge) => startEdge.vertexTraversal()
+
+  def getCurrentInteriorAngleSum(outerFace: Face): AngleDegree =
+    incidentEdges
+      .filterNot(_.incidentFace.contains(outerFace))
+      .flatMap(_.angle)
+      .fold(AngleDegree(0))(_ + _)
 
   def degree: Int = incidentEdges.length
 
