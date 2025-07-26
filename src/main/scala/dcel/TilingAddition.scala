@@ -24,10 +24,6 @@ object TilingAddition:
       curr = next
     newPoints.toList
 
-  // Helper function to calculate boundary angle for a vertex given its interior angles
-  private def calculateBoundaryAngle(interiorAngleSum: AngleDegree): AngleDegree =
-    AngleDegree(360) - interiorAngleSum
-
   // Helper function to get current interior angle sum for a vertex
   private def getCurrentInteriorAngleSum(vertex: Vertex, outerFace: Face): AngleDegree =
     vertex.incidentEdges
@@ -51,11 +47,11 @@ object TilingAddition:
         // Calculate boundary angles for shared vertices
         def calculateBoundaryAngleForVertex(vertex: Vertex): AngleDegree =
           val currentSum = getCurrentInteriorAngleSum(vertex, tilingDCEL.outerFace)
-          calculateBoundaryAngle(currentSum + polygonAngle)
+          (currentSum + polygonAngle).conjugate
 
         val boundaryAngleForStartVertex = calculateBoundaryAngleForVertex(v_start)
         val boundaryAngleForEndVertex = calculateBoundaryAngleForVertex(v_end)
-        val boundaryAngleForNewVertices = calculateBoundaryAngle(polygonAngle)
+        val boundaryAngleForNewVertices = polygonAngle.conjugate
 
         // Capture original boundary links before modification
         val originalPrev = edgeToBuildOn.prev

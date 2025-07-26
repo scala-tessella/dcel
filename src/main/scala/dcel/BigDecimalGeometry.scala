@@ -44,6 +44,9 @@ object BigDecimalGeometry:
 
     def inverted: AngleDegree =
       -d
+      
+    def conjugate: AngleDegree =
+      Rational(360) - d  
 
     @targetName("plusDegree")
     def +(that: AngleDegree): AngleDegree =
