@@ -119,6 +119,7 @@ object HalfEdge:
     val boundaryEdge = HalfEdge(origin = origin, incidentFace = Some(boundaryFace), angle = Some(boundaryAngle))
     val innerEdge = HalfEdge(origin = destination, twin = Some(boundaryEdge), incidentFace = Some(innerFace), angle = Some(innerAngle))
     boundaryEdge.twin = Some(innerEdge)
+    innerEdge.twin = Some(boundaryEdge)
     (boundaryEdge, innerEdge)
 
   def insertBoundarySegment(prevEdge: HalfEdge, nextEdge: HalfEdge, segment: List[HalfEdge]): Unit =
