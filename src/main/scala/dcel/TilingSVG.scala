@@ -199,7 +199,7 @@ object TilingSVG:
 
           val arrows = vertices.zipWithIndex.flatMap { case (v1, i) =>
             val v2 = vertices((i + 1) % vertices.length)
-            createArrow(toBigPointFromVertex(v1), toBigPointFromVertex(v2), scale, strokeWidth * 4).map(_.toSvgPolygon)
+            createArrow(toBigPointFromVertex(v1), toBigPointFromVertex(v2), scale, strokeWidth * 6).map(_.toSvgPolygon)
           }.mkString("\n")
 
           (Some(s"""      <polygon points="$points" />"""), arrows)
