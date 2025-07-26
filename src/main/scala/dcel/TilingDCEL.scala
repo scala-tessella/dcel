@@ -4,6 +4,7 @@ package dcel
 import BigDecimalGeometry.{AngleDegree, hasNoAlmostEqualPoints}
 import Polygon.RegularPolygon
 import TilingAddition.*
+import TilingDeletion.*
 import TilingSVG.*
 
 import spire.implicits.*
@@ -83,6 +84,9 @@ case class TilingDCEL(
 
   def maybeAddRegularPolygon(sides: Int, onEdgeStartingWithVertexId: String): Either[String, TilingDCEL] =
     this.addRegularPolygon(sides, onEdgeStartingWithVertexId)
+    
+  def maybeDeletePolygon(faceId: String): Either[String, TilingDCEL] =
+    this.deletePolygon(faceId)  
 
   /**
    * Generates an SVG representation of the tiling.
