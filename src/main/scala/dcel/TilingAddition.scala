@@ -35,20 +35,6 @@ object TilingAddition:
       .flatMap(_.angle)
       .fold(AngleDegree(0))(_ + _)
 
-  // Helper function to create a pair of twin half-edges
-  private def createTwinHalfEdges(
-    origin: Vertex,
-    destination: Vertex,
-    boundaryFace: Face,
-    innerFace: Face,
-    boundaryAngle: AngleDegree,
-    innerAngle: AngleDegree
-  ): (HalfEdge, HalfEdge) =
-    val boundaryEdge = HalfEdge(origin = origin, incidentFace = Some(boundaryFace), angle = Some(boundaryAngle))
-    val innerEdge = HalfEdge(origin = destination, twin = Some(boundaryEdge), incidentFace = Some(innerFace), angle = Some(innerAngle))
-    boundaryEdge.twin = Some(innerEdge)
-    (boundaryEdge, innerEdge)
-
   extension (tilingDCEL: TilingDCEL)
 
     def addRegularPolygon(sides: Int, onEdgeStartingWithVertexId: String): Either[String, TilingDCEL] =
@@ -96,7 +82,7 @@ object TilingAddition:
               case _ if origin == v_start => boundaryAngleForStartVertex
               case _ => boundaryAngleForNewVertices
 
-            createTwinHalfEdges(
+            HalfEdge.createTwinHalfEdges(
               origin, destination, tilingDCEL.outerFace, newFace,
               boundaryAngle, polygonAngle
             )

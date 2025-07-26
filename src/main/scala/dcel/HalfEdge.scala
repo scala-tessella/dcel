@@ -108,6 +108,19 @@ object HalfEdge:
     edge2.twin = Some(edge1)
     (edge1, edge2)
 
+  def createTwinHalfEdges(
+    origin: Vertex,
+    destination: Vertex,
+    boundaryFace: Face,
+    innerFace: Face,
+    boundaryAngle: AngleDegree,
+    innerAngle: AngleDegree
+  ): (HalfEdge, HalfEdge) =
+    val boundaryEdge = HalfEdge(origin = origin, incidentFace = Some(boundaryFace), angle = Some(boundaryAngle))
+    val innerEdge = HalfEdge(origin = destination, twin = Some(boundaryEdge), incidentFace = Some(innerFace), angle = Some(innerAngle))
+    boundaryEdge.twin = Some(innerEdge)
+    (boundaryEdge, innerEdge)
+
   def insertBoundarySegment(prevEdge: HalfEdge, nextEdge: HalfEdge, segment: List[HalfEdge]): Unit =
     prevEdge.linkWith(segment.head)
     segment.last.linkWith(nextEdge)
