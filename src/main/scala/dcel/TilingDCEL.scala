@@ -181,4 +181,18 @@ object TilingDCEL:
       case Left(error) =>
         errors += s"Could not validate boundary angles due to: $error"
 
+    // Check sum of angles for the tiling boundary seen from the outer edges
+    tiling.getBoundaryEdges match
+      case Right(boundaryEdges) =>
+        if boundaryEdges.length >= 3 then
+          val boundaryAngles = boundaryEdges.map(_.angle)
+          if boundaryAngles.exists(_.isEmpty) then
+            errors += s"Undefined boundary angles"
+          else
+            Polygon.SimplePolygon.validatePolygonAngles(boundaryAngles.map(_.get).map(AngleDegree(360) - _)).left.foreach(error =>
+              errors += s"Boundary edge: $error"
+            )
+      case Left(error) =>
+        errors += s"Could not validate boundary edges due to: $error"
+
     if errors.isEmpty then Right(()) else Left(errors.mkString("; "))
