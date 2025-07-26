@@ -49,21 +49,6 @@ object TilingAddition:
     boundaryEdge.twin = Some(innerEdge)
     (boundaryEdge, innerEdge)
 
-  // Helper function to connect boundary edges to existing boundary
-  private def connectToBoundary(
-    newEdges: List[HalfEdge],
-    originalPrev: Option[HalfEdge],
-    originalNext: Option[HalfEdge]
-  ): Unit =
-    if newEdges.nonEmpty then
-      originalPrev.foreach(_.next = Some(newEdges.head))
-      newEdges.head.prev = originalPrev
-
-      originalNext.foreach(_.prev = Some(newEdges.last))
-      newEdges.last.next = originalNext
-
-      newEdges.linkInSequence()
-
   extension (tilingDCEL: TilingDCEL)
 
     def addRegularPolygon(sides: Int, onEdgeStartingWithVertexId: String): Either[String, TilingDCEL] =
@@ -134,7 +119,7 @@ object TilingAddition:
         newFace.outerComponent = Some(edgeToBuildOn)
 
         // 7. Connect new boundary edges to existing boundary
-        connectToBoundary(newBoundaryEdges, originalPrev, originalNext)
+        HalfEdge.insertBoundarySegment(originalPrev.get, originalNext.get, newBoundaryEdges)
 
         // 8. Update outer face component if necessary
         if tilingDCEL.outerFace.outerComponent.contains(edgeToBuildOn) then
