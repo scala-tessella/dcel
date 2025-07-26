@@ -111,73 +111,64 @@ object TilingDCEL:
   def createRegularPolygon(sides: Int): Either[String, TilingDCEL] =
     TilingBuilder.createRegularPolygon(sides): Either[String, TilingDCEL]
 
-  def validate(tiling: TilingDCEL): Either[String, Unit] = {
+  def validate(tiling: TilingDCEL): Either[String, Unit] =
     val errors = mutable.ListBuffer[String]()
 
     // Check vertex consistency
     tiling.vertices.foreach { vertex =>
-      vertex.leaving match {
+      vertex.leaving match
         case None => errors += s"Vertex ${vertex.id} has no leaving edge"
         case Some(edge) =>
-          if (edge.origin ne vertex) {
+          if edge.origin ne vertex then
             errors += s"Vertex ${vertex.id} leaving edge doesn't originate from it"
-          }
-      }
     }
 
     // Check half-edge consistency
     tiling.halfEdges.foreach { edge =>
-      edge.twin match {
+      edge.twin match
         case None => errors += s"Edge from ${edge.origin.id} has no twin"
         case Some(twin) =>
-          if (twin.twin.contains(edge)) () // OK
+          if twin.twin.contains(edge) then () // OK
           else errors += s"Edge from ${edge.origin.id} twin relationship is not symmetric"
-      }
 
-      edge.next match {
+      edge.next match
         case None => errors += s"Edge from ${edge.origin.id} has no next edge"
         case Some(next) =>
-          if (next.prev.contains(edge)) () // OK
+          if next.prev.contains(edge) then () // OK
           else errors += s"Edge from ${edge.origin.id} next/prev relationship is broken"
-      }
     }
 
     // Check face consistency
     (tiling.outerFace :: tiling.innerFaces).foreach { face =>
-      face.halfEdges match {
+      face.halfEdges match
         case Left(error) => errors += error
         case Right(edges) =>
           edges.foreach { edge =>
-            if (!edge.incidentFace.contains(face)) {
+            if !edge.incidentFace.contains(face) then
               errors += s"Face ${face.id} contains edge that doesn't reference it back"
-            }
           }
-      }
     }
 
     // Check sum of angles for each inner face
     tiling.innerFaces.foreach { face =>
-      face.halfEdges match {
+      face.halfEdges match
         case Right(edges) =>
           val angles = edges.flatMap(_.angle)
-          if (angles.length == edges.length) {
-            if (angles.length >= 3) {
+          if angles.length == edges.length then
+            if angles.length >= 3 then
               Polygon.SimplePolygon.validatePolygonAngles(angles).left.foreach(error =>
                 errors += s"Face ${face.id}: $error"
               )
-            }
-          } else {
+          else
             errors += s"Face ${face.id} has missing angles on some edges."
-          }
         case Left(error) =>
           errors += s"Could not validate angles for face ${face.id} due to: $error"
-      }
     }
 
     // Check sum of angles for the tiling boundary
-    tiling.boundarySafe match {
+    tiling.boundarySafe match
       case Right(boundaryVertices) =>
-        if (boundaryVertices.length >= 3) {
+        if boundaryVertices.length >= 3 then
           val boundaryAngles = boundaryVertices.map { v =>
             v.incidentEdges
               .filterNot(_.incidentFace.contains(tiling.outerFace))
@@ -187,10 +178,7 @@ object TilingDCEL:
           Polygon.SimplePolygon.validatePolygonAngles(boundaryAngles).left.foreach(error =>
             errors += s"Boundary: $error"
           )
-        }
       case Left(error) =>
         errors += s"Could not validate boundary angles due to: $error"
-    }
 
-    if (errors.isEmpty) Right(()) else Left(errors.mkString("; "))
-  }
+    if errors.isEmpty then Right(()) else Left(errors.mkString("; "))
