@@ -7,7 +7,7 @@ import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues {
+class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   behavior of "TilingDCEL.addRegularPolygon"
 
@@ -41,5 +41,3 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues {
     result.isLeft shouldBe true
     result.left.value should include("not found on the boundary")
   }
-
-}
