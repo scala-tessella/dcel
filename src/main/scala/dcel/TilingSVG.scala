@@ -11,7 +11,7 @@ object TilingSVG:
    * Formats a decimal number to a maximum of 6 decimal places, removing trailing zeros.
    */
   private def formatCoordinate(value: BigDecimal): String =
-    val formatted = f"${value.toDouble}%.6f"
+    val formatted = f"${value.toDouble}%.6f".replaceAll(",", ".")
     if formatted.contains('.') then
       formatted.replaceAll("0+$", "").replaceAll("\\.$", "")
     else
