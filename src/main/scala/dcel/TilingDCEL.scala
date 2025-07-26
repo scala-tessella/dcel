@@ -1,7 +1,7 @@
 package io.github.scala_tessella
 package dcel
 
-import BigDecimalGeometry.{AngleDegree, BigBox, BigLineSegment, BigPoint}
+import BigDecimalGeometry.{AngleDegree, hasNoAlmostEqualPoints}
 import Polygon.RegularPolygon
 import TilingAddition.*
 import TilingSVG.*
@@ -194,5 +194,18 @@ object TilingDCEL:
             )
       case Left(error) =>
         errors += s"Could not validate boundary edges due to: $error"
+
+    if errors.isEmpty then Right(()) else Left(errors.mkString("; "))
+
+  def spatiallyValidate(tiling: TilingDCEL): Either[String, Unit] =
+    val errors = mutable.ListBuffer[String]()
+
+    tiling.boundarySafe match
+      case Right(boundaryVertices) =>
+        if boundaryVertices.length >= 3 then
+          if !boundaryVertices.map(_.coords).toList.hasNoAlmostEqualPoints() then
+            errors += "Coordinates: boundary with vertices in the same position"
+      case Left(error) =>
+        errors += s"Could not validate boundary angles due to: $error"
 
     if errors.isEmpty then Right(()) else Left(errors.mkString("; "))

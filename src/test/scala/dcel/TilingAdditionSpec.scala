@@ -19,7 +19,10 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     val tiling = result.value
 
     val check = TilingDCEL.validate(tiling)
-    check shouldBe Right(())
+    check.isRight shouldBe true
+
+    val spatialCheck = TilingDCEL.spatiallyValidate(tiling)
+    spatialCheck.isRight shouldBe true
 
     tiling.outerFace.halfEdgesSafe.map(_.angle.get).mkString(", ") shouldBe "240, 300, 240, 300"
     tiling.outerFace.halfEdgesSafe.map(_.incidentFace.get.id).mkString(", ") shouldBe "F_Outer, F_Outer, F_Outer, F_Outer"

@@ -86,5 +86,6 @@ object TilingExample:
     )
 
     println(TilingDCEL.validate(result))
+    println(TilingDCEL.spatiallyValidate(result))
 
     result
