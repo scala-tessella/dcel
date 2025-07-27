@@ -34,7 +34,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     // Check structure
     tiling.vertices should have size 4
     tiling.innerFaces should have size 2
-    tiling.halfEdges should have size 10 // 5 boundary + 5 inner edges
+    tiling.halfEdges should have size 10 // 4 boundary + 6 inner edges
 
     // Check boundary angles
     tiling.outerFace.halfEdgesSafe.map(_.angle.get.toString).mkString(", ") shouldBe "240, 300, 240, 300"
@@ -43,6 +43,11 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     // Check inner face angles
     tiling.innerFaces.map(_.halfEdgesSafe.map(_.angle.get.toString).mkString(", ")) shouldBe List("60, 60, 60", "60, 60, 60")
     tiling.innerFaces.map(_.halfEdgesSafe.map(_.incidentFace.get.id).mkString(", ")) shouldBe List("F_Poly, F_Poly, F_Poly", "F2, F2, F2")
+
+    // Check boundary
+    val boundary = tiling.boundary
+    boundary should have length 4
+    boundary.map(_.id) should contain theSameElementsInOrderAs Vector("V0", "V3", "V2", "V1")
   }
 
   it should "add a square to a triangle, producing a valid DCEL" in {
