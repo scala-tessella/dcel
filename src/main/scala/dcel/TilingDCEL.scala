@@ -170,12 +170,8 @@ object TilingDCEL:
     tiling.boundarySafe match
       case Right(boundaryVertices) =>
         if boundaryVertices.length >= 3 then
-          val boundaryAngles = boundaryVertices.map { v =>
-            v.incidentEdges
-              .filterNot(_.incidentFace.contains(tiling.outerFace))
-              .flatMap(_.angle)
-              .fold(AngleDegree(0))(_ + _)
-          }.toList
+          val boundaryAngles =
+            boundaryVertices.map { _.getCurrentInteriorAngleSum(tiling.outerFace) }.toList
           Polygon.SimplePolygon.validatePolygonAngles(boundaryAngles).left.foreach(error =>
             errors += s"Boundary: $error"
           )
