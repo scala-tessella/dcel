@@ -1,7 +1,6 @@
 package io.github.scala_tessella
 package dcel
 
-import TilingAddition.*
 import TilingDeletion.*
 
 import org.scalatest.EitherValues
@@ -68,7 +67,6 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
     result.left.value should include("would partition the tiling")
   }
 
-
   it should "successfully delete an added boundary face" in {
     val tiling = TilingBuilder.createRegularPolygon(4).value
       .maybeAddRegularPolygon(4, "V1").value
@@ -77,7 +75,6 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
     val result = tiling.deletePolygon("F2")
     result.isRight shouldBe true
     val newTiling = result.value
-    println(TilingDCEL.validate(newTiling))
     verifyValidTiling(newTiling)
 
     newTiling.innerFaces.length shouldBe 1
@@ -94,7 +91,6 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
     val result = tiling.deletePolygon("F_Poly")
     result.isRight shouldBe true
     val newTiling = result.value
-    println(TilingDCEL.validate(newTiling))
     verifyValidTiling(newTiling)
 
     newTiling.innerFaces.length shouldBe 1
