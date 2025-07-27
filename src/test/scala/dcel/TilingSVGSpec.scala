@@ -574,7 +574,8 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with EitherValues:
       "<!-- Vertices -->",
       "<!-- Vertex Labels -->",
       "<!-- Face Labels -->",
-      "<!-- Angle Labels -->"
+      "<!-- Inner Angle Labels -->",
+      "<!-- Outer Angle Labels -->"
     )
 
     expectedSections.foreach { section =>

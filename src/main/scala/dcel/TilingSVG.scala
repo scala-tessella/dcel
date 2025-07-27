@@ -99,7 +99,7 @@ object TilingSVG:
 
     if inward then direction else BigPoint(-direction.x, -direction.y)
 
-  private def createAngleLabel(halfEdge: HalfEdge, direction: BigPoint, scale: Double, strokeWidth: Double, color: String): String =
+  private def createAngleLabel(halfEdge: HalfEdge, direction: BigPoint, scale: Double, strokeWidth: Double): String =
     val origin = toBigPointFromVertex(halfEdge.origin)
     val angleText = f"${halfEdge.angle.get.toRational.toDouble}%.0f°"
     val labelDistance = strokeWidth * 8
@@ -107,7 +107,7 @@ object TilingSVG:
     val labelX = formatCoordinate(origin.x * scale + direction.x * labelDistance)
     val labelY = formatCoordinate(-origin.y * scale - direction.y * labelDistance)
 
-    s"""      <text x="$labelX" y="$labelY" font-size="${(strokeWidth * 5).toInt}" fill="$color" text-anchor="middle" dominant-baseline="middle">$angleText</text>"""
+    s"""      <text x="$labelX" y="$labelY">$angleText</text>"""
 
   private def createSvgSection(title: String, content: String, attributes: String = ""): String =
     if content.nonEmpty then
@@ -173,7 +173,7 @@ object TilingSVG:
         face.halfEdgesSafe.map { halfEdge =>
           val origin = toBigPointFromVertex(halfEdge.origin)
           val direction = calculateDirection(origin, centroid)
-          createAngleLabel(halfEdge, direction, scale, strokeWidth, "purple")
+          createAngleLabel(halfEdge, direction, scale, strokeWidth)
         }
       }.mkString("\n")
 
@@ -186,7 +186,7 @@ object TilingSVG:
         val inwardDirection = calculateDirection(origin, centroid)
         val outwardDirection = BigPoint(-inwardDirection.x, -inwardDirection.y)
 
-        createAngleLabel(halfEdge, outwardDirection, scale, strokeWidth, "orange")
+        createAngleLabel(halfEdge, outwardDirection, scale, strokeWidth)
       }.mkString("\n")
 
       // Generate boundary polygon and arrows
@@ -222,7 +222,7 @@ object TilingSVG:
         val vertices = face.getVertices.getOrElse(List.empty)
         if vertices.nonEmpty then
           val (x, y) = calculateCentroid(vertices).toSvgCoords(scale)
-          Some(s"""      <text x="$x" y="$y" text-anchor="middle" dominant-baseline="middle">${face.id}</text>""")
+          Some(s"""      <text x="$x" y="$y">${face.id}</text>""")
         else None
       }.mkString("\n")
 
@@ -239,8 +239,9 @@ object TilingSVG:
         createSvgSection("Outer Face Half-Edge Direction Arrows", outerFaceArrows, s""" fill="black" stroke="black" stroke-width="${strokeWidth * 0.5}""""),
         createSvgSection("Vertices", vertexCircles, """ fill="red""""),
         createSvgSection("Vertex Labels", vertexLabels, s""" font-size="${(strokeWidth * 8).toInt}" fill="darkblue""""),
-        createSvgSection("Face Labels", faceLabels, s""" font-size="${(strokeWidth * 6).toInt}" fill="green""""),
-        createSvgSection("Angle Labels", innerAngleLabels + "\n" + outerAngleLabels)
+        createSvgSection("Face Labels", faceLabels, s""" font-size="${(strokeWidth * 6).toInt}" fill="green" text-anchor="middle" dominant-baseline="middle""""),
+        createSvgSection("Inner Angle Labels", innerAngleLabels, s""" font-size="${(strokeWidth * 5).toInt}" fill="purple" text-anchor="middle" dominant-baseline="middle""""),
+        createSvgSection("Outer Angle Labels", outerAngleLabels, s""" font-size="${(strokeWidth * 5).toInt}" fill="orange" text-anchor="middle" dominant-baseline="middle"""")
       ).filter(_.nonEmpty).mkString("\n")
 
       val formattedViewBox = s"${formatCoordinate(viewBox._1)} ${formatCoordinate(viewBox._2)} ${formatCoordinate(viewBox._3)} ${formatCoordinate(viewBox._4)}"
