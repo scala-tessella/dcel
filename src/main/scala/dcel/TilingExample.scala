@@ -12,6 +12,13 @@ object TilingExample:
 
   // The test code previously here has been moved to TilingBuilderSpec.scala
 
+  private def linkPolygon(halfEdges: List[HalfEdge], face: Face, angleDegree: AngleDegree): Unit =
+    halfEdges.linkInCycle()
+    halfEdges.foreach { h =>
+      h.incidentFace = Some(face)
+      h.angle = Some(angleDegree)
+    }
+
   /**
    * Creates a sample TilingDCEL with two triangles sharing an edge.
    * This is a good example of manual DCEL construction.
@@ -53,28 +60,13 @@ object TilingExample:
     fOuter.outerComponent = Some(hBA)
 
     // --- Triangle ABC ---
-    val first = List(hAB, hBC, hCA)
-    first.linkInCycle()
-    first.foreach { h =>
-      h.incidentFace = Some(fABC)
-      h.angle = Some(AngleDegree(60))
-    }
+    linkPolygon(List(hAB, hBC, hCA), fABC,AngleDegree(60))
 
     // --- Triangle ACD ---
-    val second = List(hAC, hCD, hDA)
-    second.linkInCycle()
-    second.foreach { h =>
-      h.incidentFace = Some(fACD)
-      h.angle = Some(AngleDegree(60))
-    }
+    linkPolygon(List(hAC, hCD, hDA), fACD, AngleDegree(60))
 
     // --- Outer Face ---
-    val outer = List(hBA, hAD, hDC, hCB)
-    outer.linkInCycle()
-    outer.foreach { h =>
-      h.incidentFace = Some(fOuter)
-      h.angle = Some(AngleDegree(300))
-    }
+    linkPolygon(List(hBA, hAD, hDC, hCB), fOuter, AngleDegree(300))
     hCB.angle = Some(AngleDegree(240))
     hAD.angle = Some(AngleDegree(240))
 
@@ -156,60 +148,25 @@ object TilingExample:
     fOuter.outerComponent = Some(hCB)
 
     // --- Triangle ABC ---
-    val first = List(hAB, hBC, hCA)
-    first.linkInCycle()
-    first.foreach { h =>
-      h.incidentFace = Some(fABC)
-      h.angle = Some(AngleDegree(60))
-    }
+    linkPolygon(List(hAB, hBC, hCA), fABC, AngleDegree(60))
 
     // --- Triangle ACD ---
-    val second = List(hAC, hCD, hDA)
-    second.linkInCycle()
-    second.foreach { h =>
-      h.incidentFace = Some(fACD)
-      h.angle = Some(AngleDegree(60))
-    }
+    linkPolygon(List(hAC, hCD, hDA), fACD, AngleDegree(60))
 
     // --- Triangle ADE ---
-    val third = List(hAD, hDE, hEA)
-    third.linkInCycle()
-    third.foreach { h =>
-      h.incidentFace = Some(fADE)
-      h.angle = Some(AngleDegree(60))
-    }
+    linkPolygon(List(hAD, hDE, hEA), fADE, AngleDegree(60))
 
     // --- Triangle AEF ---
-    val fourth = List(hAE, hEF, hFA)
-    fourth.linkInCycle()
-    fourth.foreach { h =>
-      h.incidentFace = Some(fAEF)
-      h.angle = Some(AngleDegree(60))
-    }
+    linkPolygon(List(hAE, hEF, hFA), fAEF, AngleDegree(60))
 
     // --- Triangle AFG ---
-    val fifth = List(hAF, hFG, hGA)
-    fifth.linkInCycle()
-    fifth.foreach { h =>
-      h.incidentFace = Some(fAFG)
-      h.angle = Some(AngleDegree(60))
-    }
+    linkPolygon(List(hAF, hFG, hGA), fAFG, AngleDegree(60))
 
     // --- Triangle AGB ---
-    val sixth = List(hAG, hGB, hBA)
-    sixth.linkInCycle()
-    sixth.foreach { h =>
-      h.incidentFace = Some(fAGB)
-      h.angle = Some(AngleDegree(60))
-    }
+    linkPolygon(List(hAG, hGB, hBA), fAGB, AngleDegree(60))
 
     // --- Outer Face ---
-    val outer = List(hCB, hBG, hGF, hFE, hED, hDC)
-    outer.linkInCycle()
-    outer.foreach { h =>
-      h.incidentFace = Some(fOuter)
-      h.angle = Some(AngleDegree(240))
-    }
+    linkPolygon(List(hCB, hBG, hGF, hFE, hED, hDC), fOuter, AngleDegree(240))
 
     // 5. Populate and return the Tiling container
     val result = TilingDCEL(
