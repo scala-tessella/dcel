@@ -150,7 +150,7 @@ object TilingDCEL:
           }
     }
 
-    // Check sum of angles for each inner face
+    // Check angles' sum for each inner face
     tiling.innerFaces.foreach { face =>
       face.halfEdges match
         case Right(edges) =>
@@ -166,7 +166,7 @@ object TilingDCEL:
           errors += s"Could not validate angles for face ${face.id} due to: $error"
     }
 
-    // Check sum of angles for the tiling boundary
+    // Check angles' sum for the tiling boundary
     tiling.boundarySafe match
       case Right(boundaryVertices) =>
         if boundaryVertices.length >= 3 then
@@ -182,7 +182,7 @@ object TilingDCEL:
       case Left(error) =>
         errors += s"Could not validate boundary angles due to: $error"
 
-    // Check sum of angles for the tiling boundary seen from the outer edges
+    // Check angles' sum for the tiling boundary seen from the outer edges
     tiling.getBoundaryEdges match
       case Right(boundaryEdges) =>
         if boundaryEdges.length >= 3 then
