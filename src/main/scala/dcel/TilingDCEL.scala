@@ -185,6 +185,8 @@ object TilingDCEL:
           val boundaryAngles = boundaryEdges.map(_.angle)
           if boundaryAngles.exists(_.isEmpty) then
             errors += s"Undefined boundary angles: ${boundaryAngles.mkString("; ")}"
+          else if boundaryAngles.exists(_.get.isFullCircle) then
+            errors += s"Full circle boundary angles: ${boundaryAngles.mkString("; ")}"
           else
             Polygon.SimplePolygon.validatePolygonAngles(boundaryAngles.map(_.get.conjugate)).left.foreach(error =>
               errors += s"Boundary edge: $error"
