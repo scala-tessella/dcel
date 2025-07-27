@@ -2,12 +2,9 @@ package io.github.scala_tessella
 package dcel
 
 import BigDecimalGeometry.{AngleDegree, hasNoAlmostEqualPoints}
-import Polygon.RegularPolygon
 import TilingAddition.*
 import TilingDeletion.*
 import TilingSVG.*
-
-import spire.implicits.*
 
 import scala.collection.mutable
 
@@ -193,7 +190,7 @@ object TilingDCEL:
           if boundaryAngles.exists(_.isEmpty) then
             errors += s"Undefined boundary angles: ${boundaryAngles.mkString("; ")}"
           else
-            Polygon.SimplePolygon.validatePolygonAngles(boundaryAngles.map(_.get).map(AngleDegree(360) - _)).left.foreach(error =>
+            Polygon.SimplePolygon.validatePolygonAngles(boundaryAngles.map(_.get.conjugate)).left.foreach(error =>
               errors += s"Boundary edge: $error"
             )
       case Left(error) =>
