@@ -82,8 +82,7 @@ object TilingDeletion:
       // Create new twin half-edges for the inner boundary edges, which will form a new segment of the outer boundary.
       val newOuterEdges = innerTwins.map { innerTwin =>
         val newTwin = HalfEdge(innerTwin.destination.get, incidentFace = Some(tilingDCEL.outerFace))
-        newTwin.twin = Some(innerTwin)
-        innerTwin.twin = Some(newTwin)
+        newTwin.twinWith(innerTwin)
         newTwin
       }
 
