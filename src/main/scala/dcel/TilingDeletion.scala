@@ -88,10 +88,7 @@ object TilingDeletion:
       }
 
       // Link the new outer edges together to form a chain.
-      val newOuterEdgesMap = newOuterEdges.map(edge => edge.origin -> edge).toMap
-      newOuterEdges.foreach { edge =>
-        newOuterEdgesMap.get(edge.destination.get).foreach(nextEdge => edge.linkWith(nextEdge))
-      }
+      newOuterEdges.linkInCycle()
 
       // Re-link the main outer boundary around the deleted face.
       val boundaryTwinsSet = boundaryTwins.toSet
@@ -103,10 +100,7 @@ object TilingDeletion:
 
         if newOuterEdges.nonEmpty then
           // Stitch the newOuterEdges chain into the gap.
-          val newChainStart = newOuterEdges.find(_.origin == beforeGap.destination.get).get
-          val newChainEnd = newOuterEdges.find(_.destination.get == afterGap.origin).get
-          beforeGap.linkWith(newChainStart)
-          newChainEnd.linkWith(afterGap)
+          HalfEdge.insertBoundarySegment(beforeGap, afterGap, newOuterEdges)
         else
           // No inner neighbors, just close the gap in the boundary.
           beforeGap.linkWith(afterGap)
