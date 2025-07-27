@@ -128,11 +128,11 @@ object TilingExample:
     val hFE = HalfEdge(vF); val hEF = HalfEdge(vE)
     val hAG = HalfEdge(vA); val hGA = HalfEdge(vG)
     val hGF = HalfEdge(vG); val hFG = HalfEdge(vF)
-    val hBG = HalfEdge(vB); val hGB = HalfEdge(vG)
+    val hGB = HalfEdge(vG); val hBG = HalfEdge(vB)
 
     val halfEdges = List(
       hAB, hBA, hBC, hCB, hCA, hAC, hAD, hDA, hDC, hCD, hAE, hEA,
-      hED, hDE, hAF, hFA, hFE, hEF, hAG, hGA, hGF, hFG, hBG, hGB
+      hED, hDE, hAF, hFA, hFE, hEF, hAG, hGA, hGF, hFG, hGB, hBG
     )
 
     // 4. Link everything together using Option
@@ -153,7 +153,7 @@ object TilingExample:
     fAEF.outerComponent = Some(hAE)
     fAFG.outerComponent = Some(hAF)
     fAGB.outerComponent = Some(hAG)
-    fOuter.outerComponent = Some(hBA)
+    fOuter.outerComponent = Some(hCB)
 
     // --- Triangle ABC ---
     val first = List(hAB, hBC, hCA)
@@ -204,11 +204,11 @@ object TilingExample:
     }
 
     // --- Outer Face ---
-    val outer = List(hDC, hCB, hBG, hGF, hFE, hED)
+    val outer = List(hCB, hBG, hGF, hFE, hED, hDC)
     outer.linkInCycle()
     outer.foreach { h =>
       h.incidentFace = Some(fOuter)
-      h.angle = Some(AngleDegree(300))
+      h.angle = Some(AngleDegree(240))
     }
 
     // 5. Populate and return the Tiling container
