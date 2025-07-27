@@ -18,7 +18,7 @@ object TilingDeletion:
         _ <- validateFaceDeletion(faceToDelete, edgeClassification)
       yield
         if tilingDCEL.innerFaces.length == 1 then TilingBuilder.empty
-        else ??? //performFaceDeletion(faceToDelete, edgeClassification)
+        else performFaceDeletion(faceToDelete, edgeClassification)
     
     private def findInnerFace(faceId: String): Either[String, Face] =
       tilingDCEL.innerFaces.find(_.id == faceId)
@@ -75,3 +75,71 @@ object TilingDeletion:
     
       // Check if all shared vertices are connected through the boundary path
       Vertex.checkConnectivity(sharedVertices.head, sharedVertices.toSet, boundaryVertexAdjacency)
+
+    private def performFaceDeletion(faceToDelete: Face, classification: EdgeClassification): TilingDCEL =
+      val EdgeClassification(faceEdges, boundaryTwins, innerTwins) = classification
+
+      // Create new twin half-edges for the inner boundary edges, which will form a new segment of the outer boundary.
+      val newOuterEdges = innerTwins.map { innerTwin =>
+        val newTwin = HalfEdge(innerTwin.destination.get, incidentFace = Some(tilingDCEL.outerFace))
+        newTwin.twin = Some(innerTwin)
+        innerTwin.twin = Some(newTwin)
+        newTwin
+      }
+
+      // Link the new outer edges together to form a chain.
+      val newOuterEdgesMap = newOuterEdges.map(edge => edge.origin -> edge).toMap
+      newOuterEdges.foreach { edge =>
+        newOuterEdgesMap.get(edge.destination.get).foreach(nextEdge => edge.linkWith(nextEdge))
+      }
+
+      // Re-link the main outer boundary around the deleted face.
+      val boundaryTwinsSet = boundaryTwins.toSet
+      if boundaryTwins.nonEmpty then
+        val firstBoundaryTwin = boundaryTwins.find(edge => !boundaryTwinsSet.contains(edge.prev.get)).get
+        val lastBoundaryTwin = boundaryTwins.find(edge => !boundaryTwinsSet.contains(edge.next.get)).get
+        val beforeGap = firstBoundaryTwin.prev.get
+        val afterGap = lastBoundaryTwin.next.get
+
+        if newOuterEdges.nonEmpty then
+          // Stitch the newOuterEdges chain into the gap.
+          val newChainStart = newOuterEdges.find(_.origin == beforeGap.destination.get).get
+          val newChainEnd = newOuterEdges.find(_.destination.get == afterGap.origin).get
+          beforeGap.linkWith(newChainStart)
+          newChainEnd.linkWith(afterGap)
+        else
+          // No inner neighbors, just close the gap in the boundary.
+          beforeGap.linkWith(afterGap)
+
+        tilingDCEL.outerFace.outerComponent = Some(beforeGap)
+
+      // Update the DCEL components.
+      val removedEdges = faceEdges.toSet ++ boundaryTwins.toSet
+      val finalHalfEdges = tilingDCEL.halfEdges.filterNot(removedEdges.contains) ++ newOuterEdges
+
+      val verticesInUse = finalHalfEdges.map(_.origin).toSet
+      val finalVertices = tilingDCEL.vertices.filter(verticesInUse.contains)
+
+      // Update `leaving` pointers for affected vertices.
+      finalVertices.foreach { vertex =>
+        if vertex.leaving.exists(removedEdges.contains) then
+          vertex.leaving = finalHalfEdges.find(_.origin == vertex)
+      }
+
+      val finalInnerFaces = tilingDCEL.innerFaces.filterNot(_ == faceToDelete)
+
+      // Recalculate angles on the new boundary.
+      val verticesOnNewBoundary = (newOuterEdges.map(_.origin) ++ boundaryTwins.map(_.origin)).distinct
+      verticesOnNewBoundary.foreach { vertex =>
+        val angleSum = vertex.getCurrentInteriorAngleSum(tilingDCEL.outerFace)
+        vertex.incidentEdges
+          .find(_.incidentFace.contains(tilingDCEL.outerFace))
+          .foreach(_.angle = Some(angleSum.conjugate))
+      }
+
+      TilingDCEL(
+        vertices = finalVertices,
+        halfEdges = finalHalfEdges,
+        innerFaces = finalInnerFaces,
+        outerFace = tilingDCEL.outerFace
+      )

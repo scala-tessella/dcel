@@ -1,18 +1,14 @@
 package io.github.scala_tessella
 package dcel
 
-import BigDecimalGeometry.AngleDegree
 import TilingAddition.*
 import TilingDeletion.*
 
 import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import spire.compat.numeric
 
 class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
-
-  behavior of "TilingDCEL.addRegularPolygon"
 
   // Helper method to verify DCEL validity
   private def verifyValidTiling(tiling: TilingDCEL): Unit =
@@ -21,30 +17,6 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
     val spatialCheck = TilingDCEL.spatiallyValidate(tiling)
     spatialCheck.isRight shouldBe true
-
-  // Basic addition tests
-  it should "add a triangle to a triangle, producing a valid DCEL" in {
-    val triangle = TilingBuilder.createRegularPolygon(3).value
-    val result = triangle.addRegularPolygon(3, "V0")
-
-    result.isRight shouldBe true
-    val tiling = result.value
-
-    verifyValidTiling(tiling)
-
-    // Check structure
-    tiling.vertices should have size 4
-    tiling.innerFaces should have size 2
-    tiling.halfEdges should have size 10 // 5 boundary + 5 inner edges
-
-    // Check boundary angles
-    tiling.outerFace.halfEdgesSafe.map(_.angle.get.toString).mkString(", ") shouldBe "240, 300, 240, 300"
-    tiling.outerFace.halfEdgesSafe.map(_.incidentFace.get.id).mkString(", ") shouldBe "F_Outer, F_Outer, F_Outer, F_Outer"
-
-    // Check inner face angles
-    tiling.innerFaces.map(_.halfEdgesSafe.map(_.angle.get.toString).mkString(", ")) shouldBe List("60, 60, 60", "60, 60, 60")
-    tiling.innerFaces.map(_.halfEdgesSafe.map(_.incidentFace.get.id).mkString(", ")) shouldBe List("F_Poly, F_Poly, F_Poly", "F2, F2, F2")
-  }
 
   behavior of "TilingDCEL.deletePolygon"
 
@@ -105,6 +77,9 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
     val result = tiling.deletePolygon("F2")
     result.isRight shouldBe true
     val newTiling = result.value
+    println(TilingDCEL.validate(newTiling))
+    verifyValidTiling(newTiling)
+
     newTiling.innerFaces.length shouldBe 1
     newTiling.innerFaces.head.id shouldBe "F_Poly"
     newTiling.vertices.length shouldBe 4
@@ -119,8 +94,11 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
     val result = tiling.deletePolygon("F_Poly")
     result.isRight shouldBe true
     val newTiling = result.value
+    println(TilingDCEL.validate(newTiling))
+    verifyValidTiling(newTiling)
+
     newTiling.innerFaces.length shouldBe 1
-    newTiling.innerFaces.head.id shouldBe "F_Poly_1"
+    newTiling.innerFaces.head.id shouldBe "F2"
     newTiling.vertices.length shouldBe 4
     newTiling.boundary.length shouldBe 4
   }
