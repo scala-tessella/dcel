@@ -4,8 +4,6 @@ package dcel
 import BigDecimalGeometry.*
 import Polygon.RegularPolygon
 
-import spire.implicits.*
-
 object TilingAddition:
 
   private def calculateNewVertices(sides: Int, p1: BigPoint, p2: BigPoint): List[BigPoint] =
