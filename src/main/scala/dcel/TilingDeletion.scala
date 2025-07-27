@@ -129,7 +129,7 @@ object TilingDeletion:
       val finalInnerFaces = tilingDCEL.innerFaces.filterNot(_ == faceToDelete)
 
       // Recalculate angles on the new boundary.
-      val verticesOnNewBoundary = (newOuterEdges.map(_.origin) ++ boundaryTwins.map(_.origin)).distinct
+      val verticesOnNewBoundary = (boundaryTwins.map(_.origin) ++ innerTwins.flatMap(e => List(e.origin, e.destination.get))).distinct
       verticesOnNewBoundary.foreach { vertex =>
         val angleSum = vertex.getCurrentInteriorAngleSum(tilingDCEL.outerFace)
         vertex.incidentEdges
