@@ -36,9 +36,13 @@ case class HalfEdge(
   def endpointsAsVertices: Option[(Vertex, Vertex)] =
     destination.map(dest => (origin, dest))
 
-  def linkWith(next: HalfEdge): Unit =
-    this.next = Some(next)
-    next.prev = Some(this)
+  def linkWith(that: HalfEdge): Unit =
+    this.next = Some(that)
+    that.prev = Some(this)
+
+  def twinWith(that: HalfEdge): Unit =
+    this.twin = Some(that)
+    that.twin = Some(this)
 
   def isComplete: Boolean =
     twin.isDefined && incidentFace.isDefined && next.isDefined && prev.isDefined && angle.isDefined
@@ -107,8 +111,7 @@ object HalfEdge:
   def createTwinPair(v1: Vertex, v2: Vertex): (HalfEdge, HalfEdge) =
     val edge1 = HalfEdge(v1)
     val edge2 = HalfEdge(v2)
-    edge1.twin = Some(edge2)
-    edge2.twin = Some(edge1)
+    edge1.twinWith(edge2)
     (edge1, edge2)
 
   def createTwinHalfEdges(
@@ -121,8 +124,7 @@ object HalfEdge:
   ): (HalfEdge, HalfEdge) =
     val boundaryEdge = HalfEdge(origin = origin, incidentFace = Some(boundaryFace), angle = Some(boundaryAngle))
     val innerEdge = HalfEdge(origin = destination, twin = Some(boundaryEdge), incidentFace = Some(innerFace), angle = Some(innerAngle))
-    boundaryEdge.twin = Some(innerEdge)
-    innerEdge.twin = Some(boundaryEdge)
+    boundaryEdge.twinWith(innerEdge)
     (boundaryEdge, innerEdge)
 
   def insertBoundarySegment(prevEdge: HalfEdge, nextEdge: HalfEdge, segment: List[HalfEdge]): Unit =
