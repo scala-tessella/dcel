@@ -317,3 +317,27 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
     val boundaryError = "Boundary: The sum of interior angles is incorrect"
     (error.contains(faceError) || error.contains(boundaryError)) shouldBe true
   }
+
+  it should "fail if a boundary angle is undefined" in {
+    val tiling = createSquareTiling()
+    tiling.getBoundaryEdges.value.head.angle = None
+    val result = TilingDCEL.validate(tiling)
+    result.isLeft shouldBe true
+    result.left.value should include("Undefined boundary angles")
+  }
+
+  it should "fail if a boundary angle is a full circle (360 degrees)" in {
+    val tiling = createSquareTiling()
+    tiling.getBoundaryEdges.value.head.angle = Some(AngleDegree(360))
+    val result = TilingDCEL.validate(tiling)
+    result.isLeft shouldBe true
+    result.left.value should include("Full circle boundary angles")
+  }
+
+  it should "fail if a boundary angle is a full circle (0 degrees)" in {
+    val tiling = createSquareTiling()
+    tiling.getBoundaryEdges.value.head.angle = Some(AngleDegree(0))
+    val result = TilingDCEL.validate(tiling)
+    result.isLeft shouldBe true
+    result.left.value should include("Full circle boundary angles")
+  }
