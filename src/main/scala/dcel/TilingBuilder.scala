@@ -14,7 +14,7 @@ object TilingBuilder:
       vertices = List.empty,
       halfEdges = List.empty,
       innerFaces = List.empty,
-      outerFace = Face("F_Outer")
+      outerFace = Face(Face.outerId)
     )
 
   def validateSides(sides: Int, polygonType: String): Either[String, Unit] =
@@ -66,7 +66,7 @@ object TilingBuilder:
 
     // Create the two faces: one for the polygon, one for the outside
     val fPoly = Face("F_Poly")
-    val fOuter = Face("F_Outer")
+    val fOuter = Face(Face.outerId)
 
     // Create all inner and outer half-edges, indexed by their origin vertex
     val innerEdges = vertices.map(HalfEdge.apply(_))

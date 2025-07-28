@@ -58,7 +58,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "find an existing face by id" in {
     val triangle = createTriangleTiling()
-    triangle.findFace("F_Outer") shouldBe defined
+    triangle.findFace(Face.outerId) shouldBe defined
     triangle.findFace("F_Poly") shouldBe defined
   }
 

@@ -16,7 +16,7 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with EitherValues:
     empty.vertices shouldBe List.empty
     empty.halfEdges shouldBe List.empty
     empty.innerFaces shouldBe List.empty
-    empty.outerFace.id shouldBe "F_Outer"
+    empty.outerFace.id shouldBe Face.outerId
   }
 
   behavior of "TilingBuilder.createSimplePolygon"
@@ -144,10 +144,10 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with EitherValues:
     tiling.vertices.length shouldBe 4
     tiling.vertices.map(_.id).mkString(", ") shouldBe "V0, V1, V2, V3"
     tiling.faces.length shouldBe 2
-    tiling.faces.map(_.id).mkString(", ") shouldBe "F_Outer, F_Poly"
+    tiling.faces.map(_.id).mkString(", ") shouldBe "F0, F_Poly"
     tiling.halfEdges.length shouldBe 8
     tiling.outerFace.halfEdgesSafe.map(_.angle.get).mkString(", ") shouldBe "270, 270, 270, 270"
-    tiling.outerFace.halfEdgesSafe.map(_.incidentFace.get.id).mkString(", ") shouldBe "F_Outer, F_Outer, F_Outer, F_Outer"
+    tiling.outerFace.halfEdgesSafe.map(_.incidentFace.get.id).mkString(", ") shouldBe "F0, F0, F0, F0"
     tiling.innerFaces.map(_.halfEdgesSafe.map(_.angle.get).mkString(", ")) shouldBe List("90, 90, 90, 90")
     tiling.innerFaces.map(_.halfEdgesSafe.map(_.incidentFace.get.id).mkString(", ")) shouldBe List("F_Poly, F_Poly, F_Poly, F_Poly")
   }
@@ -160,7 +160,7 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with EitherValues:
     tiling.faces.length shouldBe 2
     tiling.halfEdges.length shouldBe 10
     tiling.outerFace.halfEdgesSafe.map(_.angle.get).mkString(", ") shouldBe "252, 252, 252, 252, 252"
-    tiling.outerFace.halfEdgesSafe.map(_.incidentFace.get.id).mkString(", ") shouldBe "F_Outer, F_Outer, F_Outer, F_Outer, F_Outer"
+    tiling.outerFace.halfEdgesSafe.map(_.incidentFace.get.id).mkString(", ") shouldBe "F0, F0, F0, F0, F0"
     tiling.innerFaces.map(_.halfEdgesSafe.map(_.angle.get).mkString(", ")) shouldBe List("108, 108, 108, 108, 108")
     tiling.innerFaces.map(_.halfEdgesSafe.map(_.incidentFace.get.id).mkString(", ")) shouldBe List("F_Poly, F_Poly, F_Poly, F_Poly, F_Poly")
   }

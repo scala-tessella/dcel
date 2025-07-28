@@ -34,7 +34,7 @@ object TilingExample:
     // 2. Define faces
     val fABC = Face("F_ABC")
     val fACD = Face("F_ACD")
-    val fOuter = Face("F_Outer")
+    val fOuter = Face(Face.outerId)
 
     // 3. Create half-edges
     val hAB = HalfEdge(vA); val hBA = HalfEdge(vB)
@@ -106,7 +106,7 @@ object TilingExample:
     val fAEF = Face("F_AEF")
     val fAFG = Face("F_AFG")
     val fAGB = Face("F_AGB")
-    val fOuter = Face("F_Outer")
+    val fOuter = Face(Face.outerId)
 
     // 3. Create half-edges
     val hAB = HalfEdge(vA); val hBA = HalfEdge(vB)

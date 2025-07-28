@@ -30,7 +30,7 @@ class TilingBoundarySpec extends AnyFlatSpec with Matchers with EitherValues:
   it should "return an empty vector if the outer face has no outer component" in {
     // Create a DCEL where the outer face is not linked to any edges
     val vertex = Vertex("V0", BigPoint(0, 0))
-    val outerFace = Face("F_Outer") // Note: outerFace.outerComponent is None
+    val outerFace = Face(Face.outerId) // Note: outerFace.outerComponent is None
     val tiling = TilingDCEL(
       vertices = List(vertex),
       halfEdges = Nil,
@@ -44,7 +44,7 @@ class TilingBoundarySpec extends AnyFlatSpec with Matchers with EitherValues:
   it should "return the single vertex of a boundary loop of one edge" in {
     // A strange but valid case for the traversal logic
     val v = Vertex("V0", BigPoint(0, 0))
-    val f = Face("F_Outer")
+    val f = Face(Face.outerId)
     val edge = HalfEdge(v)
     edge.next = Some(edge) // Edge loops back to itself
     f.outerComponent = Some(edge)

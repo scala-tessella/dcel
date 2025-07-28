@@ -68,6 +68,10 @@ case class Face(
 
 object Face:
 
+  val outerId = "F0"
+  
+  val firstInnerId = "F1"
+
   def adjacencyMap(faces: List[Face]): Map[Face, List[Face]] =
     faces.map { face =>
       face -> face.halfEdgesSafe
