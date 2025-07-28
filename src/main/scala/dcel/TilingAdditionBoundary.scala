@@ -2,7 +2,7 @@ package io.github.scala_tessella
 package dcel
 
 import BigDecimalGeometry.*
-import TilingAddition.calculateNewVertices
+import Polygon.RegularPolygon
 
 import scala.collection.mutable
 
@@ -10,6 +10,18 @@ import scala.collection.mutable
  * Object to manage boundary operations during tiling additions.
  */
 object TilingAdditionBoundary:
+
+  def calculateNewVertices(sides: Int, p1: BigPoint, p2: BigPoint): List[BigPoint] =
+    val angle = RegularPolygon(sides).alphaDegree
+    val rotation = AngleDegree(180) - angle
+
+    LazyList.unfold((p1, p2, 3)) { case (prev, curr, step) =>
+      if step > sides then None
+      else
+        val direction = prev.angleTo(curr)
+        val next = curr.plus(BigPoint.fromPolar(1, direction + rotation.toBigRadian))
+        Some(next, (curr, next, step + 1))
+    }.toList
 
   /**
    * Identifies which part of the existing tiling boundary is shared

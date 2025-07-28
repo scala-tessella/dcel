@@ -1,15 +1,14 @@
 package io.github.scala_tessella
 package dcel
 
-import io.github.scala_tessella.dcel.BigDecimalGeometry.{ACCURACY, AngleDegree, BigPoint}
-import io.github.scala_tessella.dcel.TilingAdditionBoundary.findBoundaryDivision
-import io.github.scala_tessella.dcel.TilingAddition.calculateNewVertices
+import BigDecimalGeometry.BigPoint
+import TilingAdditionBoundary.findBoundaryDivision
+
+import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import spire.implicits.*
-import spire.math.abs
 
-class TilingAdditionBoundarySpec extends AnyFlatSpec with Matchers {
+class TilingAdditionBoundarySpec extends AnyFlatSpec with Matchers with EitherValues:
 
   behavior of "TilingAdditionBoundary.findBoundaryDivision"
 
@@ -28,8 +27,8 @@ class TilingAdditionBoundarySpec extends AnyFlatSpec with Matchers {
 
     // For a square starting from edge v4->v1 (from (0,0) to (1,0))
     // The new vertices should complete the square going counter-clockwise
-    val expectedP1 = BigPoint(1, -1)  // Going down from (1,0)
-    val expectedP2 = BigPoint(0, -1)  // Going left from (1,-1)
+    val expectedP1 = BigPoint(1, 1)  // Going down from (1,0)
+    val expectedP2 = BigPoint(0, 1)  // Going left from (1,-1)
 
     // Check if the points are approximately equal to our expected points
     val hasExpectedP1 = news.exists(p => p.almostEquals(expectedP1))
@@ -44,7 +43,7 @@ class TilingAdditionBoundarySpec extends AnyFlatSpec with Matchers {
     // This represents a scenario where we have an "open" triangular gap that can be closed
     val v1 = Vertex("V1", BigPoint(0, 0))
     val v2 = Vertex("V2", BigPoint(1, 0))
-    val v3 = Vertex("V3", BigPoint(0.5, BigDecimal("0.8660254037844386"))) // Height of equilateral triangle
+    val v3 = Vertex("V3", BigPoint(0.5, BigDecimal("-0.8660254037844386"))) // Height of equilateral triangle
     val boundary = Vector(v1, v2, v3)
 
     // When we add a triangle starting from v1, it should find that v2 and v3 are also shared
@@ -70,7 +69,7 @@ class TilingAdditionBoundarySpec extends AnyFlatSpec with Matchers {
     news should have size 1
 
     // The third vertex of the equilateral triangle should be at (0.5, √3/2)
-    val expectedThirdVertex = BigPoint(BigDecimal("0.5"), BigDecimal("0.8660254037844386"))
+    val expectedThirdVertex = BigPoint(BigDecimal("0.5"), BigDecimal("-0.8660254037844386"))
     val hasExpectedVertex = news.exists(p => p.almostEquals(expectedThirdVertex))
 
     hasExpectedVertex shouldBe true
@@ -89,4 +88,76 @@ class TilingAdditionBoundarySpec extends AnyFlatSpec with Matchers {
     news shouldBe empty
   }
 
-}
+  it should "successfully add a triangle with more than one edge shared" in {
+    val initialTiling = TilingBuilder.createRegularPolygon(3).value
+
+    val result = initialTiling
+      .maybeAddRegularPolygon(3, "V1").value
+      .maybeAddRegularPolygon(3, "V1").value
+      .maybeAddRegularPolygon(3, "V1").value
+      .maybeAddRegularPolygon(3, "V1")
+    result.isRight shouldBe true
+
+    val newTiling = result.value
+    val boundary = newTiling.boundary
+    boundary should have size 7
+    val (shared, news) = findBoundaryDivision(boundary, boundary.find(_.id == "V1").get, 3)
+
+    shared should have size 3
+    shared.map(_.id) shouldBe List("V1", "V7", "V6")
+    news should have size 0
+  }
+
+  it should "successfully add an hexagon with 2 additional edge shared at one side" in {
+    val initialTiling = TilingBuilder.createRegularPolygon(6).value
+
+    val result = initialTiling
+      .maybeAddRegularPolygon(6, "V1").value
+      .maybeAddRegularPolygon(6, "V7")
+    result.isRight shouldBe true
+
+    val newTiling = result.value
+    val boundary = newTiling.boundary
+    boundary should have size 14
+    val (shared, news) = findBoundaryDivision(boundary, boundary.find(_.id == "V2").get, 6)
+
+    shared should have size 4
+    shared.map(_.id) shouldBe List("V2", "V1", "V7", "V11")
+
+  }
+
+//  it should "successfully add an hexagon with 2 additional edge shared at the other side" in {
+//    val initialTiling = TilingBuilder.createRegularPolygon(6).value
+//
+//    val result = initialTiling
+//      .maybeAddRegularPolygon(6, "V1").value
+//      .maybeAddRegularPolygon(6, "V7")
+//    result.isRight shouldBe true
+//
+//    val newTiling = result.value
+//    val boundary = newTiling.boundary
+//    boundary should have size 14
+//    val (shared, news) = findBoundaryDivision(boundary, boundary.find(_.id == "V7").get, 6)
+//
+//    shared should have size 3
+//    shared.map(_.id) shouldBe List("V1", "V7", "V6")
+//    news should have size 2
+//  }
+//
+//  it should "successfully add an hexagon with more 1 additional edge shared on both sides" in {
+//    val initialTiling = TilingBuilder.createRegularPolygon(6).value
+//
+//    val result = initialTiling
+//      .maybeAddRegularPolygon(6, "V1").value
+//      .maybeAddRegularPolygon(6, "V7")
+//    result.isRight shouldBe true
+//
+//    val newTiling = result.value
+//    val boundary = newTiling.boundary
+//    boundary should have size 14
+//    val (shared, news) = findBoundaryDivision(boundary, boundary.find(_.id == "V1").get, 6)
+//
+//    shared should have size 4
+//    shared.map(_.id) shouldBe List("V1", "V7", "V6")
+//    news should have size 2
+//  }
