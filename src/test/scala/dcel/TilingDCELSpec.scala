@@ -38,9 +38,9 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "find an existing vertex by id" in {
     val triangle = createTriangleTiling()
-    triangle.findVertex("V0") shouldBe defined
     triangle.findVertex("V1") shouldBe defined
     triangle.findVertex("V2") shouldBe defined
+    triangle.findVertex("V3") shouldBe defined
   }
 
   it should "return None for non-existent vertex id" in {
@@ -72,9 +72,9 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "find an edge between two connected vertices" in {
     val triangle = createTriangleTiling()
-    val v0 = triangle.findVertex("V0").get
-    val v1 = triangle.findVertex("V1").get
-    val v2 = triangle.findVertex("V2").get
+    val v0 = triangle.findVertex("V1").get
+    val v1 = triangle.findVertex("V2").get
+    val v2 = triangle.findVertex("V3").get
 
     triangle.findEdgeBetween(v0, v1) shouldBe defined
     triangle.findEdgeBetween(v1, v2) shouldBe defined
@@ -83,8 +83,8 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "return None for vertices that are not connected" in {
     val square = createSquareTiling()
-    val v0 = square.findVertex("V0").get
-    val v2 = square.findVertex("V2").get
+    val v0 = square.findVertex("V1").get
+    val v2 = square.findVertex("V3").get
 
     // V0 and V2 are diagonal vertices in a square, not directly connected
     square.findEdgeBetween(v0, v2) shouldBe None
@@ -93,7 +93,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
   it should "return None when either vertex has no incident edges" in {
     val isolatedVertex = Vertex("Isolated", BigPoint(10, 10))
     val triangle = createTriangleTiling()
-    val v0 = triangle.findVertex("V0").get
+    val v0 = triangle.findVertex("V1").get
 
     triangle.findEdgeBetween(isolatedVertex, v0) shouldBe None
   }
@@ -129,21 +129,21 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
     val triangle = createTriangleTiling()
     val boundary = triangle.boundary
     boundary should have length 3
-    boundary.map(_.id) should contain theSameElementsInOrderAs Vector("V0", "V2", "V1")
+    boundary.map(_.id) should contain theSameElementsInOrderAs Vector("V1", "V3", "V2")
   }
 
   it should "return correct boundary vertices for square in clockwise order" in {
     val square = createSquareTiling()
     val boundary = square.boundary
     boundary should have length 4
-    boundary.map(_.id) should contain theSameElementsInOrderAs Vector("V0", "V3", "V2", "V1")
+    boundary.map(_.id) should contain theSameElementsInOrderAs Vector("V1", "V4", "V3", "V2")
   }
 
   it should "return correct boundary vertices for hexagon" in {
     val hexagon = createHexagonTiling()
     val boundary = hexagon.boundary
     boundary should have length 6
-    boundary.map(_.id) should contain theSameElementsInOrderAs Vector("V0", "V5", "V4", "V3", "V2", "V1")
+    boundary.map(_.id) should contain theSameElementsInOrderAs Vector("V1", "V6", "V5", "V4", "V3", "V2")
   }
 
   behavior of "TilingDCEL.boundarySafe"
@@ -202,7 +202,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
 
     // Check that edges form a closed loop
     val vertices = boundaryEdges.map(_.origin)
-    vertices.map(_.id) should contain theSameElementsInOrderAs Vector("V0", "V2", "V1")
+    vertices.map(_.id) should contain theSameElementsInOrderAs Vector("V1", "V3", "V2")
   }
 
   it should "fail for malformed boundary with visited edge" in {

@@ -228,10 +228,10 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with EitherValues:
     val triangleTiling = createTriangleTiling()
     val svg = triangleTiling.toScalableVectorGraphics()
 
-    // Triangle vertices should be labeled V0, V1, V2
-    svg should include(">V0</text>")
+    // Triangle vertices should be labeled V1, V2, v3
     svg should include(">V1</text>")
     svg should include(">V2</text>")
+    svg should include(">V3</text>")
   }
 
   it should "handle negative coordinates correctly" in {

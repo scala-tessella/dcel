@@ -22,9 +22,9 @@ class TilingBoundarySpec extends AnyFlatSpec with Matchers with EitherValues:
     // The TilingBuilder creates vertices V0, V1, V2, V3 in a counter-clockwise order.
     // The outer face's half-edges are traversed clockwise.
     // Tracing the `next` pointers from the outer face's starting edge (origin V0)
-    // yields the sequence V0, V3, V2, V1.
+    // yields the sequence V1, V4, V3, V2.
     boundaryVertices.length shouldBe 4
-    boundaryVertexIds shouldBe Vector("V0", "V3", "V2", "V1")
+    boundaryVertexIds shouldBe Vector("V1", "V4", "V3", "V2")
   }
 
   it should "return an empty vector if the outer face has no outer component" in {

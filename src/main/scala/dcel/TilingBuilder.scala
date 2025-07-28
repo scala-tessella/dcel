@@ -62,7 +62,7 @@ object TilingBuilder:
     val n = points.length
 
     // Create vertices from the calculated points
-    val vertices = points.zipWithIndex.map { case (p, i) => Vertex(s"V$i", p) }
+    val vertices = points.zipWithIndex.map { case (p, i) => Vertex(s"V${i + 1}", p) }
 
     // Create the two faces: one for the polygon, one for the outside
     val fPoly = Face(Face.firstInnerId)

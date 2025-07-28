@@ -20,7 +20,7 @@ object TilingAddition:
 
   private def createVertices(points: List[BigPoint], startingIndex: Int): List[Vertex] =
     points.zipWithIndex.map { (point, index) =>
-      Vertex(s"V${startingIndex + index}", point)
+      Vertex(s"V${startingIndex + index + 1}", point)
     }
 
   // Extract polygon angle calculation

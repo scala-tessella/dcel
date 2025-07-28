@@ -40,10 +40,10 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "fail to delete a face that is not on the boundary" in {
     val tiling = TilingBuilder.createRegularPolygon(4).value
-      .maybeAddRegularPolygon(4, "V1").value
       .maybeAddRegularPolygon(4, "V2").value
       .maybeAddRegularPolygon(4, "V3").value
-      .maybeAddRegularPolygon(4, "V0").value
+      .maybeAddRegularPolygon(4, "V4").value
+      .maybeAddRegularPolygon(4, "V1").value
     val result = tiling.deletePolygon(Face.firstInnerId)
     result.isLeft shouldBe true
     result.left.value should include("is not adjacent to the outer boundary")
@@ -51,8 +51,8 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "fail to delete a face that would partition the tiling in two parts joined by a vertex" in {
     val s1 = TilingBuilder.createRegularPolygon(4).value
-    val s1s2 = s1.maybeAddRegularPolygon(4, "V1").value
-    val s1s2s3 = s1s2.maybeAddRegularPolygon(4, "V4").value
+    val s1s2 = s1.maybeAddRegularPolygon(4, "V2").value
+    val s1s2s3 = s1s2.maybeAddRegularPolygon(4, "V5").value
     val result = s1s2s3.deletePolygon("F2")
     result.isLeft shouldBe true
     result.left.value should include("would partition the tiling")
@@ -69,7 +69,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "successfully delete an added boundary face" in {
     val tiling = TilingBuilder.createRegularPolygon(4).value
-      .maybeAddRegularPolygon(4, "V1").value
+      .maybeAddRegularPolygon(4, "V2").value
     tiling.innerFaces.length shouldBe 2
 
     val result = tiling.deletePolygon("F2")
@@ -85,7 +85,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "successfully delete the other boundary face" in {
     val tiling = TilingBuilder.createRegularPolygon(4).value
-      .maybeAddRegularPolygon(4, "V1").value
+      .maybeAddRegularPolygon(4, "V2").value
     tiling.innerFaces.length shouldBe 2
 
     val result = tiling.deletePolygon(Face.firstInnerId)
