@@ -19,6 +19,12 @@ object TilingExample:
       h.angle = Some(angleDegree)
     }
 
+  private def twinning(halfEdges: List[HalfEdge]): Unit =
+    halfEdges.sliding(2, 2).foreach {
+      (_: @unchecked) match
+        case h1 :: h2 :: Nil => h1.twinWith(h2)
+    }
+
   /**
    * Creates a sample TilingDCEL with two triangles sharing an edge.
    * This is a good example of manual DCEL construction.
@@ -48,7 +54,7 @@ object TilingExample:
     // 4. Link everything together using Option
 
     // Set twins, wrapping in Some(...)
-    halfEdges.sliding(2, 2).foreach { case h1 :: h2 :: Nil => h1.twinWith(h2) }
+    twinning(halfEdges)
 
     // Set leaving edges for vertices
     vA.leaving = Some(hAB); vB.leaving = Some(hBC)
@@ -79,7 +85,7 @@ object TilingExample:
     )
 
     println(TilingDCEL.validate(result))
-    println(result.toSVG())
+//    println(result.toSVG())
     println(TilingDCEL.spatiallyValidate(result))
 
     result
@@ -130,7 +136,7 @@ object TilingExample:
     // 4. Link everything together using Option
 
     // Set twins, wrapping in Some(...)
-    halfEdges.sliding(2, 2).foreach { case h1 :: h2 :: Nil => h1.twinWith(h2) }
+    twinning(halfEdges)
 
     // Set leaving edges for vertices
     vA.leaving = Some(hAB); vB.leaving = Some(hBC)
