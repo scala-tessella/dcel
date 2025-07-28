@@ -22,6 +22,8 @@ case class Face(
 
   override def hashCode(): Int = id.hashCode
 
+  override def toString: String = s"Face($id)"
+
   // Area calculation
   def area: BigDecimal =
     val vertices = getVertices.getOrElse(List.empty)
@@ -69,7 +71,7 @@ case class Face(
 object Face:
 
   val outerId = "F0"
-  
+
   val firstInnerId = "F1"
 
   def adjacencyMap(faces: List[Face]): Map[Face, List[Face]] =
