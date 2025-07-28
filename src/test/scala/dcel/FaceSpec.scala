@@ -72,6 +72,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
     face.id shouldBe "F1"
     face.outerComponent shouldBe None
     face.innerComponents shouldBe Nil
+    face.toString shouldBe "Face F1"
   }
 
   it should "create a face with outer component" in {

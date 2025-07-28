@@ -21,6 +21,7 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with EitherValues:
     edge.next shouldBe None
     edge.prev shouldBe None
     edge.angle shouldBe None
+    edge.toString shouldBe "HalfEdge V1 -> ?"
   }
 
   it should "create a half-edge with all optional parameters" in {
@@ -47,6 +48,7 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with EitherValues:
     edge.next shouldBe Some(nextEdge)
     edge.prev shouldBe Some(prevEdge)
     edge.angle shouldBe Some(angle)
+    edge.toString shouldBe "HalfEdge V1 -> V2"
   }
 
   behavior of "HalfEdge equality"
