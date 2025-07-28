@@ -1,0 +1,121 @@
+<svg width="140" height="126" viewBox="-70 -63.3 140 126.6" xmlns="http://www.w3.org/2000/svg">
+  <g>
+    <!-- Edges -->
+    <g stroke="black" stroke-width="1.0">
+      <line x1="0" y1="0" x2="50" y2="0" />
+      <line x1="50" y1="0" x2="25" y2="-43.3" />
+      <line x1="25" y1="-43.3" x2="0" y2="0" />
+      <line x1="0" y1="0" x2="-25" y2="-43.3" />
+      <line x1="-25" y1="-43.3" x2="25" y2="-43.3" />
+      <line x1="0" y1="0" x2="-50" y2="0" />
+      <line x1="-50" y1="0" x2="-25" y2="-43.3" />
+      <line x1="0" y1="0" x2="-25" y2="43.3" />
+      <line x1="-25" y1="43.3" x2="-50" y2="0" />
+      <line x1="0" y1="0" x2="25" y2="43.3" />
+      <line x1="25" y1="43.3" x2="-25" y2="43.3" />
+      <line x1="25" y1="43.3" x2="50" y2="0" />
+    </g>
+    <!-- Boundary Highlight -->
+    <g stroke="red" stroke-width="3.0" fill="none">
+      <polygon points="25,-43.3 50,0 25,43.3 -25,43.3 -50,0 -25,-43.3" />
+    </g>
+    <!-- Boundary Direction Arrows -->
+    <g fill="red" stroke="red" stroke-width="0.5">
+      <polygon points="40.500066,-16.453886 39.578446,-22.850026 35.421554,-20.449974" />
+      <polygon points="34.499934,26.846114 39.578446,22.850026 35.421554,20.449974" />
+      <polygon points="-6,43.3 -0,45.7 0,40.9" />
+      <polygon points="-40.500066,16.453886 -39.578446,22.850026 -35.421554,20.449974" />
+      <polygon points="-34.499934,-26.846114 -39.578446,-22.850026 -35.421554,-20.449974" />
+      <polygon points="6,-43.3 0,-45.7 -0,-40.9" />
+    </g>
+    <!-- Inner Face Half-Edge Direction Arrows -->
+    <g fill="blue" stroke="blue" stroke-width="0.5">
+      <polygon points="28,0 25,-1.2 25,1.2" />
+      <polygon points="35.999967,-24.248057 36.460777,-21.049987 38.539223,-22.250013" />
+      <polygon points="10.999967,-19.051943 13.539223,-21.049987 11.460777,-22.250013" />
+      <polygon points="14.000033,-24.248057 11.460777,-22.250013 13.539223,-21.049987" />
+      <polygon points="-3,-43.3 -0,-42.1 0,-44.5" />
+      <polygon points="-10.999967,-19.051943 -11.460777,-22.250013 -13.539223,-21.049987" />
+      <polygon points="-14.000033,-24.248057 -13.539223,-21.049987 -11.460777,-22.250013" />
+      <polygon points="-39.000033,-19.051943 -36.460777,-21.049987 -38.539223,-22.250013" />
+      <polygon points="-22,0 -25,-1.2 -25,1.2" />
+      <polygon points="-28,-0 -25,1.2 -25,-1.2" />
+      <polygon points="-35.999967,24.248057 -36.460777,21.049987 -38.539223,22.250013" />
+      <polygon points="-10.999967,19.051943 -13.539223,21.049987 -11.460777,22.250013" />
+      <polygon points="-14.000033,24.248057 -11.460777,22.250013 -13.539223,21.049987" />
+      <polygon points="3,43.3 0,42.1 -0,44.5" />
+      <polygon points="10.999967,19.051943 11.460777,22.250013 13.539223,21.049987" />
+      <polygon points="14.000033,24.248057 13.539223,21.049987 11.460777,22.250013" />
+      <polygon points="39.000033,19.051943 36.460777,21.049987 38.539223,22.250013" />
+      <polygon points="22,-0 25,1.2 25,-1.2" />
+    </g>
+    <!-- Outer Face Half-Edge Direction Arrows -->
+    <g fill="black" stroke="black" stroke-width="0.5">
+      <polygon points="39.000033,-19.051943 38.539223,-22.250013 36.460777,-21.049987" />
+      <polygon points="35.999967,24.248057 38.539223,22.250013 36.460777,21.049987" />
+      <polygon points="-3,43.3 -0,44.5 0,42.1" />
+      <polygon points="-39.000033,19.051943 -38.539223,22.250013 -36.460777,21.049987" />
+      <polygon points="-35.999967,-24.248057 -38.539223,-22.250013 -36.460777,-21.049987" />
+      <polygon points="3,-43.3 0,-44.5 -0,-42.1" />
+    </g>
+    <!-- Vertices -->
+    <g fill="red">
+      <circle cx="0" cy="0" r="2.0" />
+      <circle cx="50" cy="0" r="2.0" />
+      <circle cx="25" cy="-43.3" r="2.0" />
+      <circle cx="-25" cy="-43.3" r="2.0" />
+      <circle cx="-50" cy="0" r="2.0" />
+      <circle cx="-25" cy="43.3" r="2.0" />
+      <circle cx="25" cy="43.3" r="2.0" />
+    </g>
+    <!-- Vertex Labels -->
+    <g font-size="8" fill="darkblue">
+      <text x="2.5" y="-2.5">V1</text>
+      <text x="52.5" y="-2.5">V2</text>
+      <text x="27.5" y="-45.8">V3</text>
+      <text x="-22.5" y="-45.8">V4</text>
+      <text x="-47.5" y="-2.5">V5</text>
+      <text x="-22.5" y="40.8">V6</text>
+      <text x="27.5" y="40.8">V7</text>
+    </g>
+    <!-- Face Labels -->
+    <g font-size="6" fill="green" text-anchor="middle" dominant-baseline="middle">
+      <text x="25" y="-14.433333">F1</text>
+      <text x="0" y="-28.866667">F2</text>
+      <text x="-25" y="-14.433333">F3</text>
+      <text x="-25" y="14.433333">F4</text>
+      <text x="0" y="28.866667">F5</text>
+      <text x="25" y="14.433333">F6</text>
+    </g>
+    <!-- Inner Angle Labels -->
+    <g font-size="5" fill="purple" text-anchor="middle" dominant-baseline="middle">
+      <text x="6.928254" y="-3.999912">60°</text>
+      <text x="43.071746" y="-3.999912">60°</text>
+      <text x="25" y="-35.3">60°</text>
+      <text x="0" y="-8">60°</text>
+      <text x="18.071746" y="-39.300088">60°</text>
+      <text x="-18.071746" y="-39.300088">60°</text>
+      <text x="-6.928254" y="-3.999912">60°</text>
+      <text x="-25" y="-35.3">60°</text>
+      <text x="-43.071746" y="-3.999912">60°</text>
+      <text x="-6.928254" y="3.999912">60°</text>
+      <text x="-43.071746" y="3.999912">60°</text>
+      <text x="-25" y="35.3">60°</text>
+      <text x="0" y="8">60°</text>
+      <text x="-18.071746" y="39.300088">60°</text>
+      <text x="18.071746" y="39.300088">60°</text>
+      <text x="6.928254" y="3.999912">60°</text>
+      <text x="25" y="35.3">60°</text>
+      <text x="43.071746" y="3.999912">60°</text>
+    </g>
+    <!-- Outer Angle Labels -->
+    <g font-size="5" fill="orange" text-anchor="middle" dominant-baseline="middle">
+      <text x="25" y="-51.3">240°</text>
+      <text x="56.928254" y="3.999912">240°</text>
+      <text x="25" y="51.3">240°</text>
+      <text x="-30.237317" y="49.347356">240°</text>
+      <text x="-57.855852" y="1.511815">240°</text>
+      <text x="-31.928254" y="-47.299912">240°</text>
+    </g>
+  </g>
+</svg>

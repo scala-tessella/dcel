@@ -26,14 +26,14 @@ object TilingExample:
    */
   def createTwoTrianglesTiling(): TilingDCEL =
     // 1. Define vertices
-    val vA = Vertex("A", BigPoint(0.0, 0.0))
-    val vB = Vertex("B", BigPoint(1.0, 0.0))
-    val vC = Vertex("C", BigPoint(0.5, 0.866))
-    val vD = Vertex("D", BigPoint(-0.5, 0.866))
+    val vA = Vertex("V1", BigPoint(0.0, 0.0))
+    val vB = Vertex("V2", BigPoint(1.0, 0.0))
+    val vC = Vertex("V3", BigPoint(0.5, 0.866))
+    val vD = Vertex("V4", BigPoint(-0.5, 0.866))
 
     // 2. Define faces
-    val fABC = Face("F_ABC")
-    val fACD = Face("F_ACD")
+    val fABC = Face("F1")
+    val fACD = Face("F2")
     val fOuter = Face(Face.outerId)
 
     // 3. Create half-edges
@@ -79,7 +79,7 @@ object TilingExample:
     )
 
     println(TilingDCEL.validate(result))
-//    println(result.toSVG())
+    println(result.toSVG())
     println(TilingDCEL.spatiallyValidate(result))
 
     result
@@ -91,21 +91,21 @@ object TilingExample:
    */
   def createSixTrianglesTiling(): TilingDCEL =
     // 1. Define vertices
-    val vA = Vertex("A", BigPoint(0.0, 0.0))
-    val vB = Vertex("B", BigPoint(1.0, 0.0))
-    val vC = Vertex("C", BigPoint(0.5, 0.866))
-    val vD = Vertex("D", BigPoint(-0.5, 0.866))
-    val vE = Vertex("E", BigPoint(-1.0, 0.0))
-    val vF = Vertex("F", BigPoint(-0.5, -0.866))
-    val vG = Vertex("G", BigPoint(0.5, -0.866))
+    val vA = Vertex("V1", BigPoint(0.0, 0.0))
+    val vB = Vertex("V2", BigPoint(1.0, 0.0))
+    val vC = Vertex("V3", BigPoint(0.5, 0.866))
+    val vD = Vertex("V4", BigPoint(-0.5, 0.866))
+    val vE = Vertex("V5", BigPoint(-1.0, 0.0))
+    val vF = Vertex("V6", BigPoint(-0.5, -0.866))
+    val vG = Vertex("V7", BigPoint(0.5, -0.866))
 
     // 2. Define faces
-    val fABC = Face("F_ABC")
-    val fACD = Face("F_ACD")
-    val fADE = Face("F_ADE")
-    val fAEF = Face("F_AEF")
-    val fAFG = Face("F_AFG")
-    val fAGB = Face("F_AGB")
+    val fABC = Face("F1")
+    val fACD = Face("F2")
+    val fADE = Face("F3")
+    val fAEF = Face("F4")
+    val fAFG = Face("F5")
+    val fAGB = Face("F6")
     val fOuter = Face(Face.outerId)
 
     // 3. Create half-edges
