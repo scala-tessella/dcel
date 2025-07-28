@@ -295,6 +295,22 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     currentTiling.innerFaces should have size 7 // 1 hexagon + 6 triangles
   }
 
+  it should "successfully add a triangle with coincident vertices" in {
+    val initialTiling = TilingBuilder.createRegularPolygon(3).value
+
+    val result = initialTiling
+      .maybeAddRegularPolygon(3, "V1").value
+      .maybeAddRegularPolygon(3, "V1").value
+      .maybeAddRegularPolygon(3, "V1").value
+      .maybeAddRegularPolygon(3, "V1").value
+      .maybeAddRegularPolygon(3, "V1")
+    result.isRight shouldBe true
+
+    val newTiling = result.value
+//    println(newTiling.toSVG())
+    verifyValidTiling(newTiling)
+  }
+
   it should "successfully add an hexagon with coincident vertices" in {
     // Start with a single hexagon (V0-V1-V2-V3-V4-V5)
     val initialTiling = TilingBuilder.createRegularPolygon(6).value
