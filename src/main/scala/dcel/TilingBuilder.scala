@@ -65,7 +65,7 @@ object TilingBuilder:
     val vertices = points.zipWithIndex.map { case (p, i) => Vertex(s"V$i", p) }
 
     // Create the two faces: one for the polygon, one for the outside
-    val fPoly = Face("F_Poly")
+    val fPoly = Face(Face.firstInnerId)
     val fOuter = Face(Face.outerId)
 
     // Create all inner and outer half-edges, indexed by their origin vertex

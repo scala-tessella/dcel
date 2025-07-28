@@ -42,7 +42,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
     // Check inner face angles
     tiling.innerFaces.map(_.halfEdgesSafe.map(_.angle.get.toString).mkString(", ")) shouldBe List("60, 60, 60", "60, 60, 60")
-    tiling.innerFaces.map(_.halfEdgesSafe.map(_.incidentFace.get.id).mkString(", ")) shouldBe List("F_Poly, F_Poly, F_Poly", "F2, F2, F2")
+    tiling.innerFaces.map(_.halfEdgesSafe.map(_.incidentFace.get.id).mkString(", ")) shouldBe List("F1, F1, F1", "F2, F2, F2")
 
     // Check boundary
     val boundary = tiling.boundary
@@ -264,7 +264,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     val tiling = result.value
 
     val faceIds = tiling.innerFaces.map(_.id).toSet
-    faceIds should contain("F_Poly") // Original face
+    faceIds should contain(Face.firstInnerId) // Original face
     faceIds should contain("F2") // New face
     faceIds should have size 2
   }

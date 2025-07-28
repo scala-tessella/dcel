@@ -28,7 +28,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "successfully delete a single square, leaving an empty tiling" in {
     val tiling = TilingBuilder.createRegularPolygon(4).value
-    val result = tiling.deletePolygon("F_Poly")
+    val result = tiling.deletePolygon(Face.firstInnerId)
     result.isRight shouldBe true
 
     val newTiling = result.value
@@ -44,7 +44,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
       .maybeAddRegularPolygon(4, "V2").value
       .maybeAddRegularPolygon(4, "V3").value
       .maybeAddRegularPolygon(4, "V0").value
-    val result = tiling.deletePolygon("F_Poly")
+    val result = tiling.deletePolygon(Face.firstInnerId)
     result.isLeft shouldBe true
     result.left.value should include("is not adjacent to the outer boundary")
   }
@@ -78,7 +78,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
     verifyValidTiling(newTiling)
 
     newTiling.innerFaces.length shouldBe 1
-    newTiling.innerFaces.head.id shouldBe "F_Poly"
+    newTiling.innerFaces.head.id shouldBe Face.firstInnerId
     newTiling.vertices.length shouldBe 4
     newTiling.boundary.length shouldBe 4
   }
@@ -88,7 +88,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
       .maybeAddRegularPolygon(4, "V1").value
     tiling.innerFaces.length shouldBe 2
 
-    val result = tiling.deletePolygon("F_Poly")
+    val result = tiling.deletePolygon(Face.firstInnerId)
     result.isRight shouldBe true
     val newTiling = result.value
     verifyValidTiling(newTiling)

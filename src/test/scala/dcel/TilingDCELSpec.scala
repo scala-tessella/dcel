@@ -59,7 +59,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
   it should "find an existing face by id" in {
     val triangle = createTriangleTiling()
     triangle.findFace(Face.outerId) shouldBe defined
-    triangle.findFace("F_Poly") shouldBe defined
+    triangle.findFace(Face.firstInnerId) shouldBe defined
   }
 
   it should "return None for non-existent face id" in {
@@ -304,7 +304,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
     val twoSquares = createSquareTiling().maybeAddRegularPolygon(4, "V1").value
     // V2 is on the boundary. The inner edge from V2 belongs to the first square.
     val v2 = twoSquares.findVertex("V2").get
-    val innerEdgeFromV2 = v2.incidentEdges.find(_.incidentFace.exists(_.id == "F_Poly")).get
+    val innerEdgeFromV2 = v2.incidentEdges.find(_.incidentFace.exists(_.id == Face.firstInnerId)).get
 
     // Distort the angle, which affects both the face and boundary angle sums
     innerEdgeFromV2.angle = Some(AngleDegree(80))
@@ -313,7 +313,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
     result.isLeft shouldBe true
     val error = result.left.value
     // Check that at least one of the expected errors is present, as iteration order is not guaranteed
-    val faceError = "Face F_Poly: The sum of interior angles is incorrect"
+    val faceError = "Face F1: The sum of interior angles is incorrect"
     val boundaryError = "Boundary: The sum of interior angles is incorrect"
     (error.contains(faceError) || error.contains(boundaryError)) shouldBe true
   }
