@@ -1,9 +1,8 @@
 package io.github.scala_tessella
 package dcel
 
-import BigDecimalGeometry.{AngleDegree, BigPoint}
+import BigDecimalGeometry.{AngleDegree, BigPoint, format}
 
-import scala.annotation.tailrec
 import scala.collection.mutable
 
 /**
@@ -25,7 +24,7 @@ case class Vertex(
 
   override def hashCode(): Int = id.hashCode
 
-  override def toString: String = s"Vertex $id at coords (${coords.x}, ${coords.y})"
+  override def toString: String = s"Vertex $id at coords (${coords.x.format}, ${coords.y.format})"
 
   def isComplete: Boolean =
     leaving.isDefined
