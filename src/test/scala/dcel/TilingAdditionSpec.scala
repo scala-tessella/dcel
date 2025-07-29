@@ -307,7 +307,8 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     result.isRight shouldBe true
 
     val newTiling = result.value
-//    println(newTiling.toSVG())
+    println(newTiling.toSVG())
+    // @todo to be investigated, si failing with an infinite loop
     verifyValidTiling(newTiling)
   }
 
@@ -321,7 +322,8 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     result.isRight shouldBe true
 
     val newTiling = result.value
-    //    println(newTiling.toSVG())
+    println(newTiling.toSVG())
+    // @todo to be investigated, si failing with an infinite loop
     verifyValidTiling(newTiling)
   }
 

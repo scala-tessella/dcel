@@ -180,15 +180,16 @@ object TilingAddition:
         // Link new face edges
         linkNewFaceEdges(edgeToBuildOn, revisedNewInnerEdges.reverse, newFace)
 
-        // @todo going into infinite loop if hasMoreThanOneSharedEdge
+        // @todo probably wrong if hasMoreThanOneSharedEdge
         // Connect to boundary
-        if !hasMoreThanOneSharedEdge then
-          connectNewBoundaryEdges(revisedNewBoundaryEdges, completeBoundary, outerFace, edgeToBuildOn)
+        connectNewBoundaryEdges(revisedNewBoundaryEdges, completeBoundary, outerFace, edgeToBuildOn)
 
-        // @todo going into infinite loop if hasMoreThanOneSharedEdge
+        // @todo probably wrong if hasMoreThanOneSharedEdge
         // Update vertex leaving edges
         if !hasMoreThanOneSharedEdge then
           updateVertexLeavingEdges(revisedStartVertex :: revisedNewVertices, revisedNewBoundaryEdges, revisedEndVertex, edgeToBuildOn)
+        else
+          updateVertexLeavingEdgesRevised(revisedStartVertex :: revisedNewVertices, revisedNewBoundaryEdges, revisedEndVertex, edgeToBuildOn)
 
         // Return new DCEL with updated components
         tilingDCEL.copy(
@@ -274,3 +275,17 @@ object TilingAddition:
       vertex.leaving = Some(edge)
     }
     endVertex.leaving = edgeToBuildOn.twin
+
+  // @todo dedicated method, check if it is needed
+  private def updateVertexLeavingEdgesRevised(
+    verticesWithNewEdges: List[Vertex],
+    newBoundaryEdges: List[HalfEdge],
+    endVertex: Vertex,
+    edgeToBuildOn: HalfEdge
+  ): Unit =
+    println("START")
+    verticesWithNewEdges.zip(newBoundaryEdges).foreach { (vertex, edge) =>
+      vertex.leaving = Some(edge)
+    }
+    endVertex.leaving = edgeToBuildOn.twin
+    println("END")
