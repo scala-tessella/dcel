@@ -310,3 +310,18 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 //    println(newTiling.toSVG())
     verifyValidTiling(newTiling)
   }
+
+  it should "successfully add an hexagon with more than one edge shared" in {
+    val initialTiling = TilingBuilder.createRegularPolygon(6).value
+
+    val result = initialTiling
+      .maybeAddRegularPolygon(6, "V1").value
+      .maybeAddRegularPolygon(6, "V7").value
+      .maybeAddRegularPolygon(6, "V1")
+    result.isRight shouldBe true
+
+    val newTiling = result.value
+    //    println(newTiling.toSVG())
+    verifyValidTiling(newTiling)
+  }
+
