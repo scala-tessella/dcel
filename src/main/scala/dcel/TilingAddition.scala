@@ -42,12 +42,11 @@ object TilingAddition:
     outerFace: Face,
     newFace: Face,
     startVertexAngle: AngleDegree,
-    newVertexAngle: AngleDegree,
     polygonAngle: AngleDegree
   ): List[(HalfEdge, HalfEdge)] =
     vertices.sliding(2).zipWithIndex.map {
       case (origin :: destination :: Nil, index) =>
-        val boundaryAngle = if index == 0 then startVertexAngle else newVertexAngle
+        val boundaryAngle = if index == 0 then startVertexAngle else polygonAngle.conjugate
         HalfEdge.createTwinHalfEdges(
           origin, destination, outerFace, newFace,
           boundaryAngle, polygonAngle
@@ -86,13 +85,86 @@ object TilingAddition:
         // Capture original boundary state
         val originalBoundary = BoundaryState(edgeToBuildOn.prev, edgeToBuildOn.next)
 
+        // Calculating possible shared edges
+        var startCheck = boundaryAngles.start
+        var startEdge = edgeToBuildOn.prev.get
+        var startCounter = 0
+        while startCheck.isFullCircle
+        do
+          startCheck = boundaryAngleForVertex(startEdge.origin, outerFace, polyAngle)
+          startEdge = startEdge.prev.get
+          startCounter += 1
+
+        var endCheck = boundaryAngles.end
+        var endEdge = edgeToBuildOn.next.get
+        var endCounter = 0
+        while endCheck.isFullCircle
+        do
+          endCheck = boundaryAngleForVertex(endEdge.destination.get, outerFace, polyAngle)
+          endEdge = endEdge.next.get
+          endCounter += 1
+
+        // Different start and end vertex
+        println(s"startVertex $startVertex")
+        println(s"endVertex $endVertex")
+        val revisedStartVertex = startEdge.destination.get
+        val revisedEndVertex = endEdge.origin
+        println(s"revisedStartVertex $revisedStartVertex")
+        println(s"revisedEndVertex $revisedEndVertex")
+        if startVertex != revisedStartVertex then println("WARN: different start vertex")
+        if endVertex != revisedEndVertex then println("WARN: different end vertex")
+
+        // Different boundary angles
+        println(s"boundaryAngles $boundaryAngles")
+        val revisedBoundaryAngles = BoundaryAngles(
+          start = startCheck,
+          end = endCheck,
+          newVertices = polyAngle.conjugate
+        )
+        println(s"revisedBoundaryAngles $revisedBoundaryAngles")
+        if boundaryAngles != revisedBoundaryAngles then println("WARN: different boundary angles")
+
+        // Different boundary
+        println(s"originalBoundary $originalBoundary")
+        val completeBoundary = BoundaryState(Some(startEdge), Some(endEdge))
+        println(s"completeBoundary $completeBoundary")
+        if originalBoundary != completeBoundary then println("WARN: different boundary")
+
         // Create new components
         val vertexPoints = calculateNewVertices(sides, endVertex.coords, startVertex.coords)
+        println(s"vertexPoints $vertexPoints")
+        val revisedVertexPoints = vertexPoints.drop(startCounter).dropRight(endCounter)
+        println(s"revisedVertexPoints $revisedVertexPoints")
+        if vertexPoints != revisedVertexPoints then println("WARN: different vertex points")
+
         val newVertices = createVertices(vertexPoints, tilingDCEL.vertices.size)
+        println(s"newVertices $newVertices")
+        val revisedNewVertices = createVertices(revisedVertexPoints, tilingDCEL.vertices.size)
+        println(s"revisedNewVertices $revisedNewVertices")
+        if newVertices != revisedNewVertices then println("WARN: different new vertices")
+
         val newFace = Face(generateFaceId(tilingDCEL.innerFaces.size))
+
         val allVertices = startVertex :: newVertices ::: endVertex :: Nil
-        val edgePairs = createEdgePairs(allVertices, outerFace, newFace, boundaryAngles.start, boundaryAngles.newVertices, polyAngle)
+        println(s"allVertices $allVertices")
+        val revisedAllVertices = revisedStartVertex :: revisedNewVertices ::: revisedEndVertex :: Nil
+        println(s"revisedAllVertices $revisedAllVertices")
+        if allVertices != revisedAllVertices then println("WARN: different all vertices")
+
+        val edgePairs = createEdgePairs(allVertices, outerFace, newFace, boundaryAngles.start, polyAngle)
+        val revisedEdgePairs = createEdgePairs(revisedAllVertices, outerFace, newFace, revisedBoundaryAngles.start, polyAngle)
         val (newBoundaryEdges, newInnerEdges) = edgePairs.unzip
+        println(
+          s"""newBoundaryEdges: $newBoundaryEdges
+            |newInnerEdges: $newInnerEdges
+            |""".stripMargin
+        )
+        val (revisedNewBoundaryEdges, revisedNewInnerEdges) = revisedEdgePairs.unzip
+        println(
+          s"""revisedNewBoundaryEdges: $revisedNewBoundaryEdges
+             |revisedNewInnerEdges: $revisedNewInnerEdges
+             |""".stripMargin
+        )
 
         // Update existing structures
         updateExistingStructures(
