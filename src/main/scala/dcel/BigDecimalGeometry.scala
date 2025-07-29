@@ -16,6 +16,16 @@ import scala.util.boundary
  */
 object BigDecimalGeometry:
 
+  extension (bigDecimal: BigDecimal)
+
+    /** Formats a decimal number to a maximum of 6 decimal places, removing trailing zeros */
+    def format: String =
+      val formatted = f"${bigDecimal.toDouble}%.6f".replaceAll(",", ".")
+      if formatted.contains('.') then
+        formatted.replaceAll("0+$", "").replaceAll("\\.$", "")
+      else
+        formatted
+
   val ACCURACY = 1.0E-12
 
   opaque type AngleDegree = Rational

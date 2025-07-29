@@ -1,27 +1,18 @@
 package io.github.scala_tessella
 package dcel
 
-import BigDecimalGeometry.{BigLineSegment, BigPoint, BigRadian}
+import BigDecimalGeometry.{BigLineSegment, BigPoint, BigRadian, format}
 
 import scala.collection.mutable
 
 object TilingSVG:
 
-  /**
-   * Formats a decimal number to a maximum of 6 decimal places, removing trailing zeros.
-   */
-  private def formatCoordinate(value: BigDecimal): String =
-    val formatted = f"${value.toDouble}%.6f".replaceAll(",", ".")
-    if formatted.contains('.') then
-      formatted.replaceAll("0+$", "").replaceAll("\\.$", "")
-    else
-      formatted
 
   extension (bigPoint: BigPoint)
 
     def toSvgCoords(scale: Double): (String, String) =
       val scaledPoint: BigPoint = bigPoint.scaled(scale).flippedY
-      (formatCoordinate(scaledPoint.x), formatCoordinate(scaledPoint.y))
+      (scaledPoint.x.format, scaledPoint.y.format)
 
   def toBigPointFromVertex(vertex: Vertex): BigPoint = BigPoint(vertex.coords.x, vertex.coords.y)
 
@@ -64,9 +55,9 @@ object TilingSVG:
       )
 
       Some(Arrow(
-        formatCoordinate(tip.x), formatCoordinate(tip.y),
-        formatCoordinate(base1.x), formatCoordinate(base1.y),
-        formatCoordinate(base2.x), formatCoordinate(base2.y)
+        tip.x.format, tip.y.format,
+        base1.x.format, base1.y.format,
+        base2.x.format, base2.y.format
       ))
     else
       None
@@ -104,8 +95,8 @@ object TilingSVG:
     val angleText = f"${halfEdge.angle.get.toRational.toDouble}%.0f°"
     val labelDistance = strokeWidth * 8
 
-    val labelX = formatCoordinate(origin.x * scale + direction.x * labelDistance)
-    val labelY = formatCoordinate(-origin.y * scale - direction.y * labelDistance)
+    val labelX = (origin.x * scale + direction.x * labelDistance).format
+    val labelY = (-origin.y * scale - direction.y * labelDistance).format
 
     s"""      <text x="$labelX" y="$labelY">$angleText</text>"""
 
@@ -213,8 +204,8 @@ object TilingSVG:
 
       val vertexLabels = tilingDCEL.vertices.map { v =>
         val point = toBigPointFromVertex(v).scaled(scale).flippedY
-        val x = formatCoordinate(point.x + strokeWidth * 2.5)
-        val y = formatCoordinate(point.y - strokeWidth * 2.5)
+        val x = (point.x + strokeWidth * 2.5).format
+        val y = (point.y - strokeWidth * 2.5).format
         s"""      <text x="$x" y="$y">${v.id}</text>"""
       }.mkString("\n")
 
@@ -244,7 +235,7 @@ object TilingSVG:
         createSvgSection("Outer Angle Labels", outerAngleLabels, s""" font-size="${(strokeWidth * 5).toInt}" fill="orange" text-anchor="middle" dominant-baseline="middle"""")
       ).filter(_.nonEmpty).mkString("\n")
 
-      val formattedViewBox = s"${formatCoordinate(viewBox._1)} ${formatCoordinate(viewBox._2)} ${formatCoordinate(viewBox._3)} ${formatCoordinate(viewBox._4)}"
+      val formattedViewBox = s"${viewBox._1.format} ${viewBox._2.format} ${viewBox._3.format} ${viewBox._4.format}"
 
       s"""<svg width="$width" height="$height" viewBox="$formattedViewBox" xmlns="http://www.w3.org/2000/svg">
          |  <g>
