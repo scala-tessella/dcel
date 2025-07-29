@@ -22,7 +22,7 @@ case class Face(
 
   override def hashCode(): Int = id.hashCode
 
-  override def toString: String = s"Face $id"
+  override def toString: String = s"Face $id${validate().swap.map(msg => s" [$msg]").getOrElse("")}"
 
   // Area calculation
   def area: BigDecimal =
