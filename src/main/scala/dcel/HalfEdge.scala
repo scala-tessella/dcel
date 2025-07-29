@@ -31,7 +31,7 @@ case class HalfEdge(
   override def hashCode(): Int = System.identityHashCode(this)
 
   override def toString: String = 
-    s"HalfEdge ${origin.id} -> ${destination.map(_.id).getOrElse("?")}"
+    s"HalfEdge ${origin.id} -> ${destination.map(_.id).getOrElse("?")}${validate().swap.map(msg => s" [$msg]").getOrElse("")}"
 
   def destination: Option[Vertex] =
     twin.map(_.origin)
