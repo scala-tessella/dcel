@@ -16,7 +16,7 @@ class VertexSpec extends AnyFlatSpec with Matchers with EitherValues:
     vertex.id shouldBe "V1"
     vertex.coords shouldBe BigPoint(1.0, 2.0)
     vertex.leaving shouldBe None
-    vertex.toString shouldBe "Vertex V1 at coords (1, 2)"
+    vertex.toString shouldBe "Vertex V1 at coords (1, 2) [Missing leaving edge]"
   }
 
   it should "create a vertex with an optional leaving edge" in {
@@ -27,6 +27,7 @@ class VertexSpec extends AnyFlatSpec with Matchers with EitherValues:
     vertexWithEdge.id shouldBe "V2"
     vertexWithEdge.coords shouldBe BigPoint(3.0, 4.0)
     vertexWithEdge.leaving shouldBe Some(edge)
+    vertexWithEdge.toString shouldBe "Vertex V2 at coords (3, 4)"
   }
 
   behavior of "Vertex equality"

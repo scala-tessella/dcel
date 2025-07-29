@@ -24,7 +24,8 @@ case class Vertex(
 
   override def hashCode(): Int = id.hashCode
 
-  override def toString: String = s"Vertex $id at coords (${coords.x.format}, ${coords.y.format})"
+  override def toString: String =
+    s"Vertex $id at coords (${coords.x.format}, ${coords.y.format})${validate().swap.map(msg => s" [$msg]").getOrElse("")}"
 
   def isComplete: Boolean =
     leaving.isDefined
