@@ -82,8 +82,8 @@ object TilingAddition:
           newVertices = polyAngle.conjugate
         )
 
-        // Capture original boundary state
-        val originalBoundary = BoundaryState(edgeToBuildOn.prev, edgeToBuildOn.next)
+//        // Capture original boundary state
+//        val originalBoundary = BoundaryState(edgeToBuildOn.prev, edgeToBuildOn.next)
 
         // Calculating possible shared edges
         var startCheck = boundaryAngles.start
@@ -103,6 +103,9 @@ object TilingAddition:
           endCheck = boundaryAngleForVertex(endEdge.destination.get, outerFace, polyAngle)
           endEdge = endEdge.next.get
           endCounter += 1
+
+        val hasMoreThanOneSharedEdge = startCounter > 0 || endCounter > 0
+        println(s"hasMoreThanOneSharedEdge $hasMoreThanOneSharedEdge")
 
         // Different start and end vertex
         println(s"startVertex $startVertex")
@@ -125,10 +128,10 @@ object TilingAddition:
         if boundaryAngles != revisedBoundaryAngles then println("WARN: different boundary angles")
 
         // Different boundary
-        println(s"originalBoundary $originalBoundary")
+//        println(s"originalBoundary $originalBoundary")
         val completeBoundary = BoundaryState(Some(startEdge), Some(endEdge))
         println(s"completeBoundary $completeBoundary")
-        if originalBoundary != completeBoundary then println("WARN: different boundary")
+//        if originalBoundary != completeBoundary then println("WARN: different boundary")
 
         // Create new components
         val vertexPoints = calculateNewVertices(sides, endVertex.coords, startVertex.coords)
@@ -137,28 +140,28 @@ object TilingAddition:
         println(s"revisedVertexPoints $revisedVertexPoints")
         if vertexPoints != revisedVertexPoints then println("WARN: different vertex points")
 
-        val newVertices = createVertices(vertexPoints, tilingDCEL.vertices.size)
-        println(s"newVertices $newVertices")
+//        val newVertices = createVertices(vertexPoints, tilingDCEL.vertices.size)
+//        println(s"newVertices $newVertices")
         val revisedNewVertices = createVertices(revisedVertexPoints, tilingDCEL.vertices.size)
         println(s"revisedNewVertices $revisedNewVertices")
-        if newVertices != revisedNewVertices then println("WARN: different new vertices")
+//        if newVertices != revisedNewVertices then println("WARN: different new vertices")
 
         val newFace = Face(generateFaceId(tilingDCEL.innerFaces.size))
 
-        val allVertices = startVertex :: newVertices ::: endVertex :: Nil
-        println(s"allVertices $allVertices")
+//        val allVertices = startVertex :: newVertices ::: endVertex :: Nil
+//        println(s"allVertices $allVertices")
         val revisedAllVertices = revisedStartVertex :: revisedNewVertices ::: revisedEndVertex :: Nil
         println(s"revisedAllVertices $revisedAllVertices")
-        if allVertices != revisedAllVertices then println("WARN: different all vertices")
+//        if allVertices != revisedAllVertices then println("WARN: different all vertices")
 
-        val edgePairs = createEdgePairs(allVertices, outerFace, newFace, boundaryAngles.start, polyAngle)
+//        val edgePairs = createEdgePairs(allVertices, outerFace, newFace, boundaryAngles.start, polyAngle)
         val revisedEdgePairs = createEdgePairs(revisedAllVertices, outerFace, newFace, revisedBoundaryAngles.start, polyAngle)
-        val (newBoundaryEdges, newInnerEdges) = edgePairs.unzip
-        println(
-          s"""newBoundaryEdges: $newBoundaryEdges
-            |newInnerEdges: $newInnerEdges
-            |""".stripMargin
-        )
+//        val (newBoundaryEdges, newInnerEdges) = edgePairs.unzip
+//        println(
+//          s"""newBoundaryEdges: $newBoundaryEdges
+//            |newInnerEdges: $newInnerEdges
+//            |""".stripMargin
+//        )
         val (revisedNewBoundaryEdges, revisedNewInnerEdges) = revisedEdgePairs.unzip
         println(
           s"""revisedNewBoundaryEdges: $revisedNewBoundaryEdges
@@ -166,25 +169,31 @@ object TilingAddition:
              |""".stripMargin
         )
 
+        // @todo probably wrong if hasMoreThanOneSharedEdge
         // Update existing structures
         updateExistingStructures(
           edgeToBuildOn, newFace, polyAngle,
-          newBoundaryEdges, originalBoundary, boundaryAngles
+          revisedNewBoundaryEdges, completeBoundary, revisedBoundaryAngles
         )
 
+        // @todo probably wrong if hasMoreThanOneSharedEdge
         // Link new face edges
-        linkNewFaceEdges(edgeToBuildOn, newInnerEdges.reverse, newFace)
+        linkNewFaceEdges(edgeToBuildOn, revisedNewInnerEdges.reverse, newFace)
 
+        // @todo going into infinite loop if hasMoreThanOneSharedEdge
         // Connect to boundary
-        connectNewBoundaryEdges(newBoundaryEdges, originalBoundary, outerFace, edgeToBuildOn)
+        if !hasMoreThanOneSharedEdge then
+          connectNewBoundaryEdges(revisedNewBoundaryEdges, completeBoundary, outerFace, edgeToBuildOn)
 
+        // @todo going into infinite loop if hasMoreThanOneSharedEdge
         // Update vertex leaving edges
-        updateVertexLeavingEdges(startVertex :: newVertices, newBoundaryEdges, endVertex, edgeToBuildOn)
+        if !hasMoreThanOneSharedEdge then
+          updateVertexLeavingEdges(revisedStartVertex :: revisedNewVertices, revisedNewBoundaryEdges, revisedEndVertex, edgeToBuildOn)
 
         // Return new DCEL with updated components
         tilingDCEL.copy(
-          vertices = tilingDCEL.vertices ::: newVertices,
-          halfEdges = tilingDCEL.halfEdges ::: newBoundaryEdges ::: newInnerEdges,
+          vertices = tilingDCEL.vertices ::: revisedNewVertices,
+          halfEdges = tilingDCEL.halfEdges ::: revisedNewBoundaryEdges ::: revisedNewInnerEdges,
           innerFaces = tilingDCEL.innerFaces :+ newFace
         )
 
@@ -237,6 +246,14 @@ object TilingAddition:
     outerFace: Face,
     edgeToBuildOn: HalfEdge
   ): Unit =
+
+    println(
+      s"""
+         |newBoundaryEdges: $newBoundaryEdges
+         |originalBoundary: $originalBoundary
+         |outerFace: $outerFace
+         |edgeToBuildOn: $edgeToBuildOn
+         |""".stripMargin)
     HalfEdge.insertBoundarySegment(
       originalBoundary.prev.get,
       originalBoundary.next.get,
