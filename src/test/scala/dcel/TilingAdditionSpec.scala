@@ -468,13 +468,43 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     verifyValidTiling(newTiling)
   }
 
-  it should "successfully add an hexagon with more than one edge shared" in {
+  it should "successfully add an hexagon with more than one edge shared on both sides of the edge to build on" in {
     val initialTiling = TilingBuilder.createRegularPolygon(6).value
 
     val result = initialTiling
       .maybeAddRegularPolygon(6, "V1").value
       .maybeAddRegularPolygon(6, "V7").value
       .maybeAddRegularPolygon(6, "V1")
+    result.isRight shouldBe true
+
+    val newTiling = result.value
+//    println(newTiling.toSVG())
+    println(TilingDCEL.validate(newTiling))
+    verifyValidTiling(newTiling)
+  }
+
+  it should "successfully add an hexagon with more than one edge shared on one side of the edge to build on" in {
+    val initialTiling = TilingBuilder.createRegularPolygon(6).value
+
+    val result = initialTiling
+      .maybeAddRegularPolygon(6, "V1").value
+      .maybeAddRegularPolygon(6, "V7").value
+      .maybeAddRegularPolygon(6, "V2")
+    result.isRight shouldBe true
+
+    val newTiling = result.value
+//    println(newTiling.toSVG())
+    println(TilingDCEL.validate(newTiling))
+    verifyValidTiling(newTiling)
+  }
+
+  it should "successfully add an hexagon with more than one edge shared on the other side of the edge to build on" in {
+    val initialTiling = TilingBuilder.createRegularPolygon(6).value
+
+    val result = initialTiling
+      .maybeAddRegularPolygon(6, "V1").value
+      .maybeAddRegularPolygon(6, "V7").value
+      .maybeAddRegularPolygon(6, "V7")
     result.isRight shouldBe true
 
     val newTiling = result.value

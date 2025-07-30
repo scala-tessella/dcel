@@ -189,24 +189,23 @@ object TilingAddition:
 
         // @todo probably wrong if hasMoreThanOneSharedEdge
         // Update existing structures
-        updateExistingStructures(
-          edgeToBuildOn, newFace, polyAngle,
-          revisedNewBoundaryEdges, completeBoundary, revisedBoundaryAngles
-        )
-
         if hasMoreThanOneSharedEdge then
-          println(s"edgeToBuildOn $edgeToBuildOn")
-          println(s"edgeToBuildOn.prev ${edgeToBuildOn.prev}")
+          updateExistingStructuresRevised(
+            edgeToBuildOn, sharedEdges, newFace, polyAngle,
+            revisedNewBoundaryEdges, completeBoundary, revisedBoundaryAngles
+          )
+        else
+          updateExistingStructures(
+            edgeToBuildOn, newFace, polyAngle,
+            revisedNewBoundaryEdges, completeBoundary, revisedBoundaryAngles
+          )
 
         // @todo probably wrong if hasMoreThanOneSharedEdge
         // Link new face edges
         if hasMoreThanOneSharedEdge then
           linkNewFaceEdgesRevised(edgeToBuildOn, sharedEdges, revisedNewInnerEdges.reverse, newFace)
-          println(s"edgeToBuildOn $edgeToBuildOn")
-          println(s"edgeToBuildOn.prev ${edgeToBuildOn.prev}")
         else
           linkNewFaceEdges(edgeToBuildOn, revisedNewInnerEdges.reverse, newFace)
-
 
         // @todo probably wrong if hasMoreThanOneSharedEdge
         // Connect to boundary
@@ -260,6 +259,30 @@ object TilingAddition:
     // Update existing boundary edge from end vertex
     originalBoundary.next.foreach { nextEdge =>
       if nextEdge.origin.id == edgeToBuildOn.destination.map(_.id).getOrElse("") then
+        nextEdge.angle = Some(boundaryAngles.end)
+    }
+
+  private def updateExistingStructuresRevised(
+    edgeToBuildOn: HalfEdge,
+    sharedEdges: List[HalfEdge],
+    newFace: Face,
+    polyAngle: AngleDegree,
+    newBoundaryEdges: List[HalfEdge],
+    originalBoundary: BoundaryState,
+    boundaryAngles: BoundaryAngles
+  ): Unit =
+    // Update shared edge
+    sharedEdges.foreach(_.incidentFace = Some(newFace))
+//    edgeToBuildOn.incidentFace = Some(newFace)
+    sharedEdges.foreach(_.angle = Some(polyAngle))
+//    edgeToBuildOn.angle = Some(polyAngle)
+
+    // Update last boundary edge angle
+    newBoundaryEdges.lastOption.foreach(_.angle = Some(boundaryAngles.newVertices))
+
+    // Update existing boundary edge from end vertex
+    originalBoundary.next.foreach { nextEdge =>
+      if nextEdge.origin.id == sharedEdges.last.destination.map(_.id).getOrElse("") then
         nextEdge.angle = Some(boundaryAngles.end)
     }
 
