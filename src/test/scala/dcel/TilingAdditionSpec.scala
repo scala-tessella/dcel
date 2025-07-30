@@ -463,10 +463,9 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     result.isRight shouldBe true
 
     val newTiling = result.value
-    println(newTiling.toSVG())
-    // @todo to be investigated, is failing with an infinite loop
-//    TilingDCEL.validate(newTiling)
-//    verifyValidTiling(newTiling)
+//    println(newTiling.toSVG())
+    println(TilingDCEL.validate(newTiling))
+    verifyValidTiling(newTiling)
   }
 
   it should "successfully add an hexagon with more than one edge shared" in {
@@ -479,8 +478,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     result.isRight shouldBe true
 
     val newTiling = result.value
-    println(newTiling.toSVG())
-    // @todo to be investigated, is failing with an infinite loop
-//    TilingDCEL.validate(newTiling)
-//    verifyValidTiling(newTiling)
+//    println(newTiling.toSVG())
+    println(TilingDCEL.validate(newTiling))
+    verifyValidTiling(newTiling)
   }
