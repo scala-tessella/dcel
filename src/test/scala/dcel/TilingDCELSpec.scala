@@ -266,7 +266,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
     edge.next.get.prev = None // Break the link
     val result = TilingDCEL.validate(square)
     result.isLeft shouldBe true
-    result.left.value should include("next/prev relationship is broken")
+    result.left.value should startWith("Next/prev relationship broken")
   }
 
   it should "fail if an inner face has an incorrect sum of angles" in {

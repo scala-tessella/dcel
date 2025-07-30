@@ -137,7 +137,7 @@ object TilingDCEL:
         case None => errors += s"Edge from ${edge.origin.id} has no next edge"
         case Some(next) =>
           if next.prev.contains(edge) then () // OK
-          else errors += s"Edge from ${edge.origin.id} next/prev relationship is broken"
+          else errors += s"Next/prev relationship broken: $edge has next edge $next which has prev edge ${next.prev}"
     }
 
     // Check face consistency
