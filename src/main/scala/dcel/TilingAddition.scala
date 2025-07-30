@@ -6,6 +6,7 @@ import Polygon.RegularPolygon
 
 object TilingAddition:
 
+  // @todo improve calculation of the 'direction' value, now relying on trigonometry
   def calculateNewVertices(sides: Int, p1: BigPoint, p2: BigPoint): List[BigPoint] =
     val angle = RegularPolygon(sides).alphaDegree
     val rotation = AngleDegree(180) + angle

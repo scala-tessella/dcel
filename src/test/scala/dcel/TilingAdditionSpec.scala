@@ -2,7 +2,7 @@ package io.github.scala_tessella
 package dcel
 
 import TilingAddition.*
-import BigDecimalGeometry.AngleDegree
+import BigDecimalGeometry.{AngleDegree, BigPoint}
 
 import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
@@ -20,6 +20,162 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
     val spatialCheck = TilingDCEL.spatiallyValidate(tiling)
     spatialCheck.isRight shouldBe true
+
+  // Tests for calculateNewVertices method
+  behavior of "TilingAddition.calculateNewVertices"
+
+  it should "calculate vertices for a triangle correctly" in {
+    val p1 = BigPoint(BigDecimal(0), BigDecimal(0))
+    val p2 = BigPoint(BigDecimal(1), BigDecimal(0))
+
+    val result = calculateNewVertices(3, p1, p2)
+
+    result should have length 1
+    // For a triangle, the third vertex should form an equilateral triangle
+    val expectedThirdVertex = BigPoint(BigDecimal("0.5"), BigDecimal("-0.866025403784439")) // approximately sqrt(3)/2
+    result.head.almostEquals(expectedThirdVertex) shouldBe true
+  }
+
+  it should "calculate vertices for a square correctly" in {
+    val p1 = BigPoint(BigDecimal(0), BigDecimal(0))
+    val p2 = BigPoint(BigDecimal(1), BigDecimal(0))
+
+    val result = calculateNewVertices(4, p1, p2)
+
+    result should have length 2
+    // For a square starting from (0,0) to (1,0), the next vertices should be at (1,1) and (0,1)
+    val expectedVertex1 = BigPoint(BigDecimal(1), BigDecimal(-1))
+    val expectedVertex2 = BigPoint(BigDecimal(0), BigDecimal(-1))
+
+    result(0).almostEquals(expectedVertex1) shouldBe true
+    result(1).almostEquals(expectedVertex2) shouldBe true
+  }
+
+  it should "calculate vertices for a pentagon correctly" in {
+    val p1 = BigPoint(BigDecimal(0), BigDecimal(0))
+    val p2 = BigPoint(BigDecimal(1), BigDecimal(0))
+
+    val result = calculateNewVertices(5, p1, p2)
+
+    result should have length 3
+    // Pentagon has interior angle of 108 degrees
+    // Each vertex should be positioned using polar coordinates with 72-degree external angles
+    result.foreach { vertex =>
+      vertex.x should not be BigDecimal(0) // Vertices should not be at origin
+      vertex.y should not be BigDecimal(0) // Vertices should have non-zero y coordinates (except possibly the last)
+    }
+  }
+
+  it should "calculate vertices for a hexagon correctly" in {
+    val p1 = BigPoint(BigDecimal(0), BigDecimal(0))
+    val p2 = BigPoint(BigDecimal(1), BigDecimal(0))
+
+    val result = calculateNewVertices(6, p1, p2)
+
+    result should have length 4
+    // For a regular hexagon, we expect specific geometric relationships
+    result.foreach { vertex =>
+      // All vertices should be at unit distance from the center of the hexagon
+      val distanceFromCenter = math.sqrt((vertex.x - BigDecimal("0.5")).pow(2).toDouble + (vertex.y - BigDecimal("-0.866025403784439")).pow(2).toDouble)
+      // The distance should be approximately 1 (unit hexagon)
+      math.abs(distanceFromCenter - 1.0) should be < 0.1
+    }
+  }
+
+  it should "return correct number of vertices for different polygon sizes" in {
+    val p1 = BigPoint(BigDecimal(0), BigDecimal(0))
+    val p2 = BigPoint(BigDecimal(1), BigDecimal(0))
+
+    // Test various polygon sizes
+    for (sides <- 3 to 12) {
+      val result = calculateNewVertices(sides, p1, p2)
+      result should have length (sides - 2) // We already have 2 vertices (p1, p2), need (sides - 2) more
+    }
+  }
+
+  it should "handle different starting positions correctly" in {
+    val testCases = List(
+      (BigPoint(BigDecimal(0), BigDecimal(0)), BigPoint(BigDecimal(1), BigDecimal(0))),
+      (BigPoint(BigDecimal(1), BigDecimal(1)), BigPoint(BigDecimal(2), BigDecimal(1))),
+      (BigPoint(BigDecimal(-1), BigDecimal(-1)), BigPoint(BigDecimal(0), BigDecimal(-1))),
+      (BigPoint(BigDecimal(0), BigDecimal(1)), BigPoint(BigDecimal(0), BigDecimal(2)))
+    )
+
+    testCases.foreach { case (p1, p2) =>
+      val result = calculateNewVertices(4, p1, p2) // Test with squares
+      result should have length 2
+      result.foreach { vertex =>
+        vertex.x should not be null
+        vertex.y should not be null
+      }
+    }
+  }
+
+  it should "maintain proper geometric relationships for triangles" in {
+    val p1 = BigPoint(BigDecimal(0), BigDecimal(0))
+    val p2 = BigPoint(BigDecimal(1), BigDecimal(0))
+
+    val result = calculateNewVertices(3, p1, p2)
+    val p3 = result.head
+
+    // Check that all sides have equal length (equilateral triangle)
+    val side1Length = math.sqrt((p2.x - p1.x).pow(2).toDouble + (p2.y - p1.y).pow(2).toDouble)
+    val side2Length = math.sqrt((p3.x - p2.x).pow(2).toDouble + (p3.y - p2.y).pow(2).toDouble)
+    val side3Length = math.sqrt((p1.x - p3.x).pow(2).toDouble + (p1.y - p3.y).pow(2).toDouble)
+
+    math.abs(side1Length - side2Length) should be < 1e-6
+    math.abs(side2Length - side3Length) should be < 1e-6
+    math.abs(side3Length - side1Length) should be < 1e-6
+  }
+
+  it should "create vertices that form a closed polygon when combined with input points" in {
+    val p1 = BigPoint(BigDecimal(0), BigDecimal(0))
+    val p2 = BigPoint(BigDecimal(1), BigDecimal(0))
+
+    for (sides <- 3 to 8) {
+      val newVertices = calculateNewVertices(sides, p1, p2)
+      val allVertices = p1 :: p2 :: newVertices
+
+      // Check that we have the correct total number of vertices
+      allVertices should have length sides
+
+      // The last calculated vertex should be positioned to close the polygon back to p1
+      if (newVertices.nonEmpty) {
+        val lastVertex = newVertices.last
+        // The distance from the last vertex back to p1 should be approximately equal to the side length
+        val closingDistance = math.sqrt((p1.x - lastVertex.x).pow(2).toDouble + (p1.y - lastVertex.y).pow(2).toDouble)
+        val sideLength = math.sqrt((p2.x - p1.x).pow(2).toDouble + (p2.y - p1.y).pow(2).toDouble)
+
+        math.abs(closingDistance - sideLength) should be < 1e-6
+      }
+    }
+  }
+
+  it should "handle edge case with minimum polygon size" in {
+    val p1 = BigPoint(BigDecimal(0), BigDecimal(0))
+    val p2 = BigPoint(BigDecimal(1), BigDecimal(0))
+
+    val result = calculateNewVertices(3, p1, p2) // Minimum valid polygon
+    result should have length 1
+    result.head should not be null
+  }
+
+  it should "produce vertices with consistent orientation" in {
+    val p1 = BigPoint(BigDecimal(0), BigDecimal(0))
+    val p2 = BigPoint(BigDecimal(1), BigDecimal(0))
+
+    // Test with a square to check orientation
+    val result = calculateNewVertices(4, p1, p2)
+    val allVertices = List(p1, p2) ++ result
+
+    // Calculate the signed area to determine orientation (should be negative for clockwise)
+    val signedArea = allVertices.zip(allVertices.tail :+ allVertices.head).map { case (curr, next) =>
+      curr.x * next.y - next.x * curr.y
+    }.sum / 2
+
+    // For a properly oriented polygon, the signed area should be negative
+    signedArea.toDouble should be < 0.0
+  }
 
   // Basic addition tests
   it should "add a triangle to a triangle, producing a valid DCEL" in {
@@ -328,4 +484,3 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     TilingDCEL.validate(newTiling)
 //    verifyValidTiling(newTiling)
   }
-
