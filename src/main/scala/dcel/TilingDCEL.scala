@@ -5,6 +5,7 @@ import BigDecimalGeometry.{AngleDegree, hasNoAlmostEqualPoints}
 import TilingAddition.*
 import TilingDeletion.*
 import TilingSVG.*
+import spire.implicits.monoidOps
 
 import scala.collection.mutable
 
@@ -170,11 +171,15 @@ object TilingDCEL:
     tiling.boundarySafe match
       case Right(boundaryVertices) =>
         if boundaryVertices.length >= 3 then
+          println("Boundary vertices: " + boundaryVertices)
           val boundaryAngles =
-            boundaryVertices.map { _.getCurrentInteriorAngleSum(tiling.outerFace) }.toList
-          Polygon.SimplePolygon.validatePolygonAngles(boundaryAngles).left.foreach(error =>
-            errors += s"Boundary: $error"
-          )
+            boundaryVertices.map { _.getCurrentInteriorAngleSumSafe(tiling.outerFace) }.toList
+          if boundaryAngles.exists(_.isLeft) then
+            errors += s"Boundary angles: error"
+          else
+            Polygon.SimplePolygon.validatePolygonAngles(boundaryAngles.map(_.toOption.get)).left.foreach(error =>
+              errors += s"Boundary: $error"
+            )
       case Left(error) =>
         errors += s"Could not validate boundary angles due to: $error"
 

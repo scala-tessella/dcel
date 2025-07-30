@@ -39,11 +39,23 @@ case class Vertex(
       case None => List.empty
       case Some(startEdge) => startEdge.vertexTraversal()
 
+  def incidentEdgesSafe: Either[String, List[HalfEdge]] =
+    leaving match
+      case None => Right(List.empty)
+      case Some(startEdge) => startEdge.vertexTraversalWithGuards()
+
   def getCurrentInteriorAngleSum(outerFace: Face): AngleDegree =
     incidentEdges
       .filterNot(_.incidentFace.contains(outerFace))
       .flatMap(_.angle)
       .fold(AngleDegree(0))(_ + _)
+
+  def getCurrentInteriorAngleSumSafe(outerFace: Face): Either[String, AngleDegree] =
+    incidentEdgesSafe.map(
+      _.filterNot(_.incidentFace.contains(outerFace))
+      .flatMap(_.angle)
+      .fold(AngleDegree(0))(_ + _)
+    )
 
   def degree: Int = incidentEdges.length
 
