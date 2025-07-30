@@ -512,3 +512,33 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     println(TilingDCEL.validate(newTiling))
     verifyValidTiling(newTiling)
   }
+
+  it should "successfully add a square with more than one edge shared on one side of the edge to build on" in {
+    val initialTiling = TilingBuilder.createRegularPolygon(4).value
+
+    val result = initialTiling
+      .maybeAddRegularPolygon(4, "V1").value
+      .maybeAddRegularPolygon(4, "V1").value
+      .maybeAddRegularPolygon(4, "V1")
+    result.isRight shouldBe true
+
+    val newTiling = result.value
+//    println(newTiling.toSVG())
+    println(TilingDCEL.validate(newTiling))
+    verifyValidTiling(newTiling)
+  }
+
+  it should "successfully add a square with more than one edge shared on the other side of the edge to build on" in {
+    val initialTiling = TilingBuilder.createRegularPolygon(4).value
+
+    val result = initialTiling
+      .maybeAddRegularPolygon(4, "V1").value
+      .maybeAddRegularPolygon(4, "V1").value
+      .maybeAddRegularPolygon(4, "V2")
+    result.isRight shouldBe true
+
+    val newTiling = result.value
+//    println(newTiling.toSVG())
+    println(TilingDCEL.validate(newTiling))
+    verifyValidTiling(newTiling)
+  }
