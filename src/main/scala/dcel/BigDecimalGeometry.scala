@@ -37,6 +37,9 @@ object BigDecimalGeometry:
 
     def apply(i: Int): AngleDegree =
       Rational(i)
+      
+    def apply(bigRadian: BigRadian): AngleDegree =
+      Rational(bigRadian * 180 / spire.math.pi)  
 
   extension (d: AngleDegree)
 

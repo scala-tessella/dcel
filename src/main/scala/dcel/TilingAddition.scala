@@ -6,17 +6,18 @@ import Polygon.RegularPolygon
 
 object TilingAddition:
 
-  // @todo improve calculation of the 'direction' value, now relying on trigonometry
+  // Sticking to AngleDegree as much as possible for precision
   def calculateNewVertices(sides: Int, p1: BigPoint, p2: BigPoint): List[BigPoint] =
     val angle = RegularPolygon(sides).alphaDegree
     val rotation = AngleDegree(180) + angle
-    val startingDirection = p1.angleTo(p2)
+    val startingDirectionRad = p1.angleTo(p2)
+    val startingDirection = AngleDegree(startingDirectionRad)
 
     LazyList.unfold((p2, 3, startingDirection)) { case (curr, step, direction) =>
       if step > sides then None
       else
-        val nextDirection = direction + rotation.toBigRadian
-        val next = curr.plus(BigPoint.fromPolar(1, nextDirection))
+        val nextDirection = direction + rotation
+        val next = curr.plus(BigPoint.fromPolar(1, nextDirection.toBigRadian))
         Some(next, (next, step + 1, nextDirection))
     }.toList
 

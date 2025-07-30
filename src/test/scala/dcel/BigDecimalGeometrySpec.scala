@@ -42,6 +42,12 @@ class BigDecimalGeometrySpec extends AnyFlatSpec with Matchers:
     AngleDegree(0).toBigRadian.almostEquals(BigRadian(0.0), accuracy) shouldBe true
   }
 
+  it should "convert back losing precision" in {
+    AngleDegree(AngleDegree(180).toBigRadian) should not be AngleDegree(180)
+    AngleDegree(AngleDegree(90).toBigRadian) should not be AngleDegree(90)
+    AngleDegree(AngleDegree(0).toBigRadian) shouldBe AngleDegree(0)
+  }
+
   it should "check if an angle is a full circle" in {
     AngleDegree(360).isFullCircle shouldBe true
     AngleDegree(720).isFullCircle shouldBe true
