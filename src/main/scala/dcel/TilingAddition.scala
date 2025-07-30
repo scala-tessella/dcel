@@ -10,13 +10,14 @@ object TilingAddition:
   def calculateNewVertices(sides: Int, p1: BigPoint, p2: BigPoint): List[BigPoint] =
     val angle = RegularPolygon(sides).alphaDegree
     val rotation = AngleDegree(180) + angle
+    val startingDirection = p1.angleTo(p2)
 
-    LazyList.unfold((p1, p2, 3)) { case (prev, curr, step) =>
+    LazyList.unfold((p2, 3, startingDirection)) { case (curr, step, direction) =>
       if step > sides then None
       else
-        val direction = prev.angleTo(curr)
-        val next = curr.plus(BigPoint.fromPolar(1, direction + rotation.toBigRadian))
-        Some(next, (curr, next, step + 1))
+        val nextDirection = direction + rotation.toBigRadian
+        val next = curr.plus(BigPoint.fromPolar(1, nextDirection))
+        Some(next, (next, step + 1, nextDirection))
     }.toList
 
   private def createVertices(points: List[BigPoint], startingIndex: Int): List[Vertex] =
