@@ -104,9 +104,6 @@ object TilingAddition:
         while endCheck.isFullCircle
         do
           endCheck = boundaryAngleForVertex(endEdge.destination.get, outerFace, polyAngle)
-          println(s"WWWWWW endEdge = $endEdge")
-          println(s"WWWWWW endEdge.next.get = ${endEdge.next.get}")
-          endEdge.linkWith(endEdge.next.get)
           endEdge = endEdge.next.get
           endCounter += 1
 
@@ -192,9 +189,19 @@ object TilingAddition:
           revisedNewBoundaryEdges, completeBoundary, revisedBoundaryAngles
         )
 
+        if hasMoreThanOneSharedEdge then
+          println(s"edgeToBuildOn $edgeToBuildOn")
+          println(s"edgeToBuildOn.prev ${edgeToBuildOn.prev}")
+
         // @todo probably wrong if hasMoreThanOneSharedEdge
         // Link new face edges
-        linkNewFaceEdges(edgeToBuildOn, revisedNewInnerEdges.reverse, newFace)
+        if hasMoreThanOneSharedEdge then
+          linkNewFaceEdgesRevised(edgeToBuildOn, revisedNewInnerEdges.reverse, newFace)
+          println(s"edgeToBuildOn $edgeToBuildOn")
+          println(s"edgeToBuildOn.prev ${edgeToBuildOn.prev}")
+        else
+          linkNewFaceEdges(edgeToBuildOn, revisedNewInnerEdges.reverse, newFace)
+
 
         // @todo probably wrong if hasMoreThanOneSharedEdge
         // Connect to boundary
@@ -252,6 +259,15 @@ object TilingAddition:
     }
 
   private def linkNewFaceEdges(
+    edgeToBuildOn: HalfEdge,
+    reversedInnerEdges: List[HalfEdge],
+    newFace: Face
+  ): Unit =
+    val allInnerEdges = edgeToBuildOn :: reversedInnerEdges
+    allInnerEdges.linkInCycle()
+    newFace.outerComponent = Some(edgeToBuildOn)
+
+  private def linkNewFaceEdgesRevised(
     edgeToBuildOn: HalfEdge,
     reversedInnerEdges: List[HalfEdge],
     newFace: Face
