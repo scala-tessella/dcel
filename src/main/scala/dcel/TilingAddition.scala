@@ -210,9 +210,9 @@ object TilingAddition:
         // @todo probably wrong if hasMoreThanOneSharedEdge
         // Connect to boundary
 //        if !hasMoreThanOneSharedEdge then
-        connectNewBoundaryEdges(revisedNewBoundaryEdges, completeBoundary, outerFace, edgeToBuildOn)
+//        connectNewBoundaryEdges(revisedNewBoundaryEdges, completeBoundary, outerFace, edgeToBuildOn)
 //        else
-//          connectNewBoundaryEdgesRevised(revisedNewBoundaryEdges, completeBoundary, outerFace, edgeToBuildOn)
+          connectNewBoundaryEdgesRevised(revisedNewBoundaryEdges, completeBoundary, outerFace, edgeToBuildOn)
 
         // @todo probably wrong if hasMoreThanOneSharedEdge
         // Update vertex leaving edges
