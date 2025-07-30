@@ -286,6 +286,10 @@ object TilingAddition:
         nextEdge.angle = Some(boundaryAngles.end)
     }
 
+    // Update boundary in special shared edges case
+    if sharedEdges.length > 1 && newBoundaryEdges.length == 1 then
+      newBoundaryEdges.head.angle = Some(newBoundaryEdges.head.angle.get - polyAngle)
+
   private def linkNewFaceEdges(
     edgeToBuildOn: HalfEdge,
     reversedInnerEdges: List[HalfEdge],
