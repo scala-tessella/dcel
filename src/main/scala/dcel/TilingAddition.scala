@@ -189,37 +189,37 @@ object TilingAddition:
 
         // @todo probably wrong if hasMoreThanOneSharedEdge
         // Update existing structures
-        if hasMoreThanOneSharedEdge then
-          updateExistingStructuresRevised(
-            edgeToBuildOn, sharedEdges, newFace, polyAngle,
-            revisedNewBoundaryEdges, completeBoundary, revisedBoundaryAngles
-          )
-        else
-          updateExistingStructures(
-            edgeToBuildOn, newFace, polyAngle,
-            revisedNewBoundaryEdges, completeBoundary, revisedBoundaryAngles
-          )
+//        if hasMoreThanOneSharedEdge then
+        updateExistingStructuresRevised(
+          edgeToBuildOn, sharedEdges, newFace, polyAngle,
+          revisedNewBoundaryEdges, completeBoundary, revisedBoundaryAngles
+        )
+//        else
+//          updateExistingStructures(
+//            edgeToBuildOn, newFace, polyAngle,
+//            revisedNewBoundaryEdges, completeBoundary, revisedBoundaryAngles
+//          )
 
         // @todo probably wrong if hasMoreThanOneSharedEdge
         // Link new face edges
-        if hasMoreThanOneSharedEdge then
-          linkNewFaceEdgesRevised(edgeToBuildOn, sharedEdges, revisedNewInnerEdges.reverse, newFace)
-        else
-          linkNewFaceEdges(edgeToBuildOn, revisedNewInnerEdges.reverse, newFace)
+//        if hasMoreThanOneSharedEdge then
+        linkNewFaceEdgesRevised(edgeToBuildOn, sharedEdges, revisedNewInnerEdges.reverse, newFace)
+//        else
+//          linkNewFaceEdges(edgeToBuildOn, revisedNewInnerEdges.reverse, newFace)
 
         // @todo probably wrong if hasMoreThanOneSharedEdge
         // Connect to boundary
-        if !hasMoreThanOneSharedEdge then
-          connectNewBoundaryEdges(revisedNewBoundaryEdges, completeBoundary, outerFace, edgeToBuildOn)
-        else
-          connectNewBoundaryEdgesRevised(revisedNewBoundaryEdges, completeBoundary, outerFace, edgeToBuildOn)
+//        if !hasMoreThanOneSharedEdge then
+        connectNewBoundaryEdges(revisedNewBoundaryEdges, completeBoundary, outerFace, edgeToBuildOn)
+//        else
+//          connectNewBoundaryEdgesRevised(revisedNewBoundaryEdges, completeBoundary, outerFace, edgeToBuildOn)
 
         // @todo probably wrong if hasMoreThanOneSharedEdge
         // Update vertex leaving edges
-        if !hasMoreThanOneSharedEdge then
-          updateVertexLeavingEdges(revisedStartVertex :: revisedNewVertices, revisedNewBoundaryEdges, revisedEndVertex, edgeToBuildOn)
-        else
-          updateVertexLeavingEdgesRevised(revisedStartVertex :: revisedNewVertices, revisedNewBoundaryEdges)
+//        if !hasMoreThanOneSharedEdge then
+//          updateVertexLeavingEdges(revisedStartVertex :: revisedNewVertices, revisedNewBoundaryEdges, revisedEndVertex, edgeToBuildOn)
+//        else
+        updateVertexLeavingEdgesRevised(revisedStartVertex :: revisedNewVertices, revisedNewBoundaryEdges)
 
         // Return new DCEL with updated components
         tilingDCEL.copy(
@@ -305,11 +305,11 @@ object TilingAddition:
     reversedInnerEdges: List[HalfEdge],
     newFace: Face
   ): Unit =
-    println(
-      s"""
-         |sharedEdges: $sharedEdges
-         |reversedInnerEdges: $reversedInnerEdges
-         |""".stripMargin)
+//    println(
+//      s"""
+//         |sharedEdges: $sharedEdges
+//         |reversedInnerEdges: $reversedInnerEdges
+//         |""".stripMargin)
     val allInnerEdges = sharedEdges ::: reversedInnerEdges
     allInnerEdges.linkInCycle()
     newFace.outerComponent = Some(edgeToBuildOn)
@@ -338,14 +338,14 @@ object TilingAddition:
      edgeToBuildOn: HalfEdge
   ): Unit =
 
-    println("START")
-    println(
-      s"""
-         |newBoundaryEdges: $newBoundaryEdges
-         |originalBoundary: $originalBoundary
-         |outerFace: $outerFace
-         |edgeToBuildOn: $edgeToBuildOn
-         |""".stripMargin)
+//    println("START")
+//    println(
+//      s"""
+//         |newBoundaryEdges: $newBoundaryEdges
+//         |originalBoundary: $originalBoundary
+//         |outerFace: $outerFace
+//         |edgeToBuildOn: $edgeToBuildOn
+//         |""".stripMargin)
     HalfEdge.insertBoundarySegment(
       originalBoundary.prev.get,
       originalBoundary.next.get,
@@ -356,7 +356,7 @@ object TilingAddition:
     if outerFace.outerComponent.contains(edgeToBuildOn) then
       outerFace.outerComponent = newBoundaryEdges.headOption
 
-    println("END")
+//    println("END")
 
   private def updateVertexLeavingEdges(
     verticesWithNewEdges: List[Vertex],
@@ -369,7 +369,6 @@ object TilingAddition:
     }
 //    endVertex.leaving = edgeToBuildOn.twin
 
-  // @todo dedicated method, check if it is needed
   private def updateVertexLeavingEdgesRevised(
     verticesWithNewEdges: List[Vertex],
     newBoundaryEdges: List[HalfEdge],
