@@ -232,6 +232,40 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
     }
   }
 
+  behavior of "TilingDCEL.getAnglesAtVertex"
+
+  it should "return the angles for a vertex where all incident edges have an angle" in {
+    val triangle = createTriangleTiling()
+    val v1 = triangle.findVertex("V1").get
+    v1.incidentEdges.filter(_.incidentFace.contains(triangle.outerFace)).foreach(_.angle = Some(AngleDegree(300)))
+    val result = triangle.getAnglesAtVertex("V1")
+    result.value should contain theSameElementsAs List(AngleDegree(60), AngleDegree(300))
+  }
+
+  it should "return an error for a non-existent vertex" in {
+    val triangle = createTriangleTiling()
+    val result = triangle.getAnglesAtVertex("V999")
+    result.isLeft shouldBe true
+    result.left.value shouldEqual "Vertex with ID V999 not found."
+  }
+
+  it should "return an error if an inner incident edge has no angle" in {
+    val square = createSquareTiling()
+    square.innerFaces.head.halfEdges.toOption.get.head.angle = None
+    val result = square.getAnglesAtVertex("V1")
+    result.isLeft shouldBe true
+    result.left.value shouldEqual "Vertex with ID V1 has at least one edge with no angle."
+  }
+
+  it should "fail if the incident edge loop is broken" in {
+    val triangle = createTriangleTiling()
+    val v1Leaving = triangle.findVertex("V1").get.leaving.get
+    v1Leaving.twin = None // Break the chain for vertex traversal
+    val result = triangle.getAnglesAtVertex("V1")
+    result.isLeft shouldBe true
+    result.left.value should include("Broken edge chain")
+  }
+
   behavior of "TilingDCEL.validate"
 
   it should "succeed for a valid single polygon tiling" in {

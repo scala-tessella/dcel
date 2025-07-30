@@ -37,6 +37,17 @@ case class TilingDCEL(
   def findEdgeBetween(v1: Vertex, v2: Vertex): Option[HalfEdge] =
     v1.incidentEdges.find(_.destination.contains(v2))
 
+  def getAnglesAtVertex(vertexId: String): Either[String, List[AngleDegree]] =
+    for
+      vertex <- findVertex(vertexId).toRight(s"Vertex with ID $vertexId not found.")
+      edges <- vertex.incidentEdgesSafe
+      maybeAngles = edges.map(_.angle)
+      angles <- if (maybeAngles.contains(None))
+        Left(s"Vertex with ID $vertexId has at least one edge with no angle.")
+      else
+        Right(maybeAngles.flatten)
+    yield angles
+
   def isConnected: Boolean =
     if innerFaces.isEmpty then true
     else
@@ -197,6 +208,17 @@ object TilingDCEL:
             )
       case Left(error) =>
         errors += s"Could not validate boundary edges due to: $error"
+
+    // Check angles' sum for each vertex
+    tiling.vertices.foreach { vertex =>
+      tiling.getAnglesAtVertex(vertex.id) match
+        case Right(angles) =>
+          val sum = angles.fold(AngleDegree(0))(_ + _)
+          if !sum.isFullCircle then
+            errors += s"Vertex ${vertex.id} is not a full circle: $sum."
+        case Left(error) =>
+          errors += s"Could not validate angles for vertex ${vertex.id} due to: $error"
+    }
 
     if errors.isEmpty then Right(()) else Left(errors.mkString("; "))
 
