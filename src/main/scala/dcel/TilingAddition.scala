@@ -88,6 +88,8 @@ object TilingAddition:
 //        // Capture original boundary state
 //        val originalBoundary = BoundaryState(edgeToBuildOn.prev, edgeToBuildOn.next)
 
+        var sharedEdges = List(edgeToBuildOn)
+
         // Calculating possible shared edges
         var startCheck = boundaryAngles.start
         var startEdge = edgeToBuildOn.prev.get
@@ -95,6 +97,7 @@ object TilingAddition:
         while startCheck.isFullCircle
         do
           startCheck = boundaryAngleForVertex(startEdge.origin, outerFace, polyAngle)
+          sharedEdges = startEdge :: sharedEdges
           startEdge = startEdge.prev.get
           startCounter += 1
 
@@ -104,6 +107,7 @@ object TilingAddition:
         while endCheck.isFullCircle
         do
           endCheck = boundaryAngleForVertex(endEdge.destination.get, outerFace, polyAngle)
+          sharedEdges = sharedEdges :+ endEdge
           endEdge = endEdge.next.get
           endCounter += 1
 
@@ -112,6 +116,7 @@ object TilingAddition:
 
         // Different start and end vertex
         if hasMoreThanOneSharedEdge then
+          println(s"sharedEdges $sharedEdges")
           println(s"startVertex $startVertex")
           println(s"endVertex $endVertex")
         val revisedStartVertex = startEdge.destination.get
@@ -196,7 +201,7 @@ object TilingAddition:
         // @todo probably wrong if hasMoreThanOneSharedEdge
         // Link new face edges
         if hasMoreThanOneSharedEdge then
-          linkNewFaceEdgesRevised(edgeToBuildOn, revisedNewInnerEdges.reverse, newFace)
+          linkNewFaceEdgesRevised(edgeToBuildOn, sharedEdges, revisedNewInnerEdges.reverse, newFace)
           println(s"edgeToBuildOn $edgeToBuildOn")
           println(s"edgeToBuildOn.prev ${edgeToBuildOn.prev}")
         else
@@ -269,10 +274,16 @@ object TilingAddition:
 
   private def linkNewFaceEdgesRevised(
     edgeToBuildOn: HalfEdge,
+    sharedEdges: List[HalfEdge],
     reversedInnerEdges: List[HalfEdge],
     newFace: Face
   ): Unit =
-    val allInnerEdges = edgeToBuildOn :: reversedInnerEdges
+    println(
+      s"""
+         |sharedEdges: $sharedEdges
+         |reversedInnerEdges: $reversedInnerEdges
+         |""".stripMargin)
+    val allInnerEdges = sharedEdges ::: reversedInnerEdges
     allInnerEdges.linkInCycle()
     newFace.outerComponent = Some(edgeToBuildOn)
 
