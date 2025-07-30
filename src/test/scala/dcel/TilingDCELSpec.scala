@@ -297,7 +297,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
     square.innerFaces.head.outerComponent.get.incidentFace = None
     val result = TilingDCEL.validate(square)
     result.isLeft shouldBe true
-    result.left.value should include("contains edge that doesn't reference it back")
+    result.left.value should include("references back")
   }
 
   it should "fail if the boundary angles do not sum correctly" in {

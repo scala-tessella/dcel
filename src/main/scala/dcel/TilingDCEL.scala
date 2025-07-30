@@ -147,7 +147,7 @@ object TilingDCEL:
         case Right(edges) =>
           edges.foreach { edge =>
             if !edge.incidentFace.contains(face) then
-              errors += s"Face ${face.id} contains edge that doesn't reference it back"
+              errors += s"Face consistency error: $face contains $edge which references back to another incident ${edge.incidentFace}"
           }
     }
 
