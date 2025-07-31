@@ -8,6 +8,7 @@ lazy val root = (project in file("."))
     idePackagePrefix := Some("io.github.scala_tessella"),
     libraryDependencies ++= Seq(
       "org.typelevel" %% "spire" % "0.18.0",
-      "org.scalatest" %% "scalatest" % "3.2.19" % Test,
+      "org.scala-lang.modules" %% "scala-xml" % "2.4.0",
+      "org.scalatest" %% "scalatest" % "3.2.19" % Test
     )
   )
