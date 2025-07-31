@@ -11,7 +11,7 @@ import scala.collection.mutable
  *
  * @param origin       The vertex from which this half-edge originates.
  * @param twin         An optional reference to the half-edge that is its pair, running in the opposite direction.
- * @param incidentFace An optional reference to the face to the left of this edge.
+ * @param incidentFace An optional reference to the face to the left of this edge as you traverse from its origin vertex to its destination vertex.
  * @param next         An optional reference to the next half-edge in the boundary traversal of its incident face.
  * @param prev         An optional reference to the previous half-edge in the boundary traversal.
  * @param angle        The angle of the corner at the origin vertex, inside the incident face.
