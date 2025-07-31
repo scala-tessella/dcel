@@ -13,8 +13,6 @@ object TilingSVG:
       val scaledPoint: BigPoint = bigPoint.scaled(scale).flippedY
       (scaledPoint.x.format, scaledPoint.y.format)
 
-  def toBigPointFromVertex(vertex: Vertex): BigPoint = vertex.coords
-
   case class Arrow(tipX: String, tipY: String, baseX1: String, baseY1: String, baseX2: String, baseY2: String):
     def toSvgPolygon: String = s"""      <polygon points="$tipX,$tipY $baseX1,$baseY1 $baseX2,$baseY2" />"""
 
@@ -52,9 +50,9 @@ object TilingSVG:
   private def createAngleBisectorDirection(halfEdge: HalfEdge, inward: Boolean = true): BigPoint =
     val prevEdge = halfEdge.prev.get
     val nextEdge = halfEdge.next.get
-    val origin = toBigPointFromVertex(halfEdge.origin)
-    val prevDest = toBigPointFromVertex(prevEdge.origin)
-    val nextDest = toBigPointFromVertex(nextEdge.twin.get.origin)
+    val origin = halfEdge.origin.coords
+    val prevDest = prevEdge.origin.coords
+    val nextDest = nextEdge.twin.get.origin.coords
     val toPrev = calculateDirection(origin, prevDest)
     val toNext = calculateDirection(origin, nextDest)
     val bisector = BigPoint(toPrev.x + toNext.x, toPrev.y + toNext.y)
@@ -65,7 +63,7 @@ object TilingSVG:
       BigPoint(-direction.x, -direction.y)
 
   private def createAngleLabel(halfEdge: HalfEdge, direction: BigPoint, scale: Double, strokeWidth: Double): String =
-    val origin = toBigPointFromVertex(halfEdge.origin)
+    val origin = halfEdge.origin.coords
     val angleText = f"${halfEdge.angle.get.toRational.toDouble}%.0f°"
     val labelDistance = strokeWidth * 8
     val labelX = (origin.x * scale + direction.x * labelDistance).format
@@ -95,7 +93,7 @@ object TilingSVG:
     ): String =
       if tilingDCEL.vertices.isEmpty then
         return """<svg width="0" height="0"></svg>"""
-      val vertices = tilingDCEL.vertices.map(toBigPointFromVertex)
+      val vertices = tilingDCEL.vertices.map(_.coords)
       val scaledVertices = vertices.map(_.scaled(scale).flippedY)
       val minX = scaledVertices.map(_.x).min
       val maxX = scaledVertices.map(_.x).max
@@ -114,8 +112,8 @@ object TilingSVG:
             else
               val twin = edge.twin.get
               drawnEdges ++= List(edge, twin)
-              val (x1, y1) = toBigPointFromVertex(edge.origin).toSvgCoords(scale)
-              val (x2, y2) = toBigPointFromVertex(twin.origin).toSvgCoords(scale)
+              val (x1, y1) = edge.origin.coords.toSvgCoords(scale)
+              val (x2, y2) = twin.origin.coords.toSvgCoords(scale)
               Some(s"""      <line x1="$x1" y1="$y1" x2="$x2" y2="$y2" />""")
         }.mkString("\n")
 
@@ -123,8 +121,8 @@ object TilingSVG:
       def createHalfEdgeArrows(halfEdges: List[HalfEdge]): String =
         halfEdges.flatMap {
           halfEdge =>
-            val origin = toBigPointFromVertex(halfEdge.origin)
-            val destination = toBigPointFromVertex(halfEdge.twin.get.origin)
+            val origin = halfEdge.origin.coords
+            val destination = halfEdge.twin.get.origin.coords
             createArrow(origin, destination, scale, strokeWidth * 3).map(_.toSvgPolygon)
         }.mkString("\n")
 
@@ -138,7 +136,7 @@ object TilingSVG:
             val centroid = calculateCentroid(face.getVertices.getOrElse(List.empty))
             face.halfEdgesSafe.map {
               halfEdge =>
-                val origin = toBigPointFromVertex(halfEdge.origin)
+                val origin = halfEdge.origin.coords
                 val direction = calculateDirection(origin, centroid)
                 createAngleLabel(halfEdge, direction, scale, strokeWidth)
             }
@@ -151,7 +149,7 @@ object TilingSVG:
                 calculateCentroid(tilingDCEL.innerFaces.head.getVertices.getOrElse(List.empty))
               else
                 BigPoint(BigDecimal(0), BigDecimal(0))
-            val origin = toBigPointFromVertex(halfEdge.origin)
+            val origin = halfEdge.origin.coords
             val inwardDirection = calculateDirection(origin, centroid)
             val outwardDirection = BigPoint(-inwardDirection.x, -inwardDirection.y)
             createAngleLabel(halfEdge, outwardDirection, scale, strokeWidth)
@@ -163,13 +161,13 @@ object TilingSVG:
           case vertices if vertices.nonEmpty =>
             val points = vertices.map {
               v =>
-                val (x, y) = toBigPointFromVertex(v).toSvgCoords(scale)
+                val (x, y) = v.coords.toSvgCoords(scale)
                 s"$x,$y"
             }.mkString(" ")
             val arrows = vertices.zipWithIndex.flatMap {
               case (v1, i) =>
                 val v2 = vertices((i + 1) % vertices.length)
-                createArrow(toBigPointFromVertex(v1), toBigPointFromVertex(v2), scale, strokeWidth * 6).map(_.toSvgPolygon)
+                createArrow(v1.coords, v2.coords, scale, strokeWidth * 6).map(_.toSvgPolygon)
             }.mkString("\n")
             (Some(s"""      <polygon points="$points" />"""), arrows)
           case _ =>
@@ -179,13 +177,13 @@ object TilingSVG:
       val vertexCircles =
         tilingDCEL.vertices.map {
           v =>
-            val (cx, cy) = toBigPointFromVertex(v).toSvgCoords(scale)
+            val (cx, cy) = v.coords.toSvgCoords(scale)
             s"""      <circle cx="$cx" cy="$cy" r="${strokeWidth * 2}" />"""
         }.mkString("\n")
       val vertexLabels =
         tilingDCEL.vertices.map {
           v =>
-            val point = toBigPointFromVertex(v).scaled(scale).flippedY
+            val point = v.coords.scaled(scale).flippedY
             val x = (point.x + strokeWidth * 2.5).format
             val y = (point.y - strokeWidth * 2.5).format
             s"""      <text x="$x" y="$y">${v.id}</text>"""
@@ -216,8 +214,8 @@ object TilingSVG:
                     for
                       dest1 <- he1.destination
                       dest2 <- he2.destination
-                      mid1 = BigLineSegment(toBigPointFromVertex(he1.origin), toBigPointFromVertex(dest1)).midPoint
-                      mid2 = BigLineSegment(toBigPointFromVertex(he2.origin), toBigPointFromVertex(dest2)).midPoint
+                      mid1 = BigLineSegment(he1.origin.coords, dest1.coords).midPoint
+                      mid2 = BigLineSegment(he2.origin.coords, dest2.coords).midPoint
                       arrow <- createArrow(mid1, mid2, scale, strokeWidth * 2.5)
                     yield arrow.toSvgPolygon
                   case _ =>
