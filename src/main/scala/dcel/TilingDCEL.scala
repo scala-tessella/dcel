@@ -109,9 +109,10 @@ case class TilingDCEL(
   def toSVG(
     strokeWidth: Double = 1.0,
     padding: Double = 20.0,
-    scale: Double = 50.0
+    scale: Double = 50.0,
+    showHalfEdgeTraversal: Boolean = false       
   ): String =
-    this.toScalableVectorGraphics(strokeWidth, padding, scale)
+    this.toScalableVectorGraphics(strokeWidth, padding, scale, showHalfEdgeTraversal)
 
 object TilingDCEL:
 

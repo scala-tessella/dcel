@@ -411,7 +411,6 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with EitherValues:
     }
   }
 
-
   behavior of "Arrow creation"
 
   it should "create arrows for edges with sufficient distance" in {
@@ -581,6 +580,15 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with EitherValues:
     expectedSections.foreach { section =>
       svg should include(section)
     }
+  }
+
+  it should "generate SVG with half-edge traversal arrows when requested" in {
+    val squareTiling = createSquareTiling()
+    val svg = squareTiling.toScalableVectorGraphics(showHalfEdgeTraversal = true)
+
+    svg should include("<!-- Half-Edge Face Traversal -->")
+    svg should include("""fill="darkcyan"""")
+    svg should include("<polygon points=")
   }
 
   behavior of "Edge case handling"
