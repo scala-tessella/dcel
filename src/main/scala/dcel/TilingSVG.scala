@@ -89,7 +89,9 @@ object TilingSVG:
       strokeWidth: Double = 1.0,
       padding: Double = 20.0,
       scale: Double = 50.0,
-      showHalfEdgeTraversal: Boolean = false
+      showHalfEdgeTraversal: Boolean = false,
+      leavingEdgeMarkers: Boolean = false,
+      faceIdsOnEdges: Boolean = false
     ): String =
       if tilingDCEL.vertices.isEmpty then
         return """<svg width="0" height="0"></svg>"""
@@ -227,6 +229,37 @@ object TilingSVG:
         else
           ""
 
+      val leavingEdgeMarkersSvg =
+        if leavingEdgeMarkers then
+          tilingDCEL.vertices.flatMap { vertex =>
+            vertex.leaving.flatMap { edge =>
+              edge.destination.flatMap { dest =>
+                createArrow(vertex.coords, BigLineSegment(vertex.coords, dest.coords).midPoint, scale, strokeWidth * 2)
+              }
+            }
+          }.map(_.toSvgPolygon).mkString("\n")
+        else ""
+
+      val faceIdsOnEdgesSvg =
+        if faceIdsOnEdges then
+          tilingDCEL.halfEdges.flatMap { edge =>
+            edge.destination.flatMap { dest =>
+              edge.incidentFace/*.filterNot(_.id == Face.outerId)*/.map { face =>
+                val origin = edge.origin.coords
+                val destination = dest.coords
+                val segment = BigLineSegment(origin, destination)
+                val midPoint = segment.midPoint
+                val directionAngle = origin.angleTo(destination)
+                val perpAngle = directionAngle + BigRadian.TAU_4
+                val unitPerpendicular = BigPoint.fromPolar(BigDecimal(1.0), perpAngle)
+                val offset = unitPerpendicular.scaled((strokeWidth * 4).toInt)
+                val (textX, textY) = midPoint.plus(offset).toSvgCoords(scale)
+                s"""      <text x="$textX" y="$textY">${face.id}</text>"""
+              }
+            }
+          }.mkString("\n")
+        else ""
+
       // Build sections
       val boundarySection = boundaryPolygon.fold("") {
         polygon =>
@@ -236,8 +269,25 @@ object TilingSVG:
       }
       val traversalSection =
         createSvgSection("Half-Edge Face Traversal", traversalArrows, s""" fill="darkcyan" stroke="darkcyan" stroke-width="${strokeWidth * 0.5}"""")
+      val edgeMarkersSection =
+        createSvgSection("Leaving Edge Markers", leavingEdgeMarkersSvg, s""" fill="yellow" stroke="yellow" stroke-width="${strokeWidth * 1.5}"""")
+      val faceIdsOnEdgesSection =
+        createSvgSection("Face Ids On Edges Labels", faceIdsOnEdgesSvg, s""" font-size="${(strokeWidth * 4).toInt}" text-anchor="middle" alignment-baseline="middle" fill="blue"""")
       val sections =
-        List(createSvgSection("Edges", edgeLines, s""" stroke="black" stroke-width="$strokeWidth""""), boundarySection, createSvgSection("Inner Face Half-Edge Direction Arrows", innerFaceArrows, s""" fill="blue" stroke="blue" stroke-width="${strokeWidth * 0.5}""""), createSvgSection("Outer Face Half-Edge Direction Arrows", outerFaceArrows, s""" fill="black" stroke="black" stroke-width="${strokeWidth * 0.5}""""), traversalSection, createSvgSection("Vertices", vertexCircles, """ fill="red""""), createSvgSection("Vertex Labels", vertexLabels, s""" font-size="${(strokeWidth * 8).toInt}" fill="darkblue""""), createSvgSection("Face Labels", faceLabels, s""" font-size="${(strokeWidth * 6).toInt}" fill="green" text-anchor="middle" dominant-baseline="middle""""), createSvgSection("Inner Angle Labels", innerAngleLabels, s""" font-size="${(strokeWidth * 5).toInt}" fill="purple" text-anchor="middle" dominant-baseline="middle""""), createSvgSection("Outer Angle Labels", outerAngleLabels, s""" font-size="${(strokeWidth * 5).toInt}" fill="orange" text-anchor="middle" dominant-baseline="middle"""")).filter(_.nonEmpty).mkString("\n")
+        List(
+          createSvgSection("Edges", edgeLines, s""" stroke="black" stroke-width="$strokeWidth""""),
+          boundarySection,
+          createSvgSection("Inner Face Half-Edge Direction Arrows", innerFaceArrows, s""" fill="blue" stroke="blue" stroke-width="${strokeWidth * 0.5}""""),
+          createSvgSection("Outer Face Half-Edge Direction Arrows", outerFaceArrows, s""" fill="black" stroke="black" stroke-width="${strokeWidth * 0.5}""""),
+          traversalSection,
+          edgeMarkersSection,
+          faceIdsOnEdgesSection,
+          createSvgSection("Vertices", vertexCircles, """ fill="red""""),
+          createSvgSection("Vertex Labels", vertexLabels, s""" font-size="${(strokeWidth * 8).toInt}" fill="darkblue""""),
+          createSvgSection("Face Labels", faceLabels, s""" font-size="${(strokeWidth * 6).toInt}" fill="green" text-anchor="middle" dominant-baseline="middle""""),
+          createSvgSection("Inner Angle Labels", innerAngleLabels, s""" font-size="${(strokeWidth * 5).toInt}" fill="purple" text-anchor="middle" dominant-baseline="middle""""),
+          createSvgSection("Outer Angle Labels", outerAngleLabels, s""" font-size="${(strokeWidth * 5).toInt}" fill="orange" text-anchor="middle" dominant-baseline="middle"""")
+        ).filter(_.nonEmpty).mkString("\n")
       val formattedViewBox =
         s"${viewBox._1.format} ${viewBox._2.format} ${viewBox._3.format} ${viewBox._4.format}"
       s"""<svg width="$width" height="$height" viewBox="$formattedViewBox" xmlns="http://www.w3.org/2000/svg">

@@ -478,7 +478,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     result.isRight shouldBe true
 
     val newTiling = result.value
-//    println(newTiling.toSVG())
+    println(newTiling.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
     println(TilingDCEL.validate(newTiling))
     verifyValidTiling(newTiling)
   }

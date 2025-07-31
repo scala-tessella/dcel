@@ -110,9 +110,11 @@ case class TilingDCEL(
     strokeWidth: Double = 1.0,
     padding: Double = 20.0,
     scale: Double = 50.0,
-    showHalfEdgeTraversal: Boolean = false       
+    showHalfEdgeTraversal: Boolean = false,
+    leavingEdgeMarkers: Boolean = false,
+    faceIdsOnEdges: Boolean = false
   ): String =
-    this.toScalableVectorGraphics(strokeWidth, padding, scale, showHalfEdgeTraversal)
+    this.toScalableVectorGraphics(strokeWidth, padding, scale, showHalfEdgeTraversal, leavingEdgeMarkers, faceIdsOnEdges)
 
 object TilingDCEL:
 
