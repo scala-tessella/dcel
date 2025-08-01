@@ -83,12 +83,9 @@ object TilingAddition:
           newVertices = polyAngle.conjugate
         )
 
-//        // Capture original boundary state
-//        val originalBoundary = BoundaryState(edgeToBuildOn.prev, edgeToBuildOn.next)
-
         var sharedEdges = List(edgeToBuildOn)
 
-        // Calculating possible shared edges
+        // Add possible shared edges
         var startCheck = boundaryAngles.start
         var startEdge = edgeToBuildOn.prev.get
         var startCounter = 0
@@ -110,80 +107,32 @@ object TilingAddition:
           endCounter += 1
 
         val hasMoreThanOneSharedEdge = sharedEdges.length > 1
-//        println(s"hasMoreThanOneSharedEdge $hasMoreThanOneSharedEdge")
 
         // Different start and end vertex
-        if hasMoreThanOneSharedEdge then
-          println(s"sharedEdges $sharedEdges")
-          println(s"startVertex $startVertex")
-          println(s"endVertex $endVertex")
         val revisedStartVertex = startEdge.destination.get
         val revisedEndVertex = endEdge.origin
-        if hasMoreThanOneSharedEdge then
-          println(s"revisedStartVertex $revisedStartVertex")
-          println(s"revisedEndVertex $revisedEndVertex")
-          if startVertex != revisedStartVertex then println("WARN: different start vertex")
-          if endVertex != revisedEndVertex then println("WARN: different end vertex")
 
         // Different boundary angles
-        if hasMoreThanOneSharedEdge then
-          println(s"boundaryAngles $boundaryAngles")
         val revisedBoundaryAngles = BoundaryAngles(
           start = startCheck,
           end = endCheck,
           newVertices = polyAngle.conjugate
         )
-        if hasMoreThanOneSharedEdge then
-          println(s"revisedBoundaryAngles $revisedBoundaryAngles")
-          if boundaryAngles != revisedBoundaryAngles then println("WARN: different boundary angles")
 
         // Different boundary
-//        println(s"originalBoundary $originalBoundary")
         val completeBoundary = BoundaryState(Some(startEdge), Some(endEdge))
-        if hasMoreThanOneSharedEdge then
-          println(s"completeBoundary $completeBoundary")
-//        if originalBoundary != completeBoundary then println("WARN: different boundary")
 
         // Create new components
         val vertexPoints = calculateNewVertices(sides, endVertex.coords, startVertex.coords)
-        if hasMoreThanOneSharedEdge then
-          println(s"vertexPoints $vertexPoints")
         val revisedVertexPoints = vertexPoints.drop(startCounter).dropRight(endCounter)
-        if hasMoreThanOneSharedEdge then
-          println(s"revisedVertexPoints $revisedVertexPoints")
-          if vertexPoints != revisedVertexPoints then println("WARN: different vertex points")
-
-//        val newVertices = createVertices(vertexPoints, tilingDCEL.vertices.size)
-//        println(s"newVertices $newVertices")
         val revisedNewVertices = createVertices(revisedVertexPoints, tilingDCEL.vertices.size)
-        if hasMoreThanOneSharedEdge then
-          println(s"revisedNewVertices $revisedNewVertices")
-//        if newVertices != revisedNewVertices then println("WARN: different new vertices")
 
         val newFace = Face(generateFaceId(tilingDCEL.innerFaces.size))
 
-//        val allVertices = startVertex :: newVertices ::: endVertex :: Nil
-//        println(s"allVertices $allVertices")
         val revisedAllVertices = revisedStartVertex :: revisedNewVertices ::: revisedEndVertex :: Nil
-        if hasMoreThanOneSharedEdge then
-          println(s"revisedAllVertices $revisedAllVertices")
-//        if allVertices != revisedAllVertices then println("WARN: different all vertices")
 
-//        val edgePairs = createEdgePairs(allVertices, outerFace, newFace, boundaryAngles.start, polyAngle)
         val revisedEdgePairs = createEdgePairs(revisedAllVertices, outerFace, newFace, revisedBoundaryAngles.start, polyAngle)
-//        val (newBoundaryEdges, newInnerEdges) = edgePairs.unzip
-//        println(
-//          s"""newBoundaryEdges: $newBoundaryEdges
-//            |newInnerEdges: $newInnerEdges
-//            |""".stripMargin
-//        )
         val (revisedNewBoundaryEdges, revisedNewInnerEdges) = revisedEdgePairs.unzip
-        if hasMoreThanOneSharedEdge then
-          println(
-            s"""revisedNewBoundaryEdges: $revisedNewBoundaryEdges
-               |revisedNewInnerEdges: $revisedNewInnerEdges
-               |""".stripMargin
-          )
 
         // Update existing structures
         updateExistingStructures(
