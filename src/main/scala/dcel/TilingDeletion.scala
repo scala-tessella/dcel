@@ -175,41 +175,56 @@ object TilingDeletion:
           val twinsToDelete = edges.map(_.twin.get)
           val faceToSurvive = edges.head.incidentFace.get
           val faceToRemove = twinsToDelete.head.incidentFace.get
-          // Capture edges of the face to be removed before mutations
           val edgesOfFaceToRemove = faceToRemove.halfEdgesSafe
-
-          // 1. Relink edges around the path to be deleted to merge the two faces
-          val pathStartPrev = edges.head.prev.get
-          val pathEndNext = edges.last.next.get
-          val twinPathStartPrev = twinsToDelete.last.prev.get
-          val twinPathEndNext = twinsToDelete.head.next.get
-
-          pathStartPrev.linkWith(twinPathEndNext)
-          twinPathStartPrev.linkWith(pathEndNext)
-
-          // 2. Update incident face pointers for the edges that were part of the removed face's boundary
-          edgesOfFaceToRemove.foreach(_.incidentFace = Some(faceToSurvive))
-
-          // 3. Update component edge for the surviving face
-          faceToSurvive.outerComponent = Some(pathEndNext)
-
-          // 4. Update 'leaving' pointers for start and end vertices of the path
+    
+          // Capture angles at endpoints before modification
           val startV = edges.head.origin
           val endV = edges.last.destination.get
+    
+          val angleAtStartSurvived = edges.head.angle
+          val twinOfEdgeToPathAtStart = twinsToDelete.head.next.get
+          val angleAtStartRemoved = twinOfEdgeToPathAtStart.angle
+          val newAngleAtStart = for (a1 <- angleAtStartSurvived; a2 <- angleAtStartRemoved) yield a1 + a2
+    
+          val edgeFromPathAtEnd = edges.last.next.get
+          val angleAtEndSurvived = edgeFromPathAtEnd.angle
+          val twinOfEdgeToPathAtEnd = twinsToDelete.last.next.get
+          val angleAtEndRemoved = twinOfEdgeToPathAtEnd.angle
+          val newAngleAtEnd = for (a1 <- angleAtEndSurvived; a2 <- angleAtEndRemoved) yield a1 + a2
+    
+          // 1. Relink edges
+          val pathStartPrev = edges.head.prev.get
+          val pathEndNext = edgeFromPathAtEnd
+          val twinPathStartPrev = twinsToDelete.last.prev.get
+          val twinPathEndNext = twinOfEdgeToPathAtStart
+    
+          pathStartPrev.linkWith(twinPathEndNext)
+          twinPathStartPrev.linkWith(pathEndNext)
+    
+          // Set new angles
+          twinPathEndNext.angle = newAngleAtStart
+          pathEndNext.angle = newAngleAtEnd
+    
+          // 2. Update incident face pointers for the edges that were part of the removed face's boundary
+          edgesOfFaceToRemove.foreach(_.incidentFace = Some(faceToSurvive))
+    
+          // 3. Update component edge for the surviving face
+          faceToSurvive.outerComponent = Some(pathEndNext)
+    
+          // 4. Update 'leaving' pointers for start and end vertices of the path
           val edgesToRemove = (edges ++ twinsToDelete).toSet
-
           if startV.leaving.exists(edgesToRemove.contains) then
             startV.leaving = Some(twinPathEndNext)
           if endV.leaving.exists(edgesToRemove.contains) then
-            endV.leaving = Some(twinPathStartPrev.twin.get)
-
-          // 5. Create new collections for the updated TilingDCEL
-          val verticesToRemove = edges.tail.map(_.origin)
-          val newInnerFaces = tilingDCEL.innerFaces.filterNot(_.id == faceToRemove.id)
-
+            endV.leaving = Some(pathEndNext)
+    
+          // Finalize DCEL
+          val finalHalfEdges = tilingDCEL.halfEdges.filterNot(edgesToRemove.contains)
+          val finalInnerFaces = tilingDCEL.innerFaces.filterNot(_ == faceToRemove)
+    
           Right(TilingDCEL(
-            vertices = tilingDCEL.vertices.filterNot(verticesToRemove.contains),
-            halfEdges = tilingDCEL.halfEdges.filterNot(edgesToRemove.contains),
-            innerFaces = newInnerFaces,
+            vertices = tilingDCEL.vertices,
+            halfEdges = finalHalfEdges,
+            innerFaces = finalInnerFaces,
             outerFace = tilingDCEL.outerFace
           ))
