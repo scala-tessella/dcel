@@ -3,6 +3,8 @@ package dcel
 
 import BigDecimalGeometry.{BigLineSegment, BigPoint, BigRadian, format}
 
+import spire.implicits.*
+
 import scala.collection.mutable
 import scala.xml.*
 
@@ -199,11 +201,27 @@ object TilingSVG:
         val destination = dest.coords
         val segment = BigLineSegment(origin, destination)
         val midPoint = segment.midPoint
-        val directionAngle = origin.angleTo(destination)
-        val perpAngle = directionAngle + BigRadian.TAU_4
-        val unitPerpendicular = BigPoint.fromPolar(BigDecimal(1.0), perpAngle)
-        val offset = unitPerpendicular.scaled((config.strokeWidth * 4).toInt)
-        val (textX, textY) = midPoint.plus(offset).toSvgCoords(config.scale)
+
+        // Transform midpoint to SVG coordinates first
+        val (midX, midY) = midPoint.toSvgCoords(config.scale)
+
+        // Calculate direction in SVG coordinate space
+        val (originX, originY) = origin.toSvgCoords(config.scale)
+        val (destX, destY) = destination.toSvgCoords(config.scale)
+
+        val dx = BigDecimal(destX) - BigDecimal(originX)
+        val dy = BigDecimal(destY) - BigDecimal(originY)
+
+        // Calculate perpendicular offset in SVG space (to the left of direction)
+        val offsetDistance = config.strokeWidth * 4
+        val length = spire.math.sqrt(dx.pow(2) + dy.pow(2))
+
+        val perpX = if length > BigDecimal(BigDecimalGeometry.ACCURACY) then -dy * offsetDistance / length else BigDecimal(0)
+        val perpY = if length > BigDecimal(BigDecimalGeometry.ACCURACY) then dx * offsetDistance / length else BigDecimal(0)
+
+        val textX = (BigDecimal(midX) - perpX).format
+        val textY = (BigDecimal(midY) - perpY).format
+
         <text x={textX} y={textY}>{face.id}</text>
     }
 
