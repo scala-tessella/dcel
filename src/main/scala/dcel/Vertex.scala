@@ -59,6 +59,8 @@ case class Vertex(
 
   def degree: Int = incidentEdges.length
 
+  def isThread: Boolean = degree == 2
+
   def adjacentVertices: List[Vertex] =
     incidentEdges.flatMap(_.destination)
 

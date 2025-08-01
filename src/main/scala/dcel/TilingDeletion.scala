@@ -1,6 +1,8 @@
 package io.github.scala_tessella
 package dcel
 
+import scala.annotation.tailrec
+
 object TilingDeletion:
 
   private case class EdgeClassification(
@@ -136,3 +138,82 @@ object TilingDeletion:
         innerFaces = finalInnerFaces,
         outerFace = tilingDCEL.outerFace
       )
+
+    def deleteEdge(vertexId1: String, vertexId2: String): Either[String, TilingDCEL] =
+      for
+        v1 <- tilingDCEL.findVertex(vertexId1).toRight(s"Vertex with ID $vertexId1 not found.")
+        v2 <- tilingDCEL.findVertex(vertexId2).toRight(s"Vertex with ID $vertexId2 not found.")
+        edge <- tilingDCEL.findEdgeBetween(v1, v2).toRight(s"Edge between vertices $vertexId1 and $vertexId2 not found.")
+        result <-
+          if edge.twin.exists(_.incidentFace.contains(tilingDCEL.outerFace)) then
+            edge.incidentFace.map(_.id).toRight("Edge has no incident face").flatMap(deletePolygon)
+          else
+            performEdgePathDeletion(expandPathToDelete(edge))
+      yield result
+
+    private def expandPathToDelete(startEdge: HalfEdge): List[HalfEdge] =
+      @tailrec
+      def expand(path: List[HalfEdge], forward: Boolean): List[HalfEdge] =
+        val (vertex, edge) = if forward then (path.last.destination.get, path.last) else (path.head.origin, path.head)
+        if !vertex.isThread then path
+        else
+          val nextEdge =
+            if forward then
+              vertex.incidentEdges.find(_ ne edge.twin.get).get
+            else
+              vertex.incidentEdges.find(_ ne edge).get.twin.get
+          val newPath = if forward then path :+ nextEdge else nextEdge :: path
+          expand(newPath, forward)
+
+      val forwardExpanded = expand(List(startEdge), forward = true)
+      expand(forwardExpanded, forward = false)
+
+    private def performEdgePathDeletion(pathToDelete: List[HalfEdge]): Either[String, TilingDCEL] =
+      pathToDelete match
+        case Nil => Left("Cannot delete an empty path of edges.")
+        case edges =>
+          val twinsToDelete = edges.map(_.twin.get)
+          val faceToSurvive = edges.head.incidentFace.get
+          val faceToRemove = twinsToDelete.head.incidentFace.get
+
+          // 1. Relink edges around the path to be deleted
+          val pathStartPrev = edges.head.prev.get
+          val pathEndNext = edges.last.next.get
+          pathStartPrev.linkWith(pathEndNext)
+
+          val twinPathStartPrev = twinsToDelete.last.prev.get
+          val twinPathEndNext = twinsToDelete.head.next.get
+          twinPathStartPrev.linkWith(twinPathEndNext)
+
+          // 2. Update incident face pointers for the merged face
+          @tailrec
+          def updateFaceReferences(current: HalfEdge): Unit =
+            current.incidentFace = Some(faceToSurvive)
+            val next = current.next.get
+            if next ne twinPathEndNext then updateFaceReferences(next)
+
+          updateFaceReferences(twinPathEndNext)
+
+          // 3. Update component edge for the surviving face
+          faceToSurvive.outerComponent = Some(pathEndNext)
+
+          // 4. Update 'leaving' pointers for start and end vertices of the path
+          val startV = edges.head.origin
+          val endV = edges.last.destination.get
+          val edgesToRemove = (edges ++ twinsToDelete).toSet
+
+          if startV.leaving.exists(edgesToRemove.contains) then
+            startV.leaving = Some(twinPathEndNext)
+          if endV.leaving.exists(edgesToRemove.contains) then
+            endV.leaving = Some(twinPathStartPrev.twin.get)
+
+          // 5. Create new collections for the updated TilingDCEL
+          val verticesToRemove = edges.tail.map(_.origin)
+          val newInnerFaces = tilingDCEL.innerFaces.filterNot(_.id == faceToRemove.id)
+
+          Right(TilingDCEL(
+            vertices = tilingDCEL.vertices.filterNot(verticesToRemove.contains),
+            halfEdges = tilingDCEL.halfEdges.filterNot(edgesToRemove.contains),
+            innerFaces = newInnerFaces,
+            outerFace = tilingDCEL.outerFace
+          ))
