@@ -125,34 +125,34 @@ object TilingAddition:
         // Create new components
         val vertexPoints = calculateNewVertices(sides, endVertex.coords, startVertex.coords)
         val revisedVertexPoints = vertexPoints.drop(startCounter).dropRight(endCounter)
-        val revisedNewVertices = createVertices(revisedVertexPoints, tilingDCEL.vertices.size)
+        val newVertices = createVertices(revisedVertexPoints, tilingDCEL.vertices.size)
 
         val newFace = Face(generateFaceId(tilingDCEL.innerFaces.size))
 
-        val revisedAllVertices = revisedStartVertex :: revisedNewVertices ::: revisedEndVertex :: Nil
+        val allVertices = revisedStartVertex :: newVertices ::: revisedEndVertex :: Nil
 
-        val revisedEdgePairs = createEdgePairs(revisedAllVertices, outerFace, newFace, revisedBoundaryAngles.start, polyAngle)
-        val (revisedNewBoundaryEdges, revisedNewInnerEdges) = revisedEdgePairs.unzip
+        val edgePairs = createEdgePairs(allVertices, outerFace, newFace, revisedBoundaryAngles.start, polyAngle)
+        val (newBoundaryEdges, newInnerEdges) = edgePairs.unzip
 
         // Update existing structures
         updateExistingStructures(
           sharedEdges, newFace, polyAngle,
-          revisedNewBoundaryEdges, completeBoundary, revisedBoundaryAngles
+          newBoundaryEdges, completeBoundary, revisedBoundaryAngles
         )
 
         // Link new face edges
-        linkNewFaceEdges(edgeToBuildOn, sharedEdges, revisedNewInnerEdges.reverse, newFace)
+        linkNewFaceEdges(edgeToBuildOn, sharedEdges, newInnerEdges.reverse, newFace)
 
         // Connect to boundary
-        connectNewBoundaryEdges(revisedNewBoundaryEdges, completeBoundary, outerFace, sharedEdges)
+        connectNewBoundaryEdges(newBoundaryEdges, completeBoundary, outerFace, sharedEdges)
 
         // Update vertex leaving edges
-        updateVertexLeavingEdges(revisedStartVertex :: revisedNewVertices, revisedNewBoundaryEdges)
+        updateVertexLeavingEdges(revisedStartVertex :: newVertices, newBoundaryEdges)
 
         // Return new DCEL with updated components
         tilingDCEL.copy(
-          vertices = tilingDCEL.vertices ::: revisedNewVertices,
-          halfEdges = tilingDCEL.halfEdges ::: revisedNewBoundaryEdges ::: revisedNewInnerEdges,
+          vertices = tilingDCEL.vertices ::: newVertices,
+          halfEdges = tilingDCEL.halfEdges ::: newBoundaryEdges ::: newInnerEdges,
           innerFaces = tilingDCEL.innerFaces :+ newFace
         )
 
