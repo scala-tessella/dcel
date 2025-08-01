@@ -1,7 +1,7 @@
 package io.github.scala_tessella
 package dcel
 
-import BigDecimalGeometry.{BigLineSegment, BigPoint, BigRadian, format}
+import BigDecimalGeometry.{BigLineSegment, BigPoint, BigRadian, centroid, format}
 
 import spire.implicits.*
 
@@ -46,13 +46,7 @@ object TilingSVG:
       Some(Arrow(tip.x.format, tip.y.format, base1.x.format, base1.y.format, base2.x.format, base2.y.format))
 
   private def calculateCentroid(vertices: List[Vertex]): BigPoint =
-    vertices match
-      case Nil => BigPoint(0, 0)
-      case vs =>
-        val (sumX, sumY) = vs.map(_.coords).foldLeft((BigDecimal(0), BigDecimal(0))) {
-          case ((x, y), point) => (x + point.x, y + point.y)
-        }
-        BigPoint(sumX / vs.length, sumY / vs.length)
+    vertices.map(_.coords).centroid
 
   private def calculateDirection(from: BigPoint, to: BigPoint): BigPoint =
     BigPoint.fromPolar(BigDecimal(1.0), from.angleTo(to))

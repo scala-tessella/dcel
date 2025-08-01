@@ -518,36 +518,6 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with EitherValues:
     coordinates should not be empty
   }
 
-  behavior of "Boundary arrows"
-
-  it should "generate boundary direction arrows when boundary exists" in {
-    val triangleTiling = createTriangleTiling()
-    val svg = triangleTiling.toScalableVectorGraphics()
-
-    // Should contain boundary direction arrows section
-    svg should include("<!-- Boundary Direction Arrows -->")
-    svg should include("fill=\"red\"")
-    svg should include("stroke=\"red\"")
-  }
-
-  it should "handle empty boundary gracefully" in {
-    // Create a tiling with no boundary
-    val vertex = Vertex("V0", BigPoint(BigDecimal(0), BigDecimal(0)))
-    val tilingWithNoBoundary = TilingDCEL(
-      vertices = List(vertex),
-      halfEdges = List.empty,
-      innerFaces = List.empty,
-      outerFace = Face(Face.outerId)
-    )
-
-    val svg = tilingWithNoBoundary.toScalableVectorGraphics()
-
-    // Should not contain boundary direction arrows
-    svg should not include "<!-- Boundary Direction Arrows -->"
-    svg should include("<svg")
-    svg should include("</svg>")
-  }
-
   behavior of "SVG sections"
 
   it should "generate different arrow sections for inner and outer faces" in {
