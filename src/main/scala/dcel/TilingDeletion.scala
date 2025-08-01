@@ -25,25 +25,25 @@ object TilingDeletion:
     private def findInnerFace(faceId: String): Either[String, Face] =
       tilingDCEL.innerFaces.find(_.id == faceId)
         .toRight(s"Inner face with ID $faceId not found.")
-    
+
     private def classifyFaceEdges(face: Face): Either[String, EdgeClassification] =
       val faceEdges = face.halfEdgesSafe
       val twinEdges = faceEdges.map(_.twin.get)
       val (boundaryTwins, innerTwins) = twinEdges.partition(_.incidentFace.contains(tilingDCEL.outerFace))
       Right(EdgeClassification(faceEdges, boundaryTwins, innerTwins))
-    
+
     private def validateFaceDeletion(face: Face, classification: EdgeClassification): Either[String, Unit] =
       for
         _ <- validateFaceIsBoundaryAdjacent(face, classification.boundaryTwins)
         _ <- validateDeletionWontPartition(face, classification.innerTwins)
       yield ()
-    
+
     private def validateFaceIsBoundaryAdjacent(face: Face, boundaryTwins: List[HalfEdge]): Either[String, Unit] =
       if boundaryTwins.isEmpty then
         Left(s"Face ${face.id} is not adjacent to the outer boundary.")
       else
         Right(())
-    
+
     private def validateDeletionWontPartition(face: Face, innerTwins: List[HalfEdge]): Either[String, Unit] =
       val neighborInnerFaces = innerTwins.map(_.incidentFace.get).distinct
       if neighborInnerFaces.length <= 1 then
@@ -53,7 +53,7 @@ object TilingDeletion:
         checkBoundaryVertexConnectivity(innerTwins) match
           case Some(_) => Right(())
           case None => Left(s"Removing face ${face.id} would partition the tiling.")
-    
+
     /**
      * Checks if the boundary vertices that the deleted face shares with neighbor inner faces
      * form a connected path. If they do, removing the face won't partition the tiling.
@@ -63,18 +63,18 @@ object TilingDeletion:
      */
     private def checkBoundaryVertexConnectivity(innerTwins: List[HalfEdge]): Option[Unit] =
       if innerTwins.isEmpty then return Some(())
-    
+
       // Get vertices where the deleted face connects to other inner faces
       val sharedVertices = innerTwins.flatMap(edge => List(edge.origin, edge.twin.get.origin)).distinct
-    
+
       if sharedVertices.length <= 1 then
         // If there's only one or no shared vertex, deletion won't partition
         return Some(())
-    
+
       // Build adjacency map for these vertices through the boundary of the outer face
       val boundaryEdges = tilingDCEL.getBoundaryEdges
       val boundaryVertexAdjacency = Vertex.buildBoundaryVertexAdjacency(boundaryEdges.toOption.get, sharedVertices.toSet)
-    
+
       // Check if all shared vertices are connected through the boundary path
       Vertex.checkConnectivity(sharedVertices.head, sharedVertices.toSet, boundaryVertexAdjacency)
 
@@ -175,24 +175,20 @@ object TilingDeletion:
           val twinsToDelete = edges.map(_.twin.get)
           val faceToSurvive = edges.head.incidentFace.get
           val faceToRemove = twinsToDelete.head.incidentFace.get
+          // Capture edges of the face to be removed before mutations
+          val edgesOfFaceToRemove = faceToRemove.halfEdgesSafe
 
-          // 1. Relink edges around the path to be deleted
+          // 1. Relink edges around the path to be deleted to merge the two faces
           val pathStartPrev = edges.head.prev.get
           val pathEndNext = edges.last.next.get
-          pathStartPrev.linkWith(pathEndNext)
-
           val twinPathStartPrev = twinsToDelete.last.prev.get
           val twinPathEndNext = twinsToDelete.head.next.get
-          twinPathStartPrev.linkWith(twinPathEndNext)
 
-          // 2. Update incident face pointers for the merged face
-          @tailrec
-          def updateFaceReferences(current: HalfEdge): Unit =
-            current.incidentFace = Some(faceToSurvive)
-            val next = current.next.get
-            if next ne twinPathEndNext then updateFaceReferences(next)
+          pathStartPrev.linkWith(twinPathEndNext)
+          twinPathStartPrev.linkWith(pathEndNext)
 
-          updateFaceReferences(twinPathEndNext)
+          // 2. Update incident face pointers for the edges that were part of the removed face's boundary
+          edgesOfFaceToRemove.foreach(_.incidentFace = Some(faceToSurvive))
 
           // 3. Update component edge for the surviving face
           faceToSurvive.outerComponent = Some(pathEndNext)

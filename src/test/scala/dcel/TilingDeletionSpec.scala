@@ -142,7 +142,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
     val result = tiling.deleteEdge("V1", "V2")
     result.isRight shouldBe true
     val newTiling = result.value
-//    println(newTiling.toSVG())
+    println(newTiling.toSVG())
     println(TilingDCEL.validate(newTiling))
     verifyValidTiling(newTiling)
 
