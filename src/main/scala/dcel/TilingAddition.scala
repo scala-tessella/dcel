@@ -176,7 +176,7 @@ object TilingAddition:
     originalBoundary: BoundaryState,
     boundaryAngles: BoundaryAngles
   ): Unit =
-    // Update shared edge
+    // Update shared edges
     sharedEdges.foreach(_.incidentFace = Some(newFace))
     sharedEdges.foreach(_.angle = Some(polyAngle))
 
