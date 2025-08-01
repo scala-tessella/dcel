@@ -210,7 +210,7 @@ object TilingAddition:
 //        if !hasMoreThanOneSharedEdge then
 //        connectNewBoundaryEdges(revisedNewBoundaryEdges, completeBoundary, outerFace, edgeToBuildOn)
 //        else
-          connectNewBoundaryEdgesRevised(revisedNewBoundaryEdges, completeBoundary, outerFace, edgeToBuildOn)
+          connectNewBoundaryEdgesRevised(revisedNewBoundaryEdges, completeBoundary, outerFace, edgeToBuildOn, sharedEdges)
 
         // @todo probably wrong if hasMoreThanOneSharedEdge
         // Update vertex leaving edges
@@ -333,7 +333,8 @@ object TilingAddition:
      newBoundaryEdges: List[HalfEdge],
      originalBoundary: BoundaryState,
      outerFace: Face,
-     edgeToBuildOn: HalfEdge
+     edgeToBuildOn: HalfEdge,
+     sharedEdges: List[HalfEdge]
   ): Unit =
 
 //    println("START")
@@ -343,6 +344,7 @@ object TilingAddition:
 //         |originalBoundary: $originalBoundary
 //         |outerFace: $outerFace
 //         |edgeToBuildOn: $edgeToBuildOn
+//         |sharedEdges: $sharedEdges
 //         |""".stripMargin)
     HalfEdge.insertBoundarySegment(
       originalBoundary.prev.get,
@@ -351,8 +353,11 @@ object TilingAddition:
     )
 
     // Update outer face component if necessary
-    if outerFace.outerComponent.contains(edgeToBuildOn) then
+    if outerFace.outerComponent.exists(e => sharedEdges.contains(e)) then
       outerFace.outerComponent = newBoundaryEdges.headOption
+//
+//    if outerFace.outerComponent.contains(edgeToBuildOn) then
+//      outerFace.outerComponent = newBoundaryEdges.headOption
 
 //    println("END")
 

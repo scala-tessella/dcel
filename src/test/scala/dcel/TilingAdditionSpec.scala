@@ -184,6 +184,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
     result.isRight shouldBe true
     val tiling = result.value
+//    println(tiling.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
 
     verifyValidTiling(tiling)
 
@@ -212,6 +213,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
     result.isRight shouldBe true
     val tiling = result.value
+//    println(tiling.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
 
     verifyValidTiling(tiling)
 
@@ -230,6 +232,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
     result.isRight shouldBe true
     val tiling = result.value
+//    println(tiling.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
 
     verifyValidTiling(tiling)
 
@@ -243,6 +246,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
     result.isRight shouldBe true
     val tiling = result.value
+//    println(tiling.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
 
     verifyValidTiling(tiling)
 
@@ -263,6 +267,8 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     verifyValidTiling(step2.value)
 
     val finalTiling = step2.value
+//    println(finalTiling.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
+
     finalTiling.vertices should have size 5
     finalTiling.innerFaces should have size 3
   }
@@ -273,6 +279,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     val withPentagon = withTriangle.addRegularPolygon(5, "V2").value
 
     verifyValidTiling(withPentagon)
+//    println(withPentagon.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
 
     // Check that boundary is still traversable
     val boundary = withPentagon.boundary
@@ -448,6 +455,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
       currentTiling = result.value
       verifyValidTiling(currentTiling)
 
+//    println(currentTiling.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
     currentTiling.innerFaces should have size 7 // 1 hexagon + 6 triangles
   }
 
@@ -463,8 +471,8 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     result.isRight shouldBe true
 
     val newTiling = result.value
-//    println(newTiling.toSVG())
-    println(TilingDCEL.validate(newTiling))
+//    println(newTiling.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
+//    println(TilingDCEL.validate(newTiling))
     verifyValidTiling(newTiling)
   }
 
@@ -479,7 +487,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
     val newTiling = result.value
 //    println(newTiling.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
-    println(TilingDCEL.validate(newTiling))
+//    println(TilingDCEL.validate(newTiling))
     verifyValidTiling(newTiling)
   }
 
@@ -493,8 +501,8 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     result.isRight shouldBe true
 
     val newTiling = result.value
-//    println(newTiling.toSVG())
-    println(TilingDCEL.validate(newTiling))
+//    println(newTiling.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
+//    println(TilingDCEL.validate(newTiling))
     verifyValidTiling(newTiling)
   }
 
@@ -508,8 +516,8 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     result.isRight shouldBe true
 
     val newTiling = result.value
-//    println(newTiling.toSVG())
-    println(TilingDCEL.validate(newTiling))
+//    println(newTiling.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
+//    println(TilingDCEL.validate(newTiling))
     verifyValidTiling(newTiling)
   }
 
@@ -523,8 +531,8 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     result.isRight shouldBe true
 
     val newTiling = result.value
-//    println(newTiling.toSVG())
-    println(TilingDCEL.validate(newTiling))
+//    println(newTiling.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
+//    println(TilingDCEL.validate(newTiling))
     verifyValidTiling(newTiling)
   }
 
@@ -538,7 +546,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     result.isRight shouldBe true
 
     val newTiling = result.value
-//    println(newTiling.toSVG())
-    println(TilingDCEL.validate(newTiling))
+//    println(newTiling.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
+//    println(TilingDCEL.validate(newTiling))
     verifyValidTiling(newTiling)
   }
