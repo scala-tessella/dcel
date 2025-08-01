@@ -120,22 +120,15 @@ object TilingSVG:
 
     (innerAngleLabels, outerAngleLabels)
 
-  private def createBoundaryElements(tilingDCEL: TilingDCEL, config: SvgConfig): (Option[Elem], Seq[Elem]) =
+  private def createBoundaryElements(tilingDCEL: TilingDCEL, config: SvgConfig): Option[Elem] =
     tilingDCEL.boundary match
       case vertices if vertices.nonEmpty =>
         val points = vertices.map { v =>
           val (x, y) = v.coords.toSvgCoords(config.scale)
           s"$x,$y"
         }.mkString(" ")
-
-        val arrows = vertices.zipWithIndex.flatMap { case (v1, i) =>
-          val v2 = vertices((i + 1) % vertices.length)
-          createArrow(v1.coords, v2.coords, config.scale, config.strokeWidth * 6)
-            .map(a => <polygon points={s"${a.tipX},${a.tipY} ${a.baseX1},${a.baseY1} ${a.baseX2},${a.baseY2}"}/>)
-        }
-
-        (Some(<polygon points={points}/>), arrows)
-      case _ => (None, Nil)
+        Some(<polygon points={points}/>)
+      case _ => None
 
   private def createVertexElements(tilingDCEL: TilingDCEL, config: SvgConfig): (Seq[Elem], Seq[Elem]) =
     val circles = tilingDCEL.vertices.map { v =>
@@ -258,7 +251,7 @@ object TilingSVG:
       val innerFaceArrows = createHalfEdgeArrows(tilingDCEL.innerFaces.flatMap(_.halfEdgesSafe), config)
       val outerFaceArrows = createHalfEdgeArrows(tilingDCEL.getBoundaryEdges.getOrElse(Nil), config)
       val (innerAngleLabels, outerAngleLabels) = createAngleLabels(tilingDCEL, config)
-      val (boundaryPolygon, boundaryArrows) = createBoundaryElements(tilingDCEL, config)
+      val boundaryPolygon = createBoundaryElements(tilingDCEL, config)
       val (vertexCircles, vertexLabels) = createVertexElements(tilingDCEL, config)
       val faceLabels = createFaceLabels(tilingDCEL, config)
       val traversalArrows = createTraversalArrows(tilingDCEL, config)
@@ -267,8 +260,7 @@ object TilingSVG:
 
       // Build sections
       val boundarySection = boundaryPolygon.map(polygon =>
-        createSvgSection("Boundary Highlight", Seq(polygon), attrs("stroke" -> "red", "stroke-width" -> strokeWidth * 3, "fill" -> "none")) ++
-          createSvgSection("Boundary Direction Arrows", boundaryArrows, attrs("fill" -> "red", "stroke" -> "red", "stroke-width" -> strokeWidth * 0.5))
+        createSvgSection("Boundary Highlight", Seq(polygon), attrs("stroke" -> "red", "stroke-width" -> strokeWidth * 3, "fill" -> "none"))
       ).getOrElse(NodeSeq.Empty)
 
       val sections = List(

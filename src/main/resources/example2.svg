@@ -12,13 +12,6 @@
     <g fill="none" stroke-width="3.0" stroke="red">
       <polygon points="50,0 0,0 -25,-43.3 25,-43.3"/>
     </g>
-    <!-- Boundary Direction Arrows -->
-    <g stroke-width="0.5" stroke="red" fill="red">
-      <polygon points="19,-0 25,2.4 25,-2.4"/>
-      <polygon points="-15.500066,-26.846114 -14.578446,-20.449974 -10.421554,-22.850026"/>
-      <polygon points="6,-43.3 0,-45.7 -0,-40.9"/>
-      <polygon points="40.500066,-16.453886 39.578446,-22.850026 35.421554,-20.449974"/>
-    </g>
     <!-- Inner Face Half-Edge Direction Arrows -->
     <g stroke-width="0.5" stroke="blue" fill="blue">
       <polygon points="28,0 25,-1.2 25,1.2"/>

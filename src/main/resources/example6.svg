@@ -19,15 +19,6 @@
   <g fill="none" stroke-width="3.0" stroke="red">
     <polygon points="25,-43.3 50,0 25,43.3 -25,43.3 -50,0 -25,-43.3"/>
   </g>
-  <!-- Boundary Direction Arrows -->
-  <g stroke-width="0.5" stroke="red" fill="red">
-    <polygon points="40.500066,-16.453886 39.578446,-22.850026 35.421554,-20.449974"/>
-    <polygon points="34.499934,26.846114 39.578446,22.850026 35.421554,20.449974"/>
-    <polygon points="-6,43.3 -0,45.7 0,40.9"/>
-    <polygon points="-40.500066,16.453886 -39.578446,22.850026 -35.421554,20.449974"/>
-    <polygon points="-34.499934,-26.846114 -39.578446,-22.850026 -35.421554,-20.449974"/>
-    <polygon points="6,-43.3 0,-45.7 -0,-40.9"/>
-  </g>
   <!-- Inner Face Half-Edge Direction Arrows -->
   <g stroke-width="0.5" stroke="blue" fill="blue">
     <polygon points="28,0 25,-1.2 25,1.2"/>
