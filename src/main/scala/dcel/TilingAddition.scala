@@ -185,39 +185,20 @@ object TilingAddition:
                |""".stripMargin
           )
 
-        // @todo probably wrong if hasMoreThanOneSharedEdge
         // Update existing structures
-//        if hasMoreThanOneSharedEdge then
-        updateExistingStructuresRevised(
-          edgeToBuildOn, sharedEdges, newFace, polyAngle,
+        updateExistingStructures(
+          sharedEdges, newFace, polyAngle,
           revisedNewBoundaryEdges, completeBoundary, revisedBoundaryAngles
         )
-//        else
-//          updateExistingStructures(
-//            edgeToBuildOn, newFace, polyAngle,
-//            revisedNewBoundaryEdges, completeBoundary, revisedBoundaryAngles
-//          )
 
-        // @todo probably wrong if hasMoreThanOneSharedEdge
         // Link new face edges
-//        if hasMoreThanOneSharedEdge then
-        linkNewFaceEdgesRevised(edgeToBuildOn, sharedEdges, revisedNewInnerEdges.reverse, newFace)
-//        else
-//          linkNewFaceEdges(edgeToBuildOn, revisedNewInnerEdges.reverse, newFace)
+        linkNewFaceEdges(edgeToBuildOn, sharedEdges, revisedNewInnerEdges.reverse, newFace)
 
-        // @todo probably wrong if hasMoreThanOneSharedEdge
         // Connect to boundary
-//        if !hasMoreThanOneSharedEdge then
-//        connectNewBoundaryEdges(revisedNewBoundaryEdges, completeBoundary, outerFace, edgeToBuildOn)
-//        else
-          connectNewBoundaryEdgesRevised(revisedNewBoundaryEdges, completeBoundary, outerFace, edgeToBuildOn, sharedEdges)
+        connectNewBoundaryEdges(revisedNewBoundaryEdges, completeBoundary, outerFace, sharedEdges)
 
-        // @todo probably wrong if hasMoreThanOneSharedEdge
         // Update vertex leaving edges
-//        if !hasMoreThanOneSharedEdge then
-//          updateVertexLeavingEdges(revisedStartVertex :: revisedNewVertices, revisedNewBoundaryEdges, revisedEndVertex, edgeToBuildOn)
-//        else
-        updateVertexLeavingEdgesRevised(revisedStartVertex :: revisedNewVertices, revisedNewBoundaryEdges)
+        updateVertexLeavingEdges(revisedStartVertex :: revisedNewVertices, revisedNewBoundaryEdges)
 
         // Return new DCEL with updated components
         tilingDCEL.copy(
@@ -238,30 +219,7 @@ object TilingAddition:
     next: Option[HalfEdge]
   )
 
-  // More functional helper methods
   private def updateExistingStructures(
-    edgeToBuildOn: HalfEdge,
-    newFace: Face,
-    polyAngle: AngleDegree,
-    newBoundaryEdges: List[HalfEdge],
-    originalBoundary: BoundaryState,
-    boundaryAngles: BoundaryAngles
-  ): Unit =
-    // Update shared edge
-    edgeToBuildOn.incidentFace = Some(newFace)
-    edgeToBuildOn.angle = Some(polyAngle)
-
-    // Update last boundary edge angle
-    newBoundaryEdges.lastOption.foreach(_.angle = Some(boundaryAngles.newVertices))
-
-    // Update existing boundary edge from end vertex
-    originalBoundary.next.foreach { nextEdge =>
-      if nextEdge.origin.id == edgeToBuildOn.destination.map(_.id).getOrElse("") then
-        nextEdge.angle = Some(boundaryAngles.end)
-    }
-
-  private def updateExistingStructuresRevised(
-    edgeToBuildOn: HalfEdge,
     sharedEdges: List[HalfEdge],
     newFace: Face,
     polyAngle: AngleDegree,
@@ -271,9 +229,7 @@ object TilingAddition:
   ): Unit =
     // Update shared edge
     sharedEdges.foreach(_.incidentFace = Some(newFace))
-//    edgeToBuildOn.incidentFace = Some(newFace)
     sharedEdges.foreach(_.angle = Some(polyAngle))
-//    edgeToBuildOn.angle = Some(polyAngle)
 
     // Update last boundary edge angle
     newBoundaryEdges.lastOption.foreach(_.angle = Some(boundaryAngles.newVertices))
@@ -290,62 +246,20 @@ object TilingAddition:
 
   private def linkNewFaceEdges(
     edgeToBuildOn: HalfEdge,
-    reversedInnerEdges: List[HalfEdge],
-    newFace: Face
-  ): Unit =
-    val allInnerEdges = edgeToBuildOn :: reversedInnerEdges
-    allInnerEdges.linkInCycle()
-    newFace.outerComponent = Some(edgeToBuildOn)
-
-  private def linkNewFaceEdgesRevised(
-    edgeToBuildOn: HalfEdge,
     sharedEdges: List[HalfEdge],
     reversedInnerEdges: List[HalfEdge],
     newFace: Face
   ): Unit =
-//    println(
-//      s"""
-//         |sharedEdges: $sharedEdges
-//         |reversedInnerEdges: $reversedInnerEdges
-//         |""".stripMargin)
     val allInnerEdges = sharedEdges ::: reversedInnerEdges
     allInnerEdges.linkInCycle()
     newFace.outerComponent = Some(edgeToBuildOn)
 
   private def connectNewBoundaryEdges(
-    newBoundaryEdges: List[HalfEdge],
-    originalBoundary: BoundaryState,
-    outerFace: Face,
-    edgeToBuildOn: HalfEdge
-  ): Unit =
-
-    HalfEdge.insertBoundarySegment(
-      originalBoundary.prev.get,
-      originalBoundary.next.get,
-      newBoundaryEdges
-    )
-
-    // Update outer face component if necessary
-    if outerFace.outerComponent.contains(edgeToBuildOn) then
-      outerFace.outerComponent = newBoundaryEdges.headOption
-
-  private def connectNewBoundaryEdgesRevised(
      newBoundaryEdges: List[HalfEdge],
      originalBoundary: BoundaryState,
      outerFace: Face,
-     edgeToBuildOn: HalfEdge,
      sharedEdges: List[HalfEdge]
   ): Unit =
-
-//    println("START")
-//    println(
-//      s"""
-//         |newBoundaryEdges: $newBoundaryEdges
-//         |originalBoundary: $originalBoundary
-//         |outerFace: $outerFace
-//         |edgeToBuildOn: $edgeToBuildOn
-//         |sharedEdges: $sharedEdges
-//         |""".stripMargin)
     HalfEdge.insertBoundarySegment(
       originalBoundary.prev.get,
       originalBoundary.next.get,
@@ -355,32 +269,11 @@ object TilingAddition:
     // Update outer face component if necessary
     if outerFace.outerComponent.exists(e => sharedEdges.contains(e)) then
       outerFace.outerComponent = newBoundaryEdges.headOption
-//
-//    if outerFace.outerComponent.contains(edgeToBuildOn) then
-//      outerFace.outerComponent = newBoundaryEdges.headOption
-
-//    println("END")
 
   private def updateVertexLeavingEdges(
     verticesWithNewEdges: List[Vertex],
     newBoundaryEdges: List[HalfEdge],
-    endVertex: Vertex,
-    edgeToBuildOn: HalfEdge
   ): Unit =
     verticesWithNewEdges.zip(newBoundaryEdges).foreach { (vertex, edge) =>
       vertex.leaving = Some(edge)
     }
-//    endVertex.leaving = edgeToBuildOn.twin
-
-  private def updateVertexLeavingEdgesRevised(
-    verticesWithNewEdges: List[Vertex],
-    newBoundaryEdges: List[HalfEdge],
-  ): Unit =
-//    println("START")
-    verticesWithNewEdges.zip(newBoundaryEdges).foreach { (vertex, edge) =>
-      vertex.leaving = Some(edge)
-    }
-//    println(s"endVertex = $endVertex")
-//    println(s"endVertex.leaving = ${endVertex.leaving}")
-//    endVertex.leaving = edgeToBuildOn.twin
-//    println("END")
