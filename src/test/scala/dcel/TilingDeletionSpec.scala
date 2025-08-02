@@ -164,14 +164,13 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
     // Deleting the inner edge (V1, V2)
     val result = tiling
-      .deleteEdge("V1", "V3")
-//      .value
-//      .deleteEdge("V1", "V4").value
-//      .deleteEdge("V1", "V5").value
-//      .deleteEdge("V1", "V6")
+      .deleteEdge("V1", "V3").value
+      .deleteEdge("V1", "V4").value
+      .deleteEdge("V1", "V5").value
+      .deleteEdge("V1", "V6")
     result.isRight shouldBe true
     val newTiling = result.value
-    println(newTiling.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
-    println(TilingDCEL.validate(newTiling))
+//    println(newTiling.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
+//    println(TilingDCEL.validate(newTiling))
     verifyValidTiling(newTiling)
   }
