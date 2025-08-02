@@ -550,3 +550,41 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 //    println(TilingDCEL.validate(newTiling))
     verifyValidTiling(newTiling)
   }
+
+  it should "successfully fill a hole created by a share vertex" in {
+    val initialTiling = TilingBuilder.createRegularPolygon(4).value
+
+    val result = initialTiling
+      .maybeAddRegularPolygon(3, "V1").value
+      .maybeAddRegularPolygon(3, "V3").value
+      .maybeAddRegularPolygon(3, "V5").value
+      .maybeAddRegularPolygon(3, "V3").value
+      .maybeAddRegularPolygon(4, "V7").value
+      .maybeAddRegularPolygon(4, "V3")
+    result.isRight shouldBe true
+
+    val newTiling = result.value
+//    println(newTiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
+//    println(TilingDCEL.validate(newTiling))
+    verifyValidTiling(newTiling)
+  }
+
+  it should "successfully fill a hole created by a shared edge" in {
+    val initialTiling = TilingBuilder.createRegularPolygon(3).value
+
+    val result = initialTiling
+      .maybeAddRegularPolygon(4, "V1").value
+      .maybeAddRegularPolygon(4, "V3").value
+      .maybeAddRegularPolygon(3, "V5").value
+      .maybeAddRegularPolygon(3, "V6").value
+      .maybeAddRegularPolygon(4, "V5").value
+      .maybeAddRegularPolygon(3, "V6").value
+      .maybeAddRegularPolygon(3, "V11").value
+      .maybeAddRegularPolygon(4, "V6")
+    result.isRight shouldBe true
+
+    val newTiling = result.value
+//    println(newTiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
+//    println(TilingDCEL.validate(newTiling))
+    verifyValidTiling(newTiling)
+  }
