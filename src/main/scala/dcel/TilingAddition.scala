@@ -106,8 +106,6 @@ object TilingAddition:
           endEdge = endEdge.next.get
           endCounter += 1
 
-        val hasMoreThanOneSharedEdge = sharedEdges.length > 1
-
         // Different start and end vertex
         val revisedStartVertex = startEdge.destination.get
         val revisedEndVertex = endEdge.origin
