@@ -162,7 +162,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
       .maybeAddRegularPolygon(3, "V1").value
       .maybeAddRegularPolygon(3, "V1").value
 
-    // Deleting the inner edge (V1, V2)
+    // Deleting the inner edges
     val result = tiling
       .deleteEdge("V1", "V3").value
       .deleteEdge("V1", "V4").value
@@ -174,3 +174,26 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
 //    println(TilingDCEL.validate(newTiling))
     verifyValidTiling(newTiling)
   }
+
+  it should "successfully delete a path of inner edges" in {
+    val initialTiling = TilingBuilder.createRegularPolygon(4).value
+
+    val tiling = initialTiling
+      .maybeAddRegularPolygon(4, "V1").value
+      .maybeAddRegularPolygon(4, "V1").value
+      .maybeAddRegularPolygon(4, "V2").value
+
+    // Deleting the inner edges
+    val result = tiling
+      .deleteEdge("V1", "V2").value
+      .deleteEdge("V1", "V5").value
+      .deleteEdge("V1", "V4")
+    result.isRight shouldBe true
+    val newTiling = result.value
+    println(newTiling)
+    println(newTiling.vertices.find(_.id == "V1").get.incidentEdges)
+//    println(newTiling.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
+    println(TilingDCEL.validate(newTiling))
+    verifyValidTiling(newTiling)
+  }
+
