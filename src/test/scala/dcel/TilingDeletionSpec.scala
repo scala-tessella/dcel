@@ -142,7 +142,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
     val result = tiling.deleteEdge("V1", "V2")
     result.isRight shouldBe true
     val newTiling = result.value
-//    println(newTiling.toSVG())
+//    println(newTiling.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
 //    println(TilingDCEL.validate(newTiling))
     verifyValidTiling(newTiling)
 
@@ -152,3 +152,26 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
     newTiling.boundary.length shouldBe 6
   }
 
+  it should "successfully delete multiple single inner edges" in {
+    val initialTiling = TilingBuilder.createRegularPolygon(3).value
+
+    val tiling = initialTiling
+      .maybeAddRegularPolygon(3, "V1").value
+      .maybeAddRegularPolygon(3, "V1").value
+      .maybeAddRegularPolygon(3, "V1").value
+      .maybeAddRegularPolygon(3, "V1").value
+      .maybeAddRegularPolygon(3, "V1").value
+
+    // Deleting the inner edge (V1, V2)
+    val result = tiling
+      .deleteEdge("V1", "V3")
+//      .value
+//      .deleteEdge("V1", "V4").value
+//      .deleteEdge("V1", "V5").value
+//      .deleteEdge("V1", "V6")
+    result.isRight shouldBe true
+    val newTiling = result.value
+    println(newTiling.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
+    println(TilingDCEL.validate(newTiling))
+    verifyValidTiling(newTiling)
+  }
