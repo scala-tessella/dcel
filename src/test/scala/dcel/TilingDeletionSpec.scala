@@ -190,10 +190,8 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
       .deleteEdge("V1", "V4")
     result.isRight shouldBe true
     val newTiling = result.value
-    println(newTiling)
-    println(newTiling.vertices.find(_.id == "V1").get.incidentEdges)
-//    println(newTiling.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
-    println(TilingDCEL.validate(newTiling))
+//    println(newTiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
+//    println(TilingDCEL.validate(newTiling))
     verifyValidTiling(newTiling)
   }
 

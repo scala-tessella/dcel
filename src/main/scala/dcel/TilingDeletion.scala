@@ -210,19 +210,24 @@ object TilingDeletion:
           // 3. Update component edge for the surviving face
           faceToSurvive.outerComponent = Some(pathEndNext)
 
-          // 4. Update 'leaving' pointers for start and end vertices of the path
-          val edgesToRemove = (edges ++ twinsToDelete).toSet
+          // 4. Remove obsolete entities
+          val verticesInTheMiddle = pathToDelete.map(_.origin).tail.toSet
+          val verticesToRemove = verticesInTheMiddle -- Set(startV, endV)
+          val edgesToRemove = (pathToDelete ++ twinsToDelete).toSet
+
+          // 5. Update 'leaving' pointers for start and end vertices of the path
           if startV.leaving.exists(edgesToRemove.contains) then
             startV.leaving = Some(twinPathEndNext)
           if endV.leaving.exists(edgesToRemove.contains) then
             endV.leaving = Some(pathEndNext)
 
           // Finalize DCEL
+          val finalVertices = tilingDCEL.vertices.filterNot(verticesToRemove.contains)
           val finalHalfEdges = tilingDCEL.halfEdges.filterNot(edgesToRemove.contains)
           val finalInnerFaces = tilingDCEL.innerFaces.filterNot(_ == faceToRemove)
 
           Right(TilingDCEL(
-            vertices = tilingDCEL.vertices,
+            vertices = finalVertices,
             halfEdges = finalHalfEdges,
             innerFaces = finalInnerFaces,
             outerFace = tilingDCEL.outerFace
