@@ -165,11 +165,12 @@ object TilingDCEL:
           }
     }
 
-    if tiling.outerFace.outerComponent.isEmpty then
-      errors += "Outer face has no outer component"
+    if tiling.faces.exists(_.outerComponent.isEmpty) then
+      errors += "Face with outer issues"
 
-    if tiling.innerFaces.exists(_.hasHoles) then
-      errors += "Inner face with holes"
+    // This is specific to the tessellation we want, without holes, because holes are just other inner polygons
+    if tiling.faces.exists(_.hasHoles) then
+      errors += "Face with inner holes"
 
     // Check angles' sum for each inner face
     tiling.innerFaces.foreach { face =>
