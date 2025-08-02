@@ -60,6 +60,51 @@ object TilingAddition:
   private def generateFaceId(existingFaceCount: Int): String =
     s"F${existingFaceCount + 1}"
 
+  private case class SharedEdgesResult(
+    sharedEdges: List[HalfEdge],
+    startCheck: AngleDegree,
+    startEdge: HalfEdge,
+    startCounter: Int,
+    endCheck: AngleDegree,
+    endEdge: HalfEdge,
+    endCounter: Int
+  )
+
+  private def findSharedEdges(
+    edgeToBuildOn: HalfEdge,
+    boundaryAngles: BoundaryAngles,
+    polyAngle: AngleDegree
+  )(using outerFace: Face): SharedEdgesResult =
+
+    @scala.annotation.tailrec
+    def traverse(
+      edge: HalfEdge,
+      check: AngleDegree,
+      acc: List[HalfEdge],
+      getNext: HalfEdge => HalfEdge,
+      getVertex: HalfEdge => Vertex
+    ): (List[HalfEdge], AngleDegree, HalfEdge) =
+      if !check.isFullCircle then (acc, check, edge)
+      else
+        val nextCheck = boundaryAngleForVertex(getVertex(edge), outerFace, polyAngle)
+        traverse(getNext(edge), nextCheck, edge :: acc, getNext, getVertex)
+
+    val (prepended, startCheck, startEdge) =
+      traverse(edgeToBuildOn.prev.get, boundaryAngles.start, Nil, _.prev.get, _.origin)
+
+    val (appended, endCheck, endEdge) =
+      traverse(edgeToBuildOn.next.get, boundaryAngles.end, Nil, _.next.get, _.destination.get)
+
+    SharedEdgesResult(
+      sharedEdges = prepended.reverse ::: edgeToBuildOn :: appended.reverse,
+      startCheck = startCheck,
+      startEdge = startEdge,
+      startCounter = prepended.length,
+      endCheck = endCheck,
+      endEdge = endEdge,
+      endCounter = appended.length
+    )
+
   extension (tilingDCEL: TilingDCEL)
 
     def addRegularPolygon(sides: Int, onEdgeStartingWithVertexId: String): Either[String, TilingDCEL] =
@@ -83,46 +128,25 @@ object TilingAddition:
           newVertices = polyAngle.conjugate
         )
 
-        var sharedEdges = List(edgeToBuildOn)
-
-        // Add possible shared edges
-        var startCheck = boundaryAngles.start
-        var startEdge = edgeToBuildOn.prev.get
-        var startCounter = 0
-        while startCheck.isFullCircle
-        do
-          startCheck = boundaryAngleForVertex(startEdge.origin, outerFace, polyAngle)
-          sharedEdges = startEdge :: sharedEdges
-          startEdge = startEdge.prev.get
-          startCounter += 1
-
-        var endCheck = boundaryAngles.end
-        var endEdge = edgeToBuildOn.next.get
-        var endCounter = 0
-        while endCheck.isFullCircle
-        do
-          endCheck = boundaryAngleForVertex(endEdge.destination.get, outerFace, polyAngle)
-          sharedEdges = sharedEdges :+ endEdge
-          endEdge = endEdge.next.get
-          endCounter += 1
+        val edgesResult = findSharedEdges(edgeToBuildOn, boundaryAngles, polyAngle)
 
         // Different start and end vertex
-        val revisedStartVertex = startEdge.destination.get
-        val revisedEndVertex = endEdge.origin
+        val revisedStartVertex = edgesResult.startEdge.destination.get
+        val revisedEndVertex = edgesResult.endEdge.origin
 
         // Different boundary angles
         val revisedBoundaryAngles = BoundaryAngles(
-          start = startCheck,
-          end = endCheck,
+          start = edgesResult.startCheck,
+          end = edgesResult.endCheck,
           newVertices = polyAngle.conjugate
         )
 
         // Different boundary
-        val completeBoundary = BoundaryState(Some(startEdge), Some(endEdge))
+        val completeBoundary = BoundaryState(Some(edgesResult.startEdge), Some(edgesResult.endEdge))
 
         // Create new components
         val vertexPoints = calculateNewVertices(sides, endVertex.coords, startVertex.coords)
-        val revisedVertexPoints = vertexPoints.drop(startCounter).dropRight(endCounter)
+        val revisedVertexPoints = vertexPoints.drop(edgesResult.startCounter).dropRight(edgesResult.endCounter)
         val newVertices = createVertices(revisedVertexPoints, tilingDCEL.vertices.size)
 
         val newFace = Face(generateFaceId(tilingDCEL.innerFaces.size))
@@ -134,15 +158,15 @@ object TilingAddition:
 
         // Update existing structures
         updateExistingStructures(
-          sharedEdges, newFace, polyAngle,
+          edgesResult.sharedEdges, newFace, polyAngle,
           newBoundaryEdges, completeBoundary, revisedBoundaryAngles
         )
 
         // Link new face edges
-        linkNewFaceEdges(edgeToBuildOn, sharedEdges, newInnerEdges.reverse, newFace)
+        linkNewFaceEdges(edgeToBuildOn, edgesResult.sharedEdges, newInnerEdges.reverse, newFace)
 
         // Connect to boundary
-        connectNewBoundaryEdges(newBoundaryEdges, completeBoundary, outerFace, sharedEdges)
+        connectNewBoundaryEdges(newBoundaryEdges, completeBoundary, outerFace, edgesResult.sharedEdges)
 
         // Update vertex leaving edges
         updateVertexLeavingEdges(revisedStartVertex :: newVertices, newBoundaryEdges)
