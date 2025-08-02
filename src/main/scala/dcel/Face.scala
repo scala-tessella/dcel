@@ -35,8 +35,8 @@ case class Face(
       }.sum
       sum.abs / 2
 
-  def isComplete: Boolean =
-    outerComponent.isDefined && innerComponents.nonEmpty
+  def hasHoles: Boolean =
+    innerComponents.nonEmpty
 
   def validate(): Either[String, Unit] =
     val errors = List(

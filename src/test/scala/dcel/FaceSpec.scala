@@ -137,36 +137,6 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
     face1.hashCode() shouldNot equal(face2.hashCode())
   }
 
-  behavior of "Face.isComplete"
-
-  it should "return false when outer component is None" in {
-    val face = Face("F1")
-    face.isComplete shouldBe false
-  }
-
-  it should "return false when inner components is empty" in {
-    val vertex = createVertex("V1", 0, 0)
-    val edge = HalfEdge(vertex)
-    val face = Face("F1", Some(edge))
-    
-    face.isComplete shouldBe false
-  }
-
-  it should "return false when both conditions are not met" in {
-    val face = Face("F1")
-    face.isComplete shouldBe false
-  }
-
-  it should "return true when both outer component and inner components are defined" in {
-    val vertex = createVertex("V1", 0, 0)
-    val edge1 = HalfEdge(vertex)
-    val edge2 = HalfEdge(vertex)
-    val face = Face("F1", Some(edge1), List(Some(edge2)))
-    
-    face.isComplete shouldBe true
-    face.toString shouldBe "Face F1"
-  }
-
   behavior of "Face.validate"
 
   it should "return Right(()) when face is complete" in {

@@ -165,6 +165,12 @@ object TilingDCEL:
           }
     }
 
+    if tiling.outerFace.outerComponent.isEmpty then
+      errors += "Outer face has no outer component"
+
+    if tiling.innerFaces.exists(_.hasHoles) then
+      errors += "Inner face with holes"
+
     // Check angles' sum for each inner face
     tiling.innerFaces.foreach { face =>
       face.halfEdges match
