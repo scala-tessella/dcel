@@ -103,3 +103,12 @@ object Vertex:
       }
 
     Option.when(visited == targetVertices)(())
+
+  extension (vertices: List[Vertex])
+
+    def sameCoords(others: List[Vertex], accuracy: Double = BigDecimalGeometry.ACCURACY): List[(Vertex, Vertex)] =
+      for
+        v1 <- vertices
+        v2 <- others
+        if v1.coords.almostEquals(v2.coords, accuracy)
+      yield (v1, v2)
