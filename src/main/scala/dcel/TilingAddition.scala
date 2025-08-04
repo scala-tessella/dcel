@@ -184,124 +184,133 @@ object TilingAddition:
         boundaryEdges.map(_.origin).sameCoords(newVertices) match
           case Nil => revisedTiling
           case (v_match, v_new) :: Nil =>
-            println(s"Warning: one shared vertex found, $v_new place where $v_match already is.")
-            val holeFace = Face(generateFaceId(revisedTiling.innerFaces.size + 1))
-
-            // Find the hole edges by traversing the boundary from v_match to v_new
-            val boundaryEdgesAroundHole =
-              // Get all boundary edges
-              val allBoundaryEdges = revisedTiling.getBoundaryEdges.getOrElse(List.empty)
-
-              // Find the starting edge from v_match
-              val startEdgeOpt = allBoundaryEdges.find(_.origin == v_match)
-
-              startEdgeOpt match
-                case Some(startEdge) =>
-                  // Traverse the boundary until we reach v_new
-                  val holeEdgesList = mutable.ListBuffer[HalfEdge]()
-                  var currentEdge = startEdge
-
-                  // Keep following the boundary path until we reach v_new
-                  while (currentEdge.destination.get != v_new && !holeEdgesList.contains(currentEdge))
-                    holeEdgesList += currentEdge
-                    currentEdge = currentEdge.next.get
-
-                  // Add the final edge that ends at v_new
-                  if currentEdge.destination.get == v_new then
-                    holeEdgesList += currentEdge
-
-                  holeEdgesList.toList
-                case None => List.empty
-
-            println(s"boundaryEdgesAroundHole: $boundaryEdgesAroundHole")
-
-            // Find the new vertex that needs to be replaced
-            val updatedVertices = revisedTiling.vertices.filterNot(_ == v_new)
-            println(s"updatedVertices: $updatedVertices")
-
-            // Find all half-edges that reference v_new and redirect them to v_match
-            val oldToNewEdgeMap = mutable.Map[HalfEdge, HalfEdge]()
-
-            // First pass: create new edges and build mapping
-            val updatedHalfEdges = revisedTiling.halfEdges.map { edge =>
-              if edge.origin == v_new then
-                val newEdge = HalfEdge(v_match)
-                // Copy all properties from the original edge
-                newEdge.twin = edge.twin
-                newEdge.incidentFace = edge.incidentFace
-                newEdge.angle = edge.angle
-                newEdge.next = edge.next // Copy the next reference
-                newEdge.prev = edge.prev // Copy the prev reference
-
-                // Store the mapping for later reference updates
-                oldToNewEdgeMap(edge) = newEdge
-
-                // Update twin references immediately
-                edge.twin.foreach(_.twin = Some(newEdge))
-
-                // Update leaving edge for v_match if this was v_new's leaving edge
-                if v_new.leaving.contains(edge) then
-                  v_match.leaving = Some(newEdge)
-
-                println(s"updatedEdge: $newEdge")
-                newEdge
-              else
-                edge
-            }
-            println(s"updatedHalfEdges: $updatedHalfEdges")
-
-            // Second pass: fix next/prev references using the mapping
-            updatedHalfEdges.foreach { edge =>
-              // Update next reference if it points to a replaced edge
-              edge.next = edge.next.map { nextEdge =>
-                oldToNewEdgeMap.getOrElse(nextEdge, nextEdge)
-              }
-              // Update prev reference if it points to a replaced edge
-              edge.prev = edge.prev.map { prevEdge =>
-                oldToNewEdgeMap.getOrElse(prevEdge, prevEdge)
-              }
-            }
-            println(s"done: $updatedHalfEdges")
-
-            // Create the hole face and assign it to the appropriate edges
-            val holeEdges = boundaryEdgesAroundHole.map(oldEdge =>
-              oldToNewEdgeMap.getOrElse(oldEdge, oldEdge)
-            )
-            println(s"holeEdges: $holeEdges")
-
-            // Calculate the correct angles for the hole edges
-            holeEdges.foreach { edge =>
-              edge.incidentFace = Some(holeFace)
-
-              // For hole edges, calculate the interior angle based on the vertex's current state
-              val vertex = edge.origin
-              val currentInteriorSum = vertex.getCurrentInteriorAngleSum(outerFace)
-              val holeInteriorAngle = (currentInteriorSum.conjugate).normalised
-
-              edge.angle = Some(holeInteriorAngle)
-            }
-            println(s"holeEdges with new incidentFace and angle: $holeEdges")
-
-            // Set the hole face's outer component
-            holeFace.outerComponent = holeEdges.headOption
-
-            // Update the outer face component if needed
-            if outerFace.outerComponent.exists(edge => holeEdges.contains(edge)) then
-              val remainingBoundaryEdges = updatedHalfEdges.filter(_.incidentFace.contains(outerFace))
-              outerFace.outerComponent = remainingBoundaryEdges.headOption
-
-            // Return the updated tiling with the hole face
-            revisedTiling.copy(
-              vertices = updatedVertices,
-              halfEdges = updatedHalfEdges,
-              innerFaces = revisedTiling.innerFaces :+ holeFace
-            )
+            revisedTiling.stitchHole(v_match, v_new)
           case one :: two :: Nil =>
             println("Warning: two shared vertices found")
             revisedTiling
           case _ =>
             println("Error: more than 2 shared vertices found")
             revisedTiling
+
+    /** Creates a valid TilingDCEL when two boundary vertices are touching forming an inner face
+     *
+     * @param v_match The already existing vertex touched
+     * @param v_new The new vertex touching
+     * @return
+     */
+    private def stitchHole(v_match: Vertex, v_new: Vertex): TilingDCEL =
+      println(s"Warning: one shared vertex found, $v_new at place where $v_match already is.")
+      val holeFace = Face(generateFaceId(tilingDCEL.innerFaces.size + 1))
+
+      // Find the hole edges by traversing the boundary from v_match to v_new
+      val boundaryEdgesAroundHole =
+        // Get all boundary edges
+        val allBoundaryEdges = tilingDCEL.getBoundaryEdges.getOrElse(List.empty)
+
+        // Find the starting edge from v_match
+        val startEdgeOpt = allBoundaryEdges.find(_.origin == v_match)
+
+        startEdgeOpt match
+          case Some(startEdge) =>
+            // Traverse the boundary until we reach v_new
+            val holeEdgesList = mutable.ListBuffer[HalfEdge]()
+            var currentEdge = startEdge
+
+            // Keep following the boundary path until we reach v_new
+            while (currentEdge.destination.get != v_new && !holeEdgesList.contains(currentEdge))
+              holeEdgesList += currentEdge
+              currentEdge = currentEdge.next.get
+
+            // Add the final edge that ends at v_new
+            if currentEdge.destination.get == v_new then
+              holeEdgesList += currentEdge
+
+            holeEdgesList.toList
+          case None => List.empty
+
+      println(s"boundaryEdgesAroundHole: $boundaryEdgesAroundHole")
+
+      // All vertices except the one that must be merged
+      val updatedVertices = tilingDCEL.vertices.filterNot(_ == v_new)
+      println(s"updatedVertices: $updatedVertices")
+
+      // Find all half-edges that reference v_new and redirect them to v_match
+      val oldToNewEdgeMap = mutable.Map[HalfEdge, HalfEdge]()
+
+      // First pass: create new edges and build mapping
+      val updatedHalfEdges = tilingDCEL.halfEdges.map { edge =>
+        if edge.origin == v_new then
+          val newEdge = HalfEdge(v_match)
+          // Copy all properties from the original edge
+          newEdge.twin = edge.twin
+          newEdge.incidentFace = edge.incidentFace
+          newEdge.angle = edge.angle
+          newEdge.next = edge.next // Copy the next reference
+          newEdge.prev = edge.prev // Copy the prev reference
+
+          // Store the mapping for later reference updates
+          oldToNewEdgeMap(edge) = newEdge
+
+          // Update twin references immediately
+          edge.twin.foreach(_.twin = Some(newEdge))
+
+          // Update leaving edge for v_match if this was v_new's leaving edge
+          if v_new.leaving.contains(edge) then
+            v_match.leaving = Some(newEdge)
+
+          println(s"updatedEdge: $newEdge")
+          newEdge
+        else
+          edge
+      }
+      println(s"updatedHalfEdges: $updatedHalfEdges")
+
+      // Second pass: fix next/prev references using the mapping
+      updatedHalfEdges.foreach { edge =>
+        // Update next reference if it points to a replaced edge
+        edge.next = edge.next.map { nextEdge =>
+          oldToNewEdgeMap.getOrElse(nextEdge, nextEdge)
+        }
+        // Update prev reference if it points to a replaced edge
+        edge.prev = edge.prev.map { prevEdge =>
+          oldToNewEdgeMap.getOrElse(prevEdge, prevEdge)
+        }
+      }
+      println(s"done: $updatedHalfEdges")
+
+      // Create the hole face and assign it to the appropriate edges
+      val holeEdges = boundaryEdgesAroundHole.map(oldEdge =>
+        oldToNewEdgeMap.getOrElse(oldEdge, oldEdge)
+      )
+      println(s"holeEdges: $holeEdges")
+
+      // Calculate the correct angles for the hole edges
+      holeEdges.foreach { edge =>
+        edge.incidentFace = Some(holeFace)
+
+        // For hole edges, calculate the interior angle based on the vertex's current state
+        val vertex = edge.origin
+        val currentInteriorSum = vertex.getCurrentInteriorAngleSum(tilingDCEL.outerFace)
+        val holeInteriorAngle = (currentInteriorSum.conjugate).normalised
+
+        edge.angle = Some(holeInteriorAngle)
+      }
+      println(s"holeEdges with new incidentFace and angle: $holeEdges")
+
+      // Set the hole face's outer component
+      holeFace.outerComponent = holeEdges.headOption
+
+      // Update the outer face component if needed
+      if tilingDCEL.outerFace.outerComponent.exists(edge => holeEdges.contains(edge)) then
+        val remainingBoundaryEdges = updatedHalfEdges.filter(_.incidentFace.contains(tilingDCEL.outerFace))
+        tilingDCEL.outerFace.outerComponent = remainingBoundaryEdges.headOption
+
+      // Return the updated tiling with the hole face
+      tilingDCEL.copy(
+        vertices = updatedVertices,
+        halfEdges = updatedHalfEdges,
+        innerFaces = tilingDCEL.innerFaces :+ holeFace
+      )
 
   // Helper case classes for better structure
   private case class BoundaryAngles(
