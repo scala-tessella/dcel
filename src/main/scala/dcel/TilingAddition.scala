@@ -195,33 +195,27 @@ object TilingAddition:
     /** Creates a valid TilingDCEL when two boundary vertices are touching forming an inner face
      *
      * @param v_match The already existing vertex touched
-     * @param v_new The new vertex touching
+     * @param v_new   The new vertex touching
      * @return
      */
     private def stitchHole(v_match: Vertex, v_new: Vertex): TilingDCEL =
       println(s"Warning: one shared vertex found, $v_new at place where $v_match already is.")
       val holeFace = Face(generateFaceId(tilingDCEL.innerFaces.size + 1))
 
-      // Find the hole edges by traversing the boundary from v_match to v_new
+      // Find the boundary edges that will form the hole
       val boundaryEdgesAroundHole =
-        // Get all boundary edges
         val allBoundaryEdges = tilingDCEL.getBoundaryEdges.getOrElse(List.empty)
-
-        // Find the starting edge from v_match
         val startEdgeOpt = allBoundaryEdges.find(_.origin == v_match)
 
         startEdgeOpt match
           case Some(startEdge) =>
-            // Traverse the boundary until we reach v_new
             val holeEdgesList = mutable.ListBuffer[HalfEdge]()
             var currentEdge = startEdge
 
-            // Keep following the boundary path until we reach v_new
             while (currentEdge.destination.get != v_new && !holeEdgesList.contains(currentEdge))
               holeEdgesList += currentEdge
               currentEdge = currentEdge.next.get
 
-            // Add the final edge that ends at v_new
             if currentEdge.destination.get == v_new then
               holeEdgesList += currentEdge
 
@@ -230,31 +224,26 @@ object TilingAddition:
 
       println(s"boundaryEdgesAroundHole: $boundaryEdgesAroundHole")
 
-      // All vertices except the one that must be merged
+      // Remove the vertex that will be merged
       val updatedVertices = tilingDCEL.vertices.filterNot(_ == v_new)
       println(s"updatedVertices: $updatedVertices")
 
-      // Find all half-edges that reference v_new and redirect them to v_match
+      // Create mapping for edges that need to be replaced
       val oldToNewEdgeMap = mutable.Map[HalfEdge, HalfEdge]()
 
-      // First pass: create new edges and build mapping
+      // First pass: create new edges for those originating from v_new
       val updatedHalfEdges = tilingDCEL.halfEdges.map { edge =>
         if edge.origin == v_new then
           val newEdge = HalfEdge(v_match)
-          // Copy all properties from the original edge
           newEdge.twin = edge.twin
           newEdge.incidentFace = edge.incidentFace
           newEdge.angle = edge.angle
-          newEdge.next = edge.next // Copy the next reference
-          newEdge.prev = edge.prev // Copy the prev reference
+          newEdge.next = edge.next
+          newEdge.prev = edge.prev
 
-          // Store the mapping for later reference updates
           oldToNewEdgeMap(edge) = newEdge
-
-          // Update twin references immediately
           edge.twin.foreach(_.twin = Some(newEdge))
 
-          // Update leaving edge for v_match if this was v_new's leaving edge
           if v_new.leaving.contains(edge) then
             v_match.leaving = Some(newEdge)
 
@@ -265,7 +254,7 @@ object TilingAddition:
       }
       println(s"updatedHalfEdges: $updatedHalfEdges")
 
-      // Second pass: fix next/prev references using the mapping
+      // Second pass: fix next/prev references
       updatedHalfEdges.foreach { edge =>
         // Update next reference if it points to a replaced edge
         edge.next = edge.next.map { nextEdge =>
@@ -284,31 +273,43 @@ object TilingAddition:
       )
       println(s"holeEdges: $holeEdges")
 
-      // Calculate the correct angles for the hole edges
-      holeEdges.foreach { edge =>
-        edge.incidentFace = Some(holeFace)
+      // Create new inner edges for the hole face (twins of the boundary edges)
+      val holeInnerEdges = holeEdges.map { boundaryEdge =>
+        val innerEdge = HalfEdge(boundaryEdge.destination.get)
+        innerEdge.twin = Some(boundaryEdge)
+        boundaryEdge.twin = Some(innerEdge)
+        innerEdge.incidentFace = Some(holeFace)
 
-        // For hole edges, calculate the interior angle based on the vertex's current state
-        val vertex = edge.origin
-        val currentInteriorSum = vertex.getCurrentInteriorAngleSum(tilingDCEL.outerFace)
-        val holeInteriorAngle = (currentInteriorSum.conjugate).normalised
+        // Calculate the interior angle for the hole face
+        val vertex = innerEdge.origin
+        val allIncidentEdges = vertex.incidentEdges
+        val interiorEdges = allIncidentEdges.filterNot(_.incidentFace.contains(tilingDCEL.outerFace))
+        val currentInteriorSum = interiorEdges.flatMap(_.angle).fold(AngleDegree(0))(_ + _)
+        val holeInteriorAngle = currentInteriorSum.conjugate
 
-        edge.angle = Some(holeInteriorAngle)
+        innerEdge.angle = Some(holeInteriorAngle)
+        innerEdge
       }
-      println(s"holeEdges with new incidentFace and angle: $holeEdges")
+
+      // Link the inner edges in a cycle
+      holeInnerEdges.zip(holeInnerEdges.tail :+ holeInnerEdges.head).foreach { case (current, next) =>
+        current.linkWith(next)
+      }
 
       // Set the hole face's outer component
-      holeFace.outerComponent = holeEdges.headOption
+      holeFace.outerComponent = holeInnerEdges.headOption
+
+      println(s"holeEdges with new incidentFace and angle: $holeEdges")
 
       // Update the outer face component if needed
-      if tilingDCEL.outerFace.outerComponent.exists(edge => holeEdges.contains(edge)) then
-        val remainingBoundaryEdges = updatedHalfEdges.filter(_.incidentFace.contains(tilingDCEL.outerFace))
+      val remainingBoundaryEdges = updatedHalfEdges.filter(_.incidentFace.contains(tilingDCEL.outerFace))
+      if remainingBoundaryEdges.nonEmpty then
         tilingDCEL.outerFace.outerComponent = remainingBoundaryEdges.headOption
 
       // Return the updated tiling with the hole face
       tilingDCEL.copy(
         vertices = updatedVertices,
-        halfEdges = updatedHalfEdges,
+        halfEdges = updatedHalfEdges ++ holeInnerEdges,
         innerFaces = tilingDCEL.innerFaces :+ holeFace
       )
 
