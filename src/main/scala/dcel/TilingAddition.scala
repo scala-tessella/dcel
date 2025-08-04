@@ -226,10 +226,12 @@ object TilingAddition:
             val updatedHalfEdges = revisedTiling.halfEdges.map { edge =>
               if edge.origin == v_new then
                 val newEdge = HalfEdge(v_match)
-                // Copy all other properties except next/prev (we'll fix those later)
+                // Copy all properties from the original edge
                 newEdge.twin = edge.twin
                 newEdge.incidentFace = edge.incidentFace
                 newEdge.angle = edge.angle
+                newEdge.next = edge.next // Copy the next reference
+                newEdge.prev = edge.prev // Copy the prev reference
 
                 // Store the mapping for later reference updates
                 oldToNewEdgeMap(edge) = newEdge
@@ -250,23 +252,33 @@ object TilingAddition:
 
             // Second pass: fix next/prev references using the mapping
             updatedHalfEdges.foreach { edge =>
+              // Update next reference if it points to a replaced edge
               edge.next = edge.next.map { nextEdge =>
                 oldToNewEdgeMap.getOrElse(nextEdge, nextEdge)
               }
+              // Update prev reference if it points to a replaced edge
               edge.prev = edge.prev.map { prevEdge =>
                 oldToNewEdgeMap.getOrElse(prevEdge, prevEdge)
               }
             }
             println(s"done: $updatedHalfEdges")
 
-
             // Create the hole face and assign it to the appropriate edges
-            val holeEdges = boundaryEdgesAroundHole
+            val holeEdges = boundaryEdgesAroundHole.map(oldEdge =>
+              oldToNewEdgeMap.getOrElse(oldEdge, oldEdge)
+            )
             println(s"holeEdges: $holeEdges")
 
+            // Calculate the correct angles for the hole edges
             holeEdges.foreach { edge =>
               edge.incidentFace = Some(holeFace)
-              edge.angle = Some(polygonAngle(sides))
+
+              // For hole edges, calculate the interior angle based on the vertex's current state
+              val vertex = edge.origin
+              val currentInteriorSum = vertex.getCurrentInteriorAngleSum(outerFace)
+              val holeInteriorAngle = (currentInteriorSum.conjugate).normalised
+
+              edge.angle = Some(holeInteriorAngle)
             }
             println(s"holeEdges with new incidentFace and angle: $holeEdges")
 
