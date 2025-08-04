@@ -82,6 +82,25 @@ case class TilingDCEL(
       case Some(startEdge) => startEdge.faceTraversalWithGuards()
       case None => Right(List.empty)
 
+  def getBoundaryEdgesPath(from: Vertex, to: Vertex): List[HalfEdge] =
+    val allBoundaryEdges = getBoundaryEdges.getOrElse(List.empty)
+    val startEdgeOpt = allBoundaryEdges.find(_.origin == from)
+
+    startEdgeOpt match
+      case Some(startEdge) =>
+        val holeEdgesList = mutable.ListBuffer[HalfEdge]()
+        var currentEdge = startEdge
+
+        while (currentEdge.destination.get != to && !holeEdgesList.contains(currentEdge))
+          holeEdgesList += currentEdge
+          currentEdge = currentEdge.next.get
+
+        if currentEdge.destination.get == to then
+          holeEdgesList += currentEdge
+
+        holeEdgesList.toList
+      case None => List.empty
+
   /**
    * Finds a boundary half-edge that originates at the vertex with the given ID.
    *

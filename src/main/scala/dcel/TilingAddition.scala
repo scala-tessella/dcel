@@ -204,24 +204,7 @@ object TilingAddition:
 
       // Find the boundary edges that will form the hole
       val boundaryEdgesAroundHole =
-        val allBoundaryEdges = tilingDCEL.getBoundaryEdges.getOrElse(List.empty)
-        val startEdgeOpt = allBoundaryEdges.find(_.origin == v_match)
-
-        startEdgeOpt match
-          case Some(startEdge) =>
-            val holeEdgesList = mutable.ListBuffer[HalfEdge]()
-            var currentEdge = startEdge
-
-            while (currentEdge.destination.get != v_new && !holeEdgesList.contains(currentEdge))
-              holeEdgesList += currentEdge
-              currentEdge = currentEdge.next.get
-
-            if currentEdge.destination.get == v_new then
-              holeEdgesList += currentEdge
-
-            holeEdgesList.toList
-          case None => List.empty
-
+        tilingDCEL.getBoundaryEdgesPath(from = v_match, to = v_new)
       println(s"boundaryEdgesAroundHole: $boundaryEdgesAroundHole")
 
       // Remove the vertex that will be merged
