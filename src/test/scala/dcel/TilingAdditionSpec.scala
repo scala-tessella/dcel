@@ -551,21 +551,34 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     verifyValidTiling(newTiling)
   }
 
-  it should "successfully fill a hole created by a share vertex" in {
-    val initialTiling = TilingBuilder.createRegularPolygon(4).value
-
-    val result = initialTiling
+  val commonTiling: TilingDCEL =
+    TilingBuilder.createRegularPolygon(4).value
       .maybeAddRegularPolygon(3, "V1").value
       .maybeAddRegularPolygon(3, "V3").value
       .maybeAddRegularPolygon(3, "V5").value
       .maybeAddRegularPolygon(3, "V3").value
       .maybeAddRegularPolygon(4, "V7").value
+
+  it should "successfully create a complex tessellation " in {
+    val result = commonTiling
+      .maybeAddRegularPolygon(3, "V4").value
       .maybeAddRegularPolygon(4, "V3")
     result.isRight shouldBe true
 
     val newTiling = result.value
-//    println(newTiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
 //    println(TilingDCEL.validate(newTiling))
+//    println(newTiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
+    verifyValidTiling(newTiling)
+  }
+
+  it should "successfully fill a hole created by a share vertex" in {
+    val result = commonTiling
+      .maybeAddRegularPolygon(4, "V3")
+    result.isRight shouldBe true
+
+    val newTiling = result.value
+//    println(TilingDCEL.validate(newTiling))
+//    println(newTiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
     verifyValidTiling(newTiling)
   }
 
