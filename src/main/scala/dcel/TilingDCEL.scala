@@ -7,8 +7,6 @@ import TilingDeletion.*
 import TilingSVG.*
 import Topology.breadthFirstSearch
 
-import spire.implicits.monoidOps
-
 import scala.collection.mutable
 
 /**
