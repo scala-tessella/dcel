@@ -135,11 +135,7 @@ object TilingBuilder:
       val interiorAngle = angles(i)
       val turnAngle = AngleDegree(180) - interiorAngle
       heading += turnAngle
-      val radian = heading.toBigRadian.toBigDecimal
-      currentPoint = BigPoint(
-        currentPoint.x + spire.math.cos(radian),
-        currentPoint.y + spire.math.sin(radian)
-      )
+      currentPoint = currentPoint.plus(BigPoint.fromPolar(1, heading.toBigRadian))
       points.append(currentPoint)
 
     val pointsList = points.toList
