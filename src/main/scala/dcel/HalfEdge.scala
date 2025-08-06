@@ -141,6 +141,6 @@ object HalfEdge:
     def linkInCycle(): Unit =
       halfEdges.zip(halfEdges.tail :+ halfEdges.head).foreach(_.linkWith(_))
 
-    // Helper function to link edges in sequence
+    // Helper function to link edges in a sequence
     def linkInSequence(): Unit =
       halfEdges.zip(halfEdges.tail).foreach(_.linkWith(_))

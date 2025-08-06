@@ -1,8 +1,6 @@
 package io.github.scala_tessella
 package dcel
 
-import scala.collection.mutable
-
 /**
  * Represents a single face in the DCEL.
  *
@@ -64,7 +62,7 @@ case class Face(
       case None => Right(List.empty)
       case Some(start) => start.faceTraversalWithGuards()
 
-  // Add safe version that returns empty list on error
+  // Add a safe version that returns an empty list on error
   def halfEdgesSafe: List[HalfEdge] =
     halfEdges.getOrElse(List.empty)
 
