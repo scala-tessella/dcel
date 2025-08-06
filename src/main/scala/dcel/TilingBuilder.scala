@@ -117,7 +117,7 @@ object TilingBuilder:
    * Calculates the coordinates of a polygon's vertices and validates that it's a closed polygon
    * with the correct side lengths and angles.
    */
-  private def calculateVertexPoints(angles: List[AngleDegree], performSimplicityCheck: Boolean): Either[String, List[BigPoint]] =
+  def calculateVertexPoints(angles: List[AngleDegree], performSimplicityCheck: Boolean): Either[String, List[BigPoint]] =
     val n = angles.length
     // Start with V0 at the origin and V1 on the X-axis
     val points = ListBuffer(BigPoint(0.0, 0.0), BigPoint(1.0, 0.0))

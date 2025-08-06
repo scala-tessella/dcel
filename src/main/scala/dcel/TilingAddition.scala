@@ -2,7 +2,8 @@ package io.github.scala_tessella
 package dcel
 
 import BigDecimalGeometry.*
-import Polygon.RegularPolygon
+import Polygon.{RegularPolygon, SimplePolygon}
+import TilingBuilder.{calculateVertexPoints, validateSides}
 
 import scala.collection.mutable
 
@@ -109,6 +110,14 @@ object TilingAddition:
 
   extension (tilingDCEL: TilingDCEL)
 
+    def addSimplePolygon(angles: List[AngleDegree]): Either[String, TilingDCEL] =
+      for
+        _      <- validateSides(angles.length, "simple")
+        _      <- SimplePolygon.validatePolygonAngles(angles)
+        points <- calculateVertexPoints(angles, performSimplicityCheck = true)
+      yield
+        ???
+      
     def addRegularPolygon(sides: Int, onEdgeStartingWithVertexId: String): Either[String, TilingDCEL] =
       for
         _ <- TilingBuilder.validateSides(sides, "regular")
