@@ -11,18 +11,19 @@ import scala.xml.*
 object TilingSVG:
 
   extension (bigPoint: BigPoint)
-    def toSvgCoords(scale: Double): (String, String) =
+    private def toSvgCoords(scale: Double): (String, String) =
       val scaledPoint: BigPoint = bigPoint.scaled(scale).flippedY
       (scaledPoint.x.format, scaledPoint.y.format)
 
-  case class Arrow(tipX: String, tipY: String, baseX1: String, baseY1: String, baseX2: String, baseY2: String)
+  private case class Arrow(tipX: String, tipY: String, baseX1: String, baseY1: String, baseX2: String, baseY2: String):
+    val formatted: String = s"$tipX,$tipY $baseX1,$baseY1 $baseX2,$baseY2"
 
-  case class ViewBox(minX: BigDecimal, minY: BigDecimal, width: BigDecimal, height: BigDecimal):
+  private case class ViewBox(minX: BigDecimal, minY: BigDecimal, width: BigDecimal, height: BigDecimal):
     val formatted: String = s"${minX.format} ${minY.format} ${width.format} ${height.format}"
     val dimensions: (Int, Int) = (width.toInt, height.toInt)
 
-  case class SvgConfig(strokeWidth: Double, padding: Double, scale: Double,
-                       showHalfEdgeTraversal: Boolean, leavingEdgeMarkers: Boolean, faceIdsOnEdges: Boolean)
+  private case class SvgConfig(strokeWidth: Double, padding: Double, scale: Double,
+    showHalfEdgeTraversal: Boolean, leavingEdgeMarkers: Boolean, faceIdsOnEdges: Boolean)
 
   private def createArrow(origin: BigPoint, destination: BigPoint, scale: Double, arrowSize: Double): Option[Arrow] =
     val distance = origin.distanceTo(destination)
@@ -77,7 +78,7 @@ object TilingSVG:
       for
         destination <- halfEdge.destination
         arrow <- createArrow(halfEdge.origin.coords, destination.coords, config.scale, config.strokeWidth * 3)
-      yield <polygon points={s"${arrow.tipX},${arrow.tipY} ${arrow.baseX1},${arrow.baseY1} ${arrow.baseX2},${arrow.baseY2}"}/>
+      yield <polygon points={arrow.formatted}/>
     }
 
   private def createEdgeLines(tilingDCEL: TilingDCEL, scale: Double): Seq[Elem] =
@@ -162,7 +163,7 @@ object TilingSVG:
               mid1 = BigLineSegment(he1.origin.coords, dest1.coords).midPoint
               mid2 = BigLineSegment(he2.origin.coords, dest2.coords).midPoint
               arrow <- createArrow(mid1, mid2, config.scale, config.strokeWidth * 2.5)
-            yield <polygon points={s"${arrow.tipX},${arrow.tipY} ${arrow.baseX1},${arrow.baseY1} ${arrow.baseX2},${arrow.baseY2}"}/>
+            yield <polygon points={arrow.formatted}/>
           case _ => None
         }
     }
@@ -174,7 +175,7 @@ object TilingSVG:
         edge <- vertex.leaving
         dest <- edge.destination
         arrow <- createArrow(vertex.coords, BigLineSegment(vertex.coords, dest.coords).midPoint, config.scale, config.strokeWidth * 2)
-      yield <polygon points={s"${arrow.tipX},${arrow.tipY} ${arrow.baseX1},${arrow.baseY1} ${arrow.baseX2},${arrow.baseY2}"}/>
+      yield <polygon points={arrow.formatted}/>
     }
 
   private def createFaceIdsOnEdges(tilingDCEL: TilingDCEL, config: SvgConfig): Seq[Elem] =
@@ -199,7 +200,7 @@ object TilingSVG:
         val dx = BigDecimal(destX) - BigDecimal(originX)
         val dy = BigDecimal(destY) - BigDecimal(originY)
 
-        // Calculate perpendicular offset in SVG space (to the left of direction)
+        // Calculate perpendicular offset in SVG space (to the left of the direction)
         val offsetDistance = config.strokeWidth * 4
         val length = spire.math.sqrt(dx.pow(2) + dy.pow(2))
 
@@ -233,7 +234,7 @@ object TilingSVG:
       faceIdsOnEdges: Boolean = false
     ): String =
       if tilingDCEL.vertices.isEmpty then
-        return <svg width="0" height="0"></svg>.toString()
+        return <svg width="0" height="0"></svg>.toString
 
       val config = SvgConfig(strokeWidth, padding, scale, showHalfEdgeTraversal, leavingEdgeMarkers, faceIdsOnEdges)
       val vertices = tilingDCEL.vertices.map(_.coords)
