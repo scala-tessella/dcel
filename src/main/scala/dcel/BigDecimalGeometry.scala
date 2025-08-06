@@ -114,7 +114,7 @@ object BigDecimalGeometry:
     @targetName("divide")
     def /(i: Int): BigRadian = r.toBigDecimal / i
 
-    /** Tests whether this `SpireRadian` is approximately equal to another, within a given accuracy. */
+    /** Tests whether this `SpireRadian` is approximately equal to another, within given accuracy. */
     def almostEquals(that: BigRadian, accuracy: Double = ACCURACY): Boolean =
       (r - that).abs < BigDecimal(accuracy)
 
@@ -125,7 +125,7 @@ object BigDecimalGeometry:
     def plus(that: BigPoint): BigPoint =
       BigPoint(this.x + that.x, this.y + that.y)
 
-    /** Tests whether this `BigPoint` is approximately equal to another, within a given accuracy. */
+    /** Tests whether this `BigPoint` is approximately equal to another, within given accuracy. */
     def almostEquals(that: BigPoint, accuracy: Double = ACCURACY): Boolean =
       (this.x - that.x).abs < BigDecimal(accuracy) && (this.y - that.y).abs < BigDecimal(accuracy)
 
@@ -165,7 +165,7 @@ object BigDecimalGeometry:
     /**
      * Finds the orientation of the ordered triplet (p, q, r).
      *
-     * @return 0 if points are collinear, 1 if clockwise, 2 if counterclockwise
+     * @return 0 if points are collinear, 1 if are clockwise, 2 if are counterclockwise
      */
     def orientation(p: BigPoint, q: BigPoint, r: BigPoint): Orientation =
       val v = (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y)
@@ -191,7 +191,7 @@ object BigDecimalGeometry:
         BigPoint.apply() // origin (0,0)
 
   /**
-     * Checks if a list of points contains any pair of `almostEquals` points at a given accuracy.
+     * Checks if a list of points contains any pair of `almostEquals` points at given accuracy.
      *
      * This method uses a grid-based approach (spatial hashing) for efficient checking.
      * Its performance is typically O(n) for uniformly distributed data, which is much
