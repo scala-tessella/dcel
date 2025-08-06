@@ -269,13 +269,17 @@ object BigDecimalGeometry:
     def horizontalAngle: BigRadian =
       spire.math.atan2(p2.y - p1.y, p2.x - p1.x)
 
-    /** Checks if this bounding box intersects with another one. */
-    def intersects(that: BigLineSegment): Boolean =
+    private def orientations(that: BigLineSegment): (Orientation, Orientation, Orientation, Orientation) =
       val o1 = BigPoint.orientation(this.p1, this.p2, that.p1)
       val o2 = BigPoint.orientation(this.p1, this.p2, that.p2)
       val o3 = BigPoint.orientation(that.p1, that.p2, this.p1)
       val o4 = BigPoint.orientation(that.p1, that.p2, this.p2)
-    
+      (o1, o2, o3, o4)
+
+    /** Checks if this bounding box intersects with another one. */
+    def intersects(that: BigLineSegment): Boolean =
+      val (o1, o2, o3, o4) = orientations(that)
+
       // General case: segments cross each other
       if o1 != Orientation.Collinear
         && o2 != Orientation.Collinear
@@ -298,12 +302,7 @@ object BigDecimalGeometry:
       if thisPoints.exists(p1 => thatPoints.exists(p2 => p1.almostEquals(p2))) then
         false
       else
-        // Check if the intersection point is in the interior of both segments
-        val o1 = BigPoint.orientation(this.p1, this.p2, that.p1)
-        val o2 = BigPoint.orientation(this.p1, this.p2, that.p2)
-        val o3 = BigPoint.orientation(that.p1, that.p2, this.p1)
-        val o4 = BigPoint.orientation(that.p1, that.p2, this.p2)
-    
+        val (o1, o2, o3, o4) = orientations(that)
         // General case: segments cross each other in their interiors
         o1 != o2 && o3 != o4
       
