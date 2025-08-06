@@ -318,6 +318,7 @@ object TilingAddition:
   ): Unit =
     // Update shared edges
     sharedEdges.foreach(_.incidentFace = Some(newFace))
+    val sharedEdgesFirstAngle = newBoundaryEdges.head.angle
     sharedEdges.foreach(_.angle = Some(polyAngle))
 
     // Update last boundary edge angle
@@ -331,7 +332,7 @@ object TilingAddition:
 
     // Update boundary in special shared edges case
     if sharedEdges.length > 1 && newBoundaryEdges.length == 1 then
-      newBoundaryEdges.head.angle = Some(newBoundaryEdges.head.angle.get - polyAngle)
+      newBoundaryEdges.head.angle = sharedEdgesFirstAngle
 
   private def linkNewFaceEdges(
     edgeToBuildOn: HalfEdge,
