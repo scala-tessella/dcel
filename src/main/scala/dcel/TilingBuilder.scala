@@ -124,7 +124,11 @@ object TilingBuilder:
     direction: AngleDegree = AngleDegree(0)
   ): Either[String, List[BigPoint]] =
     val n = angles.length
-    val p1: BigPoint = if direction == AngleDegree(0) then start.plus(BigPoint(1, 0)) else ???
+    val p1: BigPoint =
+      if direction == AngleDegree(0) then
+        start.plus(BigPoint(1, 0))
+      else
+        start.plus(BigPoint.fromPolar(1, direction.toBigRadian))
     // Start with V0 at the origin and V1 on the X-axis
     val points = ListBuffer(start, p1)
     var currentPoint = p1
