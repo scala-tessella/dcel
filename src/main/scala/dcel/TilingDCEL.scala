@@ -5,6 +5,8 @@ import BigDecimalGeometry.{AngleDegree, hasNoAlmostEqualPoints}
 import TilingAddition.*
 import TilingDeletion.*
 import TilingSVG.*
+import Topology.breadthFirstSearch
+
 import spire.implicits.monoidOps
 
 import scala.collection.mutable
@@ -52,7 +54,7 @@ case class TilingDCEL(
     if innerFaces.isEmpty then true
     else
       val adjacency = Face.adjacencyMap(innerFaces)
-      val reachable = Face.breadthFirstSearch(innerFaces.head, adjacency)
+      val reachable = breadthFirstSearch(innerFaces.head, adjacency)
       reachable.size == innerFaces.size
 
   /**

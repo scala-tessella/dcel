@@ -2,8 +2,7 @@ package io.github.scala_tessella
 package dcel
 
 import BigDecimalGeometry.{AngleDegree, BigPoint, format}
-
-import scala.collection.mutable
+import Topology.breadthFirstSearch
 
 /**
  * Represents a single vertex in the DCEL.
@@ -91,17 +90,7 @@ object Vertex:
    * through the boundary path.
    */
   def checkConnectivity(start: Vertex, targetVertices: Set[Vertex], adjacency: Map[Vertex, List[Vertex]]): Option[Unit] =
-    val visited = mutable.Set[Vertex](start)
-    val queue = mutable.Queue[Vertex](start)
-
-    while queue.nonEmpty do
-      val current = queue.dequeue()
-      adjacency.getOrElse(current, Nil).foreach { neighbor =>
-        if !visited.contains(neighbor) then
-          visited += neighbor
-          queue.enqueue(neighbor)
-      }
-
+    val visited = breadthFirstSearch(start, adjacency)
     Option.when(visited == targetVertices)(())
 
   extension (vertices: List[Vertex])

@@ -2,6 +2,7 @@ package io.github.scala_tessella
 package dcel
 
 import BigDecimalGeometry.BigPoint
+import Topology.breadthFirstSearch
 
 import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
@@ -501,7 +502,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
     val face1 = Face("F1")
     val adjacency = Map(face1 -> List.empty[Face])
     
-    val result = Face.breadthFirstSearch(face1, adjacency)
+    val result = breadthFirstSearch(face1, adjacency)
     result shouldBe Set(face1)
   }
 
@@ -516,7 +517,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
       face3 -> List(face2)
     )
     
-    val result = Face.breadthFirstSearch(face1, adjacency)
+    val result = breadthFirstSearch(face1, adjacency)
     result shouldBe Set(face1, face2, face3)
   }
 
@@ -533,7 +534,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
       face4 -> List(face3)
     )
     
-    val result = Face.breadthFirstSearch(face1, adjacency)
+    val result = breadthFirstSearch(face1, adjacency)
     result shouldBe Set(face1, face2)
   }
 
@@ -546,7 +547,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
       face2 -> List(face1)
     )
     
-    val result = Face.breadthFirstSearch(face1, adjacency)
+    val result = breadthFirstSearch(face1, adjacency)
     result shouldBe Set(face1, face2)
   }
 
@@ -559,6 +560,6 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
       // face2 is not in the map
     )
     
-    val result = Face.breadthFirstSearch(face1, adjacency)
+    val result = breadthFirstSearch(face1, adjacency)
     result shouldBe Set(face1, face2)
   }
