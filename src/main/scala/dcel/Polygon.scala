@@ -4,7 +4,6 @@ package dcel
 import BigDecimalGeometry.{ACCURACY, AngleDegree, BigRadian}
 
 import spire.compat.numeric
-import spire.implicits.*
 
 /** Methods to deal with regular polygons in a tiling */
 object Polygon:
