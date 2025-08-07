@@ -149,10 +149,9 @@ object TilingBuilder:
     // --- Validation ---
     // Check if the final edge, from V(n-1) back to V0, has the correct length and angles
     val p_n_minus_1 = points.last
-    val p_0 = points.head
-    val dx = p_0.x - p_n_minus_1.x
-    val dy = p_0.y - p_n_minus_1.y
-    val lastEdgeLength = spire.math.sqrt(dx * dx + dy * dy)
+    val dx = start.x - p_n_minus_1.x
+    val dy = start.y - p_n_minus_1.y
+    val lastEdgeLength = start.distanceTo(p_n_minus_1)
 
     if spire.math.abs(lastEdgeLength - 1.0) > ACCURACY then
       return Left(f"The polygon does not close. The final edge has length $lastEdgeLength%.4f instead of 1.0.")
