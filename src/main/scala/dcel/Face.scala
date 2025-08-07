@@ -72,6 +72,8 @@ object Face:
 
   val firstInnerId = "F1"
 
+  def outer: Face = Face(outerId)
+  
   def adjacencyMap(faces: List[Face]): Map[Face, List[Face]] =
     faces.map { face =>
       face -> face.halfEdgesSafe

@@ -283,7 +283,7 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with EitherValues:
       vertices = List(vertex),
       halfEdges = List.empty,
       innerFaces = List.empty,
-      outerFace = Face(Face.outerId)
+      outerFace = Face.outer
     )
 
     val svg = tilingWithVerticesOnly.toScalableVectorGraphics()
@@ -434,7 +434,7 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with EitherValues:
       vertices = List(v1, v2),
       halfEdges = List.empty,
       innerFaces = List.empty,
-      outerFace = Face(Face.outerId)
+      outerFace = Face.outer
     )
 
     val svg = tilingWithCloseVertices.toScalableVectorGraphics()
@@ -571,7 +571,7 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with EitherValues:
       vertices = List(v1, v2),
       halfEdges = List.empty,
       innerFaces = List.empty,
-      outerFace = Face(Face.outerId)
+      outerFace = Face.outer
     )
 
     val svg = tilingWithOrigin.toScalableVectorGraphics()
@@ -591,7 +591,7 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with EitherValues:
       vertices = List(v1, v2),
       halfEdges = List.empty,
       innerFaces = List.empty,
-      outerFace = Face(Face.outerId)
+      outerFace = Face.outer
     )
 
     val svg = tilingWithLargeCoords.toScalableVectorGraphics()
