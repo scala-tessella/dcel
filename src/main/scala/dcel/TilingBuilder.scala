@@ -113,6 +113,21 @@ object TilingBuilder:
       outerFace = fOuter
     ))
 
+  def calculateVertexPoints2(
+    angles: List[AngleDegree],
+    performSimplicityCheck: Boolean,
+    start: BigPoint = BigPoint(),
+    direction: AngleDegree = AngleDegree(0)
+  ): Either[String, List[BigPoint]] =
+    val p1: BigPoint =
+      if direction == AngleDegree(0) then
+        start.plus(BigPoint(1, 0))
+      else
+        start.plus(BigPoint.fromPolar(1, direction.toBigRadian))
+    calculateVertexPoints(angles, performSimplicityCheck, start, p1)
+
+  // Start with V0 at the origin and V1 on the X-axis
+
   /**
    * Calculates the coordinates of a polygon's vertices and validates that it's a closed polygon
    * with the correct side lengths and angles.
@@ -120,26 +135,20 @@ object TilingBuilder:
   def calculateVertexPoints(
     angles: List[AngleDegree], 
     performSimplicityCheck: Boolean,
-    start: BigPoint = BigPoint(),
-    direction: AngleDegree = AngleDegree(0)
+    p0: BigPoint = BigPoint(),
+    p1: BigPoint = BigPoint(1, 0)
   ): Either[String, List[BigPoint]] =
     val n = angles.length
-    val p1: BigPoint =
-      if direction == AngleDegree(0) then
-        start.plus(BigPoint(1, 0))
-      else
-        start.plus(BigPoint.fromPolar(1, direction.toBigRadian))
-    // Start with V0 at the origin and V1 on the X-axis
-    val points = ListBuffer(start, p1)
+    // Start with V0 at the origin and V1
+    val points = ListBuffer(p0, p1)
     var currentPoint = p1
-    var heading: AngleDegree = direction // The heading of the segment V0->V1 is 0 degrees
-
+    var heading = p0.angleTo(p1)
     // Calculate the positions of V2 through V(n-1)
     for (i <- 1 until n - 1)
       val interiorAngle = angles(i)
       val turnAngle = AngleDegree(180) - interiorAngle
-      heading += turnAngle
-      currentPoint = currentPoint.plus(BigPoint.fromPolar(1, heading.toBigRadian))
+      heading += turnAngle.toBigRadian
+      currentPoint = currentPoint.plus(BigPoint.fromPolar(1, heading))
       points.append(currentPoint)
 
     val pointsList = points.toList
@@ -148,7 +157,7 @@ object TilingBuilder:
 
     // --- Validation ---
     // Check if the final edge, from V(n-1) back to V0, has the correct length and angles
-    val lastEdgeLength = start.distanceTo(points.last)
+    val lastEdgeLength = p0.distanceTo(points.last)
 
     if spire.math.abs(lastEdgeLength - 1.0) > ACCURACY then
       return Left(f"The polygon does not close. The final edge has length $lastEdgeLength%.4f instead of 1.0.")
