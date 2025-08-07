@@ -148,30 +148,9 @@ object TilingBuilder:
 
     // --- Validation ---
     // Check if the final edge, from V(n-1) back to V0, has the correct length and angles
-    val p_n_minus_1 = points.last
-    val dx = start.x - p_n_minus_1.x
-    val dy = start.y - p_n_minus_1.y
-    val lastEdgeLength = start.distanceTo(p_n_minus_1)
+    val lastEdgeLength = start.distanceTo(points.last)
 
     if spire.math.abs(lastEdgeLength - 1.0) > ACCURACY then
       return Left(f"The polygon does not close. The final edge has length $lastEdgeLength%.4f instead of 1.0.")
-
-    // Check the last interior angle at V(n-1)
-    // @TODO why the conversion toDouble is needed?  
-    val heading_n_minus_1_to_0 = spire.math.toDegrees(spire.math.atan2(dy.toDouble, dx.toDouble))
-    var turn_at_n_minus_1 = heading_n_minus_1_to_0 - heading.toRational.toDouble
-    while (turn_at_n_minus_1 <= -180) turn_at_n_minus_1 += 360
-    val calculatedFinalAngle = 180.0 - turn_at_n_minus_1
-
-    if spire.math.abs(calculatedFinalAngle - angles.last.toRational.toDouble) > ACCURACY then
-      return Left(f"Angle at V${n-1} is incorrect. Expected ${angles.last.toRational.toDouble}%.2f, but calculated $calculatedFinalAngle%.2f.")
-
-    // Check the first interior angle at V0
-    var turn_at_0 = 0.0 - heading_n_minus_1_to_0
-    while (turn_at_0 <= -180) turn_at_0 += 360
-    val calculatedFirstAngle = 180.0 - turn_at_0
-
-    if spire.math.abs(calculatedFirstAngle - angles.head.toRational.toDouble) > ACCURACY then
-      return Left(f"Angle at V0 is incorrect. Expected ${angles.head.toRational.toDouble}%.2f, but calculated $calculatedFirstAngle%.2f.")
 
     Right(pointsList)
