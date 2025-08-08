@@ -10,17 +10,8 @@ import scala.collection.mutable
 object TilingAddition:
 
   def calculateNewVertices(sides: Int, p1: BigPoint, p2: BigPoint): List[BigPoint] =
-    val angle = RegularPolygon(sides).alphaDegree
-    val rotation = (AngleDegree(180) + angle).toBigRadian
-    val startingDirection = p1.angleTo(p2)
-
-    LazyList.unfold((p2, 3, startingDirection)) { case (curr, step, direction) =>
-      if step > sides then None
-      else
-        val nextDirection = direction + rotation
-        val next = curr.plus(BigPoint.fromPolar(1, nextDirection))
-        Some(next, (next, step + 1, nextDirection))
-    }.toList
+    val angle = RegularPolygon(sides).alphaDegree.conjugate
+    calculateVertexPoints(List.fill(sides)(angle), p1, p2).drop(2)
 
   private def createVertices(points: List[BigPoint], startingIndex: Int): List[Vertex] =
     points.zipWithIndex.map { (point, index) =>
