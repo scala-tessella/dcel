@@ -21,6 +21,17 @@ object TilingBuilder:
     if sides >= 3 then Right(())
     else Left(s"A $polygonType polygon must have at least 3 sides, but $sides were specified.")
 
+  def validatePoints(points: List[BigPoint]): Either[String, Unit] =
+    // Check if the final edge, from V(n-1) back to V0, has the correct length and angles
+    val lastEdgeLength = points.head.distanceTo(points.last)
+    if spire.math.abs(lastEdgeLength - 1.0) > ACCURACY then
+      return Left(f"The polygon does not close. The final edge has length $lastEdgeLength%.4f instead of 1.0.")
+
+    if !points.hasNoAlmostEqualPoints() then
+      return Left("The polygon is not simple (it has vertices that are equal, which is not allowed).")
+
+    Right(())
+
   /**
    * Creates a TilingDCEL for a single simple polygon with unit-length sides.
    *
@@ -32,7 +43,8 @@ object TilingBuilder:
     for
       _      <- validateSides(angles.length, "simple")
       _      <- SimplePolygon.validatePolygonAngles(angles)
-      points <- calculateVertexPoints(angles, performSimplicityCheck = true)
+      points = calculateVertexPoints(angles)
+      _      <- validatePoints(points)
       result <- buildDCELFromPoints(points, angles)
     yield
       result
@@ -50,7 +62,7 @@ object TilingBuilder:
       angles = List.fill(sides)(angle)
       // Regular polygons are always simple, so we can skip the self-intersection check.
       // The angle sum is also correct by definition.
-      points <- calculateVertexPoints(angles, performSimplicityCheck = false)
+      points = calculateVertexPoints(angles)
       result <- buildDCELFromPoints(points, angles)
     yield
       result
@@ -115,16 +127,15 @@ object TilingBuilder:
 
   def calculateVertexPoints2(
     angles: List[AngleDegree],
-    performSimplicityCheck: Boolean,
     start: BigPoint = BigPoint(),
     direction: AngleDegree = AngleDegree(0)
-  ): Either[String, List[BigPoint]] =
+  ): List[BigPoint] =
     val p1: BigPoint =
       if direction == AngleDegree(0) then
         start.plus(BigPoint(1, 0))
       else
         start.plus(BigPoint.fromPolar(1, direction.toBigRadian))
-    calculateVertexPoints(angles, performSimplicityCheck, start, p1)
+    calculateVertexPoints(angles, start, p1)
 
   // Start with V0 at the origin and V1 on the X-axis
 
@@ -134,10 +145,9 @@ object TilingBuilder:
    */
   def calculateVertexPoints(
     angles: List[AngleDegree], 
-    performSimplicityCheck: Boolean,
     p0: BigPoint = BigPoint(),
     p1: BigPoint = BigPoint(1, 0)
-  ): Either[String, List[BigPoint]] =
+  ): List[BigPoint] =
     val n = angles.length
     // Start with V0 at the origin and V1
     val points = ListBuffer(p0, p1)
@@ -151,14 +161,4 @@ object TilingBuilder:
       currentPoint = currentPoint.plus(BigPoint.fromPolar(1, heading))
       points.append(currentPoint)
 
-    val pointsList = points.toList
-    if performSimplicityCheck then
-      // Check if the final edge, from V(n-1) back to V0, has the correct length and angles
-      val lastEdgeLength = p0.distanceTo(points.last)
-      if spire.math.abs(lastEdgeLength - 1.0) > ACCURACY then
-        return Left(f"The polygon does not close. The final edge has length $lastEdgeLength%.4f instead of 1.0.")
-
-      if !pointsList.hasNoAlmostEqualPoints() then
-        return Left("The polygon is not simple (it has vertices that are equal, which is not allowed).")
-
-    Right(pointsList)
+    points.toList

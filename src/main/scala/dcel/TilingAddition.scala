@@ -3,7 +3,7 @@ package dcel
 
 import BigDecimalGeometry.*
 import Polygon.{RegularPolygon, SimplePolygon}
-import TilingBuilder.{calculateVertexPoints, validateSides}
+import TilingBuilder.{calculateVertexPoints, validatePoints, validateSides}
 
 import scala.collection.mutable
 
@@ -114,15 +114,16 @@ object TilingAddition:
       for
         _      <- validateSides(angles.length, "simple")
         _      <- SimplePolygon.validatePolygonAngles(angles)
-        points <- calculateVertexPoints(angles, performSimplicityCheck = true)
+        points = calculateVertexPoints(angles)
+        _      <- validatePoints(points)
       yield
         ???
       
     def addRegularPolygon(sides: Int, onEdgeStartingWithVertexId: String): Either[String, TilingDCEL] =
       for
-        _ <- TilingBuilder.validateSides(sides, "regular")
-        boundaryEdges <- tilingDCEL.getBoundaryEdges
-        edgeToBuildOn <- boundaryEdges
+        _                        <- validateSides(sides, "regular")
+        boundaryEdges            <- tilingDCEL.getBoundaryEdges
+        edgeToBuildOn            <- boundaryEdges
           .find(_.origin.id == onEdgeStartingWithVertexId)
           .toRight(s"Edge starting with vertex $onEdgeStartingWithVertexId not found on the boundary.")
         (startVertex, endVertex) <- edgeToBuildOn.endpointsAsVertices
