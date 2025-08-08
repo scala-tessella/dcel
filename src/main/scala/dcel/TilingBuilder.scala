@@ -152,14 +152,13 @@ object TilingBuilder:
       points.append(currentPoint)
 
     val pointsList = points.toList
-    if performSimplicityCheck && !pointsList.hasNoAlmostEqualPoints() then
-      return Left("The polygon is not simple (it has vertices that are equal, which is not allowed).")
+    if performSimplicityCheck then
+      // Check if the final edge, from V(n-1) back to V0, has the correct length and angles
+      val lastEdgeLength = p0.distanceTo(points.last)
+      if spire.math.abs(lastEdgeLength - 1.0) > ACCURACY then
+        return Left(f"The polygon does not close. The final edge has length $lastEdgeLength%.4f instead of 1.0.")
 
-    // --- Validation ---
-    // Check if the final edge, from V(n-1) back to V0, has the correct length and angles
-    val lastEdgeLength = p0.distanceTo(points.last)
-
-    if spire.math.abs(lastEdgeLength - 1.0) > ACCURACY then
-      return Left(f"The polygon does not close. The final edge has length $lastEdgeLength%.4f instead of 1.0.")
+      if !pointsList.hasNoAlmostEqualPoints() then
+        return Left("The polygon is not simple (it has vertices that are equal, which is not allowed).")
 
     Right(pointsList)
