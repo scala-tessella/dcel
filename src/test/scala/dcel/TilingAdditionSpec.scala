@@ -213,7 +213,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
     result.isRight shouldBe true
     val tiling = result.value
-//    println(tiling.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
+//    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
 
     verifyValidTiling(tiling)
 
@@ -225,6 +225,32 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     val anglesAroundV0 = v0.incidentEdges.flatMap(_.angle).map(_.toRational).sum
     AngleDegree(anglesAroundV0).isFullCircle shouldBe true
   }
+
+//  val rhombusAngles: List[AngleDegree] =
+//    List(AngleDegree(120), AngleDegree(60), AngleDegree(120), AngleDegree(60))
+
+  val irregularPentagonAngles: List[AngleDegree] =
+    List(AngleDegree(90), AngleDegree(150), AngleDegree(60), AngleDegree(150), AngleDegree(90))
+
+  it should "add an irregular pentagon to a triangle, producing a valid DCEL" in {
+    val triangle = TilingBuilder.createRegularPolygon(3).value
+    val result = triangle.addSimplePolygon(irregularPentagonAngles, "V1")
+
+    result.isRight shouldBe true
+    val tiling = result.value
+    println(TilingDCEL.validate(tiling))
+    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
+    verifyValidTiling(tiling)
+
+    tiling.vertices should have size 6
+    tiling.innerFaces should have size 2
+
+//    // Check that the sum of angles around shared vertices is 360°
+//    val v0 = tiling.findVertex("V1").get
+//    val anglesAroundV0 = v0.incidentEdges.flatMap(_.angle).map(_.toRational).sum
+//    AngleDegree(anglesAroundV0).isFullCircle shouldBe true
+  }
+
 
   it should "add a triangle to a square, producing a valid DCEL" in {
     val square = TilingBuilder.createRegularPolygon(4).value

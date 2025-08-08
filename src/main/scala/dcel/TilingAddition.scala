@@ -5,6 +5,7 @@ import BigDecimalGeometry.*
 import Polygon.{RegularPolygon, SimplePolygon}
 import TilingBuilder.{calculateVertexPoints, validatePoints, validateSides}
 
+import scala.annotation.tailrec
 import scala.collection.mutable
 
 object TilingAddition:
@@ -30,6 +31,25 @@ object TilingAddition:
   ): AngleDegree =
     val currentInteriorSum = vertex.getCurrentInteriorAngleSum(outerFace)
     (currentInteriorSum + additionalInteriorAngle).conjugate
+
+  // Use proper case class pattern matching instead of List extraction
+  private def createEdgePairs2(
+    vertices: List[Vertex],
+    outerFace: Face,
+    newFace: Face,
+    startVertexAngle: AngleDegree,
+    polygonAngles: List[AngleDegree]
+  ): List[(HalfEdge, HalfEdge)] =
+    vertices.sliding(2).zipWithIndex.map {
+      case (origin :: destination :: Nil, index) =>
+        val boundaryAngle = if index == 0 then startVertexAngle else polygonAngles(index).conjugate
+        HalfEdge.createTwinHalfEdges(
+          origin, destination, outerFace, newFace,
+          boundaryAngle, polygonAngles(index)
+        )
+      case _ =>
+        throw IllegalArgumentException("Invalid vertex sequence")
+    }.toList
 
   // Use proper case class pattern matching instead of List extraction
   private def createEdgePairs(
@@ -64,13 +84,49 @@ object TilingAddition:
     endCounter: Int
   )
 
+  private def findSharedEdges2(
+    edgeToBuildOn: HalfEdge,
+    boundaryAngles: BoundaryAngles,
+    polyAngles: List[AngleDegree]
+  )(using outerFace: Face): SharedEdgesResult =
+
+    @tailrec
+    def traverse(
+      edge: HalfEdge,
+      check: AngleDegree,
+      angles: List[AngleDegree],
+      acc: List[HalfEdge],
+      getNext: HalfEdge => HalfEdge,
+      getVertex: HalfEdge => Vertex
+    ): (List[HalfEdge], AngleDegree, HalfEdge) =
+      if !check.isFullCircle then (acc, check, edge)
+      else
+        val nextCheck = boundaryAngleForVertex(getVertex(edge), outerFace, angles.head)
+        traverse(getNext(edge), nextCheck, angles.tail, edge :: acc, getNext, getVertex)
+
+    val (prepended, startCheck, startEdge) =
+      traverse(edgeToBuildOn.prev.get, boundaryAngles.start, polyAngles, Nil, _.prev.get, _.origin)
+
+    val (appended, endCheck, endEdge) =
+      traverse(edgeToBuildOn.next.get, boundaryAngles.end, polyAngles.reverse, Nil, _.next.get, _.destination.get)
+
+    SharedEdgesResult(
+      sharedEdges = prepended.reverse ::: edgeToBuildOn :: appended.reverse,
+      startCheck = startCheck,
+      startEdge = startEdge,
+      startCounter = prepended.length,
+      endCheck = endCheck,
+      endEdge = endEdge,
+      endCounter = appended.length
+    )
+
   private def findSharedEdges(
     edgeToBuildOn: HalfEdge,
     boundaryAngles: BoundaryAngles,
     polyAngle: AngleDegree
   )(using outerFace: Face): SharedEdgesResult =
 
-    @scala.annotation.tailrec
+    @tailrec
     def traverse(
       edge: HalfEdge,
       check: AngleDegree,
@@ -113,8 +169,92 @@ object TilingAddition:
           .toRight("Edge has no destination vertex.")
       yield
         given outerFace: Face = tilingDCEL.outerFace
-      
-        ???
+
+        // Calculate boundary angles
+        val boundaryAngles = BoundaryAngles(
+          start = boundaryAngleForVertex(startVertex, outerFace, angles.head),
+          end = boundaryAngleForVertex(endVertex, outerFace, angles.last),
+          newVertices = angles.head.conjugate
+        )
+
+        println(
+          s"""
+             |startVertex: $startVertex
+             |endVertex: $endVertex
+             |boundaryAngles: $boundaryAngles""".stripMargin)
+
+        val edgesResult = findSharedEdges2(edgeToBuildOn, boundaryAngles, angles.tail.init)
+
+        println(s"edgesResult: $edgesResult")
+
+        // Different start and end vertex
+        val revisedStartVertex = edgesResult.startEdge.destination.get
+        val revisedEndVertex = edgesResult.endEdge.origin
+        println(s"revisedStartVertex: $revisedStartVertex")
+        println(s"revisedEndVertex: $revisedEndVertex")
+
+        // Different boundary angles
+        val revisedBoundaryAngles = BoundaryAngles(
+          start = edgesResult.startCheck,
+          end = edgesResult.endCheck,
+          newVertices = angles.head.conjugate
+        )
+        println(s"revisedBoundaryAngles: $revisedBoundaryAngles")
+
+        // Different boundary
+        val completeBoundary = BoundaryState(Some(edgesResult.startEdge), Some(edgesResult.endEdge))
+        println(s"completeBoundary: $completeBoundary")
+
+        // Create new components
+        val vertexPoints =
+          calculateVertexPoints(angles.map(_.conjugate), endVertex.coords, startVertex.coords).drop(2)
+        println(s"vertexPoints: $vertexPoints")
+        val revisedVertexPoints = vertexPoints.drop(edgesResult.startCounter).dropRight(edgesResult.endCounter)
+        println(s"revisedVertexPoints: $revisedVertexPoints")
+        val newVertices = createVertices(revisedVertexPoints, tilingDCEL.vertices.size)
+        println(s"newVertices: $newVertices")
+
+        val newFace = Face(generateFaceId(tilingDCEL.innerFaces.size))
+        println(s"newFace: $newFace")
+
+        val allVertices = revisedStartVertex :: newVertices ::: revisedEndVertex :: Nil
+        println(s"allVertices: $allVertices")
+
+        val revisedAngles = angles.drop(edgesResult.startCounter).dropRight(edgesResult.endCounter)
+        println(s"revisedAngles: $revisedAngles")
+
+        val edgePairs = createEdgePairs2(allVertices, outerFace, newFace, revisedBoundaryAngles.start, revisedAngles)
+        val (newBoundaryEdges, newInnerEdges) = edgePairs.unzip
+        println(s"newBoundaryEdges: $newBoundaryEdges")
+        println(s"newInnerEdges: $newInnerEdges")
+
+        val sharedAngles = angles.takeRight(edgesResult.endCounter) ++ angles.take(edgesResult.startCounter + 1)
+        println(s"sharedAngles: $sharedAngles")
+        println(s"sharedEdges: ${edgesResult.sharedEdges}")
+        // Update existing structures
+        updateExistingStructures2(
+          edgesResult.sharedEdges, newFace, sharedAngles,
+          newBoundaryEdges, completeBoundary, revisedBoundaryAngles
+        )
+
+        // Link new face edges
+        linkNewFaceEdges(edgeToBuildOn, edgesResult.sharedEdges, newInnerEdges.reverse, newFace)
+
+        // Connect to boundary
+        connectNewBoundaryEdges(newBoundaryEdges, completeBoundary, outerFace, edgesResult.sharedEdges)
+
+        // Update vertex leaving edges
+        updateVertexLeavingEdges(revisedStartVertex :: newVertices, newBoundaryEdges)
+
+        // Return new DCEL with updated components
+        val revisedTiling =
+          tilingDCEL.copy(
+            vertices = tilingDCEL.vertices ::: newVertices,
+            halfEdges = tilingDCEL.halfEdges ::: newBoundaryEdges ::: newInnerEdges,
+            innerFaces = tilingDCEL.innerFaces :+ newFace
+          )
+
+        revisedTiling
 
     def addRegularPolygon(sides: Int, onEdgeStartingWithVertexId: String): Either[String, TilingDCEL] =
       for
@@ -129,7 +269,7 @@ object TilingAddition:
         given outerFace: Face = tilingDCEL.outerFace
 
         val polyAngle = polygonAngle(sides)
-
+        val angles = List.fill(sides)(polyAngle)
         // Calculate boundary angles
         val boundaryAngles = BoundaryAngles(
           start = boundaryAngleForVertex(startVertex, outerFace, polyAngle),
@@ -137,7 +277,8 @@ object TilingAddition:
           newVertices = polyAngle.conjugate
         )
 
-        val edgesResult = findSharedEdges(edgeToBuildOn, boundaryAngles, polyAngle)
+//        val edgesResult = findSharedEdges(edgeToBuildOn, boundaryAngles, polyAngle)
+        val edgesResult = findSharedEdges2(edgeToBuildOn, boundaryAngles, angles.drop(2))
 
         // Different start and end vertex
         val revisedStartVertex = edgesResult.startEdge.destination.get
@@ -162,7 +303,10 @@ object TilingAddition:
 
         val allVertices = revisedStartVertex :: newVertices ::: revisedEndVertex :: Nil
 
-        val edgePairs = createEdgePairs(allVertices, outerFace, newFace, revisedBoundaryAngles.start, polyAngle)
+        val revisedAngles = angles.drop(edgesResult.startCounter).dropRight(edgesResult.endCounter)
+
+//        val edgePairs = createEdgePairs(allVertices, outerFace, newFace, revisedBoundaryAngles.start, polyAngle)
+        val edgePairs = createEdgePairs2(allVertices, outerFace, newFace, revisedBoundaryAngles.start, revisedAngles)
         val (newBoundaryEdges, newInnerEdges) = edgePairs.unzip
 
         // Update existing structures
@@ -314,6 +458,32 @@ object TilingAddition:
     prev: Option[HalfEdge],
     next: Option[HalfEdge]
   )
+
+  private def updateExistingStructures2(
+    sharedEdges: List[HalfEdge],
+    newFace: Face,
+    polyAngles: List[AngleDegree],
+    newBoundaryEdges: List[HalfEdge],
+    originalBoundary: BoundaryState,
+    boundaryAngles: BoundaryAngles
+  ): Unit =
+    // Update shared edges
+    sharedEdges.foreach(_.incidentFace = Some(newFace))
+    val sharedEdgesFirstAngle = newBoundaryEdges.head.angle
+    sharedEdges.zipWithIndex.foreach((edge, index) => edge.angle = Some(polyAngles(index)))
+
+    // Update last boundary edge angle
+    newBoundaryEdges.lastOption.foreach(_.angle = Some(boundaryAngles.newVertices))
+
+    // Update existing boundary edge from end vertex
+    originalBoundary.next.foreach { nextEdge =>
+      if nextEdge.origin.id == sharedEdges.last.destination.map(_.id).getOrElse("") then
+        nextEdge.angle = Some(boundaryAngles.end)
+    }
+
+    // Update boundary in special shared edges case
+    if sharedEdges.length > 1 && newBoundaryEdges.length == 1 then
+      newBoundaryEdges.head.angle = sharedEdgesFirstAngle
 
   private def updateExistingStructures(
     sharedEdges: List[HalfEdge],
