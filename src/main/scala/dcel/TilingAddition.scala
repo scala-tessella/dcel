@@ -101,15 +101,21 @@ object TilingAddition:
 
   extension (tilingDCEL: TilingDCEL)
 
-    def addSimplePolygon(angles: List[AngleDegree]): Either[String, TilingDCEL] =
+    def addSimplePolygon(angles: List[AngleDegree], onEdgeStartingWithVertexId: String): Either[String, TilingDCEL] =
       for
         _      <- validateSides(angles.length, "simple")
         _      <- SimplePolygon.validatePolygonAngles(angles)
-        points = calculateVertexPoints(angles)
-        _      <- validatePoints(points)
+        boundaryEdges <- tilingDCEL.getBoundaryEdges
+        edgeToBuildOn <- boundaryEdges
+          .find (_.origin.id == onEdgeStartingWithVertexId)
+          .toRight (s"Edge starting with vertex $onEdgeStartingWithVertexId not found on the boundary.")
+        (startVertex, endVertex) <- edgeToBuildOn.endpointsAsVertices
+          .toRight("Edge has no destination vertex.")
       yield
-        ???
+        given outerFace: Face = tilingDCEL.outerFace
       
+        ???
+
     def addRegularPolygon(sides: Int, onEdgeStartingWithVertexId: String): Either[String, TilingDCEL] =
       for
         _                        <- validateSides(sides, "regular")
