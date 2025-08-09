@@ -496,7 +496,7 @@ object TilingAddition:
     sharedEdges.zipWithIndex.foreach((edge, index) => edge.angle = Some(polyAngles(index)))
 
     // Update last boundary edge angle
-    newBoundaryEdges.lastOption.foreach(_.angle = Some(boundaryAngles.newVertices.last.conjugate))
+    newBoundaryEdges.lastOption.foreach(_.angle = Some(boundaryAngles.newVertices.head.conjugate))
 
     // Update existing boundary edge from end vertex
     originalBoundary.next.foreach { nextEdge =>
