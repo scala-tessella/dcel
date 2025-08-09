@@ -167,6 +167,8 @@ object TilingAddition:
           .toRight (s"Edge starting with vertex $onEdgeStartingWithVertexId not found on the boundary.")
         (startVertex, endVertex) <- edgeToBuildOn.endpointsAsVertices
           .toRight("Edge has no destination vertex.")
+        points = calculateVertexPoints(angles.map(_.conjugate), endVertex.coords, startVertex.coords)
+        _      <- validatePoints(points)
       yield
         given outerFace: Face = tilingDCEL.outerFace
 
@@ -206,8 +208,7 @@ object TilingAddition:
         println(s"completeBoundary: $completeBoundary")
 
         // Create new components
-        val vertexPoints =
-          calculateVertexPoints(angles.map(_.conjugate), endVertex.coords, startVertex.coords).drop(2)
+        val vertexPoints = points.drop(2)
         println(s"vertexPoints: $vertexPoints")
         val revisedVertexPoints = vertexPoints.drop(edgesResult.startCounter).dropRight(edgesResult.endCounter)
         println(s"revisedVertexPoints: $revisedVertexPoints")
