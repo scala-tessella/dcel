@@ -175,7 +175,7 @@ object TilingAddition:
         // Calculate boundary angles
         val boundaryAngles = BoundaryAngles(
           start = boundaryAngleForVertex(startVertex, outerFace, angles.head),
-          end = boundaryAngleForVertex(endVertex, outerFace, angles.last),
+          end = boundaryAngleForVertex(endVertex, outerFace, angles(1)),
           newVertices = angles.head.conjugate
         )
 
