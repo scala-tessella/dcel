@@ -4,7 +4,7 @@ package dcel
 import TilingAddition.*
 import BigDecimalGeometry.{AngleDegree, BigPoint}
 
-import io.github.scala_tessella.ring_seq.RingSeq.*
+import ring_seq.RingSeq.*
 import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -227,9 +227,6 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     AngleDegree(anglesAroundV0).isFullCircle shouldBe true
   }
 
-//  val rhombusAngles: List[AngleDegree] =
-//    List(AngleDegree(120), AngleDegree(60), AngleDegree(120), AngleDegree(60))
-
   val irregularPentagonAngles: List[AngleDegree] =
     List(AngleDegree(90), AngleDegree(150), AngleDegree(60), AngleDegree(150), AngleDegree(90))
 
@@ -245,11 +242,6 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
     tiling.vertices should have size 6
     tiling.innerFaces should have size 2
-
-//    // Check that the sum of angles around shared vertices is 360°
-//    val v0 = tiling.findVertex("V1").get
-//    val anglesAroundV0 = v0.incidentEdges.flatMap(_.angle).map(_.toRational).sum
-//    AngleDegree(anglesAroundV0).isFullCircle shouldBe true
   }
 
   it should "add the same irregular pentagon with a different orientation to a triangle, producing a valid DCEL" in {
@@ -258,17 +250,33 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
     result.isRight shouldBe true
     val tiling = result.value
-    println(TilingDCEL.validate(tiling))
-    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
+//    println(TilingDCEL.validate(tiling))
+//    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
     verifyValidTiling(tiling)
 
     tiling.vertices should have size 6
     tiling.innerFaces should have size 2
+  }
 
-    //    // Check that the sum of angles around shared vertices is 360°
-    //    val v0 = tiling.findVertex("V1").get
-    //    val anglesAroundV0 = v0.incidentEdges.flatMap(_.angle).map(_.toRational).sum
-    //    AngleDegree(anglesAroundV0).isFullCircle shouldBe true
+  def commonTiling: TilingDCEL =
+    TilingBuilder.createRegularPolygon(4).value
+      .maybeAddRegularPolygon(3, "V1").value
+      .maybeAddRegularPolygon(3, "V3").value
+      .maybeAddRegularPolygon(3, "V5").value
+      .maybeAddRegularPolygon(3, "V3").value
+      .maybeAddRegularPolygon(4, "V7").value
+
+  it should "add an irregular pentagon with shared edges" in {
+    val result = commonTiling.addSimplePolygon(irregularPentagonAngles.rotateLeft(2), "V4")
+
+    result.isRight shouldBe true
+    val tiling = result.value
+    println(TilingDCEL.validate(tiling))
+    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
+    verifyValidTiling(tiling)
+
+    tiling.vertices should have size 11
+    tiling.innerFaces should have size 7
   }
 
   it should "add a triangle to a square, producing a valid DCEL" in {
@@ -595,14 +603,6 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 //    println(TilingDCEL.validate(newTiling))
     verifyValidTiling(newTiling)
   }
-
-  def commonTiling: TilingDCEL =
-    TilingBuilder.createRegularPolygon(4).value
-      .maybeAddRegularPolygon(3, "V1").value
-      .maybeAddRegularPolygon(3, "V3").value
-      .maybeAddRegularPolygon(3, "V5").value
-      .maybeAddRegularPolygon(3, "V3").value
-      .maybeAddRegularPolygon(4, "V7").value
 
   it should "successfully create a complex tessellation " in {
     val result = commonTiling
