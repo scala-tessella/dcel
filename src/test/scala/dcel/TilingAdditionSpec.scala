@@ -4,6 +4,7 @@ package dcel
 import TilingAddition.*
 import BigDecimalGeometry.{AngleDegree, BigPoint}
 
+import io.github.scala_tessella.ring_seq.RingSeq.*
 import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -238,8 +239,8 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
     result.isRight shouldBe true
     val tiling = result.value
-    println(TilingDCEL.validate(tiling))
-    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
+//    println(TilingDCEL.validate(tiling))
+//    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
     verifyValidTiling(tiling)
 
     tiling.vertices should have size 6
@@ -251,6 +252,24 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 //    AngleDegree(anglesAroundV0).isFullCircle shouldBe true
   }
 
+  it should "add the same irregular pentagon with a different orientation to a triangle, producing a valid DCEL" in {
+    val triangle = TilingBuilder.createRegularPolygon(3).value
+    val result = triangle.addSimplePolygon(irregularPentagonAngles.rotateRight(1), "V1")
+
+    result.isRight shouldBe true
+    val tiling = result.value
+    println(TilingDCEL.validate(tiling))
+    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
+    verifyValidTiling(tiling)
+
+    tiling.vertices should have size 6
+    tiling.innerFaces should have size 2
+
+    //    // Check that the sum of angles around shared vertices is 360°
+    //    val v0 = tiling.findVertex("V1").get
+    //    val anglesAroundV0 = v0.incidentEdges.flatMap(_.angle).map(_.toRational).sum
+    //    AngleDegree(anglesAroundV0).isFullCircle shouldBe true
+  }
 
   it should "add a triangle to a square, producing a valid DCEL" in {
     val square = TilingBuilder.createRegularPolygon(4).value
