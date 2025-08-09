@@ -40,9 +40,11 @@ object TilingAddition:
     startVertexAngle: AngleDegree,
     polygonAngles: List[AngleDegree]
   ): List[(HalfEdge, HalfEdge)] =
+    val size = polygonAngles.length
     vertices.sliding(2).zipWithIndex.map {
       case (origin :: destination :: Nil, index) =>
-        val boundaryAngle = if index == 0 then startVertexAngle else polygonAngles(index).conjugate
+        val shiftedIndex = (index - 1) % size
+        val boundaryAngle = if index == 0 then startVertexAngle else polygonAngles(shiftedIndex).conjugate
         HalfEdge.createTwinHalfEdges(
           origin, destination, outerFace, newFace,
           boundaryAngle, polygonAngles(index)
@@ -226,6 +228,7 @@ object TilingAddition:
         val edgePairs = createEdgePairs2(allVertices, outerFace, newFace, revisedBoundaryAngles.start, revisedAngles)
         val (newBoundaryEdges, newInnerEdges) = edgePairs.unzip
         println(s"newBoundaryEdges: $newBoundaryEdges")
+        println(s"newBoundaryEdges angles: ${newBoundaryEdges.map(_.angle)}")
         println(s"newInnerEdges: $newInnerEdges")
 
         val sharedAngles = angles.takeRight(edgesResult.endCounter) ++ angles.take(edgesResult.startCounter + 1)
@@ -236,6 +239,8 @@ object TilingAddition:
           edgesResult.sharedEdges, newFace, sharedAngles,
           newBoundaryEdges, completeBoundary, revisedBoundaryAngles
         )
+
+        println(s"newBoundaryEdges angles 2: ${newBoundaryEdges.map(_.angle)}")
 
         // Link new face edges
         linkNewFaceEdges(edgeToBuildOn, edgesResult.sharedEdges, newInnerEdges.reverse, newFace)
