@@ -222,7 +222,7 @@ object TilingAddition:
         val allVertices = revisedStartVertex :: newVertices ::: revisedEndVertex :: Nil
         println(s"allVertices: $allVertices")
 
-        val revisedAngles = angles.drop(edgesResult.startCounter).dropRight(edgesResult.endCounter)
+        val revisedAngles = angles.reverse.drop(edgesResult.startCounter).dropRight(edgesResult.endCounter)
         println(s"revisedAngles: $revisedAngles")
 
         val edgePairs = createEdgePairs2(allVertices, outerFace, newFace, revisedBoundaryAngles.start, revisedAngles)
