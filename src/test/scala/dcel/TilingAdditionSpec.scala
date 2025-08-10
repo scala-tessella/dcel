@@ -271,6 +271,32 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
     result.isRight shouldBe true
     val tiling = result.value
+//    println(TilingDCEL.validate(tiling))
+//    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
+    verifyValidTiling(tiling)
+
+    tiling.vertices should have size 11
+    tiling.innerFaces should have size 7
+  }
+
+  it should "add an irregular pentagon with shared edges to a different edge" in {
+    val result = commonTiling.addSimplePolygon(irregularPentagonAngles.rotateLeft(1), "V10")
+
+    result.isRight shouldBe true
+    val tiling = result.value
+//    println(TilingDCEL.validate(tiling))
+//    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
+    verifyValidTiling(tiling)
+
+    tiling.vertices should have size 11
+    tiling.innerFaces should have size 7
+  }
+
+  it should "add an irregular pentagon with shared edges to a third different edge" in {
+    val result = commonTiling.addSimplePolygon(irregularPentagonAngles.rotateLeft(3), "V3")
+
+    result.isRight shouldBe true
+    val tiling = result.value
     println(TilingDCEL.validate(tiling))
     println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
     verifyValidTiling(tiling)
