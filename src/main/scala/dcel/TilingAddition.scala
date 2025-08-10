@@ -125,21 +125,11 @@ object TilingAddition:
           newVertices = angles.drop(2)
         )
 
-        println(
-          s"""
-             |startVertex: $startVertex
-             |endVertex: $endVertex
-             |boundaryAngles: $boundaryAngles""".stripMargin)
-
         val edgesResult = findSharedEdges(edgeToBuildOn, boundaryAngles)
-
-        println(s"edgesResult: $edgesResult")
 
         // Different start and end vertex
         val revisedStartVertex = edgesResult.startEdge.destination.get
         val revisedEndVertex = edgesResult.endEdge.origin
-        println(s"revisedStartVertex: $revisedStartVertex")
-        println(s"revisedEndVertex: $revisedEndVertex")
 
         // Different boundary angles
         val revisedBoundaryAngles = BoundaryAngles(
@@ -147,46 +137,30 @@ object TilingAddition:
           end = edgesResult.endCheck,
           newVertices = boundaryAngles.newVertices.drop(edgesResult.startCounter).dropRight(edgesResult.endCounter)
         )
-        println(s"revisedBoundaryAngles: $revisedBoundaryAngles")
 
         // Different boundary
         val completeBoundary = BoundaryState(Some(edgesResult.startEdge), Some(edgesResult.endEdge))
-        println(s"completeBoundary: $completeBoundary")
 
         // Create new components
         val vertexPoints = points.drop(2).reverse
-        println(s"vertexPoints: $vertexPoints")
         val revisedVertexPoints = vertexPoints.drop(edgesResult.startCounter).dropRight(edgesResult.endCounter)
-        println(s"revisedVertexPoints: $revisedVertexPoints")
         val newVertices = createVertices(revisedVertexPoints, tilingDCEL.vertices.size)
-        println(s"newVertices: $newVertices")
 
         val newFace = Face(generateFaceId(tilingDCEL.innerFaces.size))
-        println(s"newFace: $newFace")
 
         val allVertices = revisedStartVertex :: newVertices ::: revisedEndVertex :: Nil
-        println(s"allVertices: $allVertices")
 
         val revisedAngles = angles.reverse.drop(edgesResult.startCounter).dropRight(edgesResult.endCounter)
-        println(s"revisedAngles: $revisedAngles")
 
         val edgePairs = createEdgePairs(allVertices, outerFace, newFace, revisedBoundaryAngles.start, revisedAngles)
         val (newBoundaryEdges, newInnerEdges) = edgePairs.unzip
-        println(s"newBoundaryEdges: $newBoundaryEdges")
-        println(s"newBoundaryEdges angles: ${newBoundaryEdges.map(_.angle)}")
-        println(s"newInnerEdges: $newInnerEdges")
-        println(s"newInnerEdges angles: ${newInnerEdges.map(_.angle)}")
 
         val sharedAngles = angles.takeRight(edgesResult.startCounter) ++ angles.take(edgesResult.endCounter + 1)
-        println(s"sharedAngles: $sharedAngles")
-        println(s"sharedEdges: ${edgesResult.sharedEdges}")
         // Update existing structures
         updateExistingStructures(
           edgesResult.sharedEdges, newFace, sharedAngles,
           newBoundaryEdges, completeBoundary, revisedBoundaryAngles
         )
-
-        println(s"newBoundaryEdges angles 2: ${newBoundaryEdges.map(_.angle)}")
 
         // Link new face edges
         linkNewFaceEdges(edgeToBuildOn, edgesResult.sharedEdges, newInnerEdges.reverse, newFace)
