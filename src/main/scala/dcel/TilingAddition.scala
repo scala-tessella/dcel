@@ -32,8 +32,7 @@ object TilingAddition:
     val currentInteriorSum = vertex.getCurrentInteriorAngleSum(outerFace)
     (currentInteriorSum + additionalInteriorAngle).conjugate
 
-  // Use proper case class pattern matching instead of List extraction
-  private def createEdgePairs2(
+  private def createEdgePairs(
     vertices: List[Vertex],
     outerFace: Face,
     newFace: Face,
@@ -48,25 +47,6 @@ object TilingAddition:
         HalfEdge.createTwinHalfEdges(
           origin, destination, outerFace, newFace,
           boundaryAngle, polygonAngles(index)
-        )
-      case _ =>
-        throw IllegalArgumentException("Invalid vertex sequence")
-    }.toList
-
-  // Use proper case class pattern matching instead of List extraction
-  private def createEdgePairs(
-    vertices: List[Vertex],
-    outerFace: Face,
-    newFace: Face,
-    startVertexAngle: AngleDegree,
-    polygonAngle: AngleDegree
-  ): List[(HalfEdge, HalfEdge)] =
-    vertices.sliding(2).zipWithIndex.map {
-      case (origin :: destination :: Nil, index) =>
-        val boundaryAngle = if index == 0 then startVertexAngle else polygonAngle.conjugate
-        HalfEdge.createTwinHalfEdges(
-          origin, destination, outerFace, newFace,
-          boundaryAngle, polygonAngle
         )
       case _ =>
         throw IllegalArgumentException("Invalid vertex sequence")
@@ -190,7 +170,7 @@ object TilingAddition:
         val revisedAngles = angles.reverse.drop(edgesResult.startCounter).dropRight(edgesResult.endCounter)
         println(s"revisedAngles: $revisedAngles")
 
-        val edgePairs = createEdgePairs2(allVertices, outerFace, newFace, revisedBoundaryAngles.start, revisedAngles)
+        val edgePairs = createEdgePairs(allVertices, outerFace, newFace, revisedBoundaryAngles.start, revisedAngles)
         val (newBoundaryEdges, newInnerEdges) = edgePairs.unzip
         println(s"newBoundaryEdges: $newBoundaryEdges")
         println(s"newBoundaryEdges angles: ${newBoundaryEdges.map(_.angle)}")
@@ -287,8 +267,7 @@ object TilingAddition:
 
         val revisedAngles = angles.drop(edgesResult.startCounter).dropRight(edgesResult.endCounter)
 
-//        val edgePairs = createEdgePairs(allVertices, outerFace, newFace, revisedBoundaryAngles.start, polyAngle)
-        val edgePairs = createEdgePairs2(allVertices, outerFace, newFace, revisedBoundaryAngles2.start, revisedAngles)
+        val edgePairs = createEdgePairs(allVertices, outerFace, newFace, revisedBoundaryAngles2.start, revisedAngles)
         val (newBoundaryEdges, newInnerEdges) = edgePairs.unzip
 
         // Update existing structures
