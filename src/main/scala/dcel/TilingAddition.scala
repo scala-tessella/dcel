@@ -86,7 +86,7 @@ object TilingAddition:
     endCounter: Int
   )
 
-  private def findSharedEdges3(
+  private def findSharedEdges(
     edgeToBuildOn: HalfEdge,
     boundaryAngles: BoundaryAngles2
   )(using outerFace: Face): SharedEdgesResult =
@@ -113,41 +113,6 @@ object TilingAddition:
 
     SharedEdgesResult(
       sharedEdges = prepended ::: edgeToBuildOn :: appended.reverse,
-      startCheck = startCheck,
-      startEdge = startEdge,
-      startCounter = prepended.length,
-      endCheck = endCheck,
-      endEdge = endEdge,
-      endCounter = appended.length
-    )
-
-  private def findSharedEdges(
-    edgeToBuildOn: HalfEdge,
-    boundaryAngles: BoundaryAngles,
-    polyAngle: AngleDegree
-  )(using outerFace: Face): SharedEdgesResult =
-
-    @tailrec
-    def traverse(
-      edge: HalfEdge,
-      check: AngleDegree,
-      acc: List[HalfEdge],
-      getNext: HalfEdge => HalfEdge,
-      getVertex: HalfEdge => Vertex
-    ): (List[HalfEdge], AngleDegree, HalfEdge) =
-      if !check.isFullCircle then (acc, check, edge)
-      else
-        val nextCheck = boundaryAngleForVertex(getVertex(edge), outerFace, polyAngle)
-        traverse(getNext(edge), nextCheck, edge :: acc, getNext, getVertex)
-
-    val (prepended, startCheck, startEdge) =
-      traverse(edgeToBuildOn.prev.get, boundaryAngles.start, Nil, _.prev.get, _.origin)
-
-    val (appended, endCheck, endEdge) =
-      traverse(edgeToBuildOn.next.get, boundaryAngles.end, Nil, _.next.get, _.destination.get)
-
-    SharedEdgesResult(
-      sharedEdges = prepended.reverse ::: edgeToBuildOn :: appended.reverse,
       startCheck = startCheck,
       startEdge = startEdge,
       startCounter = prepended.length,
@@ -186,7 +151,7 @@ object TilingAddition:
              |endVertex: $endVertex
              |boundaryAngles: $boundaryAngles""".stripMargin)
 
-        val edgesResult = findSharedEdges3(edgeToBuildOn, boundaryAngles)
+        val edgesResult = findSharedEdges(edgeToBuildOn, boundaryAngles)
 
         println(s"edgesResult: $edgesResult")
 
@@ -289,8 +254,7 @@ object TilingAddition:
           newVertices = angles.drop(2)
         )
 
-//        val edgesResult = findSharedEdges(edgeToBuildOn, boundaryAngles, polyAngle)
-        val edgesResult = findSharedEdges3(edgeToBuildOn, boundaryAngles2)
+        val edgesResult = findSharedEdges(edgeToBuildOn, boundaryAngles2)
 
         // Different start and end vertex
         val revisedStartVertex = edgesResult.startEdge.destination.get
@@ -328,9 +292,9 @@ object TilingAddition:
         val (newBoundaryEdges, newInnerEdges) = edgePairs.unzip
 
         // Update existing structures
-        updateExistingStructures2(
+        updateExistingStructures3(
           edgesResult.sharedEdges, newFace, edgesResult.sharedEdges.map(_ => polyAngle),
-          newBoundaryEdges, completeBoundary, revisedBoundaryAngles
+          newBoundaryEdges, completeBoundary, revisedBoundaryAngles2
         )
 
         // Link new face edges
