@@ -181,7 +181,7 @@ object TilingAddition:
         println(s"sharedAngles: $sharedAngles")
         println(s"sharedEdges: ${edgesResult.sharedEdges}")
         // Update existing structures
-        updateExistingStructures3(
+        updateExistingStructures(
           edgesResult.sharedEdges, newFace, sharedAngles,
           newBoundaryEdges, completeBoundary, revisedBoundaryAngles
         )
@@ -271,7 +271,7 @@ object TilingAddition:
         val (newBoundaryEdges, newInnerEdges) = edgePairs.unzip
 
         // Update existing structures
-        updateExistingStructures3(
+        updateExistingStructures(
           edgesResult.sharedEdges, newFace, edgesResult.sharedEdges.map(_ => polyAngle),
           newBoundaryEdges, completeBoundary, revisedBoundaryAngles2
         )
@@ -426,7 +426,7 @@ object TilingAddition:
     next: Option[HalfEdge]
   )
 
-  private def updateExistingStructures3(
+  private def updateExistingStructures(
     sharedEdges: List[HalfEdge],
     newFace: Face,
     polyAngles: List[AngleDegree],
@@ -441,58 +441,6 @@ object TilingAddition:
 
     // Update last boundary edge angle
 //    newBoundaryEdges.lastOption.foreach(_.angle = Some(boundaryAngles.newVertices.head.conjugate))
-
-    // Update existing boundary edge from end vertex
-    originalBoundary.next.foreach { nextEdge =>
-      if nextEdge.origin.id == sharedEdges.last.destination.map(_.id).getOrElse("") then
-        nextEdge.angle = Some(boundaryAngles.end)
-    }
-
-    // Update boundary in special shared edges case
-    if sharedEdges.length > 1 && newBoundaryEdges.length == 1 then
-      newBoundaryEdges.head.angle = sharedEdgesFirstAngle
-
-  private def updateExistingStructures2(
-    sharedEdges: List[HalfEdge],
-    newFace: Face,
-    polyAngles: List[AngleDegree],
-    newBoundaryEdges: List[HalfEdge],
-    originalBoundary: BoundaryState,
-    boundaryAngles: BoundaryAngles
-  ): Unit =
-    // Update shared edges
-    sharedEdges.foreach(_.incidentFace = Some(newFace))
-    val sharedEdgesFirstAngle = newBoundaryEdges.head.angle
-    sharedEdges.zipWithIndex.foreach((edge, index) => edge.angle = Some(polyAngles(index)))
-
-    // Update last boundary edge angle
-    newBoundaryEdges.lastOption.foreach(_.angle = Some(boundaryAngles.newVertices))
-
-    // Update existing boundary edge from end vertex
-    originalBoundary.next.foreach { nextEdge =>
-      if nextEdge.origin.id == sharedEdges.last.destination.map(_.id).getOrElse("") then
-        nextEdge.angle = Some(boundaryAngles.end)
-    }
-
-    // Update boundary in special shared edges case
-    if sharedEdges.length > 1 && newBoundaryEdges.length == 1 then
-      newBoundaryEdges.head.angle = sharedEdgesFirstAngle
-
-  private def updateExistingStructures(
-    sharedEdges: List[HalfEdge],
-    newFace: Face,
-    polyAngle: AngleDegree,
-    newBoundaryEdges: List[HalfEdge],
-    originalBoundary: BoundaryState,
-    boundaryAngles: BoundaryAngles
-  ): Unit =
-    // Update shared edges
-    sharedEdges.foreach(_.incidentFace = Some(newFace))
-    val sharedEdgesFirstAngle = newBoundaryEdges.head.angle
-    sharedEdges.foreach(_.angle = Some(polyAngle))
-
-    // Update last boundary edge angle
-    newBoundaryEdges.lastOption.foreach(_.angle = Some(boundaryAngles.newVertices))
 
     // Update existing boundary edge from end vertex
     originalBoundary.next.foreach { nextEdge =>
