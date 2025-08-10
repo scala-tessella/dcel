@@ -116,66 +116,15 @@ object TilingAddition:
         points = calculateVertexPoints(angles, startVertex.coords, endVertex.coords)
         _      <- validatePoints(points)
       yield
-        given outerFace: Face = tilingDCEL.outerFace
 
-        // Calculate boundary angles
-        val boundaryAngles = BoundaryAngles(
-          start = boundaryAngleForVertex(startVertex, outerFace, angles.head),
-          end = boundaryAngleForVertex(endVertex, outerFace, angles(1)),
-          newVertices = angles.drop(2)
-        )
-
-        val edgesResult = findSharedEdges(edgeToBuildOn, boundaryAngles)
-
-        // Different start and end vertex
-        val revisedStartVertex = edgesResult.startEdge.destination.get
-        val revisedEndVertex = edgesResult.endEdge.origin
-
-        // Different boundary angles
-        val revisedBoundaryAngles = BoundaryAngles(
-          start = edgesResult.startCheck,
-          end = edgesResult.endCheck,
-          newVertices = boundaryAngles.newVertices.drop(edgesResult.startCounter).dropRight(edgesResult.endCounter)
-        )
-
-        // Different boundary
-        val completeBoundary = BoundaryState(Some(edgesResult.startEdge), Some(edgesResult.endEdge))
-
-        // Create new components
-        val vertexPoints = points.drop(2).reverse
-        val revisedVertexPoints = vertexPoints.drop(edgesResult.startCounter).dropRight(edgesResult.endCounter)
-        val newVertices = createVertices(revisedVertexPoints, tilingDCEL.vertices.size)
-
-        val newFace = Face(generateFaceId(tilingDCEL.innerFaces.size))
-
-        val allVertices = revisedStartVertex :: newVertices ::: revisedEndVertex :: Nil
-
-        val revisedAngles = angles.reverse.drop(edgesResult.startCounter).dropRight(edgesResult.endCounter)
-
-        val edgePairs = createEdgePairs(allVertices, outerFace, newFace, revisedBoundaryAngles.start, revisedAngles)
-        val (newBoundaryEdges, newInnerEdges) = edgePairs.unzip
-
-        val sharedAngles = angles.takeRight(edgesResult.startCounter) ++ angles.take(edgesResult.endCounter + 1)
-        // Update existing structures
-        updateExistingStructures(
-          edgesResult.sharedEdges, newFace, sharedAngles,
-          newBoundaryEdges, completeBoundary, revisedBoundaryAngles
-        )
-
-        // Link new face edges
-        linkNewFaceEdges(edgeToBuildOn, edgesResult.sharedEdges, newInnerEdges.reverse, newFace)
-
-        // Connect to boundary
-        connectNewBoundaryEdges(newBoundaryEdges, completeBoundary, outerFace, edgesResult.sharedEdges)
-
-        // Update vertex leaving edges
-        updateVertexLeavingEdges(revisedStartVertex :: newVertices, newBoundaryEdges)
+        val (newVertices, newHalfEdges, newFace) =
+          additionalElements(startVertex, endVertex, edgeToBuildOn, angles, points, tilingDCEL.vertices.size, tilingDCEL.innerFaces.size, tilingDCEL.outerFace)
 
         // Return new DCEL with updated components
         val revisedTiling =
           tilingDCEL.copy(
             vertices = tilingDCEL.vertices ::: newVertices,
-            halfEdges = tilingDCEL.halfEdges ::: newBoundaryEdges ::: newInnerEdges,
+            halfEdges = tilingDCEL.halfEdges ::: newHalfEdges,
             innerFaces = tilingDCEL.innerFaces :+ newFace
           )
 
@@ -191,184 +140,32 @@ object TilingAddition:
         (startVertex, endVertex) <- edgeToBuildOn.endpointsAsVertices
           .toRight("Edge has no destination vertex.")
       yield
-        given outerFace: Face = tilingDCEL.outerFace
 
         val polyAngle = polygonAngle(sides)
         val angles = List.fill(sides)(polyAngle)
-        // Calculate boundary angles
-        val boundaryAngles = BoundaryAngles(
-          start = boundaryAngleForVertex(startVertex, outerFace, polyAngle),
-          end = boundaryAngleForVertex(endVertex, outerFace, polyAngle),
-          newVertices = angles.drop(2)
-        )
+        val points = calculateVertexPoints(angles, startVertex.coords, endVertex.coords)
 
-        val edgesResult = findSharedEdges(edgeToBuildOn, boundaryAngles)
-
-        // Different start and end vertex
-        val revisedStartVertex = edgesResult.startEdge.destination.get
-        val revisedEndVertex = edgesResult.endEdge.origin
-
-        // Different boundary angles
-        val revisedBoundaryAngles = BoundaryAngles(
-          start = edgesResult.startCheck,
-          end = edgesResult.endCheck,
-          newVertices = boundaryAngles.newVertices.drop(edgesResult.startCounter).dropRight(edgesResult.endCounter)
-        )
-
-        // Different boundary
-        val completeBoundary = BoundaryState(Some(edgesResult.startEdge), Some(edgesResult.endEdge))
-
-        // Create new components
-        val vertexPoints = calculateNewVertices(sides, endVertex.coords, startVertex.coords)
-        val revisedVertexPoints = vertexPoints.drop(edgesResult.startCounter).dropRight(edgesResult.endCounter)
-        val newVertices = createVertices(revisedVertexPoints, tilingDCEL.vertices.size)
-
-        val newFace = Face(generateFaceId(tilingDCEL.innerFaces.size))
-
-        val allVertices = revisedStartVertex :: newVertices ::: revisedEndVertex :: Nil
-
-        val revisedAngles = angles.drop(edgesResult.startCounter).dropRight(edgesResult.endCounter)
-
-        val edgePairs = createEdgePairs(allVertices, outerFace, newFace, revisedBoundaryAngles.start, revisedAngles)
-        val (newBoundaryEdges, newInnerEdges) = edgePairs.unzip
-
-        // Update existing structures
-        updateExistingStructures(
-          edgesResult.sharedEdges, newFace, edgesResult.sharedEdges.map(_ => polyAngle),
-          newBoundaryEdges, completeBoundary, revisedBoundaryAngles
-        )
-
-        // Link new face edges
-        linkNewFaceEdges(edgeToBuildOn, edgesResult.sharedEdges, newInnerEdges.reverse, newFace)
-
-        // Connect to boundary
-        connectNewBoundaryEdges(newBoundaryEdges, completeBoundary, outerFace, edgesResult.sharedEdges)
-
-        // Update vertex leaving edges
-        updateVertexLeavingEdges(revisedStartVertex :: newVertices, newBoundaryEdges)
+        val (newVertices, newHalfEdges, newFace) =
+          additionalElements(startVertex, endVertex, edgeToBuildOn, angles, points, tilingDCEL.vertices.size, tilingDCEL.innerFaces.size, tilingDCEL.outerFace)
 
         // Return new DCEL with updated components
         val revisedTiling =
           tilingDCEL.copy(
             vertices = tilingDCEL.vertices ::: newVertices,
-            halfEdges = tilingDCEL.halfEdges ::: newBoundaryEdges ::: newInnerEdges,
+            halfEdges = tilingDCEL.halfEdges ::: newHalfEdges,
             innerFaces = tilingDCEL.innerFaces :+ newFace
           )
 
         boundaryEdges.map(_.origin).sameCoords(newVertices) match
           case Nil => revisedTiling
           case (v_match, v_new) :: Nil =>
-            revisedTiling.stitchHole(v_match, v_new)
+            revisedTiling//.stitchHole(v_match, v_new)
           case one :: two :: Nil =>
             println("Warning: two shared vertices found")
             revisedTiling
           case _ =>
             println("Error: more than 2 shared vertices found")
             revisedTiling
-
-    /** Creates a valid TilingDCEL when two boundary vertices are touching forming an inner face
-     *
-     * @param v_match The already existing vertex touched
-     * @param v_new   The new vertex touching
-     * @return
-     */
-    private def stitchHole(v_match: Vertex, v_new: Vertex): TilingDCEL =
-      println(s"Warning: one shared vertex found, $v_new at place where $v_match already is.")
-      val holeFace = Face(generateFaceId(tilingDCEL.innerFaces.size + 1))
-
-      // Find the boundary edges that will form the hole
-      val boundaryEdgesAroundHole =
-        tilingDCEL.getBoundaryEdgesPath(from = v_match, to = v_new)
-      println(s"boundaryEdgesAroundHole: $boundaryEdgesAroundHole")
-
-      // Remove the vertex that will be merged
-      val updatedVertices = tilingDCEL.vertices.filterNot(_ == v_new)
-      println(s"updatedVertices: $updatedVertices")
-
-      // Create mapping for edges that need to be replaced
-      val oldToNewEdgeMap = mutable.Map[HalfEdge, HalfEdge]()
-
-      // First pass: create new edges for those originating from v_new
-      val updatedHalfEdges = tilingDCEL.halfEdges.map { edge =>
-        if edge.origin == v_new then
-          val newEdge = HalfEdge(v_match)
-          newEdge.twin = edge.twin
-          newEdge.incidentFace = edge.incidentFace
-          newEdge.angle = edge.angle
-          newEdge.next = edge.next
-          newEdge.prev = edge.prev
-
-          oldToNewEdgeMap(edge) = newEdge
-          edge.twin.foreach(_.twin = Some(newEdge))
-
-          if v_new.leaving.contains(edge) then
-            v_match.leaving = Some(newEdge)
-
-          println(s"updatedEdge: $newEdge")
-          newEdge
-        else
-          edge
-      }
-      println(s"updatedHalfEdges: $updatedHalfEdges")
-
-      // Second pass: fix next/prev references
-      updatedHalfEdges.foreach { edge =>
-        // Update next reference if it points to a replaced edge
-        edge.next = edge.next.map { nextEdge =>
-          oldToNewEdgeMap.getOrElse(nextEdge, nextEdge)
-        }
-        // Update prev reference if it points to a replaced edge
-        edge.prev = edge.prev.map { prevEdge =>
-          oldToNewEdgeMap.getOrElse(prevEdge, prevEdge)
-        }
-      }
-      println(s"done: $updatedHalfEdges")
-
-      // Create the hole face and assign it to the appropriate edges
-      val holeEdges = boundaryEdgesAroundHole.map(oldEdge =>
-        oldToNewEdgeMap.getOrElse(oldEdge, oldEdge)
-      )
-      println(s"holeEdges: $holeEdges")
-
-      // Create new inner edges for the hole face (twins of the boundary edges)
-      val holeInnerEdges = holeEdges.map { boundaryEdge =>
-        val innerEdge = HalfEdge(boundaryEdge.destination.get)
-        innerEdge.twin = Some(boundaryEdge)
-        boundaryEdge.twin = Some(innerEdge)
-        innerEdge.incidentFace = Some(holeFace)
-
-        // Calculate the interior angle for the hole face
-        val vertex = innerEdge.origin
-        val allIncidentEdges = vertex.incidentEdges
-        val interiorEdges = allIncidentEdges.filterNot(_.incidentFace.contains(tilingDCEL.outerFace))
-        val currentInteriorSum = interiorEdges.flatMap(_.angle).fold(AngleDegree(0))(_ + _)
-        val holeInteriorAngle = currentInteriorSum.conjugate
-
-        innerEdge.angle = Some(holeInteriorAngle)
-        innerEdge
-      }
-
-      // Link the inner edges in a cycle
-      holeInnerEdges.zip(holeInnerEdges.tail :+ holeInnerEdges.head).foreach { case (current, next) =>
-        current.linkWith(next)
-      }
-
-      // Set the hole face's outer component
-      holeFace.outerComponent = holeInnerEdges.headOption
-
-      println(s"holeEdges with new incidentFace and angle: $holeEdges")
-
-      // Update the outer face component if needed
-      val remainingBoundaryEdges = updatedHalfEdges.filter(_.incidentFace.contains(tilingDCEL.outerFace))
-      if remainingBoundaryEdges.nonEmpty then
-        tilingDCEL.outerFace.outerComponent = remainingBoundaryEdges.headOption
-
-      // Return the updated tiling with the hole face
-      tilingDCEL.copy(
-        vertices = updatedVertices,
-        halfEdges = updatedHalfEdges ++ holeInnerEdges,
-        innerFaces = tilingDCEL.innerFaces :+ holeFace
-      )
 
   // Helper case classes for better structure
   private case class BoundaryAngles(
@@ -381,6 +178,73 @@ object TilingAddition:
     prev: Option[HalfEdge],
     next: Option[HalfEdge]
   )
+
+  private def additionalElements(
+    startVertex: Vertex,
+    endVertex: Vertex,
+    edgeToBuildOn: HalfEdge,
+    angles: List[AngleDegree],
+    points: List[BigPoint],
+    verticesSize: Int,
+    innerFacesSize: Int,
+    outer: Face
+  ): (List[Vertex], List[HalfEdge], Face) =
+    given outerFace: Face = outer
+
+    // Calculate boundary angles
+    val boundaryAngles = BoundaryAngles(
+      start = boundaryAngleForVertex(startVertex, outerFace, angles.head),
+      end = boundaryAngleForVertex(endVertex, outerFace, angles(1)),
+      newVertices = angles.drop(2)
+    )
+
+    val edgesResult = findSharedEdges(edgeToBuildOn, boundaryAngles)
+
+    // Different start and end vertex
+    val revisedStartVertex = edgesResult.startEdge.destination.get
+    val revisedEndVertex = edgesResult.endEdge.origin
+
+    // Different boundary angles
+    val revisedBoundaryAngles = BoundaryAngles(
+      start = edgesResult.startCheck,
+      end = edgesResult.endCheck,
+      newVertices = boundaryAngles.newVertices.drop(edgesResult.startCounter).dropRight(edgesResult.endCounter)
+    )
+
+    // Different boundary
+    val completeBoundary = BoundaryState(Some(edgesResult.startEdge), Some(edgesResult.endEdge))
+
+    // Create new components
+    val vertexPoints = points.drop(2).reverse
+    val revisedVertexPoints = vertexPoints.drop(edgesResult.startCounter).dropRight(edgesResult.endCounter)
+    val newVertices = createVertices(revisedVertexPoints, verticesSize)
+
+    val newFace = Face(generateFaceId(innerFacesSize))
+
+    val allVertices = revisedStartVertex :: newVertices ::: revisedEndVertex :: Nil
+
+    val revisedAngles = angles.reverse.drop(edgesResult.startCounter).dropRight(edgesResult.endCounter)
+
+    val edgePairs = createEdgePairs(allVertices, outerFace, newFace, revisedBoundaryAngles.start, revisedAngles)
+    val (newBoundaryEdges, newInnerEdges) = edgePairs.unzip
+
+    val sharedAngles = angles.takeRight(edgesResult.startCounter) ++ angles.take(edgesResult.endCounter + 1)
+    // Update existing structures
+    updateExistingStructures(
+      edgesResult.sharedEdges, newFace, sharedAngles,
+      newBoundaryEdges, completeBoundary, revisedBoundaryAngles
+    )
+
+    // Link new face edges
+    linkNewFaceEdges(edgeToBuildOn, edgesResult.sharedEdges, newInnerEdges.reverse, newFace)
+
+    // Connect to boundary
+    connectNewBoundaryEdges(newBoundaryEdges, completeBoundary, outerFace, edgesResult.sharedEdges)
+
+    // Update vertex leaving edges
+    updateVertexLeavingEdges(revisedStartVertex :: newVertices, newBoundaryEdges)
+
+    (newVertices, newBoundaryEdges ::: newInnerEdges, newFace)
 
   private def updateExistingStructures(
     sharedEdges: List[HalfEdge],
