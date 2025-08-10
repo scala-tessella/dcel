@@ -68,7 +68,7 @@ object TilingAddition:
 
   private def findSharedEdges(
     edgeToBuildOn: HalfEdge,
-    boundaryAngles: BoundaryAngles2
+    boundaryAngles: BoundaryAngles
   )(using outerFace: Face): SharedEdgesResult =
 
     @tailrec
@@ -119,7 +119,7 @@ object TilingAddition:
         given outerFace: Face = tilingDCEL.outerFace
 
         // Calculate boundary angles
-        val boundaryAngles = BoundaryAngles2(
+        val boundaryAngles = BoundaryAngles(
           start = boundaryAngleForVertex(startVertex, outerFace, angles.head),
           end = boundaryAngleForVertex(endVertex, outerFace, angles(1)),
           newVertices = angles.drop(2)
@@ -142,7 +142,7 @@ object TilingAddition:
         println(s"revisedEndVertex: $revisedEndVertex")
 
         // Different boundary angles
-        val revisedBoundaryAngles = BoundaryAngles2(
+        val revisedBoundaryAngles = BoundaryAngles(
           start = edgesResult.startCheck,
           end = edgesResult.endCheck,
           newVertices = boundaryAngles.newVertices.drop(edgesResult.startCounter).dropRight(edgesResult.endCounter)
@@ -222,19 +222,13 @@ object TilingAddition:
         val polyAngle = polygonAngle(sides)
         val angles = List.fill(sides)(polyAngle)
         // Calculate boundary angles
-//        val boundaryAngles = BoundaryAngles(
-//          start = boundaryAngleForVertex(startVertex, outerFace, polyAngle),
-//          end = boundaryAngleForVertex(endVertex, outerFace, polyAngle),
-//          newVertices = polyAngle.conjugate
-//        )
-
-        val boundaryAngles2 = BoundaryAngles2(
+        val boundaryAngles = BoundaryAngles(
           start = boundaryAngleForVertex(startVertex, outerFace, polyAngle),
           end = boundaryAngleForVertex(endVertex, outerFace, polyAngle),
           newVertices = angles.drop(2)
         )
 
-        val edgesResult = findSharedEdges(edgeToBuildOn, boundaryAngles2)
+        val edgesResult = findSharedEdges(edgeToBuildOn, boundaryAngles)
 
         // Different start and end vertex
         val revisedStartVertex = edgesResult.startEdge.destination.get
@@ -244,13 +238,7 @@ object TilingAddition:
         val revisedBoundaryAngles = BoundaryAngles(
           start = edgesResult.startCheck,
           end = edgesResult.endCheck,
-          newVertices = polyAngle.conjugate
-        )
-
-        val revisedBoundaryAngles2 = BoundaryAngles2(
-          start = edgesResult.startCheck,
-          end = edgesResult.endCheck,
-          newVertices = boundaryAngles2.newVertices.drop(edgesResult.startCounter).dropRight(edgesResult.endCounter)
+          newVertices = boundaryAngles.newVertices.drop(edgesResult.startCounter).dropRight(edgesResult.endCounter)
         )
 
         // Different boundary
@@ -267,13 +255,13 @@ object TilingAddition:
 
         val revisedAngles = angles.drop(edgesResult.startCounter).dropRight(edgesResult.endCounter)
 
-        val edgePairs = createEdgePairs(allVertices, outerFace, newFace, revisedBoundaryAngles2.start, revisedAngles)
+        val edgePairs = createEdgePairs(allVertices, outerFace, newFace, revisedBoundaryAngles.start, revisedAngles)
         val (newBoundaryEdges, newInnerEdges) = edgePairs.unzip
 
         // Update existing structures
         updateExistingStructures(
           edgesResult.sharedEdges, newFace, edgesResult.sharedEdges.map(_ => polyAngle),
-          newBoundaryEdges, completeBoundary, revisedBoundaryAngles2
+          newBoundaryEdges, completeBoundary, revisedBoundaryAngles
         )
 
         // Link new face edges
@@ -412,12 +400,6 @@ object TilingAddition:
   private case class BoundaryAngles(
     start: AngleDegree,
     end: AngleDegree,
-    newVertices: AngleDegree
-  )
-
-  private case class BoundaryAngles2(
-    start: AngleDegree,
-    end: AngleDegree,
     newVertices: List[AngleDegree]
   )
 
@@ -432,7 +414,7 @@ object TilingAddition:
     polyAngles: List[AngleDegree],
     newBoundaryEdges: List[HalfEdge],
     originalBoundary: BoundaryState,
-    boundaryAngles: BoundaryAngles2
+    boundaryAngles: BoundaryAngles
   ): Unit =
     // Update shared edges
     sharedEdges.foreach(_.incidentFace = Some(newFace))
