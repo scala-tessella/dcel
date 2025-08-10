@@ -375,3 +375,231 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
     result.isLeft shouldBe true
     result.left.value should include("Full circle boundary angles")
   }
+
+  behavior of "TilingDCEL.deepCopy"
+
+  it should "create a copy with same structural properties as original" in {
+    val original = createTriangleTiling()
+    val copy = original.deepCopy
+
+    // Basic structural properties should match
+    copy.vertices should have length original.vertices.length
+    copy.halfEdges should have length original.halfEdges.length
+    copy.innerFaces should have length original.innerFaces.length
+    copy.faces should have length original.faces.length
+
+    // Vertex IDs and coordinates should match
+    copy.vertices.map(_.id) should contain theSameElementsAs original.vertices.map(_.id)
+    copy.vertices.zip(original.vertices).foreach { case (copyV, origV) =>
+      copyV.id shouldEqual origV.id
+      copyV.coords shouldEqual origV.coords
+    }
+
+    // Face IDs should match
+    copy.faces.map(_.id) should contain theSameElementsAs original.faces.map(_.id)
+  }
+
+  it should "create completely independent objects" in {
+    val original = createSquareTiling()
+    val copy = original.deepCopy
+
+    // Verify that all objects are different instances
+    original.vertices.zip(copy.vertices).foreach { case (origV, copyV) =>
+      origV should not be theSameInstanceAs(copyV)
+    }
+
+    original.halfEdges.zip(copy.halfEdges).foreach { case (origE, copyE) =>
+      origE should not be theSameInstanceAs(copyE)
+    }
+
+    original.faces.zip(copy.faces).foreach { case (origF, copyF) =>
+      origF should not be theSameInstanceAs(copyF)
+    }
+  }
+
+  it should "preserve all cross-references correctly" in {
+    val original = createHexagonTiling()
+    val copy = original.deepCopy
+
+    // Check vertex leaving edges
+    copy.vertices.foreach { vertex =>
+      vertex.leaving shouldBe defined
+      vertex.leaving.get.origin should be theSameInstanceAs vertex
+    }
+
+    // Check half-edge relationships
+    copy.halfEdges.foreach { edge =>
+      // Twin relationships
+      edge.twin shouldBe defined
+      edge.twin.get.twin should contain(edge)
+
+      // Next/prev relationships
+      edge.next shouldBe defined
+      edge.prev shouldBe defined
+      edge.next.get.prev should contain(edge)
+      edge.prev.get.next should contain(edge)
+
+      // Origin relationships - check that the edge is among the vertex's incident edges
+      edge.origin.incidentEdges should contain(edge)
+
+      // Incident face relationships
+      edge.incidentFace shouldBe defined
+    }
+
+    // Check face outer components
+    copy.faces.foreach { face =>
+      if face.outerComponent.isDefined then
+        face.outerComponent.get.incidentFace should contain(face)
+    }
+
+    // Additional check: verify that leaving edges are actually incident to their vertices
+    copy.vertices.foreach { vertex =>
+      vertex.leaving.foreach { leavingEdge =>
+        vertex.incidentEdges should contain(leavingEdge)
+      }
+    }
+  }
+
+  it should "maintain DCEL validation after copying" in {
+    val original = createTriangleTiling()
+    val copy = original.deepCopy
+
+    // Both original and copy should validate successfully
+    TilingDCEL.validate(original) shouldBe Right(())
+    TilingDCEL.validate(copy) shouldBe Right(())
+  }
+
+  it should "not affect original when copy is modified" in {
+    val original = createSquareTiling()
+    val copy = original.deepCopy
+
+    // Get original boundary before modification
+    val originalBoundaryBefore = original.boundary
+    val copyBoundaryBefore = copy.boundary
+
+    originalBoundaryBefore shouldEqual copyBoundaryBefore
+
+    // Modify the copy by adding a polygon
+    val modifiedCopy = copy.maybeAddRegularPolygon(3, "V1")
+    modifiedCopy shouldBe a[Right[_, _]]
+
+    // Original should remain unchanged
+    val originalBoundaryAfter = original.boundary
+    originalBoundaryBefore shouldEqual originalBoundaryAfter
+
+    // Original structure should still be valid
+    TilingDCEL.validate(original) shouldBe Right(())
+
+    // Original should have same number of components as before
+    original.vertices should have length 4
+    original.innerFaces should have length 1
+  }
+
+  it should "not affect copy when original is modified" in {
+    val original = createTriangleTiling()
+    val copy = original.deepCopy
+
+    // Get copy boundary before modification
+    val copyBoundaryBefore = copy.boundary
+
+    // Modify the original by adding a polygon
+    val modifiedOriginal = original.maybeAddRegularPolygon(4, "V1")
+    modifiedOriginal shouldBe a[Right[_, _]]
+
+    // Copy should remain unchanged
+    val copyBoundaryAfter = copy.boundary
+    copyBoundaryBefore shouldEqual copyBoundaryAfter
+
+    // Copy structure should still be valid
+    TilingDCEL.validate(copy) shouldBe Right(())
+
+    // Copy should have same number of components as before
+    copy.vertices should have length 3
+    copy.innerFaces should have length 1
+  }
+
+  it should "work correctly with empty tiling" in {
+    val original = TilingBuilder.empty
+    val copy = original.deepCopy
+
+    copy.vertices shouldBe empty
+    copy.halfEdges shouldBe empty
+    copy.innerFaces shouldBe empty
+    copy.outerFace should not be theSameInstanceAs(original.outerFace)
+    copy.outerFace.id shouldEqual original.outerFace.id
+  }
+
+  it should "preserve boundary traversal functionality" in {
+    val original = createHexagonTiling()
+    val copy = original.deepCopy
+
+    // Boundary traversal should work the same way
+    original.boundary shouldEqual copy.boundary
+    original.boundarySafe shouldEqual copy.boundarySafe
+
+    // The actual vertex instances should be different but have same properties
+    original.boundary.zip(copy.boundary).foreach { case (origV, copyV) =>
+      origV should not be theSameInstanceAs(copyV)
+      origV.id shouldEqual copyV.id
+      origV.coords shouldEqual copyV.coords
+    }
+  }
+
+  it should "preserve angle information correctly" in {
+    val original = createTriangleTiling()
+    val copy = original.deepCopy
+
+    // Check that angles are preserved
+    original.vertices.zip(copy.vertices).foreach { case (origV, copyV) =>
+      val origAngles = original.getAnglesAtVertex(origV.id)
+      val copyAngles = copy.getAnglesAtVertex(copyV.id)
+
+      origAngles shouldEqual copyAngles
+    }
+
+    // Check half-edge angles
+    original.halfEdges.zip(copy.halfEdges).foreach { case (origE, copyE) =>
+      origE.angle shouldEqual copyE.angle
+    }
+  }
+
+  it should "maintain connectedness property" in {
+    val original = createSquareTiling()
+    val copy = original.deepCopy
+
+    original.isConnected shouldEqual copy.isConnected
+
+    // Add polygons to both and check they remain connected
+    val expandedOriginal = original.maybeAddRegularPolygon(3, "V1").value
+    val expandedCopy = copy.maybeAddRegularPolygon(3, "V1").value
+
+    expandedOriginal.isConnected shouldBe true
+    expandedCopy.isConnected shouldBe true
+  }
+
+  it should "work correctly for complex multi-polygon tilings" in {
+    val original = createTriangleTiling()
+      .maybeAddRegularPolygon(4, "V1").value
+      .maybeAddRegularPolygon(3, "V5").value
+
+    val copy = original.deepCopy
+
+    // Verify structure is preserved
+    copy.vertices should have length original.vertices.length
+    copy.innerFaces should have length original.innerFaces.length
+
+    // Verify both validate correctly
+    TilingDCEL.validate(original) shouldBe Right(())
+    TilingDCEL.validate(copy) shouldBe Right(())
+
+    // Verify independence by modifying each
+    val modifiedOriginal = original.maybeAddRegularPolygon(6, "V2")
+    val modifiedCopy = copy.maybeAddRegularPolygon(5, "V3")
+
+    modifiedOriginal shouldBe a[Right[_, _]]
+    modifiedCopy shouldBe a[Right[_, _]]
+
+    // They should have different numbers of faces now
+    modifiedOriginal.value.innerFaces should have length (original.innerFaces.length + 1)
+    modifiedCopy.value.innerFaces should have length (copy.innerFaces.length + 1)
+  }

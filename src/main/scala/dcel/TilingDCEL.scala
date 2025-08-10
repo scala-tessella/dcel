@@ -110,6 +110,76 @@ case class TilingDCEL(
   private def findBoundaryEdge(vertexId: String): Option[HalfEdge] =
     getBoundaryEdges.toOption.flatMap(_.find(_.origin.id == vertexId))
 
+
+  /**
+   * Creates a deep copy of this TilingDCEL that is completely independent.
+   * Changes to the original will not affect the copy and vice versa.
+   *
+   * @return A new TilingDCEL instance with all components copied and properly linked.
+   */
+  def deepCopy: TilingDCEL =
+    // Create mapping from old to new components
+    val vertexMap = vertices.map(v => v -> Vertex(v.id, v.coords)).toMap
+    val faceMap = faces.map(f => f -> Face(f.id)).toMap
+    val halfEdgeMap = halfEdges.map(he => he -> HalfEdge(vertexMap(he.origin))).toMap
+
+    // Copy all relationships for half-edges
+    halfEdges.foreach { oldEdge =>
+      val newEdge = halfEdgeMap(oldEdge)
+
+      // Copy twin relationship
+      oldEdge.twin.foreach { oldTwin =>
+        newEdge.twin = Some(halfEdgeMap(oldTwin))
+      }
+
+      // Copy incident face
+      oldEdge.incidentFace.foreach { oldFace =>
+        newEdge.incidentFace = Some(faceMap(oldFace))
+      }
+
+      // Copy next relationship
+      oldEdge.next.foreach { oldNext =>
+        newEdge.next = Some(halfEdgeMap(oldNext))
+      }
+
+      // Copy prev relationship
+      oldEdge.prev.foreach { oldPrev =>
+        newEdge.prev = Some(halfEdgeMap(oldPrev))
+      }
+
+      // Copy angle
+      newEdge.angle = oldEdge.angle
+    }
+
+    // Copy vertex leaving edge relationships
+    vertices.foreach { oldVertex =>
+      val newVertex = vertexMap(oldVertex)
+      oldVertex.leaving.foreach { oldLeavingEdge =>
+        newVertex.leaving = Some(halfEdgeMap(oldLeavingEdge))
+      }
+    }
+
+    // Copy face outer component relationships
+    faces.foreach { oldFace =>
+      val newFace = faceMap(oldFace)
+      oldFace.outerComponent.foreach { oldOuterComponent =>
+        newFace.outerComponent = Some(halfEdgeMap(oldOuterComponent))
+      }
+
+      // Copy inner components
+      newFace.innerComponents = oldFace.innerComponents.map { optionalInnerComponent =>
+        optionalInnerComponent.map(halfEdgeMap)
+      }
+    }
+
+    // Create the new TilingDCEL with copied components
+    TilingDCEL(
+      vertices = vertices.map(vertexMap),
+      halfEdges = halfEdges.map(halfEdgeMap),
+      innerFaces = innerFaces.map(faceMap),
+      outerFace = faceMap(outerFace)
+    )
+    
   def maybeAddRegularPolygon(sides: Int, onEdgeStartingWithVertexId: String): Either[String, TilingDCEL] =
     this.addRegularPolygon(sides, onEdgeStartingWithVertexId)
     
