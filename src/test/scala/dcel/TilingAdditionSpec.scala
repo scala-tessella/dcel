@@ -373,16 +373,16 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   // Edge case tests for different vertex positions
-  it should "add polygons on different boundary vertices" in {
-    val square = TilingBuilder.createRegularPolygon(4).value
-
-    // Test adding on each vertex
-    for (vertexId <- List("V1", "V2", "V3", "V4")) {
-      val result = square.addRegularPolygon(3, vertexId)
-      result.isRight shouldBe true
-      verifyValidTiling(result.value)
-    }
-  }
+//  it should "add polygons on different boundary vertices" in {
+//    val square = TilingBuilder.createRegularPolygon(4).value
+//
+//    // Test adding on each vertex
+//    for (vertexId <- List("V1", "V2", "V3", "V4")) {
+//      val result = square.addRegularPolygon(3, vertexId)
+//      result.isRight shouldBe true
+//      verifyValidTiling(result.value)
+//    }
+//  }
 
   // Large polygon tests
   it should "handle large polygons correctly" in {

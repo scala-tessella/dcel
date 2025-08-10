@@ -141,6 +141,7 @@ object TilingAddition:
           .toRight("Edge has no destination vertex.")
       yield
 
+        val clone = tilingDCEL.deepCopy
         val polyAngle = polygonAngle(sides)
         val angles = List.fill(sides)(polyAngle)
         val points = calculateVertexPoints(angles, startVertex.coords, endVertex.coords)
@@ -164,20 +165,17 @@ object TilingAddition:
             // Find the boundary edges that will form the hole
             val boundaryEdgesAroundHole =
               tilingDCEL.getBoundaryEdgesPath(from = v_match, to = v_new)
-            println(s"boundaryEdgesAroundHole: $boundaryEdgesAroundHole")
-
-            val x =
+//            println(s"boundaryEdgesAroundHole: $boundaryEdgesAroundHole")
+            val boundaryAnglesAroundHole =
               boundaryEdgesAroundHole.map(_.angle.get)
-            println(s"x: $x")
-            val y =
-              (SimplePolygon.alphaSum(x.length) - x.tail.fold(AngleDegree(0))(_ + _)) :: x.tail
-            println(s"y: $y")
+//            println(s"boundaryAnglesAroundHole: $boundaryAnglesAroundHole")
+            val adjustedAngles =
+              (SimplePolygon.alphaSum(boundaryAnglesAroundHole.length) - boundaryAnglesAroundHole.tail.fold(AngleDegree(0))(_ + _)) :: boundaryAnglesAroundHole.tail
+//            println(s"adjustedAngles: $adjustedAngles")
+            clone.addSimplePolygon(adjustedAngles, v_match.id)
+              .flatMap(_.addRegularPolygon(sides, onEdgeStartingWithVertexId))
+              .toOption.get
 
-            //            // Remove the vertex that will be merged
-//            val updatedVertices = tilingDCEL.vertices.filterNot(_ == v_new)
-//            println(s"updatedVertices: $updatedVertices")
-
-            revisedTiling//.stitchHole(v_match, v_new)
           case one :: two :: Nil =>
             println("Warning: two shared vertices found")
             revisedTiling
