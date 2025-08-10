@@ -10,12 +10,15 @@ object Polygon:
 
   object SimplePolygon:
 
+    def alphaSum(sides: Int): AngleDegree =
+      AngleDegree(180) * (sides - 2)
+
     /**
      * Validates the list of interior angles for a simple polygon.
      * It checks that no angle is a full circle and that the sum of the angles is correct.
      *
      * @param angles A list of interior angles in degrees.
-     * @return Either a String with an error message, or Unit if validation succeeds.
+     * @return Either a String with an error message or Unit if validation succeeds.
      */
     def validatePolygonAngles(angles: List[AngleDegree]): Either[String, Unit] =
       val n = angles.length
@@ -23,7 +26,7 @@ object Polygon:
         Left("The polygon cannot have full circles as interior angles.")
       else
         val angleSum = angles.map(_.normalised.toRational).sum
-        val expectedAngleSum = AngleDegree(180) * (n - 2)
+        val expectedAngleSum = alphaSum(n)
         if (angleSum - expectedAngleSum.toRational).abs > ACCURACY then
           Left(f"The sum of interior angles is incorrect for a polygon with $n sides. Expected ${expectedAngleSum.toRational.toDouble}%.2f, but got ${angleSum.toDouble}%.2f.")
         else
@@ -51,7 +54,7 @@ object Polygon:
       sides
 
     def alphaDegree: AngleDegree =
-      AngleDegree(180) * (sides - 2) / sides
+      SimplePolygon.alphaSum(sides) / sides
 
     def alphaRad: BigRadian =
       BigRadian.TAU_2 * (sides - 2) / sides
