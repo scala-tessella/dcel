@@ -271,7 +271,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
     result.isRight shouldBe true
     val tiling = result.value
-//    println(TilingDCEL.validate(tiling))
+    println(TilingDCEL.validate(tiling))
 //    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
     verifyValidTiling(tiling)
 
@@ -284,7 +284,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
     result.isRight shouldBe true
     val tiling = result.value
-//    println(TilingDCEL.validate(tiling))
+    println(TilingDCEL.validate(tiling))
 //    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
     verifyValidTiling(tiling)
 
@@ -298,7 +298,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     result.isRight shouldBe true
     val tiling = result.value
     println(TilingDCEL.validate(tiling))
-    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
+//    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
     verifyValidTiling(tiling)
 
     tiling.vertices should have size 11

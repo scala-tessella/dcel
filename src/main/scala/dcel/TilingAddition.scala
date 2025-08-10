@@ -106,10 +106,10 @@ object TilingAddition:
         traverse(getNext(edge), nextCheck, angles.tail, edge :: acc, getNext, getVertex)
 
     val (prepended, startCheck, startEdge) =
-      traverse(edgeToBuildOn.prev.get, boundaryAngles.start, boundaryAngles.newVertices, Nil, _.prev.get, _.origin)
+      traverse(edgeToBuildOn.prev.get, boundaryAngles.start, boundaryAngles.newVertices.reverse, Nil, _.prev.get, _.origin)
 
     val (appended, endCheck, endEdge) =
-      traverse(edgeToBuildOn.next.get, boundaryAngles.end, boundaryAngles.newVertices.reverse, Nil, _.next.get, _.destination.get)
+      traverse(edgeToBuildOn.next.get, boundaryAngles.end, boundaryAngles.newVertices, Nil, _.next.get, _.destination.get)
 
     SharedEdgesResult(
       sharedEdges = prepended.reverse ::: edgeToBuildOn :: appended.reverse,
