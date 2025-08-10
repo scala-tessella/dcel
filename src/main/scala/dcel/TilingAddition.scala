@@ -11,7 +11,7 @@ import scala.collection.mutable
 object TilingAddition:
 
   def calculateNewVertices(sides: Int, p1: BigPoint, p2: BigPoint): List[BigPoint] =
-    val angle = RegularPolygon(sides).alphaDegree.conjugate
+    val angle = RegularPolygon(sides).alpha.conjugate
     calculateVertexPoints(List.fill(sides)(angle), p1, p2).drop(2)
 
   private def createVertices(points: List[BigPoint], startingIndex: Int): List[Vertex] =
@@ -21,7 +21,7 @@ object TilingAddition:
 
   // Extract polygon angle calculation
   private def polygonAngle(sides: Int): AngleDegree =
-    RegularPolygon(sides).alphaDegree
+    RegularPolygon(sides).alpha
 
   // More descriptive boundary angle calculation
   private def boundaryAngleForVertex(
@@ -159,6 +159,24 @@ object TilingAddition:
         boundaryEdges.map(_.origin).sameCoords(newVertices) match
           case Nil => revisedTiling
           case (v_match, v_new) :: Nil =>
+            println(s"Warning: one shared vertex found, $v_new at place where $v_match already is.")
+
+            // Find the boundary edges that will form the hole
+            val boundaryEdgesAroundHole =
+              tilingDCEL.getBoundaryEdgesPath(from = v_match, to = v_new)
+            println(s"boundaryEdgesAroundHole: $boundaryEdgesAroundHole")
+
+            val x =
+              boundaryEdgesAroundHole.map(_.angle.get)
+            println(s"x: $x")
+            val y =
+              (SimplePolygon.alphaSum(x.length) - x.tail.fold(AngleDegree(0))(_ + _)) :: x.tail
+            println(s"y: $y")
+
+            //            // Remove the vertex that will be merged
+//            val updatedVertices = tilingDCEL.vertices.filterNot(_ == v_new)
+//            println(s"updatedVertices: $updatedVertices")
+
             revisedTiling//.stitchHole(v_match, v_new)
           case one :: two :: Nil =>
             println("Warning: two shared vertices found")

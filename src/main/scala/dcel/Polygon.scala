@@ -53,8 +53,5 @@ object Polygon:
     def toSides: Int =
       sides
 
-    def alphaDegree: AngleDegree =
+    def alpha: AngleDegree =
       SimplePolygon.alphaSum(sides) / sides
-
-    def alphaRad: BigRadian =
-      BigRadian.TAU_2 * (sides - 2) / sides

@@ -61,18 +61,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "calculate the correct interior angle in degrees" in {
-    RegularPolygon(3).alphaDegree.toRational shouldBe Rational(60)  // Triangle
-    RegularPolygon(4).alphaDegree.toRational shouldBe Rational(90)  // Square
-    RegularPolygon(6).alphaDegree.toRational shouldBe Rational(120) // Hexagon
-  }
-
-  it should "calculate the correct interior angle in radians" in {
-    val triangleRad = RegularPolygon(3).alphaRad
-    triangleRad.almostEquals(BigRadian.TAU_6, ACCURACY) shouldBe true
-
-    val squareRad = RegularPolygon(4).alphaRad
-    squareRad.almostEquals(BigRadian.TAU_4, ACCURACY) shouldBe true
-
-    val hexagonRad = RegularPolygon(6).alphaRad
-    hexagonRad.almostEquals(BigRadian.TAU_3, ACCURACY) shouldBe true
+    RegularPolygon(3).alpha.toRational shouldBe Rational(60)  // Triangle
+    RegularPolygon(4).alpha.toRational shouldBe Rational(90)  // Square
+    RegularPolygon(6).alpha.toRational shouldBe Rational(120) // Hexagon
   }

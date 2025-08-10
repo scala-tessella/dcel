@@ -58,7 +58,7 @@ object TilingBuilder:
   def createRegularPolygon(sides: Int): Either[String, TilingDCEL] =
     for
       _      <- validateSides(sides, "regular")
-      angle = RegularPolygon(sides).alphaDegree
+      angle = RegularPolygon(sides).alpha
       angles = List.fill(sides)(angle)
       // Regular polygons are always simple, so we can skip the self-intersection check.
       // The angle sum is also correct by definition.

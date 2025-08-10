@@ -642,7 +642,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     verifyValidTiling(newTiling)
   }
 
-  it should "successfully fill a hole created by a share vertex" in {
+  it should "successfully fill a hole created by a shared vertex" in {
     val result = commonTiling
       .maybeAddRegularPolygon(4, "V3")
     result.isRight shouldBe true
