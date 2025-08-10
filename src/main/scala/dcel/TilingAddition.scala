@@ -112,7 +112,7 @@ object TilingAddition:
       traverse(edgeToBuildOn.next.get, boundaryAngles.end, boundaryAngles.newVertices, Nil, _.next.get, _.destination.get)
 
     SharedEdgesResult(
-      sharedEdges = prepended.reverse ::: edgeToBuildOn :: appended.reverse,
+      sharedEdges = prepended ::: edgeToBuildOn :: appended.reverse,
       startCheck = startCheck,
       startEdge = startEdge,
       startCounter = prepended.length,
@@ -230,8 +230,9 @@ object TilingAddition:
         println(s"newBoundaryEdges: $newBoundaryEdges")
         println(s"newBoundaryEdges angles: ${newBoundaryEdges.map(_.angle)}")
         println(s"newInnerEdges: $newInnerEdges")
+        println(s"newInnerEdges angles: ${newInnerEdges.map(_.angle)}")
 
-        val sharedAngles = angles.takeRight(edgesResult.endCounter) ++ angles.take(edgesResult.startCounter + 1)
+        val sharedAngles = angles.takeRight(edgesResult.startCounter) ++ angles.take(edgesResult.endCounter + 1)
         println(s"sharedAngles: $sharedAngles")
         println(s"sharedEdges: ${edgesResult.sharedEdges}")
         // Update existing structures
