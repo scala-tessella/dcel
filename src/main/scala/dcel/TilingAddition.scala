@@ -132,16 +132,7 @@ object TilingAddition:
             additionalVertices(startVertex, endVertex, edgeToBuildOn, angles, points, tilingDCEL.vertices.size, tilingDCEL.outerFace)
 
           val maybeHoleClosure: Option[(Vertex, Vertex)] =
-            boundaryEdges.map(_.origin).sameCoords(tempVertices) match
-              case Nil => None
-              case one :: Nil =>
-                println(s"Warning: one shared vertex found, ${one._2} at place where ${one._1} already is.")
-                Some(one)
-              case _ :: two :: Nil =>
-                println("Warning: two shared vertices found")
-                Some(two)
-              case _ =>
-                throw new Error("Error: more than 2 shared vertices found")
+            findHoleClosure(boundaryEdges,tempVertices)
 
           val clone: TilingDCEL =
             if maybeHoleClosure.isDefined then tilingDCEL.deepCopy
@@ -213,16 +204,7 @@ object TilingAddition:
             additionalVertices(startVertex, endVertex, edgeToBuildOn, angles, points, tilingDCEL.vertices.size, tilingDCEL.outerFace)
 
           val maybeHoleClosure: Option[(Vertex, Vertex)] =
-            boundaryEdges.map(_.origin).sameCoords(tempVertices) match
-              case Nil => None
-              case one :: Nil =>
-                println(s"Warning: one shared vertex found, ${one._2} at place where ${one._1} already is.")
-                Some(one)
-              case _ :: two :: Nil =>
-                println("Warning: two shared vertices found")
-                Some(two)
-              case _ =>
-                throw new Error("Error: more than 2 shared vertices found")
+            findHoleClosure(boundaryEdges,tempVertices)
 
           val clone: TilingDCEL =
             if maybeHoleClosure.isDefined then tilingDCEL.deepCopy
@@ -288,6 +270,24 @@ object TilingAddition:
     val revisedVertexPoints = vertexPoints.drop(edgesResult.startCounter).dropRight(edgesResult.endCounter)
     val newVertices = createVertices(revisedVertexPoints, verticesSize)
     (newVertices, edgesResult, boundaryAngles)
+
+  /** Finds a couple of vertices from the existing and the additional boundary sharing the same coords
+   *  and thus marking a hole
+   *
+   * @param boundaryEdges the edges forming the tiling's boundary
+   * @param newVertices the added vertices
+   */
+  private def findHoleClosure(boundaryEdges: List[HalfEdge], newVertices: List[Vertex]): Option[(Vertex, Vertex)] =
+    boundaryEdges.map(_.origin).sameCoords(newVertices) match
+      case Nil => None
+      case one :: Nil =>
+        println(s"Warning: one shared vertex found, ${one._2} at place where ${one._1} already is.")
+        Some(one)
+      case _ :: two :: Nil =>
+        println("Warning: two shared vertices found")
+        Some(two)
+      case _ =>
+        throw new Error("Error: more than 2 shared vertices found")
 
   private def additionalElements(
     edgeToBuildOn: HalfEdge,
