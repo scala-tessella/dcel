@@ -133,6 +133,27 @@ object TilingAddition:
 
         revisedTiling
 
+    private def addSimplePolygonWithoutGuards(angles: List[AngleDegree], onEdgeStartingWithVertexId: String): Option[TilingDCEL] =
+      for
+        boundaryEdges <- tilingDCEL.getBoundaryEdges.toOption
+        edgeToBuildOn <- boundaryEdges.find(_.origin.id == onEdgeStartingWithVertexId)
+        (startVertex, endVertex) <- edgeToBuildOn.endpointsAsVertices
+        points = calculateVertexPoints(angles, startVertex.coords, endVertex.coords)
+      yield
+
+        val (tempVertices, edgeResults, boundaryAngles) =
+          additionalVertices(startVertex, endVertex, edgeToBuildOn, angles, points, tilingDCEL.vertices.size, tilingDCEL.outerFace)
+
+        val (newVertices, newHalfEdges, newFace) =
+          additionalElements(edgeToBuildOn, angles, tilingDCEL.innerFaces.size, tilingDCEL.outerFace, tempVertices, edgeResults, boundaryAngles)
+
+        // Return new DCEL with updated components
+        tilingDCEL.copy(
+          vertices = tilingDCEL.vertices ::: newVertices,
+          halfEdges = tilingDCEL.halfEdges ::: newHalfEdges,
+          innerFaces = tilingDCEL.innerFaces :+ newFace
+        )
+
     def addRegularPolygon(sides: Int, onEdgeStartingWithVertexId: String): Either[String, TilingDCEL] =
       for
         _                        <- validateSides(sides, "regular")
@@ -181,7 +202,6 @@ object TilingAddition:
         maybeHoleClosure match
           case None => revisedTiling
           case Some((v_match, v_new)) =>
-
             // Find the boundary edges that will form the hole
             val boundaryEdgesAroundHole =
               tilingDCEL.getBoundaryEdgesPath(from = v_match, to = v_new)
@@ -192,8 +212,8 @@ object TilingAddition:
             val adjustedAngles =
               (SimplePolygon.alphaSum(boundaryAnglesAroundHole.length) - boundaryAnglesAroundHole.tail.fold(AngleDegree(0))(_ + _)) :: boundaryAnglesAroundHole.tail
 //            println(s"adjustedAngles: $adjustedAngles")
-            clone.addSimplePolygon(adjustedAngles, v_match.id)
-              .flatMap(_.addRegularPolygon(sides, onEdgeStartingWithVertexId))
+            clone.addSimplePolygonWithoutGuards(adjustedAngles, v_match.id).get
+              .addRegularPolygon(sides, onEdgeStartingWithVertexId)
               .toOption.get
 
   // Helper case classes for better structure
