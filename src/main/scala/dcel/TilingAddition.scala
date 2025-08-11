@@ -144,13 +144,28 @@ object TilingAddition:
           .toRight("Edge has no destination vertex.")
       yield
 
-        val clone = tilingDCEL.deepCopy
         val polyAngle = polygonAngle(sides)
         val angles = List.fill(sides)(polyAngle)
         val points = calculateVertexPoints(angles, startVertex.coords, endVertex.coords)
 
         val (tempVertices, edgeResults, boundaryAngles) =
           additionalVertices(startVertex, endVertex, edgeToBuildOn, angles, points, tilingDCEL.vertices.size, tilingDCEL.outerFace)
+
+        val maybeHoleClosure: Option[(Vertex, Vertex)] =
+          boundaryEdges.map(_.origin).sameCoords(tempVertices) match
+            case Nil => None
+            case one :: Nil =>
+              println(s"Warning: one shared vertex found, ${one._2} at place where ${one._1} already is.")
+              Some(one)
+            case _ :: two :: Nil =>
+              println("Warning: two shared vertices found")
+              Some(two)
+            case _ =>
+              throw new Error("Error: more than 2 shared vertices found")
+
+        val clone: TilingDCEL =
+          if maybeHoleClosure.isDefined then tilingDCEL.deepCopy
+          else TilingDCEL.empty
 
         val (newVertices, newHalfEdges, newFace) =
           additionalElements(edgeToBuildOn, angles, tilingDCEL.innerFaces.size, tilingDCEL.outerFace, tempVertices, edgeResults, boundaryAngles)
@@ -163,19 +178,7 @@ object TilingAddition:
             innerFaces = tilingDCEL.innerFaces :+ newFace
           )
 
-        val fillable: Option[(Vertex, Vertex)] =
-          boundaryEdges.map(_.origin).sameCoords(newVertices) match
-            case Nil => None
-            case one :: Nil =>
-              println(s"Warning: one shared vertex found, ${one._2} at place where ${one._1} already is.")
-              Some(one)
-            case _ :: two :: Nil =>
-              println("Warning: two shared vertices found")
-              Some(two)
-            case _ =>
-              throw new Error("Error: more than 2 shared vertices found")
-
-        fillable match
+        maybeHoleClosure match
           case None => revisedTiling
           case Some((v_match, v_new)) =>
 
