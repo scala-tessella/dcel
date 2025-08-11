@@ -163,10 +163,21 @@ object TilingAddition:
             innerFaces = tilingDCEL.innerFaces :+ newFace
           )
 
-        boundaryEdges.map(_.origin).sameCoords(newVertices) match
-          case Nil => revisedTiling
-          case (v_match, v_new) :: Nil =>
-            println(s"Warning: one shared vertex found, $v_new at place where $v_match already is.")
+        val fillable: Option[(Vertex, Vertex)] =
+          boundaryEdges.map(_.origin).sameCoords(newVertices) match
+            case Nil => None
+            case one :: Nil =>
+              println(s"Warning: one shared vertex found, ${one._2} at place where ${one._1} already is.")
+              Some(one)
+            case _ :: two :: Nil =>
+              println("Warning: two shared vertices found")
+              Some(two)
+            case _ =>
+              throw new Error("Error: more than 2 shared vertices found")
+
+        fillable match
+          case None => revisedTiling
+          case Some((v_match, v_new)) =>
 
             // Find the boundary edges that will form the hole
             val boundaryEdgesAroundHole =
@@ -181,26 +192,6 @@ object TilingAddition:
             clone.addSimplePolygon(adjustedAngles, v_match.id)
               .flatMap(_.addRegularPolygon(sides, onEdgeStartingWithVertexId))
               .toOption.get
-
-          case _ :: (v_match, v_new) :: Nil =>
-            println("Warning: two shared vertices found")
-            // Find the boundary edges that will form the hole
-            val boundaryEdgesAroundHole =
-              tilingDCEL.getBoundaryEdgesPath(from = v_match, to = v_new)
-//            println(s"boundaryEdgesAroundHole: $boundaryEdgesAroundHole")
-            val boundaryAnglesAroundHole =
-              boundaryEdgesAroundHole.map(_.angle.get)
-//            println(s"boundaryAnglesAroundHole: $boundaryAnglesAroundHole")
-            val adjustedAngles =
-              (SimplePolygon.alphaSum(boundaryAnglesAroundHole.length) - boundaryAnglesAroundHole.tail.fold(AngleDegree(0))(_ + _)) :: boundaryAnglesAroundHole.tail
-//            println(s"adjustedAngles: $adjustedAngles")
-            clone.addSimplePolygon(adjustedAngles, v_match.id)
-              .flatMap(_.addRegularPolygon(sides, onEdgeStartingWithVertexId))
-              .toOption.get
-
-          case _ =>
-            println("Error: more than 2 shared vertices found")
-            revisedTiling
 
   // Helper case classes for better structure
   private case class BoundaryAngles(
