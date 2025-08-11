@@ -117,8 +117,11 @@ object TilingAddition:
         _      <- validatePoints(points)
       yield
 
+        val (tempVertices, edgeResults, boundaryAngles) =
+          additionalVertices(startVertex, endVertex, edgeToBuildOn, angles, points, tilingDCEL.vertices.size, tilingDCEL.outerFace)
+
         val (newVertices, newHalfEdges, newFace) =
-          additionalElements(startVertex, endVertex, edgeToBuildOn, angles, points, tilingDCEL.vertices.size, tilingDCEL.innerFaces.size, tilingDCEL.outerFace)
+          additionalElements(edgeToBuildOn, angles, tilingDCEL.innerFaces.size, tilingDCEL.outerFace, tempVertices, edgeResults, boundaryAngles)
 
         // Return new DCEL with updated components
         val revisedTiling =
@@ -146,8 +149,11 @@ object TilingAddition:
         val angles = List.fill(sides)(polyAngle)
         val points = calculateVertexPoints(angles, startVertex.coords, endVertex.coords)
 
+        val (tempVertices, edgeResults, boundaryAngles) =
+          additionalVertices(startVertex, endVertex, edgeToBuildOn, angles, points, tilingDCEL.vertices.size, tilingDCEL.outerFace)
+
         val (newVertices, newHalfEdges, newFace) =
-          additionalElements(startVertex, endVertex, edgeToBuildOn, angles, points, tilingDCEL.vertices.size, tilingDCEL.innerFaces.size, tilingDCEL.outerFace)
+          additionalElements(edgeToBuildOn, angles, tilingDCEL.innerFaces.size, tilingDCEL.outerFace, tempVertices, edgeResults, boundaryAngles)
 
         // Return new DCEL with updated components
         val revisedTiling =
@@ -208,16 +214,15 @@ object TilingAddition:
     next: Option[HalfEdge]
   )
 
-  private def additionalElements(
+  private def additionalVertices(
     startVertex: Vertex,
     endVertex: Vertex,
     edgeToBuildOn: HalfEdge,
     angles: List[AngleDegree],
     points: List[BigPoint],
     verticesSize: Int,
-    innerFacesSize: Int,
     outer: Face
-  ): (List[Vertex], List[HalfEdge], Face) =
+  ): (List[Vertex], SharedEdgesResult, BoundaryAngles) =
     given outerFace: Face = outer
 
     // Calculate boundary angles
@@ -228,6 +233,25 @@ object TilingAddition:
     )
 
     val edgesResult = findSharedEdges(edgeToBuildOn, boundaryAngles)
+
+    // Create new components
+    val vertexPoints = points.drop(2).reverse
+    val revisedVertexPoints = vertexPoints.drop(edgesResult.startCounter).dropRight(edgesResult.endCounter)
+    val newVertices = createVertices(revisedVertexPoints, verticesSize)
+    (newVertices, edgesResult, boundaryAngles)
+
+  private def additionalElements(
+    edgeToBuildOn: HalfEdge,
+    angles: List[AngleDegree],
+    innerFacesSize: Int,
+    outer: Face,
+    newVertices: List[Vertex],
+    edgesResult: SharedEdgesResult,
+    boundaryAngles: BoundaryAngles
+  ): (List[Vertex], List[HalfEdge], Face) =
+    given outerFace: Face = outer
+
+    val newFace = Face(generateFaceId(innerFacesSize))
 
     // Different start and end vertex
     val revisedStartVertex = edgesResult.startEdge.destination.get
@@ -242,13 +266,6 @@ object TilingAddition:
 
     // Different boundary
     val completeBoundary = BoundaryState(Some(edgesResult.startEdge), Some(edgesResult.endEdge))
-
-    // Create new components
-    val vertexPoints = points.drop(2).reverse
-    val revisedVertexPoints = vertexPoints.drop(edgesResult.startCounter).dropRight(edgesResult.endCounter)
-    val newVertices = createVertices(revisedVertexPoints, verticesSize)
-
-    val newFace = Face(generateFaceId(innerFacesSize))
 
     val allVertices = revisedStartVertex :: newVertices ::: revisedEndVertex :: Nil
 
