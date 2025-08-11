@@ -38,18 +38,20 @@ object TilingAddition:
     startVertexAngle: AngleDegree,
     polygonAngles: List[AngleDegree]
   ): List[(HalfEdge, HalfEdge)] =
-    val size = polygonAngles.length
-    vertices.sliding(2).zipWithIndex.map {
-      case (origin :: destination :: Nil, index) =>
-        val shiftedIndex = (index - 1) % size
-        val boundaryAngle = if index == 0 then startVertexAngle else polygonAngles(shiftedIndex).conjugate
+    val edgeVertices = vertices.sliding(2).collect {
+      case origin :: destination :: Nil => (origin, destination)
+    }.toList
+
+    val subsequentBoundaryAngles = polygonAngles.init.map(_.conjugate)
+    val boundaryAngles = startVertexAngle +: subsequentBoundaryAngles
+
+    edgeVertices.lazyZip(boundaryAngles).lazyZip(polygonAngles).map {
+      case ((origin, destination), boundaryAngle, innerAngle) =>
         HalfEdge.createTwinHalfEdges(
           origin, destination, outerFace, newFace,
-          boundaryAngle, polygonAngles(index)
+          boundaryAngle, innerAngle
         )
-      case _ =>
-        throw IllegalArgumentException("Invalid vertex sequence")
-    }.toList
+    }
 
   // Simplify face generation using template interpolation
   private def generateFaceId(existingFaceCount: Int): String =
