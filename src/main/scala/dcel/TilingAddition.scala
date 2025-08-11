@@ -176,9 +176,22 @@ object TilingAddition:
               .flatMap(_.addRegularPolygon(sides, onEdgeStartingWithVertexId))
               .toOption.get
 
-          case one :: two :: Nil =>
+          case _ :: (v_match, v_new) :: Nil =>
             println("Warning: two shared vertices found")
-            revisedTiling
+            // Find the boundary edges that will form the hole
+            val boundaryEdgesAroundHole =
+              tilingDCEL.getBoundaryEdgesPath(from = v_match, to = v_new)
+//            println(s"boundaryEdgesAroundHole: $boundaryEdgesAroundHole")
+            val boundaryAnglesAroundHole =
+              boundaryEdgesAroundHole.map(_.angle.get)
+//            println(s"boundaryAnglesAroundHole: $boundaryAnglesAroundHole")
+            val adjustedAngles =
+              (SimplePolygon.alphaSum(boundaryAnglesAroundHole.length) - boundaryAnglesAroundHole.tail.fold(AngleDegree(0))(_ + _)) :: boundaryAnglesAroundHole.tail
+//            println(s"adjustedAngles: $adjustedAngles")
+            clone.addSimplePolygon(adjustedAngles, v_match.id)
+              .flatMap(_.addRegularPolygon(sides, onEdgeStartingWithVertexId))
+              .toOption.get
+
           case _ =>
             println("Error: more than 2 shared vertices found")
             revisedTiling
