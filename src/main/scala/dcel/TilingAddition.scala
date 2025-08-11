@@ -154,67 +154,72 @@ object TilingAddition:
           innerFaces = tilingDCEL.innerFaces :+ newFace
         )
 
+    @tailrec
     def addRegularPolygon(sides: Int, onEdgeStartingWithVertexId: String): Either[String, TilingDCEL] =
-      for
-        _                        <- validateSides(sides, "regular")
-        boundaryEdges            <- tilingDCEL.getBoundaryEdges
-        edgeToBuildOn            <- boundaryEdges
-          .find(_.origin.id == onEdgeStartingWithVertexId)
-          .toRight(s"Edge starting with vertex $onEdgeStartingWithVertexId not found on the boundary.")
-        (startVertex, endVertex) <- edgeToBuildOn.endpointsAsVertices
-          .toRight("Edge has no destination vertex.")
-      yield
+      val either: Either[String, (TilingDCEL, TilingDCEL, Option[(Vertex, Vertex)])] =
+        for
+          _                        <- validateSides(sides, "regular")
+          boundaryEdges            <- tilingDCEL.getBoundaryEdges
+          edgeToBuildOn            <- boundaryEdges
+            .find(_.origin.id == onEdgeStartingWithVertexId)
+            .toRight(s"Edge starting with vertex $onEdgeStartingWithVertexId not found on the boundary.")
+          (startVertex, endVertex) <- edgeToBuildOn.endpointsAsVertices
+            .toRight("Edge has no destination vertex.")
+        yield
 
-        val polyAngle = polygonAngle(sides)
-        val angles = List.fill(sides)(polyAngle)
-        val points = calculateVertexPoints(angles, startVertex.coords, endVertex.coords)
+          val polyAngle = polygonAngle(sides)
+          val angles = List.fill(sides)(polyAngle)
+          val points = calculateVertexPoints(angles, startVertex.coords, endVertex.coords)
 
-        val (tempVertices, edgeResults, boundaryAngles) =
-          additionalVertices(startVertex, endVertex, edgeToBuildOn, angles, points, tilingDCEL.vertices.size, tilingDCEL.outerFace)
+          val (tempVertices, edgeResults, boundaryAngles) =
+            additionalVertices(startVertex, endVertex, edgeToBuildOn, angles, points, tilingDCEL.vertices.size, tilingDCEL.outerFace)
 
-        val maybeHoleClosure: Option[(Vertex, Vertex)] =
-          boundaryEdges.map(_.origin).sameCoords(tempVertices) match
-            case Nil => None
-            case one :: Nil =>
-              println(s"Warning: one shared vertex found, ${one._2} at place where ${one._1} already is.")
-              Some(one)
-            case _ :: two :: Nil =>
-              println("Warning: two shared vertices found")
-              Some(two)
-            case _ =>
-              throw new Error("Error: more than 2 shared vertices found")
+          val maybeHoleClosure: Option[(Vertex, Vertex)] =
+            boundaryEdges.map(_.origin).sameCoords(tempVertices) match
+              case Nil => None
+              case one :: Nil =>
+                println(s"Warning: one shared vertex found, ${one._2} at place where ${one._1} already is.")
+                Some(one)
+              case _ :: two :: Nil =>
+                println("Warning: two shared vertices found")
+                Some(two)
+              case _ =>
+                throw new Error("Error: more than 2 shared vertices found")
 
-        val clone: TilingDCEL =
-          if maybeHoleClosure.isDefined then tilingDCEL.deepCopy
-          else TilingDCEL.empty
+          val clone: TilingDCEL =
+            if maybeHoleClosure.isDefined then tilingDCEL.deepCopy
+            else TilingDCEL.empty
 
-        val (newVertices, newHalfEdges, newFace) =
-          additionalElements(edgeToBuildOn, angles, tilingDCEL.innerFaces.size, tilingDCEL.outerFace, tempVertices, edgeResults, boundaryAngles)
+          val (newVertices, newHalfEdges, newFace) =
+            additionalElements(edgeToBuildOn, angles, tilingDCEL.innerFaces.size, tilingDCEL.outerFace, tempVertices, edgeResults, boundaryAngles)
 
-        // Return new DCEL with updated components
-        val revisedTiling =
-          tilingDCEL.copy(
-            vertices = tilingDCEL.vertices ::: newVertices,
-            halfEdges = tilingDCEL.halfEdges ::: newHalfEdges,
-            innerFaces = tilingDCEL.innerFaces :+ newFace
-          )
+          // Return new DCEL with updated components
+          val revisedTiling =
+            tilingDCEL.copy(
+              vertices = tilingDCEL.vertices ::: newVertices,
+              halfEdges = tilingDCEL.halfEdges ::: newHalfEdges,
+              innerFaces = tilingDCEL.innerFaces :+ newFace
+            )
+          (revisedTiling, clone, maybeHoleClosure)
 
-        maybeHoleClosure match
-          case None => revisedTiling
-          case Some((v_match, v_new)) =>
-            // Find the boundary edges that will form the hole
-            val boundaryEdgesAroundHole =
-              tilingDCEL.getBoundaryEdgesPath(from = v_match, to = v_new)
-//            println(s"boundaryEdgesAroundHole: $boundaryEdgesAroundHole")
-            val boundaryAnglesAroundHole =
-              boundaryEdgesAroundHole.map(_.angle.get)
-//            println(s"boundaryAnglesAroundHole: $boundaryAnglesAroundHole")
-            val adjustedAngles =
-              (SimplePolygon.alphaSum(boundaryAnglesAroundHole.length) - boundaryAnglesAroundHole.tail.fold(AngleDegree(0))(_ + _)) :: boundaryAnglesAroundHole.tail
-//            println(s"adjustedAngles: $adjustedAngles")
-            clone.addSimplePolygonWithoutGuards(adjustedAngles, v_match.id).get
-              .addRegularPolygon(sides, onEdgeStartingWithVertexId)
-              .toOption.get
+      either match
+        case Left(value) => Left(value)
+        case Right((revisedTiling, clone, maybeHoleClosure)) =>
+          maybeHoleClosure match
+            case None => Right(revisedTiling)
+            case Some((v_match, v_new)) =>
+              // Find the boundary edges that will form the hole
+              val boundaryEdgesAroundHole =
+                tilingDCEL.getBoundaryEdgesPath(from = v_match, to = v_new)
+  //            println(s"boundaryEdgesAroundHole: $boundaryEdgesAroundHole")
+              val boundaryAnglesAroundHole =
+                boundaryEdgesAroundHole.map(_.angle.get)
+  //            println(s"boundaryAnglesAroundHole: $boundaryAnglesAroundHole")
+              val adjustedAngles =
+                (SimplePolygon.alphaSum(boundaryAnglesAroundHole.length) - boundaryAnglesAroundHole.tail.fold(AngleDegree(0))(_ + _)) :: boundaryAnglesAroundHole.tail
+  //            println(s"adjustedAngles: $adjustedAngles")
+              clone.addSimplePolygonWithoutGuards(adjustedAngles, v_match.id).get
+                .addRegularPolygon(sides, onEdgeStartingWithVertexId)
 
   // Helper case classes for better structure
   private case class BoundaryAngles(
