@@ -112,7 +112,7 @@ object TilingAddition:
       angles: List[AngleDegree],
       points: List[BigPoint],
       boundaryEdges: List[HalfEdge]
-    ): (TilingDCEL, TilingDCEL, Option[(Vertex, Vertex)]) =
+    ): Either[String, (TilingDCEL, TilingDCEL, Option[(Vertex, Vertex)])] =
       val (tempVertices, edgeResults, boundaryAngles) =
         additionalVertices(startVertex, endVertex, edgeToBuildOn, angles, points, tilingDCEL.vertices.size, tilingDCEL.outerFace)
 
@@ -132,6 +132,11 @@ object TilingAddition:
           case _ =>  BigLineSegment(BigPoint(), BigPoint())
         }.filter(line => newBox.contains(line.p1) || newBox.contains(line.p2))
 
+      val hasIntersection =
+        oldSides.exists(oldSide => newSides.exists(newSide => oldSide.properlyIntersects(newSide)))
+      if hasIntersection then 
+        return Left("Boundary intersection")
+
       val maybeHoleClosure: Option[(Vertex, Vertex)] =
         findHoleClosure(boundaryEdges, tempVertices)
 
@@ -149,7 +154,7 @@ object TilingAddition:
           halfEdges = tilingDCEL.halfEdges ::: newHalfEdges,
           innerFaces = tilingDCEL.innerFaces :+ newFace
         )
-      (grownTiling, deepCopiedOriginal, maybeHoleClosure)
+      Right((grownTiling, deepCopiedOriginal, maybeHoleClosure))
 
     private def holeAngles(v_match: Vertex, v_new: Vertex) =
       val boundaryEdgesAroundHole =
@@ -175,8 +180,9 @@ object TilingAddition:
             .toRight("Edge has no destination vertex.")
           points = calculateVertexPoints(angles, startVertex.coords, endVertex.coords)
           _      <- validatePoints(points)
+          result <- growthWithHoleCheck(startVertex, endVertex, edgeToBuildOn, angles, points, boundaryEdges)
         yield
-          growthWithHoleCheck(startVertex, endVertex, edgeToBuildOn, angles, points, boundaryEdges)
+          result
 
       either match
         case Left(value) => Left(value)
@@ -221,13 +227,12 @@ object TilingAddition:
             .toRight(s"Edge starting with vertex $onEdgeStartingWithVertexId not found on the boundary.")
           (startVertex, endVertex) <- edgeToBuildOn.endpointsAsVertices
             .toRight("Edge has no destination vertex.")
+          polyAngle = polygonAngle(sides)
+          angles = List.fill(sides)(polyAngle)
+          points = calculateVertexPoints(angles, startVertex.coords, endVertex.coords)
+          result <- growthWithHoleCheck(startVertex, endVertex, edgeToBuildOn, angles, points, boundaryEdges)
         yield
-
-          val polyAngle = polygonAngle(sides)
-          val angles = List.fill(sides)(polyAngle)
-          val points = calculateVertexPoints(angles, startVertex.coords, endVertex.coords)
-
-          growthWithHoleCheck(startVertex, endVertex, edgeToBuildOn, angles, points, boundaryEdges)
+          result
 
       either match
         case Left(value) => Left(value)

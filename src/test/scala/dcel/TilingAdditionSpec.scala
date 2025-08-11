@@ -680,3 +680,11 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 //    println(TilingDCEL.validate(newTiling))
     verifyValidTiling(newTiling)
   }
+
+  it should "fail if boundary crossing" in {
+    val result = commonTiling
+      .maybeAddRegularPolygon(3, "V9").value
+      .maybeAddRegularPolygon(3, "V11").value
+      .maybeAddRegularPolygon(5, "V3")
+    result.isRight shouldBe false
+  }
