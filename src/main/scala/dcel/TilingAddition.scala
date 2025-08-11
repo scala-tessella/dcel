@@ -102,6 +102,36 @@ object TilingAddition:
 
   extension (tilingDCEL: TilingDCEL)
 
+    private def growthWithHoleCheck(
+      startVertex: Vertex,
+      endVertex: Vertex,
+      edgeToBuildOn: HalfEdge,
+      angles: List[AngleDegree],
+      points: List[BigPoint],
+      boundaryEdges: List[HalfEdge]
+    ): (TilingDCEL, TilingDCEL, Option[(Vertex, Vertex)]) =
+      val (tempVertices, edgeResults, boundaryAngles) =
+        additionalVertices(startVertex, endVertex, edgeToBuildOn, angles, points, tilingDCEL.vertices.size, tilingDCEL.outerFace)
+
+      val maybeHoleClosure: Option[(Vertex, Vertex)] =
+        findHoleClosure(boundaryEdges, tempVertices)
+
+      val deepCopiedOriginal: TilingDCEL =
+        if maybeHoleClosure.isDefined then tilingDCEL.deepCopy
+        else TilingDCEL.empty
+
+      val (newVertices, newHalfEdges, newFace) =
+        additionalElements(edgeToBuildOn, angles, tilingDCEL.innerFaces.size, tilingDCEL.outerFace, tempVertices, edgeResults, boundaryAngles)
+
+      // Return new DCEL with updated components
+      val grownTiling =
+        tilingDCEL.copy(
+          vertices = tilingDCEL.vertices ::: newVertices,
+          halfEdges = tilingDCEL.halfEdges ::: newHalfEdges,
+          innerFaces = tilingDCEL.innerFaces :+ newFace
+        )
+      (grownTiling, deepCopiedOriginal, maybeHoleClosure)
+
     private def holeAngles(v_match: Vertex, v_new: Vertex) =
       val boundaryEdgesAroundHole =
         tilingDCEL.getBoundaryEdgesPath(from = v_match, to = v_new)
@@ -127,29 +157,7 @@ object TilingAddition:
           points = calculateVertexPoints(angles, startVertex.coords, endVertex.coords)
           _      <- validatePoints(points)
         yield
-
-          val (tempVertices, edgeResults, boundaryAngles) =
-            additionalVertices(startVertex, endVertex, edgeToBuildOn, angles, points, tilingDCEL.vertices.size, tilingDCEL.outerFace)
-
-          val maybeHoleClosure: Option[(Vertex, Vertex)] =
-            findHoleClosure(boundaryEdges,tempVertices)
-
-          val clone: TilingDCEL =
-            if maybeHoleClosure.isDefined then tilingDCEL.deepCopy
-            else TilingDCEL.empty
-
-          val (newVertices, newHalfEdges, newFace) =
-            additionalElements(edgeToBuildOn, angles, tilingDCEL.innerFaces.size, tilingDCEL.outerFace, tempVertices, edgeResults, boundaryAngles)
-
-          // Return new DCEL with updated components
-          val revisedTiling =
-            tilingDCEL.copy(
-              vertices = tilingDCEL.vertices ::: newVertices,
-              halfEdges = tilingDCEL.halfEdges ::: newHalfEdges,
-              innerFaces = tilingDCEL.innerFaces :+ newFace
-            )
-
-          (revisedTiling, clone, maybeHoleClosure)
+          growthWithHoleCheck(startVertex, endVertex, edgeToBuildOn, angles, points, boundaryEdges)
 
       either match
         case Left(value) => Left(value)
@@ -200,27 +208,7 @@ object TilingAddition:
           val angles = List.fill(sides)(polyAngle)
           val points = calculateVertexPoints(angles, startVertex.coords, endVertex.coords)
 
-          val (tempVertices, edgeResults, boundaryAngles) =
-            additionalVertices(startVertex, endVertex, edgeToBuildOn, angles, points, tilingDCEL.vertices.size, tilingDCEL.outerFace)
-
-          val maybeHoleClosure: Option[(Vertex, Vertex)] =
-            findHoleClosure(boundaryEdges,tempVertices)
-
-          val clone: TilingDCEL =
-            if maybeHoleClosure.isDefined then tilingDCEL.deepCopy
-            else TilingDCEL.empty
-
-          val (newVertices, newHalfEdges, newFace) =
-            additionalElements(edgeToBuildOn, angles, tilingDCEL.innerFaces.size, tilingDCEL.outerFace, tempVertices, edgeResults, boundaryAngles)
-
-          // Return new DCEL with updated components
-          val revisedTiling =
-            tilingDCEL.copy(
-              vertices = tilingDCEL.vertices ::: newVertices,
-              halfEdges = tilingDCEL.halfEdges ::: newHalfEdges,
-              innerFaces = tilingDCEL.innerFaces :+ newFace
-            )
-          (revisedTiling, clone, maybeHoleClosure)
+          growthWithHoleCheck(startVertex, endVertex, edgeToBuildOn, angles, points, boundaryEdges)
 
       either match
         case Left(value) => Left(value)
