@@ -102,6 +102,16 @@ object TilingAddition:
 
   extension (tilingDCEL: TilingDCEL)
 
+    private def holeAngles(v_match: Vertex, v_new: Vertex) =
+      val boundaryEdgesAroundHole =
+        tilingDCEL.getBoundaryEdgesPath(from = v_match, to = v_new)
+      val boundaryAnglesAroundHole =
+        boundaryEdgesAroundHole.map(_.angle.get)
+      (
+        SimplePolygon.alphaSum(boundaryAnglesAroundHole.length)
+          - boundaryAnglesAroundHole.tail.fold(AngleDegree(0))(_ + _)
+      ) :: boundaryAnglesAroundHole.tail
+
     @tailrec
     def addSimplePolygon(angles: List[AngleDegree], onEdgeStartingWithVertexId: String): Either[String, TilingDCEL] =
       val either: Either[String, (TilingDCEL, TilingDCEL, Option[(Vertex, Vertex)])] =
@@ -156,14 +166,9 @@ object TilingAddition:
           maybeHoleClosure match
             case None => Right(revisedTiling)
             case Some((v_match, v_new)) =>
-              // Find the boundary edges that will form the hole
-              val boundaryEdgesAroundHole =
-                tilingDCEL.getBoundaryEdgesPath(from = v_match, to = v_new)
-              val boundaryAnglesAroundHole =
-                boundaryEdgesAroundHole.map(_.angle.get)
-              val adjustedAngles =
-                (SimplePolygon.alphaSum(boundaryAnglesAroundHole.length) - boundaryAnglesAroundHole.tail.fold(AngleDegree(0))(_ + _)) :: boundaryAnglesAroundHole.tail
-              clone.addSimplePolygonWithoutGuards(adjustedAngles, v_match.id).get
+              val holeAngles =
+                tilingDCEL.holeAngles(v_match, v_new)
+              clone.addSimplePolygonWithoutGuards(holeAngles, v_match.id).get
                 .addSimplePolygon(angles, onEdgeStartingWithVertexId)
 
     private def addSimplePolygonWithoutGuards(angles: List[AngleDegree], onEdgeStartingWithVertexId: String): Option[TilingDCEL] =
@@ -241,14 +246,9 @@ object TilingAddition:
           maybeHoleClosure match
             case None => Right(revisedTiling)
             case Some((v_match, v_new)) =>
-              // Find the boundary edges that will form the hole
-              val boundaryEdgesAroundHole =
-                tilingDCEL.getBoundaryEdgesPath(from = v_match, to = v_new)
-              val boundaryAnglesAroundHole =
-                boundaryEdgesAroundHole.map(_.angle.get)
-              val adjustedAngles =
-                (SimplePolygon.alphaSum(boundaryAnglesAroundHole.length) - boundaryAnglesAroundHole.tail.fold(AngleDegree(0))(_ + _)) :: boundaryAnglesAroundHole.tail
-              clone.addSimplePolygonWithoutGuards(adjustedAngles, v_match.id).get
+              val holeAngles =
+                tilingDCEL.holeAngles(v_match, v_new)
+              clone.addSimplePolygonWithoutGuards(holeAngles, v_match.id).get
                 .addRegularPolygon(sides, onEdgeStartingWithVertexId)
 
   // Helper case classes for better structure
