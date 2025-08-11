@@ -5,6 +5,7 @@ import BigDecimalGeometry.*
 import Polygon.{RegularPolygon, SimplePolygon}
 import TilingBuilder.{calculateVertexPoints, validatePoints, validateSides}
 
+import ring_seq.RingSeq.slidingO
 import scala.annotation.tailrec
 
 object TilingAddition:
@@ -114,6 +115,22 @@ object TilingAddition:
     ): (TilingDCEL, TilingDCEL, Option[(Vertex, Vertex)]) =
       val (tempVertices, edgeResults, boundaryAngles) =
         additionalVertices(startVertex, endVertex, edgeToBuildOn, angles, points, tilingDCEL.vertices.size, tilingDCEL.outerFace)
+
+      // here we must check if the new boundary intersects with the existing one
+      val newSides: List[BigLineSegment] =
+        tempVertices.sliding(2).toList.map {
+          case p1 :: p2 :: Nil => BigLineSegment(p1.coords, p2.coords)
+          case _ => BigLineSegment(BigPoint(), BigPoint())
+        }
+
+      val newBox =
+        BigBox.fromPoints(tempVertices.map(_.coords)).expand(1)
+
+      val oldSides: List[BigLineSegment] =
+        boundaryEdges.slidingO(2).toList.map {
+          case e1 :: e2 :: Nil => BigLineSegment(e1.origin.coords, e2.origin.coords)
+          case _ =>  BigLineSegment(BigPoint(), BigPoint())
+        }.filter(line => newBox.contains(line.p1) || newBox.contains(line.p2))
 
       val maybeHoleClosure: Option[(Vertex, Vertex)] =
         findHoleClosure(boundaryEdges, tempVertices)
