@@ -134,7 +134,7 @@ object TilingAddition:
 
       val hasIntersection =
         oldSides.exists(oldSide => newSides.exists(newSide => oldSide.properlyIntersects(newSide)))
-      if hasIntersection then 
+      if hasIntersection then
         return Left("Boundary intersection")
 
       val maybeHoleClosure: Option[(Vertex, Vertex)] =
@@ -298,7 +298,13 @@ object TilingAddition:
       case _ :: two :: Nil =>
         println("Warning: two shared vertices found")
         Some(two)
-      case _ =>
+      case many =>
+        println(many)
+        val oldVertices = many.map(_._1)
+        val touched = boundaryEdges.filter(edge => oldVertices.contains(edge.origin))
+        val pippo = Vertex.buildBoundaryVertexAdjacency(boundaryEdges, oldVertices.toSet)
+        println(pippo)
+
         throw new Error("Error: more than 2 shared vertices found")
 
   private def additionalElements(
