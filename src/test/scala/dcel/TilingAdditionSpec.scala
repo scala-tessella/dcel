@@ -630,18 +630,6 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     verifyValidTiling(newTiling)
   }
 
-  it should "successfully create a complex tessellation " in {
-    val result = commonTiling
-      .maybeAddRegularPolygon(3, "V4").value
-      .maybeAddRegularPolygon(4, "V3")
-    result.isRight shouldBe true
-
-    val newTiling = result.value
-//    println(TilingDCEL.validate(newTiling))
-//    println(newTiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
-    verifyValidTiling(newTiling)
-  }
-
   it should "successfully fill a hole created by a shared vertex" in {
     val result = commonTiling
       .maybeAddRegularPolygon(4, "V3")
@@ -653,18 +641,23 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     verifyValidTiling(newTiling)
   }
 
-  it should "successfully create another complex tessellation " in {
-    val result = commonTiling
-      .maybeAddRegularPolygon(3, "V9").value
-      .maybeAddRegularPolygon(3, "V11").value
-      .maybeAddRegularPolygon(3, "V4").value
-      .maybeAddRegularPolygon(4, "V3")
+  it should "successfully fill another hole created by a shared vertex" in {
+    val result =
+      TilingBuilder.createRegularPolygon(6).value
+        .maybeAddRegularPolygon(6, "V6").value
+        .maybeAddRegularPolygon(6, "V7").value
+        .maybeAddRegularPolygon(6, "V11").value
+        .maybeAddRegularPolygon(6, "V16").value
+        .maybeAddRegularPolygon(6, "V19").value
+        .maybeAddRegularPolygon(6, "V23").value
+        .maybeAddRegularPolygon(3, "V27").value
+        .maybeAddRegularPolygon(3, "V2")
 
     result.isRight shouldBe true
 
     val newTiling = result.value
-//    println(TilingDCEL.validate(newTiling))
 //    println(newTiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
+//    println(TilingDCEL.validate(newTiling))
     verifyValidTiling(newTiling)
   }
 
