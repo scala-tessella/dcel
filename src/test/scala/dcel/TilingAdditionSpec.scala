@@ -681,6 +681,27 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     verifyValidTiling(newTiling)
   }
 
+  it should "successfully fill two holes created by shared edges" in {
+    val result =
+      TilingBuilder.createRegularPolygon(6).value
+        .maybeAddRegularPolygon(6, "V6").value
+        .maybeAddRegularPolygon(6, "V7").value
+        .maybeAddRegularPolygon(6, "V11").value
+        .maybeAddRegularPolygon(6, "V15").value
+        .maybeAddRegularPolygon(6, "V21").value
+        .maybeAddRegularPolygon(6, "V23").value
+        .maybeAddRegularPolygon(6, "V27").value
+        .maybeAddRegularPolygon(6, "V31").value
+        .maybeAddRegularPolygon(6, "V2")
+
+    result.isRight shouldBe true
+
+    val newTiling = result.value
+//    println(newTiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
+//    println(TilingDCEL.validate(newTiling))
+    verifyValidTiling(newTiling)
+  }
+
   it should "fail if boundary crossing" in {
     val result = commonTiling
       .maybeAddRegularPolygon(3, "V9").value
