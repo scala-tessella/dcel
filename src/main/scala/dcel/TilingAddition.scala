@@ -5,7 +5,7 @@ import BigDecimalGeometry.*
 import Polygon.{RegularPolygon, SimplePolygon}
 import TilingBuilder.{calculateVertexPoints, validatePoints, validateSides}
 
-import ring_seq.RingSeq.slidingO
+import ring_seq.RingSeq.{rotateRight, slidingO}
 import scala.annotation.tailrec
 
 object TilingAddition:
@@ -156,15 +156,37 @@ object TilingAddition:
         )
       Right((grownTiling, deepCopiedOriginal, maybeHoleClosure))
 
-    private def holeAngles(v_match: Vertex, v_new: Vertex) =
-      val boundaryEdgesAroundHole =
+    private def holeAnglesWithDirection(v_match: Vertex, v_new: Vertex): (List[AngleDegree], Vertex) =
+      val boundaryEdgesAroundHoleForward =
         tilingDCEL.getBoundaryEdgesPath(from = v_match, to = v_new)
+      val boundaryEdgesAroundHoleBack =
+        tilingDCEL.getBoundaryEdgesPath(from = v_new, to = v_match)
+      val isForward: Boolean =
+        boundaryEdgesAroundHoleForward.sizeCompare(boundaryEdgesAroundHoleBack) < 0
+      val boundaryEdgesAroundHole =
+        if isForward then
+          boundaryEdgesAroundHoleForward
+        else
+          boundaryEdgesAroundHoleBack
       val boundaryAnglesAroundHole =
         boundaryEdgesAroundHole.map(_.angle.get)
-      (
-        SimplePolygon.alphaSum(boundaryAnglesAroundHole.length)
-          - boundaryAnglesAroundHole.tail.fold(AngleDegree(0))(_ + _)
-      ) :: boundaryAnglesAroundHole.tail
+//      println(boundaryEdgesAroundHole)
+//      println(boundaryAnglesAroundHole)
+      val adjustedAngles =
+        (
+          SimplePolygon.alphaSum(boundaryAnglesAroundHole.length)
+            - boundaryAnglesAroundHole.tail.fold(AngleDegree(0))(_ + _)
+        ) :: boundaryAnglesAroundHole.tail
+//      println(adjustedAngles)
+      val startingVertex =
+        if isForward then v_match
+        else boundaryEdgesAroundHole.last.origin
+      val shiftedAngles =
+        if isForward then adjustedAngles
+        else adjustedAngles.rotateRight(1)
+//      println(s"shiftedAngles: $shiftedAngles")
+//      println(s"startingVertex: $startingVertex")
+      (shiftedAngles, startingVertex)
 
     @tailrec
     def addSimplePolygon(angles: List[AngleDegree], onEdgeStartingWithVertexId: String): Either[String, TilingDCEL] =
@@ -190,9 +212,9 @@ object TilingAddition:
           maybeHoleClosure match
             case None => Right(revisedTiling)
             case Some((v_match, v_new)) =>
-              val holeAngles =
-                tilingDCEL.holeAngles(v_match, v_new)
-              clone.addSimplePolygonWithoutGuards(holeAngles, v_match.id).get
+              val (holeAngles, startingVertex) =
+                tilingDCEL.holeAnglesWithDirection(v_match, v_new)
+              clone.addSimplePolygonWithoutGuards(holeAngles, startingVertex.id).get
                 .addSimplePolygon(angles, onEdgeStartingWithVertexId)
 
     private def addSimplePolygonWithoutGuards(angles: List[AngleDegree], onEdgeStartingWithVertexId: String): Option[TilingDCEL] =
@@ -240,9 +262,9 @@ object TilingAddition:
           maybeHoleClosure match
             case None => Right(revisedTiling)
             case Some((v_match, v_new)) =>
-              val holeAngles =
-                tilingDCEL.holeAngles(v_match, v_new)
-              clone.addSimplePolygonWithoutGuards(holeAngles, v_match.id).get
+              val (holeAngles, startingVertex) =
+                tilingDCEL.holeAnglesWithDirection(v_match, v_new)
+              clone.addSimplePolygonWithoutGuards(holeAngles, startingVertex.id).get
                 .addRegularPolygon(sides, onEdgeStartingWithVertexId)
 
   // Helper case classes for better structure
