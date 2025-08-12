@@ -156,7 +156,7 @@ object TilingAddition:
         )
       Right((grownTiling, deepCopiedOriginal, maybeHoleClosure))
 
-    private def holeAnglesWithDirection(v_match: Vertex, v_new: Vertex): (List[AngleDegree], Vertex) =
+    private def holeAnglesWithDirection(v_match: Vertex, v_new: Vertex): (List[AngleDegree], String) =
       val boundaryEdgesAroundHoleForward =
         tilingDCEL.getBoundaryEdgesPath(from = v_match, to = v_new)
       val boundaryEdgesAroundHoleBack =
@@ -178,15 +178,15 @@ object TilingAddition:
             - boundaryAnglesAroundHole.tail.fold(AngleDegree(0))(_ + _)
         ) :: boundaryAnglesAroundHole.tail
 //      println(adjustedAngles)
-      val startingVertex =
-        if isForward then v_match
-        else boundaryEdgesAroundHole.last.origin
+      val startingVertexId =
+        if isForward then v_match.id
+        else boundaryEdgesAroundHole.last.origin.id
       val shiftedAngles =
         if isForward then adjustedAngles
         else adjustedAngles.rotateRight(1)
 //      println(s"shiftedAngles: $shiftedAngles")
 //      println(s"startingVertex: $startingVertex")
-      (shiftedAngles, startingVertex)
+      (shiftedAngles, startingVertexId)
 
     @tailrec
     def addSimplePolygon(angles: List[AngleDegree], onEdgeStartingWithVertexId: String): Either[String, TilingDCEL] =
@@ -212,9 +212,9 @@ object TilingAddition:
           maybeHoleClosure match
             case None => Right(revisedTiling)
             case Some((v_match, v_new)) =>
-              val (holeAngles, startingVertex) =
+              val (holeAngles, startingVertexId) =
                 tilingDCEL.holeAnglesWithDirection(v_match, v_new)
-              clone.addSimplePolygonWithoutGuards(holeAngles, startingVertex.id).get
+              clone.addSimplePolygonWithoutGuards(holeAngles, startingVertexId).get
                 .addSimplePolygon(angles, onEdgeStartingWithVertexId)
 
     private def addSimplePolygonWithoutGuards(angles: List[AngleDegree], onEdgeStartingWithVertexId: String): Option[TilingDCEL] =
@@ -262,9 +262,9 @@ object TilingAddition:
           maybeHoleClosure match
             case None => Right(revisedTiling)
             case Some((v_match, v_new)) =>
-              val (holeAngles, startingVertex) =
+              val (holeAngles, startingVertexId) =
                 tilingDCEL.holeAnglesWithDirection(v_match, v_new)
-              clone.addSimplePolygonWithoutGuards(holeAngles, startingVertex.id).get
+              clone.addSimplePolygonWithoutGuards(holeAngles, startingVertexId).get
                 .addRegularPolygon(sides, onEdgeStartingWithVertexId)
 
   // Helper case classes for better structure
