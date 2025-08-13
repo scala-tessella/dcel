@@ -144,3 +144,22 @@ object HalfEdge:
     // Helper function to link edges in a sequence
     def linkInSequence(): Unit =
       halfEdges.zip(halfEdges.tail).foreach(_.linkWith(_))
+
+    def getPath(from: Vertex, to: Vertex): List[HalfEdge] =
+      val startEdgeOpt = halfEdges.find(_.origin == from)
+
+      startEdgeOpt match
+        case Some(startEdge) =>
+          val holeEdgesList = mutable.ListBuffer[HalfEdge]()
+          var currentEdge = startEdge
+
+          while (currentEdge.destination.get != to && !holeEdgesList.contains(currentEdge))
+            holeEdgesList += currentEdge
+            currentEdge = currentEdge.next.get
+
+          if currentEdge.destination.get == to then
+            holeEdgesList += currentEdge
+
+          holeEdgesList.toList
+        case None => List.empty
+  
