@@ -138,7 +138,7 @@ object TilingAddition:
         return Left("Boundary intersection")
 
       val maybeHoleClosure: Option[(Vertex, Vertex)] =
-        findHoleClosure(boundaryEdges, tempVertices)
+        findHoleClosure(startVertex, boundaryEdges, tempVertices)
 
       val deepCopiedOriginal: TilingDCEL =
         if maybeHoleClosure.isDefined then tilingDCEL.deepCopy
@@ -157,10 +157,13 @@ object TilingAddition:
       Right((grownTiling, deepCopiedOriginal, maybeHoleClosure))
 
     private def holeAnglesWithDirection(v_match: Vertex, v_new: Vertex): (List[AngleDegree], String) =
+//      println(s"v_match: $v_match")
+//      println(s"v_new: $v_new")
+      val boundaryEdges = tilingDCEL.getBoundaryEdges.toOption.get
       val boundaryEdgesAroundHoleForward =
-        tilingDCEL.getBoundaryEdgesPath(from = v_match, to = v_new)
+        boundaryEdges.getPath(from = v_match, to = v_new)
       val boundaryEdgesAroundHoleBack =
-        tilingDCEL.getBoundaryEdgesPath(from = v_new, to = v_match)
+        boundaryEdges.getPath(from = v_new, to = v_match)
       val isForward: Boolean =
         boundaryEdgesAroundHoleForward.sizeCompare(boundaryEdgesAroundHoleBack) < 0
       val boundaryEdgesAroundHole =
@@ -170,14 +173,14 @@ object TilingAddition:
           boundaryEdgesAroundHoleBack
       val boundaryAnglesAroundHole =
         boundaryEdgesAroundHole.map(_.angle.get)
-//      println(boundaryEdgesAroundHole)
-//      println(boundaryAnglesAroundHole)
+//      println(s"boundaryEdgesAroundHole: $boundaryEdgesAroundHole")
+//      println(s"boundaryAnglesAroundHole: $boundaryAnglesAroundHole")
       val adjustedAngles =
         (
           SimplePolygon.alphaSum(boundaryAnglesAroundHole.length)
             - boundaryAnglesAroundHole.tail.fold(AngleDegree(0))(_ + _)
         ) :: boundaryAnglesAroundHole.tail
-//      println(adjustedAngles)
+//      println(s"adjustedAngles: $adjustedAngles")
       val startingVertexId =
         if isForward then v_match.id
         else boundaryEdgesAroundHole.last.origin.id
@@ -185,7 +188,7 @@ object TilingAddition:
         if isForward then adjustedAngles
         else adjustedAngles.rotateRight(1)
 //      println(s"shiftedAngles: $shiftedAngles")
-//      println(s"startingVertex: $startingVertex")
+//      println(s"startingVertexId: $startingVertexId")
       (shiftedAngles, startingVertexId)
 
     @tailrec
@@ -213,7 +216,7 @@ object TilingAddition:
             case None => Right(revisedTiling)
             case Some((v_match, v_new)) =>
               val (holeAngles, startingVertexId) =
-                tilingDCEL.holeAnglesWithDirection(v_match, v_new)
+                revisedTiling.holeAnglesWithDirection(v_match, v_new)
               clone.addSimplePolygonWithoutGuards(holeAngles, startingVertexId).get
                 .addSimplePolygon(angles, onEdgeStartingWithVertexId)
 
@@ -263,7 +266,7 @@ object TilingAddition:
             case None => Right(revisedTiling)
             case Some((v_match, v_new)) =>
               val (holeAngles, startingVertexId) =
-                tilingDCEL.holeAnglesWithDirection(v_match, v_new)
+                revisedTiling.holeAnglesWithDirection(v_match, v_new)
               clone.addSimplePolygonWithoutGuards(holeAngles, startingVertexId).get
                 .addRegularPolygon(sides, onEdgeStartingWithVertexId)
 
@@ -311,15 +314,33 @@ object TilingAddition:
    * @param boundaryEdges the edges forming the tiling's boundary
    * @param newVertices the added vertices
    */
-  private def findHoleClosure(boundaryEdges: List[HalfEdge], newVertices: List[Vertex]): Option[(Vertex, Vertex)] =
+  private def findHoleClosure(startVertex: Vertex, boundaryEdges: List[HalfEdge], newVertices: List[Vertex]): Option[(Vertex, Vertex)] =
     boundaryEdges.map(_.origin).sameCoords(newVertices) match
       case Nil => None
       case one :: Nil =>
         println(s"Warning: one shared vertex found, ${one._2} at place where ${one._1} already is.")
         Some(one)
-      case _ :: two :: Nil =>
+      case one :: two :: Nil =>
         println("Warning: two shared vertices found")
-        Some(two)
+//        println(s"one: $one")
+//        println(s"two: $two")
+        val boundaryLength: Int =
+          boundaryEdges.length
+        val boundaryEdgesAroundHoleForwardOne: Int =
+          boundaryEdges.getPath(from = startVertex, to = one._1).length
+        val boundaryEdgesAroundHoleForwardTwo: Int =
+          boundaryEdges.getPath(from = startVertex, to = two._1).length
+        val minOne = math.min(boundaryEdgesAroundHoleForwardOne, boundaryLength - boundaryEdgesAroundHoleForwardOne)
+        val minTwo = math.min(boundaryEdgesAroundHoleForwardTwo, boundaryLength - boundaryEdgesAroundHoleForwardTwo)
+//        println(
+//          s"""
+//             |boundaryLength: $boundaryLength
+//             |boundaryEdgesAroundHoleForwardOne: $boundaryEdgesAroundHoleForwardOne
+//             |boundaryEdgesAroundHoleForwardTwo: $boundaryEdgesAroundHoleForwardTwo
+//             |minOne: $minOne
+//             |minTwo: $minTwo
+//             |""".stripMargin)
+        if minOne < minTwo then Some(one) else Some(two)
       case many =>
         println(many)
         val oldVertices = many.map(_._1)
