@@ -1,6 +1,8 @@
 package io.github.scala_tessella
 package dcel
 
+import ring_seq.RingSeq.slidingO
+
 /**
  * Represents a single face in the DCEL.
  *
@@ -28,8 +30,9 @@ case class Face(
     if vertices.length < 3 then BigDecimal(0)
     else
       // Shoelace formula
-      val sum = vertices.zip(vertices.tail :+ vertices.head).map { case (v1, v2) =>
-        v1.coords.x * v2.coords.y - v2.coords.x * v1.coords.y
+      val sum = vertices.slidingO(2).map { (_: @unchecked) match
+        case v1 :: v2 :: Nil =>
+          v1.coords.x * v2.coords.y - v2.coords.x * v1.coords.y
       }.sum
       sum.abs / 2
 
