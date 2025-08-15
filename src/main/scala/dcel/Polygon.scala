@@ -1,11 +1,9 @@
 package io.github.scala_tessella
 package dcel
 
-import BigDecimalGeometry.{ACCURACY, AngleDegree, BigRadian}
+import BigDecimalGeometry.{ACCURACY, AngleDegree}
 
-import spire.compat.numeric
-
-/** Methods to deal with regular polygons in a tiling */
+/** Methods to deal with regular polygons in tiling */
 object Polygon:
 
   object SimplePolygon:
@@ -32,7 +30,7 @@ object Polygon:
         else
           Right(())
 
-  /** Unit regular polygon of given number of sides */
+  /** Unit regular polygon with the given number of sides */
   opaque type RegularPolygon = Int
 
   /** Companion object for [[RegularPolygon]] */
