@@ -84,7 +84,6 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
     result.isRight shouldBe true
   }
 
-
   it should "successfully delete an added boundary face" in {
     val tiling = TilingBuilder.createRegularPolygon(4).value
       .maybeAddRegularPolygon(4, "V2").value
