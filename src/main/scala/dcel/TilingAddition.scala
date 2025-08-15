@@ -320,33 +320,39 @@ object TilingAddition:
     boundaryEdges: List[HalfEdge],
     newVertices: List[Vertex]
   ): Option[(Vertex, Vertex)] =
-    newVertices.sameCoords(boundaryEdges.map(_.origin)).map(_.swap) match
+    // Find pairs of vertices (one from boundary, one new) that share coordinates
+    val sharedVertices = newVertices.sameCoords(boundaryEdges.map(_.origin)).map(_.swap)
+
+    sharedVertices match
       case Nil => None
       case many =>
-        val shareLength = many.length
-        var lastConnectedForward = many.head
-        val shareStartIndex = newVertices.indexOf(lastConnectedForward._2)
-        var i = 1
-        while i < shareLength && many(i)._2 == newVertices(shareStartIndex + i)
-        do
-          lastConnectedForward = many(i)
-          i += 1
-        var lastConnectedBackward = many.last
-        val shareEndIndex = newVertices.indexOf(lastConnectedBackward._2)
-        i = 1
-        while i < shareLength && many(shareLength - 1 - i)._2 == newVertices(shareEndIndex - i)
-        do
-          lastConnectedBackward = many(shareLength - 1 - i)
-          i += 1
-        val boundaryLength: Int =
-          boundaryEdges.length
-        val boundaryEdgesAroundHoleForwardOne: Int =
-          boundaryEdges.getPath(from = startVertex, to = lastConnectedForward._1).length
-        val boundaryEdgesAroundHoleForwardTwo: Int =
-          boundaryEdges.getPath(from = startVertex, to = lastConnectedBackward._1).length
-        val minOne = math.min(boundaryEdgesAroundHoleForwardOne, boundaryLength - boundaryEdgesAroundHoleForwardOne)
-        val minTwo = math.min(boundaryEdgesAroundHoleForwardTwo, boundaryLength - boundaryEdgesAroundHoleForwardTwo)
-        if minOne < minTwo then Some(lastConnectedForward) else Some(lastConnectedBackward)
+        // Get the indices of the new vertices that are shared
+        val indices = many.map(p => newVertices.indexOf(p._2))
+
+        // Find the last vertex of the initial contiguous block of shared vertices
+        val forwardContiguousCount = indices.zip(indices.tail)
+          .takeWhile { case (a, b) => a + 1 == b }
+          .length
+        val endOfFirstBlock = many(forwardContiguousCount)
+
+        // Find the first vertex of the final contiguous block of shared vertices
+        val backwardContiguousCount = indices.reverse.zip(indices.reverse.tail)
+          .takeWhile { case (a, b) => a - 1 == b }
+          .length
+        val startOfLastBlock = many(many.length - 1 - backwardContiguousCount)
+
+        // Determine which closure point results in a smaller path on the boundary
+        def shortestPathLength(to: Vertex): Int =
+          val pathLength = boundaryEdges.getPath(from = startVertex, to = to).length
+          math.min(pathLength, boundaryEdges.length - pathLength)
+
+        val forwardPathLength = shortestPathLength(endOfFirstBlock._1)
+        val backwardPathLength = shortestPathLength(startOfLastBlock._1)
+
+        if forwardPathLength < backwardPathLength then
+          Some(endOfFirstBlock)
+        else
+          Some(startOfLastBlock)
 
   private def additionalElements(
     edgeToBuildOn: HalfEdge,
