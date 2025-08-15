@@ -6,6 +6,7 @@ import Polygon.{RegularPolygon, SimplePolygon}
 import TilingBuilder.{calculateVertexPoints, validatePoints, validateSides}
 
 import ring_seq.RingSeq.{rotateRight, slidingO}
+
 import scala.annotation.tailrec
 
 object TilingAddition:
@@ -156,40 +157,36 @@ object TilingAddition:
         )
       Right((grownTiling, deepCopiedOriginal, maybeHoleClosure))
 
+    /** Calculates the angles needed to fill a hole in the tiling's boundary,
+     *  determining the correct starting vertex and direction for the new polygon.
+     *
+     * @param v_match the existing vertex closing the hole
+     * @param v_new   the new verte closing the hole
+     */
     private def holeAnglesWithDirection(v_match: Vertex, v_new: Vertex): (List[AngleDegree], String) =
-//      println(s"v_match: $v_match")
-//      println(s"v_new: $v_new")
       val boundaryEdges = tilingDCEL.getBoundaryEdges.toOption.get
-      val boundaryEdgesAroundHoleForward =
-        boundaryEdges.getPath(from = v_match, to = v_new)
-      val boundaryEdgesAroundHoleBack =
-        boundaryEdges.getPath(from = v_new, to = v_match)
-      val isForward: Boolean =
-        boundaryEdgesAroundHoleForward.sizeCompare(boundaryEdgesAroundHoleBack) < 0
-      val boundaryEdgesAroundHole =
-        if isForward then
-          boundaryEdgesAroundHoleForward
-        else
-          boundaryEdgesAroundHoleBack
-      val boundaryAnglesAroundHole =
-        boundaryEdgesAroundHole.map(_.angle.get)
-//      println(s"boundaryEdgesAroundHole: $boundaryEdgesAroundHole")
-//      println(s"boundaryAnglesAroundHole: $boundaryAnglesAroundHole")
-      val adjustedAngles =
-        (
-          SimplePolygon.alphaSum(boundaryAnglesAroundHole.length)
-            - boundaryAnglesAroundHole.tail.fold(AngleDegree(0))(_ + _)
-        ) :: boundaryAnglesAroundHole.tail
-//      println(s"adjustedAngles: $adjustedAngles")
-      val startingVertexId =
-        if isForward then v_match.id
-        else boundaryEdgesAroundHole.last.origin.id
-      val shiftedAngles =
-        if isForward then adjustedAngles
-        else adjustedAngles.rotateRight(1)
-//      println(s"shiftedAngles: $shiftedAngles")
-//      println(s"startingVertexId: $startingVertexId")
-      (shiftedAngles, startingVertexId)
+
+      // 1. Determine the shorter path (the "hole") on the boundary between the two vertices.
+      val pathFwd = boundaryEdges.getPath(from = v_match, to = v_new)
+      val pathBack = boundaryEdges.getPath(from = v_new, to = v_match)
+
+      val (holePath, isForward) =
+        if pathFwd.sizeCompare(pathBack) < 0 then (pathFwd, true)
+        else (pathBack, false)
+
+      // 2. Calculate the internal angles for a new polygon that would fill this hole.
+      val holeAngles = holePath.map(_.angle.get)
+      val polygonAngles =
+        val sumOfOtherAngles = holeAngles.tail.fold(AngleDegree(0))(_ + _)
+        val closingAngle = SimplePolygon.alphaSum(holeAngles.length) - sumOfOtherAngles
+        closingAngle :: holeAngles.tail
+
+      // 3. Determine the starting vertex and adjust angle order based on path direction.
+      if isForward then
+        (polygonAngles, v_match.id)
+      else
+        // For a backward path, the angles must be rotated, and the start vertex is different.
+        (polygonAngles.rotateRight(1), holePath.last.origin.id)
 
     @tailrec
     def addSimplePolygon(angles: List[AngleDegree], onEdgeStartingWithVertexId: String): Either[String, TilingDCEL] =
