@@ -3,6 +3,8 @@ package dcel
 
 import BigDecimalGeometry.AngleDegree
 
+import ring_seq.RingSeq.slidingO
+
 import scala.annotation.tailrec
 import scala.collection.mutable
 
@@ -137,13 +139,19 @@ object HalfEdge:
 
   extension (halfEdges: List[HalfEdge])
 
+    private def linkIn(f: List[HalfEdge] => Iterator[List[HalfEdge]]): Unit =
+      f(halfEdges).foreach {
+        case e1 :: e2 :: Nil => e1.linkWith(e2)
+        case _ => ()
+      }
+
     // Helper function to link edges in a cycle
     def linkInCycle(): Unit =
-      halfEdges.zip(halfEdges.tail :+ halfEdges.head).foreach(_.linkWith(_))
+      linkIn(_.slidingO(2))
 
     // Helper function to link edges in a sequence
     def linkInSequence(): Unit =
-      halfEdges.zip(halfEdges.tail).foreach(_.linkWith(_))
+      linkIn(_.sliding(2))
 
     def getPath(from: Vertex, to: Vertex): List[HalfEdge] =
       val startEdgeOpt = halfEdges.find(_.origin == from)

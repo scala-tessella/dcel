@@ -410,12 +410,9 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "handle empty list gracefully" in {
-    // The current implementation doesn't handle empty lists gracefully,
-    // so we expect an exception to be thrown
-    val vertex = Vertex("V1", BigPoint(0, 0))
-    assertThrows[UnsupportedOperationException] {
-      List.empty[HalfEdge].linkInCycle()
-    }
+    val e = List.empty[HalfEdge]
+    e.linkInCycle()
+    e shouldBe List.empty[HalfEdge]
   }
 
   it should "handle complex chain correctly" in {
