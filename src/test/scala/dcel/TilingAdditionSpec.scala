@@ -8,7 +8,6 @@ import ring_seq.RingSeq.*
 import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import spire.compat.numeric
 
 class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
