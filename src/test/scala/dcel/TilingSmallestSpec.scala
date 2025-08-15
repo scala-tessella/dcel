@@ -53,12 +53,18 @@ class TilingSmallestSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "add a triangle to an irregular pentagon, producing the smallest DCEL with a non boundary vertex" in {
-    val triangle = TilingBuilder.createSimplePolygon(
-      List(AngleDegree(90), AngleDegree(90), AngleDegree(30), AngleDegree(300), AngleDegree(30))
-    ).value
-    val result = triangle.addRegularPolygon(3, "V4")
+    val irregularPentagon = TilingBuilder.createSimplePolygon(90, 90, 30, 300, 30).value
+    val result = irregularPentagon.addRegularPolygon(3, "V4")
 
     result.isRight shouldBe true
 //    val tiling = result.value
 //    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
+  }
+
+  it should "add an irregular pentagon to a triangle, producing the smallest DCEL with a non-boundary face" in {
+    val result = TilingBuilder.createSimplePolygon(15, 90, 90, 90, 15, 300, 300)
+
+    result.isRight shouldBe true
+    //    val tiling = result.value
+    //    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
   }

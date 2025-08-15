@@ -198,7 +198,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   val irregularPentagonAngles: List[AngleDegree] =
-    List(AngleDegree(90), AngleDegree(150), AngleDegree(60), AngleDegree(150), AngleDegree(90))
+    List(90, 150, 60, 150, 90).map(AngleDegree(_))
 
   it should "add an irregular pentagon to a triangle, producing a valid DCEL" in {
     val triangle = TilingBuilder.createRegularPolygon(3).value

@@ -49,6 +49,9 @@ object TilingBuilder:
     yield
       result
 
+  def createSimplePolygon(degrees: Int *): Either[String, TilingDCEL] =
+    createSimplePolygon(degrees.map(AngleDegree(_)).toList)
+    
   /**
    * Creates a TilingDCEL for a single regular polygon with unit-length sides.
    *

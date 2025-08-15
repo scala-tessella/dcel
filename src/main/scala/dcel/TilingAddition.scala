@@ -217,6 +217,9 @@ object TilingAddition:
               clone.addSimplePolygonWithoutGuards(holeAngles, startingVertexId).get
                 .addSimplePolygon(angles, onEdgeStartingWithVertexId)
 
+    def addSimplePolygon(onEdgeStartingWithVertexId: String, degrees: Int *): Either[String, TilingDCEL] =
+      addSimplePolygon(degrees.map(AngleDegree(_)).toList, onEdgeStartingWithVertexId)
+
     private def addSimplePolygonWithoutGuards(angles: List[AngleDegree], onEdgeStartingWithVertexId: String): Option[TilingDCEL] =
       for
         boundaryEdges <- tilingDCEL.getBoundaryEdges.toOption
