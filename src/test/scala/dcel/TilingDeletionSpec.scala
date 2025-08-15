@@ -73,7 +73,6 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
     val s1s2 = s1.maybeAddRegularPolygon(4, "V2").value
     val s1s2s3 = s1s2.maybeAddRegularPolygon(4, "V2").value
     val s1s2s3s4 = s1s2s3.maybeAddRegularPolygon(4, "V2").value
-    println(s1s2s3s4.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
     val result = s1s2s3s4.deletePolygon("F2")
     result.isRight shouldBe true
   }
