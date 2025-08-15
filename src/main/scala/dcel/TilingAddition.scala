@@ -314,41 +314,75 @@ object TilingAddition:
    * @param boundaryEdges the edges forming the tiling's boundary
    * @param newVertices the added vertices
    */
-  private def findHoleClosure(startVertex: Vertex, boundaryEdges: List[HalfEdge], newVertices: List[Vertex]): Option[(Vertex, Vertex)] =
-    boundaryEdges.map(_.origin).sameCoords(newVertices) match
+  private def findHoleClosure(startVertex: Vertex, boundaryEdges: List[HalfEdge], newVertices: List[Vertex]): Option[(Vertex, Vertex)] = {
+    newVertices.sameCoords(boundaryEdges.map(_.origin)).map(_.swap) match
       case Nil => None
-      case one :: Nil =>
-        println(s"Warning: one shared vertex found, ${one._2} at place where ${one._1} already is.")
-        Some(one)
-      case one :: two :: Nil =>
-        println("Warning: two shared vertices found")
-//        println(s"one: $one")
-//        println(s"two: $two")
+      case many =>
+        println(s"many: $many")
+        val size = many.length
+        var lastConnectedForward = many.head
+        val shareStartIndex = newVertices.indexOf(lastConnectedForward._2)
+        var i = 1
+        while i < size && many(i)._2 == newVertices(shareStartIndex + i)
+        do
+          lastConnectedForward = many(i)
+          i += 1
+        println(s"lastConnectedForward: $lastConnectedForward")
+        var lastConnectedBackward = many.last
+        val shareEndIndex = newVertices.indexOf(lastConnectedBackward._2)
+        println(s"shareEndIndex: $shareEndIndex")
+        println(s"size: $size")
+        i = 1
+        while i < size && many(size - 1 - i)._2 == newVertices(shareEndIndex - i)
+        do
+          println(s"i: $i")
+          lastConnectedBackward = many(size - 1 - i)
+          i += 1
+        println(s"lastConnectedBackward: $lastConnectedBackward")
+
         val boundaryLength: Int =
           boundaryEdges.length
         val boundaryEdgesAroundHoleForwardOne: Int =
-          boundaryEdges.getPath(from = startVertex, to = one._1).length
+          boundaryEdges.getPath(from = startVertex, to = lastConnectedForward._1).length
         val boundaryEdgesAroundHoleForwardTwo: Int =
-          boundaryEdges.getPath(from = startVertex, to = two._1).length
+          boundaryEdges.getPath(from = startVertex, to = lastConnectedBackward._1).length
         val minOne = math.min(boundaryEdgesAroundHoleForwardOne, boundaryLength - boundaryEdgesAroundHoleForwardOne)
         val minTwo = math.min(boundaryEdgesAroundHoleForwardTwo, boundaryLength - boundaryEdgesAroundHoleForwardTwo)
-//        println(
-//          s"""
-//             |boundaryLength: $boundaryLength
-//             |boundaryEdgesAroundHoleForwardOne: $boundaryEdgesAroundHoleForwardOne
-//             |boundaryEdgesAroundHoleForwardTwo: $boundaryEdgesAroundHoleForwardTwo
-//             |minOne: $minOne
-//             |minTwo: $minTwo
-//             |""".stripMargin)
-        if minOne < minTwo then Some(one) else Some(two)
-      case many =>
-        println(many)
-        val oldVertices = many.map(_._1)
-        val touched = boundaryEdges.filter(edge => oldVertices.contains(edge.origin))
-        val pippo = Vertex.buildBoundaryVertexAdjacency(boundaryEdges, oldVertices.toSet)
-        println(pippo)
-
-        throw new Error("Error: more than 2 shared vertices found")
+        if minOne < minTwo then Some(lastConnectedForward) else Some(lastConnectedBackward)
+//      case one :: Nil =>
+//        println(s"Warning: one shared vertex found, ${one._2} at place where ${one._1} already is.")
+//        Some(one)
+//      case one :: two :: Nil =>
+//
+//        println("Warning: two shared vertices found")
+////        println(s"one: $one")
+////        println(s"two: $two")
+//        val boundaryLength: Int =
+//          boundaryEdges.length
+//        val boundaryEdgesAroundHoleForwardOne: Int =
+//          boundaryEdges.getPath(from = startVertex, to = one._1).length
+//        val boundaryEdgesAroundHoleForwardTwo: Int =
+//          boundaryEdges.getPath(from = startVertex, to = two._1).length
+//        val minOne = math.min(boundaryEdgesAroundHoleForwardOne, boundaryLength - boundaryEdgesAroundHoleForwardOne)
+//        val minTwo = math.min(boundaryEdgesAroundHoleForwardTwo, boundaryLength - boundaryEdgesAroundHoleForwardTwo)
+////        println(
+////          s"""
+////             |boundaryLength: $boundaryLength
+////             |boundaryEdgesAroundHoleForwardOne: $boundaryEdgesAroundHoleForwardOne
+////             |boundaryEdgesAroundHoleForwardTwo: $boundaryEdgesAroundHoleForwardTwo
+////             |minOne: $minOne
+////             |minTwo: $minTwo
+////             |""".stripMargin)
+//        if minOne < minTwo then Some(one) else Some(two)
+//      case many =>
+//        println(many)
+//        val oldVertices = many.map(_._1)
+//        val touched = boundaryEdges.filter(edge => oldVertices.contains(edge.origin))
+//        val pippo = Vertex.buildBoundaryVertexAdjacency(boundaryEdges, oldVertices.toSet)
+//        println(pippo)
+//
+//        throw new Error("Error: more than 2 shared vertices found")
+  }
 
   private def additionalElements(
     edgeToBuildOn: HalfEdge,
