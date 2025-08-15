@@ -3,6 +3,7 @@ package dcel
 
 import spire.implicits.*
 import spire.math.Rational
+import spire.compat.numeric
 
 import scala.annotation.targetName
 import scala.collection.mutable
@@ -77,6 +78,11 @@ object BigDecimalGeometry:
     def /(int: Int): AngleDegree =
       d.toRational / int
 
+  extension (degrees: List[AngleDegree])
+    
+    def sum2: AngleDegree =
+      degrees.map(_.toRational).sum
+  
   /** Standard unit of angular measure, represented by a [[spire.math.BigDecimal]]. */
   opaque type BigRadian = BigDecimal
 

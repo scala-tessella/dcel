@@ -295,7 +295,7 @@ object TilingDCEL:
     tiling.vertices.foreach { vertex =>
       tiling.getAnglesAtVertex(vertex.id) match
         case Right(angles) =>
-          val sum = angles.fold(AngleDegree(0))(_ + _)
+          val sum = angles.sum2
           if !sum.isFullCircle then
             errors += s"Vertex ${vertex.id} is not a full circle: $sum."
         case Left(error) =>

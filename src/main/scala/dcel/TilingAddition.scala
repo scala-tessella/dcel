@@ -177,7 +177,7 @@ object TilingAddition:
       // 2. Calculate the internal angles for a new polygon that would fill this hole.
       val holeAngles = holePath.map(_.angle.get)
       val polygonAngles =
-        val sumOfOtherAngles = holeAngles.tail.fold(AngleDegree(0))(_ + _)
+        val sumOfOtherAngles = holeAngles.tail.sum2
         val closingAngle = SimplePolygon.alphaSum(holeAngles.length) - sumOfOtherAngles
         closingAngle :: holeAngles.tail
 

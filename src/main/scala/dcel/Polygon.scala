@@ -25,10 +25,10 @@ object Polygon:
       if angles.exists(_.isFullCircle) then
         Left("The polygon cannot have full circles as interior angles.")
       else
-        val angleSum = angles.map(_.normalised.toRational).sum
+        val angleSum = angles.map(_.normalised).sum2
         val expectedAngleSum = alphaSum(n)
-        if (angleSum - expectedAngleSum.toRational).abs > ACCURACY then
-          Left(f"The sum of interior angles is incorrect for a polygon with $n sides. Expected ${expectedAngleSum.toRational.toDouble}%.2f, but got ${angleSum.toDouble}%.2f.")
+        if (angleSum - expectedAngleSum).toRational.abs > ACCURACY then
+          Left(f"The sum of interior angles is incorrect for a polygon with $n sides. Expected ${expectedAngleSum.toRational.toDouble}%.2f, but got ${angleSum.toRational.toDouble}%.2f.")
         else
           Right(())
 

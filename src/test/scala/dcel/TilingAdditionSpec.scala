@@ -223,8 +223,8 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
     // Check that the sum of angles around shared vertices is 360°
     val v0 = tiling.findVertex("V1").get
-    val anglesAroundV0 = v0.incidentEdges.flatMap(_.angle).map(_.toRational).sum
-    AngleDegree(anglesAroundV0).isFullCircle shouldBe true
+    val anglesAroundV0 = v0.incidentEdges.flatMap(_.angle).sum2
+    anglesAroundV0.isFullCircle shouldBe true
   }
 
   val irregularPentagonAngles: List[AngleDegree] =
