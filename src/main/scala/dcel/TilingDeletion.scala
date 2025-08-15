@@ -45,38 +45,47 @@ object TilingDeletion:
         Right(())
 
     private def validateDeletionWontPartition(face: Face, innerTwins: List[HalfEdge]): Either[String, Unit] =
-      val neighborInnerFaces = innerTwins.map(_.incidentFace.get).distinct
-      if neighborInnerFaces.length <= 1 then
-        Right(())
-      else
-        // Check if the boundary vertices shared by the face form a connected path
-        checkBoundaryVertexConnectivity(innerTwins) match
-          case Some(_) => Right(())
-          case None => Left(s"Removing face ${face.id} would partition the tiling.")
+//      val neighborInnerFaces = innerTwins.map(_.incidentFace.get).distinct
+      val innerVertices = innerTwins.map(_.origin).drop(1)
+//      println(
+//        s"""
+//           |innerTwins: $innerTwins
+//           |innerVertices: $innerVertices
+//           |""".stripMargin)
+      if tilingDCEL.boundary.intersect(innerVertices).isEmpty then Right(())
+      else Left(s"Removing face ${face.id} would partition the tiling.")
 
-    /**
-     * Checks if the boundary vertices that the deleted face shares with neighbor inner faces
-     * form a connected path. If they do, removing the face won't partition the tiling.
-     *
-     * This is much more efficient than doing BFS on all faces, as we only need to check
-     * the local connectivity around the face being deleted.
-     */
-    private def checkBoundaryVertexConnectivity(innerTwins: List[HalfEdge]): Option[Unit] =
-      if innerTwins.isEmpty then return Some(())
+//      if neighborInnerFaces.length <= 1 then
+//        Right(())
+//      else
+//        // Check if the boundary vertices shared by the face form a connected path
+//        checkBoundaryVertexConnectivity(innerTwins) match
+//          case Some(_) => Right(())
+//          case None => Left(s"Removing face ${face.id} would partition the tiling.")
 
-      // Get vertices where the deleted face connects to other inner faces
-      val sharedVertices = innerTwins.flatMap(edge => List(edge.origin, edge.twin.get.origin)).distinct
-
-      if sharedVertices.length <= 1 then
-        // If there's only one or no shared vertex, deletion won't partition
-        return Some(())
-
-      // Build adjacency map for these vertices through the boundary of the outer face
-      val boundaryEdges = tilingDCEL.getBoundaryEdges
-      val boundaryVertexAdjacency = Vertex.buildBoundaryVertexAdjacency(boundaryEdges.toOption.get, sharedVertices.toSet)
-
-      // Check if all shared vertices are connected through the boundary path
-      Vertex.checkConnectivity(sharedVertices.head, sharedVertices.toSet, boundaryVertexAdjacency)
+//    /**
+//     * Checks if the boundary vertices that the deleted face shares with neighbor inner faces
+//     * form a connected path. If they do, removing the face won't partition the tiling.
+//     *
+//     * This is much more efficient than doing BFS on all faces, as we only need to check
+//     * the local connectivity around the face being deleted.
+//     */
+//    private def checkBoundaryVertexConnectivity(innerTwins: List[HalfEdge]): Option[Unit] =
+//      if innerTwins.isEmpty then return Some(())
+//
+//      // Get vertices where the deleted face connects to other inner faces
+//      val sharedVertices = innerTwins.flatMap(edge => List(edge.origin, edge.twin.get.origin)).distinct
+//
+//      if sharedVertices.length <= 1 then
+//        // If there's only one or no shared vertex, deletion won't partition
+//        return Some(())
+//
+//      // Build adjacency map for these vertices through the boundary of the outer face
+//      val boundaryEdges = tilingDCEL.getBoundaryEdges
+//      val boundaryVertexAdjacency = Vertex.buildBoundaryVertexAdjacency(boundaryEdges.toOption.get, sharedVertices.toSet)
+//
+//      // Check if all shared vertices are connected through the boundary path
+//      Vertex.checkConnectivity(sharedVertices.head, sharedVertices.toSet, boundaryVertexAdjacency)
 
     private def performFaceDeletion(faceToDelete: Face, classification: EdgeClassification): TilingDCEL =
       val EdgeClassification(faceEdges, boundaryTwins, innerTwins) = classification

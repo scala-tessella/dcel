@@ -53,7 +53,6 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
     val s1 = TilingBuilder.createRegularPolygon(4).value
     val s1s2 = s1.maybeAddRegularPolygon(4, "V2").value
     val s1s2s3 = s1s2.maybeAddRegularPolygon(4, "V2").value
-    println(s1s2s3.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
     val result = s1s2s3.deletePolygon("F2")
     result.isLeft shouldBe true
     result.left.value should include("would partition the tiling")
