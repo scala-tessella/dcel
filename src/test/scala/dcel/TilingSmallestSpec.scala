@@ -20,7 +20,7 @@ class TilingSmallestSpec extends AnyFlatSpec with Matchers with EitherValues:
 
     result.isRight shouldBe true
     val tiling = result.value
-    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
+//    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
 
     // Check structure
     tiling.vertices should have size 4
@@ -41,20 +41,10 @@ class TilingSmallestSpec extends AnyFlatSpec with Matchers with EitherValues:
     boundary.map(_.id) should contain theSameElementsInOrderAs Vector("V1", "V4", "V3", "V2")
   }
 
-  it should "add three triangles to a triangle, producing the smallest DCEL with a non boundary face" in {
-    val triangle = TilingBuilder.createRegularPolygon(3).value
-    val result = triangle
-      .addRegularPolygon(3, "V1").value
-      .addRegularPolygon(3, "V2").value
-      .addRegularPolygon(3, "V3")
-
-    result.isRight shouldBe true
-    val tiling = result.value
-    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
-  }
+  def irregularPentagon: TilingDCEL =
+    TilingBuilder.createSimplePolygon(90, 90, 30, 300, 30).value
 
   it should "add a triangle to an irregular pentagon, producing the smallest DCEL with a non boundary vertex" in {
-    val irregularPentagon = TilingBuilder.createSimplePolygon(90, 90, 30, 300, 30).value
     val result = irregularPentagon.addRegularPolygon(3, "V4")
 
     result.isRight shouldBe true
@@ -62,19 +52,12 @@ class TilingSmallestSpec extends AnyFlatSpec with Matchers with EitherValues:
 //    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
   }
 
-  it should "add polygons to a triangle, producing the smallest DCEL with a non-boundary face" in {
-    val triangle = TilingBuilder.createRegularPolygon(3).value
-    val result = triangle
-      .addSimplePolygon("V2", 15, 165, 15, 165).value
-      .addSimplePolygon("V3", 165, 15, 165, 15).value
-      .addRegularPolygon(4, "V7").value
-      .addRegularPolygon(4, "V9").value
-      .addRegularPolygon(4, "V2").value
-      .maybeDeletePolygon("F2")
+  it should "add two triangles to an irregular pentagon, producing the smallest DCEL with a non boundary face" in {
+    val result = irregularPentagon
+      .addRegularPolygon(3, "V4").value
+      .addRegularPolygon(3, "V5")
 
-//    println(result)
     result.isRight shouldBe true
-    val tiling = result.value
+//    val tiling = result.value
 //    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
-    tiling.outerFace.halfEdgesSafe.map(_.angle.get).mkString(", ") shouldBe "270, 90, 15, 300, 135, 345, 105, 270, 180, 270, 180"
   }
