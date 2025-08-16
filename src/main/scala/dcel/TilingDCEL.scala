@@ -5,7 +5,6 @@ import BigDecimalGeometry.{AngleDegree, hasNoAlmostEqualPoints}
 import TilingAddition.*
 import TilingDeletion.*
 import TilingSVG.*
-import Topology.breadthFirstSearch
 
 import scala.collection.mutable
 

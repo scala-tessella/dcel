@@ -1,8 +1,9 @@
 package io.github.scala_tessella
 package dcel
 
+import TilingAddition.*
 import TilingDeletion.*
-
+import io.github.scala_tessella.dcel.TilingDCEL.validate
 import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -237,4 +238,23 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
     result.isLeft shouldBe true
     result.left.value should include("is not simple")
   }
+
+  it should "delete an irregular polygon" in {
+    val triangle = TilingBuilder.createRegularPolygon(3).value
+    val result = triangle
+      .addSimplePolygon("V2", 15, 165, 15, 165).value
+      .addSimplePolygon("V3", 165, 15, 165, 15).value
+      .addRegularPolygon(4, "V7").value
+      .addRegularPolygon(4, "V9").value
+      .addRegularPolygon(4, "V2").value
+      .maybeDeletePolygon("F2")
+
+    result.isRight shouldBe true
+    val tiling = result.value
+    println(validate(tiling))
+    verifyValidTiling(tiling)
+//    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
+    tiling.outerFace.halfEdgesSafe.map(_.angle.get).mkString(", ") shouldBe "270, 90, 15, 300, 135, 345, 105, 270, 180, 270, 180"
+  }
+
 
