@@ -212,3 +212,29 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
     verifyValidTiling(newTiling)
   }
 
+  it should "fail to delete edges if the surviving face is not a simple polygon" in {
+    val initialTiling = TilingBuilder.createRegularPolygon(3).value
+
+    val tiling = initialTiling
+      .maybeAddRegularPolygon(3, "V1").value
+      .maybeAddRegularPolygon(3, "V1").value
+      .maybeAddRegularPolygon(3, "V1").value
+      .maybeAddRegularPolygon(3, "V1").value
+      .maybeAddRegularPolygon(3, "V1").value
+      .maybeAddRegularPolygon(6, "V2").value
+      .maybeAddRegularPolygon(6, "V6").value
+      .maybeAddRegularPolygon(4, "V2").value
+      .maybeAddRegularPolygon(4, "V15").value
+      .maybeAddRegularPolygon(4, "V16").value
+      .maybeAddRegularPolygon(4, "V18").value
+      .maybeAddRegularPolygon(4, "V16").value
+      .maybeAddRegularPolygon(4, "V23").value
+
+    // Deleting the inner edges
+    val result = tiling
+      .deleteEdge("V4", "V5").value
+      .deleteEdge("V2", "V3")
+    result.isLeft shouldBe true
+    result.left.value should include("is not simple")
+  }
+
