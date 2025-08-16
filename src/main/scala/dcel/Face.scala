@@ -1,6 +1,8 @@
 package io.github.scala_tessella
 package dcel
 
+import Topology.breadthFirstSearch
+
 import ring_seq.RingSeq.slidingO
 
 /**
@@ -88,3 +90,13 @@ object Face:
           yield incidentFace
         )
     }.toMap
+
+  extension (faces: List[Face])
+    
+    def isConnected: Boolean =
+
+      if faces.isEmpty then true
+      else
+        val adjacency = Face.adjacencyMap(faces)
+        val reachable = breadthFirstSearch(faces.head, adjacency)
+        reachable.size == faces.size

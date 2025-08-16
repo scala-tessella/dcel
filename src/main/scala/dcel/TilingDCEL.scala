@@ -48,12 +48,8 @@ case class TilingDCEL(
         Right(maybeAngles.flatten)
     yield angles
 
-  def isConnected: Boolean =
-    if innerFaces.isEmpty then true
-    else
-      val adjacency = Face.adjacencyMap(innerFaces)
-      val reachable = breadthFirstSearch(innerFaces.head, adjacency)
-      reachable.size == innerFaces.size
+  def hasConnectedFaces: Boolean =
+    innerFaces.isConnected
 
   /**
    * Finds the outer boundary of the tiling.

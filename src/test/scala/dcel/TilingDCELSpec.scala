@@ -98,24 +98,24 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
     triangle.findEdgeBetween(isolatedVertex, v0) shouldBe None
   }
 
-  behavior of "TilingDCEL.isConnected"
+  behavior of "TilingDCEL.hasConnectedFaces"
 
   it should "return true for empty tiling" in {
     val empty = TilingBuilder.empty
-    empty.isConnected shouldBe true
+    empty.hasConnectedFaces shouldBe true
   }
 
   it should "return true for single polygon tiling" in {
     val triangle = createTriangleTiling()
-    triangle.isConnected shouldBe true
+    triangle.hasConnectedFaces shouldBe true
 
     val square = createSquareTiling()
-    square.isConnected shouldBe true
+    square.hasConnectedFaces shouldBe true
   }
 
   it should "return true for connected multi-polygon tiling" in {
     val twoTriangles = createTriangleTiling().maybeAddRegularPolygon(3, "V1").value
-    twoTriangles.isConnected shouldBe true
+    twoTriangles.hasConnectedFaces shouldBe true
   }
 
   behavior of "TilingDCEL.boundary"
@@ -567,14 +567,14 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
     val original = createSquareTiling()
     val copy = original.deepCopy
 
-    original.isConnected shouldEqual copy.isConnected
+    original.hasConnectedFaces shouldEqual copy.hasConnectedFaces
 
     // Add polygons to both and check they remain connected
     val expandedOriginal = original.maybeAddRegularPolygon(3, "V1").value
     val expandedCopy = copy.maybeAddRegularPolygon(3, "V1").value
 
-    expandedOriginal.isConnected shouldBe true
-    expandedCopy.isConnected shouldBe true
+    expandedOriginal.hasConnectedFaces shouldBe true
+    expandedCopy.hasConnectedFaces shouldBe true
   }
 
   it should "work correctly for complex multi-polygon tilings" in {
