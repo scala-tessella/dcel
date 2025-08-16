@@ -55,10 +55,6 @@ object TilingAddition:
         )
     }
 
-  // Simplify face generation using template interpolation
-  private def generateFaceId(existingFaceCount: Int): String =
-    s"F${existingFaceCount + 1}"
-
   private case class SharedEdgesResult(
     sharedEdges: List[HalfEdge],
     startCheck: AngleDegree,
@@ -106,6 +102,10 @@ object TilingAddition:
 
   extension (tilingDCEL: TilingDCEL)
 
+
+    def nextFaceId: String =
+      'F' + (tilingDCEL.innerFaces.map(_.id.tail.toInt).max + 1).toString
+
     private def growthWithHoleCheck(
       startVertex: Vertex,
       endVertex: Vertex,
@@ -146,7 +146,7 @@ object TilingAddition:
         else TilingDCEL.empty
 
       val (newVertices, newHalfEdges, newFace) =
-        additionalElements(edgeToBuildOn, angles, tilingDCEL.innerFaces.size, tilingDCEL.outerFace, tempVertices, edgeResults, boundaryAngles)
+        additionalElements(edgeToBuildOn, angles, tilingDCEL.nextFaceId, tilingDCEL.outerFace, tempVertices, edgeResults, boundaryAngles)
 
       // Return new DCEL with updated components
       val grownTiling =
@@ -232,7 +232,7 @@ object TilingAddition:
           additionalVertices(startVertex, endVertex, edgeToBuildOn, angles, points, tilingDCEL.vertices.size, tilingDCEL.outerFace)
 
         val (newVertices, newHalfEdges, newFace) =
-          additionalElements(edgeToBuildOn, angles, tilingDCEL.innerFaces.size, tilingDCEL.outerFace, tempVertices, edgeResults, boundaryAngles)
+          additionalElements(edgeToBuildOn, angles, tilingDCEL.nextFaceId, tilingDCEL.outerFace, tempVertices, edgeResults, boundaryAngles)
 
         // Return new DCEL with updated components
         tilingDCEL.copy(
@@ -357,7 +357,7 @@ object TilingAddition:
   private def additionalElements(
     edgeToBuildOn: HalfEdge,
     angles: List[AngleDegree],
-    innerFacesSize: Int,
+    newFaceId: String,
     outer: Face,
     newVertices: List[Vertex],
     edgesResult: SharedEdgesResult,
@@ -365,7 +365,7 @@ object TilingAddition:
   ): (List[Vertex], List[HalfEdge], Face) =
     given outerFace: Face = outer
 
-    val newFace = Face(generateFaceId(innerFacesSize))
+    val newFace = Face(newFaceId)
 
     // Different start and end vertex
     val revisedStartVertex = edgesResult.startEdge.destination.get
