@@ -243,9 +243,16 @@ object TilingDeletion:
           val finalHalfEdges = tilingDCEL.halfEdges.filterNot(edgesToRemove.contains)
           val finalInnerFaces = tilingDCEL.innerFaces.filterNot(_ == faceToRemove)
 
-          Right(TilingDCEL(
-            vertices = finalVertices,
-            halfEdges = finalHalfEdges,
-            innerFaces = finalInnerFaces,
-            outerFace = tilingDCEL.outerFace
-          ))
+          val adjustedTiling =
+            TilingDCEL(
+              vertices = finalVertices,
+              halfEdges = finalHalfEdges,
+              innerFaces = finalInnerFaces,
+              outerFace = tilingDCEL.outerFace
+            )
+          val survivingFacePoints =
+            faceToSurvive.halfEdgesSafe.map(_.origin.coords)
+          if !survivingFacePoints.hasNoAlmostEqualPoints() then
+            Left(s"The surviving face ${faceToSurvive.id} is not simple (it has vertices that are equal, which is not allowed).")
+          else
+            Right(adjustedTiling)
