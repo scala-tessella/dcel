@@ -17,7 +17,7 @@ object TilingAddition:
 
   private def createVertices(points: List[BigPoint], startingIndex: Int): List[Vertex] =
     points.zipWithIndex.map { (point, index) =>
-      Vertex(s"V${startingIndex + index + 1}", point)
+      Vertex(s"V${startingIndex + index}", point)
     }
 
   // Extract polygon angle calculation
@@ -102,9 +102,11 @@ object TilingAddition:
 
   extension (tilingDCEL: TilingDCEL)
 
-
-    def nextFaceId: String =
+    private def nextFaceId: String =
       'F' + (tilingDCEL.innerFaces.map(_.id.tail.toInt).max + 1).toString
+
+    private def nextVertexIndex: Int =
+      tilingDCEL.vertices.map(_.id.tail.toInt).max + 1
 
     private def growthWithHoleCheck(
       startVertex: Vertex,
@@ -115,7 +117,7 @@ object TilingAddition:
       boundaryEdges: List[HalfEdge]
     ): Either[String, (TilingDCEL, TilingDCEL, Option[(Vertex, Vertex)])] =
       val (tempVertices, edgeResults, boundaryAngles) =
-        additionalVertices(startVertex, endVertex, edgeToBuildOn, angles, points, tilingDCEL.vertices.size, tilingDCEL.outerFace)
+        additionalVertices(startVertex, endVertex, edgeToBuildOn, angles, points, tilingDCEL.nextVertexIndex, tilingDCEL.outerFace)
 
       // here we must check if the new boundary intersects with the existing one
       val newSides: List[BigLineSegment] =
@@ -229,7 +231,7 @@ object TilingAddition:
       yield
 
         val (tempVertices, edgeResults, boundaryAngles) =
-          additionalVertices(startVertex, endVertex, edgeToBuildOn, angles, points, tilingDCEL.vertices.size, tilingDCEL.outerFace)
+          additionalVertices(startVertex, endVertex, edgeToBuildOn, angles, points, tilingDCEL.nextVertexIndex, tilingDCEL.outerFace)
 
         val (newVertices, newHalfEdges, newFace) =
           additionalElements(edgeToBuildOn, angles, tilingDCEL.nextFaceId, tilingDCEL.outerFace, tempVertices, edgeResults, boundaryAngles)
@@ -288,7 +290,7 @@ object TilingAddition:
     edgeToBuildOn: HalfEdge,
     angles: List[AngleDegree],
     points: List[BigPoint],
-    verticesSize: Int,
+    vertexIndex: Int,
     outer: Face
   ): (List[Vertex], SharedEdgesResult, BoundaryAngles) =
     given outerFace: Face = outer
@@ -305,7 +307,7 @@ object TilingAddition:
     // Create new components
     val vertexPoints = points.drop(2).reverse
     val revisedVertexPoints = vertexPoints.drop(edgesResult.startCounter).dropRight(edgesResult.endCounter)
-    val newVertices = createVertices(revisedVertexPoints, verticesSize)
+    val newVertices = createVertices(revisedVertexPoints, vertexIndex)
     (newVertices, edgesResult, boundaryAngles)
 
   /** Finds a couple of vertices from the existing and the additional boundary sharing the same coords
