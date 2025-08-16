@@ -1,8 +1,9 @@
 package io.github.scala_tessella
 package dcel
 
-import dcel.BigDecimalGeometry.{AngleDegree, BigPoint}
-import dcel.TilingAddition.*
+import BigDecimalGeometry.{AngleDegree, BigPoint}
+import TilingAddition.*
+import TilingDeletion.*
 import ring_seq.RingSeq.*
 
 import org.scalatest.EitherValues
@@ -61,10 +62,19 @@ class TilingSmallestSpec extends AnyFlatSpec with Matchers with EitherValues:
 //    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
   }
 
-  it should "add an irregular pentagon to a triangle, producing the smallest DCEL with a non-boundary face" in {
-    val result = TilingBuilder.createSimplePolygon(15, 90, 90, 90, 15, 300, 300)
+  it should "add polygons to a triangle, producing the smallest DCEL with a non-boundary face" in {
+    val triangle = TilingBuilder.createRegularPolygon(3).value
+    val result = triangle
+      .addSimplePolygon("V2", 15, 165, 15, 165).value
+      .addSimplePolygon("V3", 165, 15, 165, 15).value
+      .addRegularPolygon(4, "V7").value
+      .addRegularPolygon(4, "V9").value
+      .addRegularPolygon(4, "V2").value
+      .maybeDeletePolygon("F2")
 
+//    println(result)
     result.isRight shouldBe true
-    //    val tiling = result.value
-    //    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
+    val tiling = result.value
+//    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
+    tiling.outerFace.halfEdgesSafe.map(_.angle.get).mkString(", ") shouldBe "270, 90, 15, 300, 135, 345, 105, 270, 180, 270, 180"
   }
