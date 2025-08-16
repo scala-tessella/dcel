@@ -170,4 +170,46 @@ object HalfEdge:
 
           holeEdgesList.toList
         case None => List.empty
-  
+
+    /** Returns the path from the origin vertex to the destination vertex if it exists.
+     * 
+     * @return
+     */
+    def maybePath: Option[List[HalfEdge]] =
+      if halfEdges.isEmpty then return Some(Nil)
+      if halfEdges.exists(_.destination.isEmpty) then return None
+
+      val outDegrees = halfEdges.groupBy(_.origin).view.mapValues(_.size)
+      val inDegrees = halfEdges.groupMap(_.destination.get)(_ => 1).view.mapValues(_.sum)
+      val vertices = (outDegrees.keySet ++ inDegrees.keySet).toList
+
+      val startNodeCandidates = vertices.filter(v => outDegrees.getOrElse(v, 0) - inDegrees.getOrElse(v, 0) == 1)
+      val endNodeCandidates = vertices.filter(v => inDegrees.getOrElse(v, 0) - outDegrees.getOrElse(v, 0) == 1)
+
+      val startVertexOpt =
+        if startNodeCandidates.size == 1 && endNodeCandidates.size == 1 then
+          startNodeCandidates.headOption
+        else if startNodeCandidates.isEmpty && endNodeCandidates.isEmpty then
+          // This must be a cycle (or disjoint cycles), so all vertices must be balanced
+          if vertices.forall(v => outDegrees.getOrElse(v, 0) == inDegrees.getOrElse(v, 0)) then
+            halfEdges.headOption.map(_.origin)
+          else
+            None
+        else
+          None
+
+      startVertexOpt.flatMap { startVertex =>
+        val edgesByOrigin = mutable.Map.from(halfEdges.groupBy(_.origin).view.mapValues(mutable.Queue.from))
+        val path = mutable.ListBuffer.empty[HalfEdge]
+
+        def findPath(u: Vertex): Unit =
+          while (edgesByOrigin.get(u).exists(_.nonEmpty))
+            val edge = edgesByOrigin(u).dequeue()
+            findPath(edge.destination.get)
+            path.prepend(edge)
+
+        findPath(startVertex)
+
+        if path.size == halfEdges.size then Some(path.toList)
+        else None // Graph is not connected
+      }

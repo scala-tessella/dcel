@@ -46,14 +46,22 @@ object TilingDeletion:
 
     private def validateDeletionWontPartition(face: Face, innerTwins: List[HalfEdge]): Either[String, Unit] =
 //      val neighborInnerFaces = innerTwins.map(_.incidentFace.get).distinct
-      val innerVertices = innerTwins.map(_.origin).drop(1)
-//      println(
-//        s"""
-//           |innerTwins: $innerTwins
-//           |innerVertices: $innerVertices
-//           |""".stripMargin)
-      if tilingDCEL.boundary.intersect(innerVertices).isEmpty then Right(())
-      else Left(s"Removing face ${face.id} would partition the tiling.")
+      innerTwins.maybePath match
+        case None => Left(s"Removing face ${face.id} would partition the tiling in two disconnected halves.")
+        case Some(path) =>
+          val innerVertices = path.map(_.origin).drop(1)
+          if tilingDCEL.boundary.intersect(innerVertices).isEmpty then Right(())
+          else Left(s"Removing face ${face.id} would partition the tiling in two halves connected by just a vertex.")
+
+
+//      val innerVertices = innerTwins.map(_.origin).drop(1)
+////      println(
+////        s"""
+////           |innerTwins: $innerTwins
+////           |innerVertices: $innerVertices
+////           |""".stripMargin)
+//      if tilingDCEL.boundary.intersect(innerVertices).isEmpty then Right(())
+//      else Left(s"Removing face ${face.id} would partition the tiling.")
 
 //      if neighborInnerFaces.length <= 1 then
 //        Right(())

@@ -55,7 +55,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
     val s1s2s3 = s1s2.maybeAddRegularPolygon(4, "V2").value
     val result = s1s2s3.deletePolygon("F2")
     result.isLeft shouldBe true
-    result.left.value should include("would partition the tiling")
+    result.left.value should include("would partition the tiling in two halves connected by just a vertex")
   }
 
   it should "fail to delete a face that would partition the tiling in two disjoint parts" in {
@@ -64,7 +64,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
     val s1s2s3 = s1s2.maybeAddRegularPolygon(4, "V5").value
     val result = s1s2s3.deletePolygon("F2")
     result.isLeft shouldBe true
-    result.left.value should include("would partition the tiling")
+    result.left.value should include("would partition the tiling in two disconnected halves")
   }
 
   it should "delete a face that would NOT partition the tiling in two parts" in {
