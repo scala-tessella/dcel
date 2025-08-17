@@ -216,13 +216,13 @@ object TilingAddition:
             case Some((v_match, v_new)) =>
               val (holeAngles, startingVertexId) =
                 revisedTiling.holeAnglesWithDirection(v_match, v_new)
-              clone.addSimplePolygonWithoutGuards(holeAngles, startingVertexId).get
+              clone.addSimplePolygonWithoutGuards(startingVertexId, holeAngles).get
                 .addSimplePolygon(onEdgeStartingWithVertexId, angles)
 
     def addSimplePolygon(onEdgeStartingWithVertexId: String, degrees: Int *): Either[String, TilingDCEL] =
       addSimplePolygon(onEdgeStartingWithVertexId, degrees.map(AngleDegree(_)).toList)
 
-    private def addSimplePolygonWithoutGuards(angles: List[AngleDegree], onEdgeStartingWithVertexId: String): Option[TilingDCEL] =
+    private def addSimplePolygonWithoutGuards(onEdgeStartingWithVertexId: String, angles: List[AngleDegree]): Option[TilingDCEL] =
       for
         boundaryEdges <- tilingDCEL.getBoundaryEdges.toOption
         edgeToBuildOn <- boundaryEdges.find(_.origin.id == onEdgeStartingWithVertexId)
@@ -269,7 +269,7 @@ object TilingAddition:
             case Some((v_match, v_new)) =>
               val (holeAngles, startingVertexId) =
                 revisedTiling.holeAnglesWithDirection(v_match, v_new)
-              clone.addSimplePolygonWithoutGuards(holeAngles, startingVertexId).get
+              clone.addSimplePolygonWithoutGuards(startingVertexId, holeAngles).get
                 .addRegularPolygon(sides, onEdgeStartingWithVertexId)
 
   // Helper case classes for better structure
