@@ -163,10 +163,10 @@ object TilingDeletion:
         v2 <- tilingDCEL.findVertex(vertexId2).toRight(s"Vertex with ID $vertexId2 not found.")
         edge <- tilingDCEL.findEdgeBetween(v1, v2).toRight(s"Edge between vertices $vertexId1 and $vertexId2 not found.")
         result <-
-          if edge.twin.exists(_.incidentFace.contains(tilingDCEL.outerFace)) then {
+          if edge.twin.exists(_.incidentFace.contains(tilingDCEL.outerFace)) then
             // this should never happen if a TilingDCEL is well-formed, but just in case
             edge.incidentFace.map(_.id).toRight("Edge has no incident face").flatMap(deletePolygon)
-          } else
+          else
             performEdgePathDeletion(expandPathToDelete(edge))
       yield result
 

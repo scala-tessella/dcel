@@ -272,6 +272,20 @@ object TilingAddition:
               clone.addSimplePolygonWithoutGuards(startingVertexId, holeAngles).get
                 .addRegularPolygon(onEdgeStartingWithVertexId, sides)
 
+    def addRegularPolygon(vertexId1: String, vertexId2: String, sides: Int): Either[String, TilingDCEL] =
+      for
+        v1 <- tilingDCEL.findVertex(vertexId1).toRight(s"Vertex with ID $vertexId1 not found.")
+        v2 <- tilingDCEL.findVertex(vertexId2).toRight(s"Vertex with ID $vertexId2 not found.")
+        edge <- tilingDCEL.findEdgeBetween(v1, v2).toRight(s"Edge between vertices $vertexId1 and $vertexId2 not found.")
+        result <-
+          if edge.twin.exists(_.incidentFace.contains(tilingDCEL.outerFace)) then
+            edge.twin.map(_.origin.id).toRight("Edge has no twin").flatMap(addRegularPolygon(_, sides))
+          else if edge.incidentFace.contains(tilingDCEL.outerFace) then
+            addRegularPolygon(edge.origin.id, sides)
+          else
+            ???
+      yield result
+
   // Helper case classes for better structure
   private case class BoundaryAngles(
     start: AngleDegree,
