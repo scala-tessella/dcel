@@ -150,6 +150,19 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
     result.left.value should include("Edge between vertices V1 and V3 not found.")
   }
 
+  it should "fail to delete an edge if it has no incident face" in {
+    val tiling = TilingBuilder.createRegularPolygon(4).value
+    val v1 = tiling.findVertex("V1").get
+    val v2 = tiling.findVertex("V2").get
+    // Manually corrupt the DCEL for testing purposes
+    val edge = tiling.findEdgeBetween(v1, v2).get
+    edge.incidentFace = None
+
+    val result = tiling.deleteEdge("V1", "V2")
+    result.isLeft shouldBe true
+    result.left.value should include("Edge has no incident face")
+  }
+
   it should "successfully delete a boundary edge by deleting the adjacent face" in {
     val tiling = TilingBuilder.createRegularPolygon(4).value
       .addRegularPolygon(4, "V2").value // Two squares
