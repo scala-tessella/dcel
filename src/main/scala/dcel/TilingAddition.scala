@@ -191,7 +191,7 @@ object TilingAddition:
         (polygonAngles.rotateRight(1), holePath.last.origin.id)
 
     @tailrec
-    def addSimplePolygon(angles: List[AngleDegree], onEdgeStartingWithVertexId: String): Either[String, TilingDCEL] =
+    def addSimplePolygon(onEdgeStartingWithVertexId: String, angles: List[AngleDegree]): Either[String, TilingDCEL] =
       val either: Either[String, (TilingDCEL, TilingDCEL, Option[(Vertex, Vertex)])] =
         for
           _      <- validateSides(angles.length, "simple")
@@ -217,10 +217,10 @@ object TilingAddition:
               val (holeAngles, startingVertexId) =
                 revisedTiling.holeAnglesWithDirection(v_match, v_new)
               clone.addSimplePolygonWithoutGuards(holeAngles, startingVertexId).get
-                .addSimplePolygon(angles, onEdgeStartingWithVertexId)
+                .addSimplePolygon(onEdgeStartingWithVertexId, angles)
 
     def addSimplePolygon(onEdgeStartingWithVertexId: String, degrees: Int *): Either[String, TilingDCEL] =
-      addSimplePolygon(degrees.map(AngleDegree(_)).toList, onEdgeStartingWithVertexId)
+      addSimplePolygon(onEdgeStartingWithVertexId, degrees.map(AngleDegree(_)).toList)
 
     private def addSimplePolygonWithoutGuards(angles: List[AngleDegree], onEdgeStartingWithVertexId: String): Option[TilingDCEL] =
       for

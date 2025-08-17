@@ -78,7 +78,7 @@ object BigDecimalGeometry:
     def /(int: Int): AngleDegree =
       d.toRational / int
 
-  extension (degrees: List[AngleDegree])
+  extension (degrees: Seq[AngleDegree])
     
     def sum2: AngleDegree =
       degrees.map(_.toRational).sum

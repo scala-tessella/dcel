@@ -202,7 +202,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "add an irregular pentagon to a triangle, producing a valid DCEL" in {
     val triangle = TilingBuilder.createRegularPolygon(3).value
-    val result = triangle.addSimplePolygon(irregularPentagonAngles, "V1")
+    val result = triangle.addSimplePolygon("V1", irregularPentagonAngles)
 
     result.isRight shouldBe true
     val tiling = result.value
@@ -216,7 +216,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "add the same irregular pentagon with a different orientation to a triangle, producing a valid DCEL" in {
     val triangle = TilingBuilder.createRegularPolygon(3).value
-    val result = triangle.addSimplePolygon(irregularPentagonAngles.rotateRight(1), "V1")
+    val result = triangle.addSimplePolygon("V1", irregularPentagonAngles.rotateRight(1))
 
     result.isRight shouldBe true
     val tiling = result.value
@@ -237,7 +237,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
       .maybeAddRegularPolygon(4, "V7").value
 
   it should "add an irregular pentagon with shared edges" in {
-    val result = commonTiling.addSimplePolygon(irregularPentagonAngles.rotateLeft(2), "V4")
+    val result = commonTiling.addSimplePolygon("V4", irregularPentagonAngles.rotateLeft(2))
 
     result.isRight shouldBe true
     val tiling = result.value
@@ -250,7 +250,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "add an irregular pentagon with shared edges to a different edge" in {
-    val result = commonTiling.addSimplePolygon(irregularPentagonAngles.rotateLeft(1), "V10")
+    val result = commonTiling.addSimplePolygon("V10", irregularPentagonAngles.rotateLeft(1))
 
     result.isRight shouldBe true
     val tiling = result.value
@@ -263,7 +263,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "add an irregular pentagon with shared edges to a third different edge" in {
-    val result = commonTiling.addSimplePolygon(irregularPentagonAngles.rotateLeft(3), "V3")
+    val result = commonTiling.addSimplePolygon("V3", irregularPentagonAngles.rotateLeft(3))
 
     result.isRight shouldBe true
     val tiling = result.value
