@@ -158,8 +158,8 @@ case class TilingDCEL(
       outerFace = faceMap(outerFace)
     )
     
-  def maybeAddRegularPolygon(sides: Int, onEdgeStartingWithVertexId: String): Either[String, TilingDCEL] =
-    this.addRegularPolygon(sides, onEdgeStartingWithVertexId)
+  def maybeAddRegularPolygon(onEdgeStartingWithVertexId: String, sides: Int): Either[String, TilingDCEL] =
+    this.addRegularPolygon(onEdgeStartingWithVertexId, sides)
     
   def maybeDeletePolygon(faceId: String): Either[String, TilingDCEL] =
     this.deletePolygon(faceId)  

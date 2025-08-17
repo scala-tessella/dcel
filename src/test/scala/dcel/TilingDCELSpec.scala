@@ -114,7 +114,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "return true for connected multi-polygon tiling" in {
-    val twoTriangles = createTriangleTiling().maybeAddRegularPolygon(3, "V1").value
+    val twoTriangles = createTriangleTiling().maybeAddRegularPolygon("V1", 3).value
     twoTriangles.hasConnectedFaces shouldBe true
   }
 
@@ -274,7 +274,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "succeed for a valid multi-polygon tiling" in {
-    val twoSquares = createSquareTiling().maybeAddRegularPolygon(4, "V1").value
+    val twoSquares = createSquareTiling().maybeAddRegularPolygon("V1", 4).value
     TilingDCEL.validate(twoSquares) shouldBe Right(())
   }
 
@@ -335,7 +335,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "fail if the boundary angles do not sum correctly" in {
-    val twoSquares = createSquareTiling().maybeAddRegularPolygon(4, "V1").value
+    val twoSquares = createSquareTiling().maybeAddRegularPolygon("V1", 4).value
     // V2 is on the boundary. The inner edge from V2 belongs to the first square.
     val v2 = twoSquares.findVertex("V2").get
     val innerEdgeFromV2 = v2.incidentEdges.find(_.incidentFace.exists(_.id == Face.firstInnerId)).get
@@ -480,7 +480,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
     originalBoundaryBefore shouldEqual copyBoundaryBefore
 
     // Modify the copy by adding a polygon
-    val modifiedCopy = copy.maybeAddRegularPolygon(3, "V1")
+    val modifiedCopy = copy.maybeAddRegularPolygon("V1", 3)
     modifiedCopy shouldBe a[Right[_, _]]
 
     // Original should remain unchanged
@@ -503,7 +503,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
     val copyBoundaryBefore = copy.boundary
 
     // Modify the original by adding a polygon
-    val modifiedOriginal = original.maybeAddRegularPolygon(4, "V1")
+    val modifiedOriginal = original.maybeAddRegularPolygon("V1", 4)
     modifiedOriginal shouldBe a[Right[_, _]]
 
     // Copy should remain unchanged
@@ -570,8 +570,8 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
     original.hasConnectedFaces shouldEqual copy.hasConnectedFaces
 
     // Add polygons to both and check they remain connected
-    val expandedOriginal = original.maybeAddRegularPolygon(3, "V1").value
-    val expandedCopy = copy.maybeAddRegularPolygon(3, "V1").value
+    val expandedOriginal = original.maybeAddRegularPolygon("V1", 3).value
+    val expandedCopy = copy.maybeAddRegularPolygon("V1", 3).value
 
     expandedOriginal.hasConnectedFaces shouldBe true
     expandedCopy.hasConnectedFaces shouldBe true
@@ -579,8 +579,8 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "work correctly for complex multi-polygon tilings" in {
     val original = createTriangleTiling()
-      .maybeAddRegularPolygon(4, "V1").value
-      .maybeAddRegularPolygon(3, "V5").value
+      .maybeAddRegularPolygon("V1", 4).value
+      .maybeAddRegularPolygon("V5", 3).value
 
     val copy = original.deepCopy
 
@@ -593,8 +593,8 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
     TilingDCEL.validate(copy) shouldBe Right(())
 
     // Verify independence by modifying each
-    val modifiedOriginal = original.maybeAddRegularPolygon(6, "V2")
-    val modifiedCopy = copy.maybeAddRegularPolygon(5, "V3")
+    val modifiedOriginal = original.maybeAddRegularPolygon("V2", 6)
+    val modifiedCopy = copy.maybeAddRegularPolygon("V3", 5)
 
     modifiedOriginal shouldBe a[Right[_, _]]
     modifiedCopy shouldBe a[Right[_, _]]

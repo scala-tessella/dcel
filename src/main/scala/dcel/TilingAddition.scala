@@ -244,7 +244,7 @@ object TilingAddition:
         )
 
     @tailrec
-    def addRegularPolygon(sides: Int, onEdgeStartingWithVertexId: String): Either[String, TilingDCEL] =
+    def addRegularPolygon(onEdgeStartingWithVertexId: String, sides: Int): Either[String, TilingDCEL] =
       val either: Either[String, (TilingDCEL, TilingDCEL, Option[(Vertex, Vertex)])] =
         for
           _                        <- validateSides(sides, "regular")
@@ -270,7 +270,7 @@ object TilingAddition:
               val (holeAngles, startingVertexId) =
                 revisedTiling.holeAnglesWithDirection(v_match, v_new)
               clone.addSimplePolygonWithoutGuards(startingVertexId, holeAngles).get
-                .addRegularPolygon(sides, onEdgeStartingWithVertexId)
+                .addRegularPolygon(onEdgeStartingWithVertexId, sides)
 
   // Helper case classes for better structure
   private case class BoundaryAngles(
