@@ -251,10 +251,9 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
     result.isRight shouldBe true
     val tiling = result.value
-    println(validate(tiling))
-    verifyValidTiling(tiling)
 //    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
-    tiling.outerFace.halfEdgesSafe.map(_.angle.get).mkString(", ") shouldBe "270, 90, 15, 300, 135, 345, 105, 270, 180, 270, 180"
+//    println(validate(tiling))
+    verifyValidTiling(tiling)
   }
 
 

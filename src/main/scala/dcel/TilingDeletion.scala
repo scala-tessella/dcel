@@ -97,9 +97,10 @@ object TilingDeletion:
 
     private def performFaceDeletion(faceToDelete: Face, classification: EdgeClassification): TilingDCEL =
       val EdgeClassification(faceEdges, boundaryTwins, innerTwins) = classification
+      val orderedInnerTwins = innerTwins.maybePath.getOrElse(List.empty)
 
       // Create new twin half-edges for the inner boundary edges, which will form a new segment of the outer boundary.
-      val newOuterEdges = innerTwins.map { innerTwin =>
+      val newOuterEdges = orderedInnerTwins.reverse.map { innerTwin =>
         val newTwin = HalfEdge(innerTwin.destination.get, incidentFace = Some(tilingDCEL.outerFace))
         newTwin.twinWith(innerTwin)
         newTwin
