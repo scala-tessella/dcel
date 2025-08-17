@@ -3,7 +3,7 @@ package dcel
 
 import TilingAddition.*
 import TilingDeletion.*
-import io.github.scala_tessella.dcel.TilingDCEL.validate
+
 import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -41,10 +41,10 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "fail to delete a face that is not on the boundary" in {
     val tiling = TilingBuilder.createRegularPolygon(4).value
-      .maybeAddRegularPolygon(4, "V2").value
-      .maybeAddRegularPolygon(4, "V3").value
-      .maybeAddRegularPolygon(4, "V4").value
-      .maybeAddRegularPolygon(4, "V1").value
+      .addRegularPolygon(4, "V2").value
+      .addRegularPolygon(4, "V3").value
+      .addRegularPolygon(4, "V4").value
+      .addRegularPolygon(4, "V1").value
     val result = tiling.deletePolygon(Face.firstInnerId)
     result.isLeft shouldBe true
     result.left.value should include("is not adjacent to the outer boundary")
@@ -52,8 +52,8 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "fail to delete a face that would partition the tiling in two parts joined by a vertex" in {
     val s1 = TilingBuilder.createRegularPolygon(4).value
-    val s1s2 = s1.maybeAddRegularPolygon(4, "V2").value
-    val s1s2s3 = s1s2.maybeAddRegularPolygon(4, "V2").value
+    val s1s2 = s1.addRegularPolygon(4, "V2").value
+    val s1s2s3 = s1s2.addRegularPolygon(4, "V2").value
     val result = s1s2s3.deletePolygon("F2")
     result.isLeft shouldBe true
     result.left.value should include("would partition the tiling in two halves connected by just a vertex")
@@ -61,8 +61,8 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "fail to delete a face that would partition the tiling in two disjoint parts" in {
     val s1 = TilingBuilder.createRegularPolygon(4).value
-    val s1s2 = s1.maybeAddRegularPolygon(4, "V1").value
-    val s1s2s3 = s1s2.maybeAddRegularPolygon(4, "V5").value
+    val s1s2 = s1.addRegularPolygon(4, "V1").value
+    val s1s2s3 = s1s2.addRegularPolygon(4, "V5").value
     val result = s1s2s3.deletePolygon("F2")
     result.isLeft shouldBe true
     result.left.value should include("would partition the tiling in two disconnected halves")
@@ -70,24 +70,24 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "delete a face that would NOT partition the tiling in two parts" in {
     val s1 = TilingBuilder.createRegularPolygon(4).value
-    val s1s2 = s1.maybeAddRegularPolygon(4, "V2").value
-    val s1s2s3 = s1s2.maybeAddRegularPolygon(4, "V2").value
-    val s1s2s3s4 = s1s2s3.maybeAddRegularPolygon(4, "V2").value
+    val s1s2 = s1.addRegularPolygon(4, "V2").value
+    val s1s2s3 = s1s2.addRegularPolygon(4, "V2").value
+    val s1s2s3s4 = s1s2s3.addRegularPolygon(4, "V2").value
     val result = s1s2s3s4.deletePolygon("F2")
     result.isRight shouldBe true
   }
 
   it should "delete another face that would NOT partition the tiling in two parts" in {
     val s1 = TilingBuilder.createRegularPolygon(6).value
-    val s1s2 = s1.maybeAddRegularPolygon(6, "V2").value
-    val s1s2s3 = s1s2.maybeAddRegularPolygon(6, "V2").value
+    val s1s2 = s1.addRegularPolygon(6, "V2").value
+    val s1s2s3 = s1s2.addRegularPolygon(6, "V2").value
     val result = s1s2s3.deletePolygon("F2")
     result.isRight shouldBe true
   }
 
   it should "successfully delete an added boundary face" in {
     val tiling = TilingBuilder.createRegularPolygon(4).value
-      .maybeAddRegularPolygon(4, "V2").value
+      .addRegularPolygon(4, "V2").value
     tiling.innerFaces.length shouldBe 2
 
     val result = tiling.deletePolygon("F2")
@@ -103,7 +103,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "successfully delete the other boundary face" in {
     val tiling = TilingBuilder.createRegularPolygon(4).value
-      .maybeAddRegularPolygon(4, "V2").value
+      .addRegularPolygon(4, "V2").value
     tiling.innerFaces.length shouldBe 2
 
     val result = tiling.deletePolygon(Face.firstInnerId)
@@ -115,6 +115,23 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
     newTiling.innerFaces.head.id shouldBe "F2"
     newTiling.vertices.length shouldBe 4
     newTiling.boundary.length shouldBe 4
+  }
+
+  it should "delete an irregular polygon" in {
+    val triangle = TilingBuilder.createRegularPolygon(3).value
+    val result = triangle
+      .addSimplePolygon("V2", 15, 165, 15, 165).value
+      .addSimplePolygon("V3", 165, 15, 165, 15).value
+      .addRegularPolygon(4, "V7").value
+      .addRegularPolygon(4, "V9").value
+      .addRegularPolygon(4, "V2").value
+      .deletePolygon("F2")
+
+    result.isRight shouldBe true
+    val tiling = result.value
+    //    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
+    //    println(validate(tiling))
+    verifyValidTiling(tiling)
   }
 
   behavior of "TilingDCEL.deleteEdge"
@@ -135,7 +152,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "successfully delete a boundary edge by deleting the adjacent face" in {
     val tiling = TilingBuilder.createRegularPolygon(4).value
-      .maybeAddRegularPolygon(4, "V2").value // Two squares
+      .addRegularPolygon(4, "V2").value // Two squares
     tiling.innerFaces.length shouldBe 2
 
     // Deleting a boundary edge, e.g., (V1, V2) from the first square
@@ -152,7 +169,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "successfully delete a single inner edge, merging two faces" in {
     val tiling = TilingBuilder.createRegularPolygon(4).value
-      .maybeAddRegularPolygon(4, "V2").value // Two squares sharing edge (V2, V3)
+      .addRegularPolygon(4, "V2").value // Two squares sharing edge (V2, V3)
     tiling.innerFaces.length shouldBe 2
     tiling.vertices.length shouldBe 6
 
@@ -174,11 +191,11 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
     val initialTiling = TilingBuilder.createRegularPolygon(3).value
 
     val tiling = initialTiling
-      .maybeAddRegularPolygon(3, "V1").value
-      .maybeAddRegularPolygon(3, "V1").value
-      .maybeAddRegularPolygon(3, "V1").value
-      .maybeAddRegularPolygon(3, "V1").value
-      .maybeAddRegularPolygon(3, "V1").value
+      .addRegularPolygon(3, "V1").value
+      .addRegularPolygon(3, "V1").value
+      .addRegularPolygon(3, "V1").value
+      .addRegularPolygon(3, "V1").value
+      .addRegularPolygon(3, "V1").value
 
     // Deleting the inner edges
     val result = tiling
@@ -197,9 +214,9 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
     val initialTiling = TilingBuilder.createRegularPolygon(4).value
 
     val tiling = initialTiling
-      .maybeAddRegularPolygon(4, "V1").value
-      .maybeAddRegularPolygon(4, "V1").value
-      .maybeAddRegularPolygon(4, "V2").value
+      .addRegularPolygon(4, "V1").value
+      .addRegularPolygon(4, "V1").value
+      .addRegularPolygon(4, "V2").value
 
     // Deleting the inner edges
     val result = tiling
@@ -217,19 +234,19 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
     val initialTiling = TilingBuilder.createRegularPolygon(3).value
 
     val tiling = initialTiling
-      .maybeAddRegularPolygon(3, "V1").value
-      .maybeAddRegularPolygon(3, "V1").value
-      .maybeAddRegularPolygon(3, "V1").value
-      .maybeAddRegularPolygon(3, "V1").value
-      .maybeAddRegularPolygon(3, "V1").value
-      .maybeAddRegularPolygon(6, "V2").value
-      .maybeAddRegularPolygon(6, "V6").value
-      .maybeAddRegularPolygon(4, "V2").value
-      .maybeAddRegularPolygon(4, "V15").value
-      .maybeAddRegularPolygon(4, "V16").value
-      .maybeAddRegularPolygon(4, "V18").value
-      .maybeAddRegularPolygon(4, "V16").value
-      .maybeAddRegularPolygon(4, "V23").value
+      .addRegularPolygon(3, "V1").value
+      .addRegularPolygon(3, "V1").value
+      .addRegularPolygon(3, "V1").value
+      .addRegularPolygon(3, "V1").value
+      .addRegularPolygon(3, "V1").value
+      .addRegularPolygon(6, "V2").value
+      .addRegularPolygon(6, "V6").value
+      .addRegularPolygon(4, "V2").value
+      .addRegularPolygon(4, "V15").value
+      .addRegularPolygon(4, "V16").value
+      .addRegularPolygon(4, "V18").value
+      .addRegularPolygon(4, "V16").value
+      .addRegularPolygon(4, "V23").value
 
     // Deleting the inner edges
     val result = tiling
@@ -238,22 +255,4 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
     result.isLeft shouldBe true
     result.left.value should include("is not simple")
   }
-
-  it should "delete an irregular polygon" in {
-    val triangle = TilingBuilder.createRegularPolygon(3).value
-    val result = triangle
-      .addSimplePolygon("V2", 15, 165, 15, 165).value
-      .addSimplePolygon("V3", 165, 15, 165, 15).value
-      .addRegularPolygon(4, "V7").value
-      .addRegularPolygon(4, "V9").value
-      .addRegularPolygon(4, "V2").value
-      .maybeDeletePolygon("F2")
-
-    result.isRight shouldBe true
-    val tiling = result.value
-//    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
-//    println(validate(tiling))
-    verifyValidTiling(tiling)
-  }
-
 
