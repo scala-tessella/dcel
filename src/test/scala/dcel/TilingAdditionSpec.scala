@@ -181,7 +181,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
   
   // Basic addition tests
   it should "add a square to a triangle, producing a valid DCEL" in {
-    val result = startingTriangle.addRegularPolygon("V1", 4)
+    val result = startingTriangle.addRegularPolygonToBoundary("V1", 4)
 
     result.isRight shouldBe true
     val tiling = result.value
@@ -205,7 +205,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 //    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
 
     verifyValidTiling(tiling)
-    val tiling2 = startingTriangle.addRegularPolygon("V1", 4).value
+    val tiling2 = startingTriangle.addRegularPolygonToBoundary("V1", 4).value
     tiling.toString shouldEqual tiling2.toString
   }
 
@@ -223,7 +223,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "add an irregular pentagon to a triangle, producing a valid DCEL" in {
     val triangle = startingTriangle
-    val result = triangle.addSimplePolygon("V1", irregularPentagonAngles)
+    val result = triangle.addSimplePolygonToBoundary("V1", irregularPentagonAngles)
 
     result.isRight shouldBe true
     val tiling = result.value
@@ -237,7 +237,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "add the same irregular pentagon with a different orientation to a triangle, producing a valid DCEL" in {
     val triangle = startingTriangle
-    val result = triangle.addSimplePolygon("V1", irregularPentagonAngles.rotateRight(1))
+    val result = triangle.addSimplePolygonToBoundary("V1", irregularPentagonAngles.rotateRight(1))
 
     result.isRight shouldBe true
     val tiling = result.value
@@ -251,14 +251,14 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   def commonTiling: TilingDCEL =
     TilingBuilder.createRegularPolygon(4).value
-      .maybeAddRegularPolygon("V1", 3).value
-      .maybeAddRegularPolygon("V3", 3).value
-      .maybeAddRegularPolygon("V5", 3).value
-      .maybeAddRegularPolygon("V3", 3).value
-      .maybeAddRegularPolygon("V7", 4).value
+      .maybeAddRegularPolygonToBoundary("V1", 3).value
+      .maybeAddRegularPolygonToBoundary("V3", 3).value
+      .maybeAddRegularPolygonToBoundary("V5", 3).value
+      .maybeAddRegularPolygonToBoundary("V3", 3).value
+      .maybeAddRegularPolygonToBoundary("V7", 4).value
 
   it should "add an irregular pentagon with shared edges" in {
-    val result = commonTiling.addSimplePolygon("V4", irregularPentagonAngles.rotateLeft(2))
+    val result = commonTiling.addSimplePolygonToBoundary("V4", irregularPentagonAngles.rotateLeft(2))
 
     result.isRight shouldBe true
     val tiling = result.value
@@ -271,7 +271,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "add an irregular pentagon with shared edges to a different edge" in {
-    val result = commonTiling.addSimplePolygon("V10", irregularPentagonAngles.rotateLeft(1))
+    val result = commonTiling.addSimplePolygonToBoundary("V10", irregularPentagonAngles.rotateLeft(1))
 
     result.isRight shouldBe true
     val tiling = result.value
@@ -284,7 +284,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "add an irregular pentagon with shared edges to a third different edge" in {
-    val result = commonTiling.addSimplePolygon("V3", irregularPentagonAngles.rotateLeft(3))
+    val result = commonTiling.addSimplePolygonToBoundary("V3", irregularPentagonAngles.rotateLeft(3))
 
     result.isRight shouldBe true
     val tiling = result.value
@@ -298,7 +298,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "add a triangle to a square, producing a valid DCEL" in {
     val square = TilingBuilder.createRegularPolygon(4).value
-    val result = square.addRegularPolygon("V1", 3)
+    val result = square.addRegularPolygonToBoundary("V1", 3)
 
     result.isRight shouldBe true
     val tiling = result.value
@@ -312,7 +312,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "add a hexagon to a triangle, producing a valid DCEL" in {
     val triangle = startingTriangle
-    val result = triangle.addRegularPolygon("V1", 6)
+    val result = triangle.addRegularPolygonToBoundary("V1", 6)
 
     result.isRight shouldBe true
     val tiling = result.value
@@ -328,11 +328,11 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
   it should "successfully add multiple polygons in sequence" in {
     val triangle = startingTriangle
 
-    val step1 = triangle.addRegularPolygon("V1", 3)
+    val step1 = triangle.addRegularPolygonToBoundary("V1", 3)
     step1.isRight shouldBe true
     verifyValidTiling(step1.value)
 
-    val step2 = step1.value.addRegularPolygon("V2", 3)
+    val step2 = step1.value.addRegularPolygonToBoundary("V2", 3)
     step2.isRight shouldBe true
     verifyValidTiling(step2.value)
 
@@ -345,8 +345,8 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "maintain correct boundary traversal after multiple additions" in {
     val square = TilingBuilder.createRegularPolygon(4).value
-    val withTriangle = square.addRegularPolygon("V1", 3).value
-    val withPentagon = withTriangle.addRegularPolygon("V2", 5).value
+    val withTriangle = square.addRegularPolygonToBoundary("V1", 3).value
+    val withPentagon = withTriangle.addRegularPolygonToBoundary("V2", 5).value
 
     verifyValidTiling(withPentagon)
 //    println(withPentagon.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
@@ -378,7 +378,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
   // Large polygon tests
   it should "handle large polygons correctly" in {
     val triangle = startingTriangle
-    val result = triangle.addRegularPolygon("V1", 12) // Dodecagon
+    val result = triangle.addRegularPolygonToBoundary("V1", 12) // Dodecagon
 
     result.isRight shouldBe true
     val tiling = result.value
@@ -392,7 +392,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
   // Angle calculation tests
   it should "correctly calculate boundary angles for shared vertices" in {
     val square = TilingBuilder.createRegularPolygon(4).value
-    val result = square.addRegularPolygon("V1", 4)
+    val result = square.addRegularPolygonToBoundary("V1", 4)
 
     result.isRight shouldBe true
     val tiling = result.value
@@ -404,8 +404,8 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "correctly handle vertices with multiple incident faces" in {
     val triangle = startingTriangle
-    val withTriangle2 = triangle.addRegularPolygon("V1", 3).value
-    val withTriangle3 = withTriangle2.addRegularPolygon("V1", 3).value
+    val withTriangle2 = triangle.addRegularPolygonToBoundary("V1", 3).value
+    val withTriangle3 = withTriangle2.addRegularPolygonToBoundary("V1", 3).value
 
     verifyValidTiling(withTriangle3)
 
@@ -417,35 +417,35 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
   // Error condition tests
   it should "fail to add a polygon with less than 3 sides" in {
     val square = TilingBuilder.createRegularPolygon(4).value
-    val result = square.addRegularPolygon("V2", 2)
+    val result = square.addRegularPolygonToBoundary("V2", 2)
     result.isLeft shouldBe true
     result.left.value should include("must have at least 3 sides")
   }
 
   it should "fail to add a polygon with 0 sides" in {
     val triangle = startingTriangle
-    val result = triangle.addRegularPolygon("V1", 0)
+    val result = triangle.addRegularPolygonToBoundary("V1", 0)
     result.isLeft shouldBe true
     result.left.value should include("must have at least 3 sides")
   }
 
   it should "fail to add a polygon with negative sides" in {
     val triangle = startingTriangle
-    val result = triangle.addRegularPolygon("V1", -1)
+    val result = triangle.addRegularPolygonToBoundary("V1", -1)
     result.isLeft shouldBe true
     result.left.value should include("must have at least 3 sides")
   }
 
   it should "fail to add a polygon on a non-existent vertex" in {
     val square = TilingBuilder.createRegularPolygon(4).value
-    val result = square.addRegularPolygon("V99", 3)
+    val result = square.addRegularPolygonToBoundary("V99", 3)
     result.isLeft shouldBe true
     result.left.value should include("not found on the boundary")
   }
 
   it should "fail to add a polygon on an empty vertex ID" in {
     val triangle = startingTriangle
-    val result = triangle.addRegularPolygon("", 3)
+    val result = triangle.addRegularPolygonToBoundary("", 3)
     result.isLeft shouldBe true
     result.left.value should include("not found on the boundary")
   }
@@ -453,7 +453,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
   // Boundary integrity tests
   it should "maintain boundary connectivity after addition" in {
     val pentagon = TilingBuilder.createRegularPolygon(5).value
-    val result = pentagon.addRegularPolygon("V2", 3)
+    val result = pentagon.addRegularPolygonToBoundary("V2", 3)
 
     result.isRight shouldBe true
     val tiling = result.value
@@ -475,7 +475,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     val hexagon = TilingBuilder.createRegularPolygon(6).value
     val originalVertexIds = hexagon.vertices.map(_.id).toSet
 
-    val result = hexagon.addRegularPolygon("V3", 4)
+    val result = hexagon.addRegularPolygonToBoundary("V3", 4)
     result.isRight shouldBe true
     val tiling = result.value
 
@@ -491,7 +491,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
   // Face integrity tests
   it should "correctly assign face IDs to new faces" in {
     val triangle = startingTriangle
-    val result = triangle.addRegularPolygon("V1", 4)
+    val result = triangle.addRegularPolygonToBoundary("V1", 4)
 
     result.isRight shouldBe true
     val tiling = result.value
@@ -504,7 +504,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "ensure all half-edges have incident faces assigned" in {
     val square = TilingBuilder.createRegularPolygon(4).value
-    val result = square.addRegularPolygon("V1", 6)
+    val result = square.addRegularPolygonToBoundary("V1", 6)
 
     result.isRight shouldBe true
     val tiling = result.value
@@ -520,7 +520,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
     // Add triangles to create a flower pattern
     for (i <- 1 to 6)
-      val result = currentTiling.addRegularPolygon(s"V$i", 3)
+      val result = currentTiling.addRegularPolygonToBoundary(s"V$i", 3)
       result.isRight shouldBe true
       currentTiling = result.value
       verifyValidTiling(currentTiling)
@@ -533,11 +533,11 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     val initialTiling = startingTriangle
 
     val result = initialTiling
-      .maybeAddRegularPolygon("V1", 3).value
-      .maybeAddRegularPolygon("V1", 3).value
-      .maybeAddRegularPolygon("V1", 3).value
-      .maybeAddRegularPolygon("V1", 3).value
-      .maybeAddRegularPolygon("V1", 3)
+      .maybeAddRegularPolygonToBoundary("V1", 3).value
+      .maybeAddRegularPolygonToBoundary("V1", 3).value
+      .maybeAddRegularPolygonToBoundary("V1", 3).value
+      .maybeAddRegularPolygonToBoundary("V1", 3).value
+      .maybeAddRegularPolygonToBoundary("V1", 3)
     result.isRight shouldBe true
 
     val newTiling = result.value
@@ -550,9 +550,9 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     val initialTiling = TilingBuilder.createRegularPolygon(6).value
 
     val result = initialTiling
-      .maybeAddRegularPolygon("V1", 6).value
-      .maybeAddRegularPolygon("V7", 6).value
-      .maybeAddRegularPolygon("V1", 6)
+      .maybeAddRegularPolygonToBoundary("V1", 6).value
+      .maybeAddRegularPolygonToBoundary("V7", 6).value
+      .maybeAddRegularPolygonToBoundary("V1", 6)
     result.isRight shouldBe true
 
     val newTiling = result.value
@@ -565,9 +565,9 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     val initialTiling = TilingBuilder.createRegularPolygon(6).value
 
     val result = initialTiling
-      .maybeAddRegularPolygon("V1", 6).value
-      .maybeAddRegularPolygon("V7", 6).value
-      .maybeAddRegularPolygon("V2", 6)
+      .maybeAddRegularPolygonToBoundary("V1", 6).value
+      .maybeAddRegularPolygonToBoundary("V7", 6).value
+      .maybeAddRegularPolygonToBoundary("V2", 6)
     result.isRight shouldBe true
 
     val newTiling = result.value
@@ -580,9 +580,9 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     val initialTiling = TilingBuilder.createRegularPolygon(6).value
 
     val result = initialTiling
-      .maybeAddRegularPolygon("V1", 6).value
-      .maybeAddRegularPolygon("V7", 6).value
-      .maybeAddRegularPolygon("V7", 6)
+      .maybeAddRegularPolygonToBoundary("V1", 6).value
+      .maybeAddRegularPolygonToBoundary("V7", 6).value
+      .maybeAddRegularPolygonToBoundary("V7", 6)
     result.isRight shouldBe true
 
     val newTiling = result.value
@@ -595,9 +595,9 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     val initialTiling = TilingBuilder.createRegularPolygon(4).value
 
     val result = initialTiling
-      .maybeAddRegularPolygon("V1", 4).value
-      .maybeAddRegularPolygon("V1", 4).value
-      .maybeAddRegularPolygon("V1", 4)
+      .maybeAddRegularPolygonToBoundary("V1", 4).value
+      .maybeAddRegularPolygonToBoundary("V1", 4).value
+      .maybeAddRegularPolygonToBoundary("V1", 4)
     result.isRight shouldBe true
 
     val newTiling = result.value
@@ -610,9 +610,9 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     val initialTiling = TilingBuilder.createRegularPolygon(4).value
 
     val result = initialTiling
-      .maybeAddRegularPolygon("V1", 4).value
-      .maybeAddRegularPolygon("V1", 4).value
-      .maybeAddRegularPolygon("V2", 4)
+      .maybeAddRegularPolygonToBoundary("V1", 4).value
+      .maybeAddRegularPolygonToBoundary("V1", 4).value
+      .maybeAddRegularPolygonToBoundary("V2", 4)
     result.isRight shouldBe true
 
     val newTiling = result.value
@@ -623,7 +623,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "successfully fill a hole created by a shared vertex" in {
     val result = commonTiling
-      .maybeAddRegularPolygon("V3", 4)
+      .maybeAddRegularPolygonToBoundary("V3", 4)
     result.isRight shouldBe true
 
     val newTiling = result.value
@@ -635,14 +635,14 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
   it should "successfully fill another hole created by a shared vertex" in {
     val result =
       TilingBuilder.createRegularPolygon(6).value
-        .maybeAddRegularPolygon("V6", 6).value
-        .maybeAddRegularPolygon("V7", 6).value
-        .maybeAddRegularPolygon("V11", 6).value
-        .maybeAddRegularPolygon("V16", 6).value
-        .maybeAddRegularPolygon("V19", 6).value
-        .maybeAddRegularPolygon("V23", 6).value
-        .maybeAddRegularPolygon("V27", 3).value
-        .maybeAddRegularPolygon("V2", 3)
+        .maybeAddRegularPolygonToBoundary("V6", 6).value
+        .maybeAddRegularPolygonToBoundary("V7", 6).value
+        .maybeAddRegularPolygonToBoundary("V11", 6).value
+        .maybeAddRegularPolygonToBoundary("V16", 6).value
+        .maybeAddRegularPolygonToBoundary("V19", 6).value
+        .maybeAddRegularPolygonToBoundary("V23", 6).value
+        .maybeAddRegularPolygonToBoundary("V27", 3).value
+        .maybeAddRegularPolygonToBoundary("V2", 3)
 
     result.isRight shouldBe true
 
@@ -654,9 +654,9 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "successfully fill a hole created by a shared edge" in {
     val result = commonTiling
-      .maybeAddRegularPolygon("V9", 3).value
-      .maybeAddRegularPolygon("V11", 3).value
-      .maybeAddRegularPolygon("V3", 4)
+      .maybeAddRegularPolygonToBoundary("V9", 3).value
+      .maybeAddRegularPolygonToBoundary("V11", 3).value
+      .maybeAddRegularPolygonToBoundary("V3", 4)
     result.isRight shouldBe true
 
     val newTiling = result.value
@@ -668,13 +668,13 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
   it should "successfully fill another hole created by a shared edge" in {
     val result =
       TilingBuilder.createRegularPolygon(6).value
-        .maybeAddRegularPolygon("V6", 6).value
-        .maybeAddRegularPolygon("V7", 6).value
-        .maybeAddRegularPolygon("V11", 6).value
-        .maybeAddRegularPolygon("V16", 6).value
-        .maybeAddRegularPolygon("V19", 6).value
-        .maybeAddRegularPolygon("V23", 6).value
-        .maybeAddRegularPolygon("V2", 6)
+        .maybeAddRegularPolygonToBoundary("V6", 6).value
+        .maybeAddRegularPolygonToBoundary("V7", 6).value
+        .maybeAddRegularPolygonToBoundary("V11", 6).value
+        .maybeAddRegularPolygonToBoundary("V16", 6).value
+        .maybeAddRegularPolygonToBoundary("V19", 6).value
+        .maybeAddRegularPolygonToBoundary("V23", 6).value
+        .maybeAddRegularPolygonToBoundary("V2", 6)
 
     result.isRight shouldBe true
 
@@ -687,15 +687,15 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
   it should "successfully fill two holes created by shared edges" in {
     val result =
       TilingBuilder.createRegularPolygon(6).value
-        .maybeAddRegularPolygon("V6", 6).value
-        .maybeAddRegularPolygon("V7", 6).value
-        .maybeAddRegularPolygon("V11", 6).value
-        .maybeAddRegularPolygon("V15", 6).value
-        .maybeAddRegularPolygon("V21", 6).value
-        .maybeAddRegularPolygon("V23", 6).value
-        .maybeAddRegularPolygon("V27", 6).value
-        .maybeAddRegularPolygon("V31", 6).value
-        .maybeAddRegularPolygon("V2", 6)
+        .maybeAddRegularPolygonToBoundary("V6", 6).value
+        .maybeAddRegularPolygonToBoundary("V7", 6).value
+        .maybeAddRegularPolygonToBoundary("V11", 6).value
+        .maybeAddRegularPolygonToBoundary("V15", 6).value
+        .maybeAddRegularPolygonToBoundary("V21", 6).value
+        .maybeAddRegularPolygonToBoundary("V23", 6).value
+        .maybeAddRegularPolygonToBoundary("V27", 6).value
+        .maybeAddRegularPolygonToBoundary("V31", 6).value
+        .maybeAddRegularPolygonToBoundary("V2", 6)
 
     result.isRight shouldBe true
 
@@ -707,8 +707,8 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "fail if boundary crossing" in {
     val result = commonTiling
-      .maybeAddRegularPolygon("V9", 3).value
-      .maybeAddRegularPolygon("V11", 3).value
-      .maybeAddRegularPolygon("V3", 5)
+      .maybeAddRegularPolygonToBoundary("V9", 3).value
+      .maybeAddRegularPolygonToBoundary("V11", 3).value
+      .maybeAddRegularPolygonToBoundary("V3", 5)
     result.isRight shouldBe false
   }
