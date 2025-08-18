@@ -86,7 +86,7 @@ object TilingExample:
 
     println(TilingDCEL.validate(result))
 //    println(result.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
-    println(TilingDCEL.spatiallyValidate(result))
+    println(TilingDCEL.validateSpatially(result))
 
     result
 
@@ -184,6 +184,6 @@ object TilingExample:
 
     println(TilingDCEL.validate(result))
 //    println(result.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
-    println(TilingDCEL.spatiallyValidate(result))
+    println(TilingDCEL.validateSpatially(result))
 
     result

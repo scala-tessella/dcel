@@ -239,7 +239,7 @@ object TilingDCEL:
     val allErrors = (topoErrors.toList ++ geoErrors.toList).mkString("; ")
     if allErrors.isEmpty then Right(()) else Left(allErrors)
 
-  def spatiallyValidate(tiling: TilingDCEL): Either[String, Unit] =
+  def validateSpatially(tiling: TilingDCEL): Either[String, Unit] =
     val errors = mutable.ListBuffer[String]()
 
     tiling.boundarySafe match

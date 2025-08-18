@@ -15,7 +15,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
     val structuralCheck = TilingDCEL.validate(tiling)
     structuralCheck.isRight shouldBe true
 
-    val spatialCheck = TilingDCEL.spatiallyValidate(tiling)
+    val spatialCheck = TilingDCEL.validateSpatially(tiling)
     spatialCheck.isRight shouldBe true
 
   behavior of "TilingDCEL.deletePolygon"
