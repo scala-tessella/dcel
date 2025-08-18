@@ -233,12 +233,6 @@ object TilingDCEL:
 
     if errors.isEmpty then Right(()) else Left(errors.mkString("; "))
 
-  def validate(tiling: TilingDCEL): Either[String, Unit] =
-    val topoErrors = validateTopologically(tiling).left.toOption
-    val geoErrors = validateGeometrically(tiling).left.toOption
-    val allErrors = (topoErrors.toList ++ geoErrors.toList).mkString("; ")
-    if allErrors.isEmpty then Right(()) else Left(allErrors)
-
   def validateSpatially(tiling: TilingDCEL): Either[String, Unit] =
     val errors = mutable.ListBuffer[String]()
 
@@ -251,3 +245,10 @@ object TilingDCEL:
         errors += s"Could not validate boundary angles due to: $error"
 
     if errors.isEmpty then Right(()) else Left(errors.mkString("; "))
+
+  def validate(tiling: TilingDCEL): Either[String, Unit] =
+    val topoErrors = validateTopologically(tiling).left.toOption
+    val geoErrors = validateGeometrically(tiling).left.toOption
+    val spaceErrors = validateSpatially(tiling).left.toOption
+    val allErrors = (topoErrors.toList ++ geoErrors.toList ++ spaceErrors.toList).mkString("; ")
+    if allErrors.isEmpty then Right(()) else Left(allErrors)
