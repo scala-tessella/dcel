@@ -674,3 +674,10 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
     empty.isTopologicallyEquivalentTo(triangle) shouldBe false
   }
 
+  it should "return false for two different rhombuses" in {
+    val square = createSquareTiling()
+    val rhombus = TilingBuilder.createSimplePolygon(60, 120, 60, 120).value
+    square.isTopologicallyEquivalentTo(rhombus) shouldBe true
+    square.isEquivalentTo(rhombus) shouldBe false
+  }
+

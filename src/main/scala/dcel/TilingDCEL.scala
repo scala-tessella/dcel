@@ -203,6 +203,40 @@ case class TilingDCEL(
 
     thisVertexSignatures == otherVertexSignatures
 
+  def isEquivalentTo(other: TilingDCEL): Boolean =
+    given Ordering[AngleDegree] with
+      def compare(x: AngleDegree, y: AngleDegree): Int =
+        x.toRational.compare(y.toRational)
+
+    def getCanonicalAngleSequence(angles: List[AngleDegree]): List[AngleDegree] =
+      if angles.isEmpty then List.empty
+      else angles.rotationsAndReflections.min
+
+    def getFaceSignature(face: Face): List[AngleDegree] =
+      getCanonicalAngleSequence(face.halfEdgesSafe.flatMap(_.angle))
+
+    def getVertexSignature(vertex: Vertex): List[AngleDegree] =
+      getCanonicalAngleSequence(vertex.incidentEdges.flatMap(_.angle))
+
+    def toMultiset[T](list: List[T]): Map[T, Int] =
+      list.groupMapReduce(identity)(_ => 1)(_ + _)
+
+    if this.vertices.size != other.vertices.size ||
+      this.innerFaces.size != other.innerFaces.size ||
+      this.halfEdges.size != other.halfEdges.size then
+      return false
+
+    val thisFaceSignatures = toMultiset(this.innerFaces.map(getFaceSignature))
+    val otherFaceSignatures = toMultiset(other.innerFaces.map(getFaceSignature))
+
+    if thisFaceSignatures != otherFaceSignatures then
+      return false
+
+    val thisVertexSignatures = toMultiset(this.vertices.map(getVertexSignature))
+    val otherVertexSignatures = toMultiset(other.vertices.map(getVertexSignature))
+
+    thisVertexSignatures == otherVertexSignatures
+
   def maybeAddRegularPolygonToBoundary(onEdgeStartingWithVertexId: String, sides: Int): Either[String, TilingDCEL] =
     this.addRegularPolygonToBoundary(onEdgeStartingWithVertexId, sides)
     
