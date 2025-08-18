@@ -603,3 +603,74 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
     modifiedOriginal.value.innerFaces should have length (original.innerFaces.length + 1)
     modifiedCopy.value.innerFaces should have length (copy.innerFaces.length + 1)
   }
+
+  behavior of "TilingDCEL.isTopologicallyEquivalentTo"
+
+  it should "return true for the same instance" in {
+    val triangle = createTriangleTiling()
+    triangle.isTopologicallyEquivalentTo(triangle) shouldBe true
+  }
+
+  it should "return true for a deep copy of a tiling" in {
+    val square = createSquareTiling()
+    val squareCopy = square.deepCopy
+    square.isTopologicallyEquivalentTo(squareCopy) shouldBe true
+  }
+
+  it should "return true for two identical but separate tilings" in {
+    val triangle1 = createTriangleTiling()
+    val triangle2 = createTriangleTiling()
+    triangle1.isTopologicallyEquivalentTo(triangle2) shouldBe true
+  }
+
+  it should "return false for tilings with different numbers of components" in {
+    val triangle = createTriangleTiling()
+    val square = createSquareTiling()
+    triangle.isTopologicallyEquivalentTo(square) shouldBe false
+  }
+
+  it should "return false for tilings with different face signatures" in {
+    // Both have 2 faces, 7 vertices, 16 half-edges
+    val tiling1 = createSquareTiling().maybeAddRegularPolygonToBoundary("V1", 3).value
+    // Both have 2 faces, 8 vertices, 18 half-edges
+    val tiling2 = createSquareTiling().maybeAddRegularPolygonToBoundary("V1", 4).value
+    tiling1.isTopologicallyEquivalentTo(tiling2) shouldBe false
+  }
+
+  it should "return true for two complex tilings built differently but structurally identical" in {
+    // Tiling A: Add triangle to V1, then another to V4
+    val tilingA = createTriangleTiling()
+      .maybeAddRegularPolygonToBoundary("V1", 3).value
+      .maybeAddRegularPolygonToBoundary("V4", 3).value
+    // Tiling B: Add triangle to V2, then another to V4
+    val tilingB = createTriangleTiling()
+      .maybeAddRegularPolygonToBoundary("V2", 3).value
+      .maybeAddRegularPolygonToBoundary("V4", 3).value
+
+    tilingA.isTopologicallyEquivalentTo(tilingB) shouldBe true
+  }
+
+  it should "return false for tilings with the same face signatures but different vertex signatures" in {
+    // Tiling 1: Four squares in a 2x2 grid
+    val twoSquares = createSquareTiling().maybeAddRegularPolygonToBoundary("V1", 4).value
+    val gridTiling = twoSquares.maybeAddRegularPolygonToBoundary("V2", 4).value
+      .maybeAddRegularPolygonToBoundary("V7", 4).value // V7 is on the new edge
+
+    // Tiling 2: Four squares in a line
+    val lineTiling = createSquareTiling()
+      .maybeAddRegularPolygonToBoundary("V1", 4).value
+      .maybeAddRegularPolygonToBoundary("V4", 4).value
+      .maybeAddRegularPolygonToBoundary("V6", 4).value
+
+    // Both have 4 square faces, but the arrangement of vertices is different.
+    // Grid has a central vertex of degree 4, line does not.
+    gridTiling.innerFaces.map(_.halfEdgesSafe.size) should contain theSameElementsAs lineTiling.innerFaces.map(_.halfEdgesSafe.size)
+    gridTiling.isTopologicallyEquivalentTo(lineTiling) shouldBe false
+  }
+
+  it should "return false for an empty tiling vs a non-empty one" in {
+    val empty = TilingBuilder.empty
+    val triangle = createTriangleTiling()
+    empty.isTopologicallyEquivalentTo(triangle) shouldBe false
+  }
+

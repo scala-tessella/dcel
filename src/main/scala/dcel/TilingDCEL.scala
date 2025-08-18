@@ -157,7 +157,57 @@ case class TilingDCEL(
       innerFaces = innerFaces.map(faceMap),
       outerFace = faceMap(outerFace)
     )
-    
+
+  /**
+   * Checks if this tiling is topologically equivalent to another.
+   * This comparison ignores spatial coordinates and the specific IDs of vertices and faces,
+   * focusing instead on the combinatorial structure of the tiling.
+   *
+   * Two tilings are considered topologically equivalent if they have:
+   * 1. The same number of vertices, half-edges, and inner faces.
+   * 2. The same multiset of face sizes (number of edges per face).
+   * 3. The same multiset of vertex signatures, where a vertex signature is
+   * a canonical representation of the cycle of face sizes around that vertex.
+   *
+   * @param other The other TilingDCEL to compare with.
+   * @return true if the two tilings are topologically equivalent, false otherwise.
+   */
+  def isTopologicallyEquivalentTo(other: TilingDCEL): Boolean =
+    def canonicalCycle(cycle: List[Int]): List[Int] =
+      if cycle.isEmpty then List.empty
+      else
+        val rotations = cycle.indices.map(i => cycle.drop(i) ++ cycle.take(i))
+        val reversed = cycle.reverse
+        val reversedRotations = reversed.indices.map(i => reversed.drop(i) ++ reversed.take(i))
+        (rotations ++ reversedRotations).min
+
+    def getVertexSignature(vertex: Vertex, tiling: TilingDCEL): List[Int] =
+      val faceCycle = vertex.incidentEdges.flatMap(_.incidentFace)
+      val faceSizes = faceCycle.map(face =>
+        if face == tiling.outerFace then 0
+        else face.halfEdgesSafe.size
+      )
+      canonicalCycle(faceSizes)
+
+    def toMultiset[T](list: List[T]): Map[T, Int] =
+      list.groupMapReduce(identity)(_ => 1)(_ + _)
+
+    if this.vertices.size != other.vertices.size ||
+      this.innerFaces.size != other.innerFaces.size ||
+      this.halfEdges.size != other.halfEdges.size then
+      return false
+
+    val thisFaceSignatures = this.innerFaces.map(_.halfEdgesSafe.size).sorted
+    val otherFaceSignatures = other.innerFaces.map(_.halfEdgesSafe.size).sorted
+
+    if thisFaceSignatures != otherFaceSignatures then
+      return false
+
+    val thisVertexSignatures = toMultiset(this.vertices.map(getVertexSignature(_, this)))
+    val otherVertexSignatures = toMultiset(other.vertices.map(getVertexSignature(_, other)))
+
+    thisVertexSignatures == otherVertexSignatures
+
   def maybeAddRegularPolygonToBoundary(onEdgeStartingWithVertexId: String, sides: Int): Either[String, TilingDCEL] =
     this.addRegularPolygonToBoundary(onEdgeStartingWithVertexId, sides)
     

@@ -703,7 +703,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
     verifyValidTiling(tiling)
     val tiling2 = startingTriangle.addRegularPolygonToBoundary("V1", 4).value
-    tiling.toString shouldEqual tiling2.toString
+    tiling.isTopologicallyEquivalentTo(tiling2) shouldBe true
   }
 
   it should "add a polygon eclosing the tiling if the same edge is given in the opposite direction" in {
