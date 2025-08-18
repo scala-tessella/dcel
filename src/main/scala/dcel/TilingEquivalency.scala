@@ -52,7 +52,7 @@ object TilingEquivalency:
         newEdge.angle = oldEdge.angle
       }
 
-      // Copy vertex leaving edge relationships
+      // Copy vertex-leaving edge relationships
       tiling.vertices.foreach { oldVertex =>
         val newVertex = vertexMap(oldVertex)
         oldVertex.leaving.foreach { oldLeavingEdge =>

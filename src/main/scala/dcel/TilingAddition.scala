@@ -104,7 +104,7 @@ object TilingAddition:
   extension (tiling: TilingDCEL)
 
     private def nextFaceId: String =
-      'F' + (tiling.innerFaces.map(_.id.tail.toInt).max + 1).toString
+      "F" + (tiling.innerFaces.map(_.id.tail.toInt).max + 1).toString
 
     private def nextVertexIndex: Int =
       tiling.vertices.map(_.id.tail.toInt).max + 1
@@ -164,7 +164,7 @@ object TilingAddition:
      *  determining the correct starting vertex and direction for the new polygon.
      *
      * @param v_match the existing vertex closing the hole
-     * @param v_new   the new verte closing the hole
+     * @param v_new   the new vertex closing the hole
      */
     private def holeAnglesWithDirection(v_match: Vertex, v_new: Vertex): (List[AngleDegree], String) =
       val boundaryEdges = tiling.getBoundaryEdges.toOption.get
@@ -184,7 +184,7 @@ object TilingAddition:
         val closingAngle = SimplePolygon.alphaSum(holeAngles.length) - sumOfOtherAngles
         closingAngle :: holeAngles.tail
 
-      // 3. Determine the starting vertex and adjust angle order based on path direction.
+      // 3. Determine the starting vertex and adjust angle order based on the path direction.
       if isForward then
         (polygonAngles, v_match.id)
       else
@@ -286,7 +286,7 @@ object TilingAddition:
             addRegularPolygonToBoundary(vertexId1, sides)
           else if edge.twin.exists(_.incidentFace.contains(tiling.outerFace))
             && polyAngle.toRational > edge.angle.get.toRational then
-            // it is an inner edge with a boundary twin and the new polygon would be drawn outside the face
+            // it is an inner edge with a boundary twin, and the new polygon would be drawn outside the face
             if edge.prev.get.angle.get.toRational > polyAngle.toRational then
               Left("Polygon would be drawn inside the face")
             else
@@ -358,13 +358,13 @@ object TilingAddition:
         // Get the indices of the new vertices that are shared
         val indices = many.map(p => newVertices.indexOf(p._2))
 
-        // Find the last vertex of the initial contiguous block of shared vertices
+        // Find the last vertex from the initial contiguous block of shared vertices
         val forwardContiguousCount = indices.zip(indices.tail)
           .takeWhile { case (a, b) => a + 1 == b }
           .length
         val endOfFirstBlock = many(forwardContiguousCount)
 
-        // Find the first vertex of the final contiguous block of shared vertices
+        // Find the first vertex from the final contiguous block of shared vertices
         val backwardContiguousCount = indices.reverse.zip(indices.reverse.tail)
           .takeWhile { case (a, b) => a - 1 == b }
           .length
@@ -451,13 +451,13 @@ object TilingAddition:
     // Update last boundary edge angle
 //    newBoundaryEdges.lastOption.foreach(_.angle = Some(boundaryAngles.newVertices.head.conjugate))
 
-    // Update existing boundary edge from end vertex
+    // Update the existing boundary edge from end vertex
     originalBoundary.next.foreach { nextEdge =>
       if nextEdge.origin.id == sharedEdges.last.destination.map(_.id).getOrElse("") then
         nextEdge.angle = Some(boundaryAngles.end)
     }
 
-    // Update boundary in special shared edges case
+    // Update boundary in the special shared edges case
     if sharedEdges.length > 1 && newBoundaryEdges.length == 1 then
       newBoundaryEdges.head.angle = sharedEdgesFirstAngle
 
@@ -483,7 +483,7 @@ object TilingAddition:
       newBoundaryEdges
     )
 
-    // Update outer face component if necessary
+    // Update the outer face component if necessary
     if outerFace.outerComponent.exists(e => sharedEdges.contains(e)) then
       outerFace.outerComponent = newBoundaryEdges.headOption
 
