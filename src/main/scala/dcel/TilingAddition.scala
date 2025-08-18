@@ -283,17 +283,18 @@ object TilingAddition:
         result <-
           if edge.incidentFace.contains(tilingDCEL.outerFace) then
           // it is a boundary edge
-            addRegularPolygonToBoundary(edge.origin.id, sides)
+            addRegularPolygonToBoundary(vertexId1, sides)
           else if edge.twin.exists(_.incidentFace.contains(tilingDCEL.outerFace))
             && polyAngle.toRational > edge.angle.get.toRational then
             // it is an inner edge with a boundary twin and the new polygon would be drawn outside the face
-            
-            // if
-            // * polygon does not cross the boundary
-            // * and polygon does not touch any vertex of the boundary (tricky what to do in this case)
-            // add the polygon but with conjugate angles
-            println("add inverted polygon to the boundary edge")
-            ???
+            if edge.prev.get.angle.get.toRational > polyAngle.toRational then
+              Left("Polygon would be drawn inside the face")
+            else
+              val boundaryAnglesFromVertex = tilingDCEL.getBoundaryEdgesPath(v1, v1).map(_.angle.get)
+              val first = polyAngle - boundaryAnglesFromVertex.head.conjugate
+              val last = polyAngle - boundaryAnglesFromVertex.last.conjugate
+              val simplePolygonAngles = first :: boundaryAnglesFromVertex.tail.init ::: (last :: List.fill(sides - 2)(polyAngle))
+              addSimplePolygonToBoundary(vertexId1, simplePolygonAngles)
           else
             ???
       yield result
