@@ -81,18 +81,29 @@ object TilingEquivalency:
         outerFace = faceMap(tiling.outerFace)
       )
 
-    private def getVertexSignature(vertex: Vertex): List[Int] =
-      val faceCycle = vertex.incidentEdges.flatMap(_.incidentFace)
-      val faceSizes = faceCycle.map(face =>
-        if face == tiling.outerFace then 0
-        else face.halfEdgesSafe.size
-      )
-      faceSizes.rotationsAndReflections.min
-
-    private def hasEqualSizes(other: TilingDCEL): Boolean =
+    private def hasSameSizesOf(other: TilingDCEL): Boolean =
       tiling.vertices.size == other.vertices.size
         && tiling.innerFaces.size == other.innerFaces.size
         && tiling.halfEdges.size == other.halfEdges.size
+
+    private def isEquivalentRawTo[T, U](
+      other: TilingDCEL,
+      faceSignaturesFrom: List[Face] => Iterable[T],
+      vertexSignaturesFrom: (List[Vertex], Face) => Map[List[U], Int]
+    ): Boolean =
+      if !tiling.hasSameSizesOf(other) then
+        return false
+
+      val thisFaceSignatures = faceSignaturesFrom(tiling.innerFaces)
+      val otherFaceSignatures = faceSignaturesFrom(other.innerFaces)
+
+      if thisFaceSignatures != otherFaceSignatures then
+        return false
+
+      val thisVertexSignatures = vertexSignaturesFrom(tiling.vertices, tiling.outerFace)
+      val otherVertexSignatures = vertexSignaturesFrom(other.vertices, other.outerFace)
+
+      thisVertexSignatures == otherVertexSignatures
 
     /**
      * Checks if this tiling is topologically equivalent to another.
@@ -109,20 +120,19 @@ object TilingEquivalency:
      * @return true if the two tilings are topologically equivalent, false otherwise.
      */
     def isTopologicallyEquivalentTo(other: TilingDCEL): Boolean =
+      def getVertexSignature(vertex: Vertex, outerFace: Face): List[Int] =
+        val faceCycle = vertex.incidentEdges.flatMap(_.incidentFace)
+        val faceSizes = faceCycle.map(face =>
+          if face == outerFace then 0
+          else face.halfEdgesSafe.size
+        )
+        faceSizes.rotationsAndReflections.min
 
-      if !tiling.hasEqualSizes(other) then
-        return false
-
-      val thisFaceSignatures = tiling.innerFaces.map(_.halfEdgesSafe.size).sorted
-      val otherFaceSignatures = other.innerFaces.map(_.halfEdgesSafe.size).sorted
-
-      if thisFaceSignatures != otherFaceSignatures then
-        return false
-
-      val thisVertexSignatures = toMultiset(tiling.vertices.map(tiling.getVertexSignature))
-      val otherVertexSignatures = toMultiset(other.vertices.map(other.getVertexSignature))
-
-      thisVertexSignatures == otherVertexSignatures
+      isEquivalentRawTo(
+        other,
+        _.map(_.halfEdgesSafe.size).sorted,
+        (vertices, face) => toMultiset(vertices.map(getVertexSignature(_, face)))
+      )
 
     def isEquivalentTo(other: TilingDCEL): Boolean =
       given Ordering[AngleDegree] with
@@ -138,16 +148,8 @@ object TilingEquivalency:
       def getVertexSignature(vertex: Vertex): List[AngleDegree] =
         getCanonicalAngleSequence(vertex.incidentEdges.flatMap(_.angle))
 
-      if !tiling.hasEqualSizes(other) then
-        return false
-
-      val thisFaceSignatures = toMultiset(tiling.innerFaces.map(getFaceSignature))
-      val otherFaceSignatures = toMultiset(other.innerFaces.map(getFaceSignature))
-
-      if thisFaceSignatures != otherFaceSignatures then
-        return false
-
-      val thisVertexSignatures = toMultiset(tiling.vertices.map(getVertexSignature))
-      val otherVertexSignatures = toMultiset(other.vertices.map(getVertexSignature))
-
-      thisVertexSignatures == otherVertexSignatures
+      tiling.isEquivalentRawTo(
+        other,
+        faces => toMultiset(faces.map(getFaceSignature)),
+        (vertices, _) => toMultiset(vertices.map(getVertexSignature))
+      )
