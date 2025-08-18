@@ -4,6 +4,7 @@ package dcel
 import BigDecimalGeometry.*
 import Polygon.{RegularPolygon, SimplePolygon}
 import TilingBuilder.{calculateVertexPoints, validatePoints, validateSides}
+import TilingEquivalency.*
 
 import ring_seq.RingSeq.{rotateRight, slidingO}
 

@@ -2,6 +2,7 @@ package io.github.scala_tessella
 package dcel
 
 import TilingAddition.*
+import TilingEquivalency.*
 import BigDecimalGeometry.{AngleDegree, BigPoint}
 
 import ring_seq.RingSeq.*
