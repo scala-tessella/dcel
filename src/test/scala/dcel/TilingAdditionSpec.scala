@@ -11,7 +11,7 @@ import org.scalatest.matchers.should.Matchers
 
 class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
-  behavior of "TilingDCEL.addRegularPolygon"
+  behavior of "TilingDCEL.addRegularPolygonToBoundary"
 
   // Helper method to verify DCEL validity
   private def verifyValidTiling(tiling: TilingDCEL): Unit =
@@ -196,26 +196,6 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     val v0 = tiling.findVertex("V1").get
     val anglesAroundV0 = v0.incidentEdges.flatMap(_.angle).sum2
     anglesAroundV0.isFullCircle shouldBe true
-  }
-
-  it should "do the same giving the directed edge" in {
-    val result = startingTriangle.addRegularPolygon("V1", "V3", 4)
-    result.isRight shouldBe true
-    val tiling = result.value
-//    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
-
-    verifyValidTiling(tiling)
-    val tiling2 = startingTriangle.addRegularPolygonToBoundary("V1", 4).value
-    tiling.toString shouldEqual tiling2.toString
-  }
-
-  it should "add a polygon eclosing the tiling if the same edge is given in the opposite direction" in {
-    val triangle = startingTriangle
-    val result = triangle.addRegularPolygon("V3", "V1", 4)
-    result.isRight shouldBe true
-    val tiling = result.value
-//    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
-    verifyValidTiling(tiling)
   }
 
   val irregularPentagonAngles: List[AngleDegree] =
@@ -711,4 +691,26 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
       .maybeAddRegularPolygonToBoundary("V11", 3).value
       .maybeAddRegularPolygonToBoundary("V3", 5)
     result.isRight shouldBe false
+  }
+
+  behavior of "TilingBuilder.addRegularPolygon"
+
+  it should "act the same of addRegularPolygonToBoundary when applied to the boundary directed edge" in {
+    val result = startingTriangle.addRegularPolygon("V1", "V3", 4)
+    result.isRight shouldBe true
+    val tiling = result.value
+    //    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
+
+    verifyValidTiling(tiling)
+    val tiling2 = startingTriangle.addRegularPolygonToBoundary("V1", 4).value
+    tiling.toString shouldEqual tiling2.toString
+  }
+
+  it should "add a polygon eclosing the tiling if the same edge is given in the opposite direction" in {
+    val triangle = startingTriangle
+    val result = triangle.addRegularPolygon("V3", "V1", 4)
+    result.isRight shouldBe true
+    val tiling = result.value
+    //    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
+    verifyValidTiling(tiling)
   }
