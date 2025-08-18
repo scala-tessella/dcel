@@ -219,7 +219,7 @@ object TilingSVG:
       new UnprefixedAttribute(key, value.toString, acc)
     }
 
-  extension (tilingDCEL: TilingDCEL)
+  extension (tiling: TilingDCEL)
 
     /**
      * Generates an SVG representation of the tiling.
@@ -233,25 +233,25 @@ object TilingSVG:
       leavingEdgeMarkers: Boolean = false,
       faceIdsOnEdges: Boolean = false
     ): String =
-      if tilingDCEL.vertices.isEmpty then
+      if tiling.vertices.isEmpty then
         return <svg width="0" height="0"></svg>.toString
 
       val config = SvgConfig(strokeWidth, padding, scale, showHalfEdgeTraversal, leavingEdgeMarkers, faceIdsOnEdges)
-      val vertices = tilingDCEL.vertices.map(_.coords)
+      val vertices = tiling.vertices.map(_.coords)
       val viewBox = calculateViewBox(vertices, scale, padding)
       val (width, height) = viewBox.dimensions
 
       // Generate all elements
-      val edgeLines = createEdgeLines(tilingDCEL, scale)
-      val innerFaceArrows = createHalfEdgeArrows(tilingDCEL.innerFaces.flatMap(_.halfEdgesSafe), config)
-      val outerFaceArrows = createHalfEdgeArrows(tilingDCEL.getBoundaryEdges.getOrElse(Nil), config)
-      val (innerAngleLabels, outerAngleLabels) = createAngleLabels(tilingDCEL, config)
-      val boundaryPolygon = createBoundaryElements(tilingDCEL, config)
-      val (vertexCircles, vertexLabels) = createVertexElements(tilingDCEL, config)
-      val faceLabels = createFaceLabels(tilingDCEL, config)
-      val traversalArrows = createTraversalArrows(tilingDCEL, config)
-      val leavingEdgeMarkersSvg = createLeavingEdgeMarkers(tilingDCEL, config)
-      val faceIdsOnEdgesSvg = createFaceIdsOnEdges(tilingDCEL, config)
+      val edgeLines = createEdgeLines(tiling, scale)
+      val innerFaceArrows = createHalfEdgeArrows(tiling.innerFaces.flatMap(_.halfEdgesSafe), config)
+      val outerFaceArrows = createHalfEdgeArrows(tiling.getBoundaryEdges.getOrElse(Nil), config)
+      val (innerAngleLabels, outerAngleLabels) = createAngleLabels(tiling, config)
+      val boundaryPolygon = createBoundaryElements(tiling, config)
+      val (vertexCircles, vertexLabels) = createVertexElements(tiling, config)
+      val faceLabels = createFaceLabels(tiling, config)
+      val traversalArrows = createTraversalArrows(tiling, config)
+      val leavingEdgeMarkersSvg = createLeavingEdgeMarkers(tiling, config)
+      val faceIdsOnEdgesSvg = createFaceIdsOnEdges(tiling, config)
 
       // Build sections
       val boundarySection = boundaryPolygon.map(polygon =>

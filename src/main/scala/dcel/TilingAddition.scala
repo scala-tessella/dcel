@@ -101,13 +101,13 @@ object TilingAddition:
       endCounter = appended.length
     )
 
-  extension (tilingDCEL: TilingDCEL)
+  extension (tiling: TilingDCEL)
 
     private def nextFaceId: String =
-      'F' + (tilingDCEL.innerFaces.map(_.id.tail.toInt).max + 1).toString
+      'F' + (tiling.innerFaces.map(_.id.tail.toInt).max + 1).toString
 
     private def nextVertexIndex: Int =
-      tilingDCEL.vertices.map(_.id.tail.toInt).max + 1
+      tiling.vertices.map(_.id.tail.toInt).max + 1
 
     private def growthWithHoleCheck(
       startVertex: Vertex,
@@ -118,7 +118,7 @@ object TilingAddition:
       boundaryEdges: List[HalfEdge]
     ): Either[String, (TilingDCEL, TilingDCEL, Option[(Vertex, Vertex)])] =
       val (tempVertices, edgeResults, boundaryAngles) =
-        additionalVertices(startVertex, endVertex, edgeToBuildOn, angles, points, tilingDCEL.nextVertexIndex, tilingDCEL.outerFace)
+        additionalVertices(startVertex, endVertex, edgeToBuildOn, angles, points, tiling.nextVertexIndex, tiling.outerFace)
 
       // here we must check if the new boundary intersects with the existing one
       val newSides: List[BigLineSegment] =
@@ -145,18 +145,18 @@ object TilingAddition:
         findHoleClosure(startVertex, boundaryEdges, tempVertices)
 
       val deepCopiedOriginal: TilingDCEL =
-        if maybeHoleClosure.isDefined then tilingDCEL.deepCopy
+        if maybeHoleClosure.isDefined then tiling.deepCopy
         else TilingDCEL.empty
 
       val (newVertices, newHalfEdges, newFace) =
-        additionalElements(edgeToBuildOn, angles, tilingDCEL.nextFaceId, tilingDCEL.outerFace, tempVertices, edgeResults, boundaryAngles)
+        additionalElements(edgeToBuildOn, angles, tiling.nextFaceId, tiling.outerFace, tempVertices, edgeResults, boundaryAngles)
 
       // Return new DCEL with updated components
       val grownTiling =
-        tilingDCEL.copy(
-          vertices = tilingDCEL.vertices ::: newVertices,
-          halfEdges = tilingDCEL.halfEdges ::: newHalfEdges,
-          innerFaces = tilingDCEL.innerFaces :+ newFace
+        tiling.copy(
+          vertices = tiling.vertices ::: newVertices,
+          halfEdges = tiling.halfEdges ::: newHalfEdges,
+          innerFaces = tiling.innerFaces :+ newFace
         )
       Right((grownTiling, deepCopiedOriginal, maybeHoleClosure))
 
@@ -167,7 +167,7 @@ object TilingAddition:
      * @param v_new   the new verte closing the hole
      */
     private def holeAnglesWithDirection(v_match: Vertex, v_new: Vertex): (List[AngleDegree], String) =
-      val boundaryEdges = tilingDCEL.getBoundaryEdges.toOption.get
+      val boundaryEdges = tiling.getBoundaryEdges.toOption.get
 
       // 1. Determine the shorter path (the "hole") on the boundary between the two vertices.
       val pathFwd = boundaryEdges.getPath(from = v_match, to = v_new)
@@ -197,7 +197,7 @@ object TilingAddition:
         for
           _      <- validateSides(angles.length, "simple")
           _      <- SimplePolygon.validatePolygonAngles(angles)
-          boundaryEdges <- tilingDCEL.getBoundaryEdges
+          boundaryEdges <- tiling.getBoundaryEdges
           edgeToBuildOn <- boundaryEdges
             .find (_.origin.id == onEdgeStartingWithVertexId)
             .toRight (s"Edge starting with vertex $onEdgeStartingWithVertexId not found on the boundary.")
@@ -225,23 +225,23 @@ object TilingAddition:
 
     private def addSimplePolygonToBoundaryWithoutGuards(onEdgeStartingWithVertexId: String, angles: List[AngleDegree]): Option[TilingDCEL] =
       for
-        boundaryEdges <- tilingDCEL.getBoundaryEdges.toOption
+        boundaryEdges <- tiling.getBoundaryEdges.toOption
         edgeToBuildOn <- boundaryEdges.find(_.origin.id == onEdgeStartingWithVertexId)
         (startVertex, endVertex) <- edgeToBuildOn.endpointsAsVertices
         points = calculateVertexPoints(angles, startVertex.coords, endVertex.coords)
       yield
 
         val (tempVertices, edgeResults, boundaryAngles) =
-          additionalVertices(startVertex, endVertex, edgeToBuildOn, angles, points, tilingDCEL.nextVertexIndex, tilingDCEL.outerFace)
+          additionalVertices(startVertex, endVertex, edgeToBuildOn, angles, points, tiling.nextVertexIndex, tiling.outerFace)
 
         val (newVertices, newHalfEdges, newFace) =
-          additionalElements(edgeToBuildOn, angles, tilingDCEL.nextFaceId, tilingDCEL.outerFace, tempVertices, edgeResults, boundaryAngles)
+          additionalElements(edgeToBuildOn, angles, tiling.nextFaceId, tiling.outerFace, tempVertices, edgeResults, boundaryAngles)
 
         // Return new DCEL with updated components
-        tilingDCEL.copy(
-          vertices = tilingDCEL.vertices ::: newVertices,
-          halfEdges = tilingDCEL.halfEdges ::: newHalfEdges,
-          innerFaces = tilingDCEL.innerFaces :+ newFace
+        tiling.copy(
+          vertices = tiling.vertices ::: newVertices,
+          halfEdges = tiling.halfEdges ::: newHalfEdges,
+          innerFaces = tiling.innerFaces :+ newFace
         )
 
     @tailrec
@@ -249,7 +249,7 @@ object TilingAddition:
       val either: Either[String, (TilingDCEL, TilingDCEL, Option[(Vertex, Vertex)])] =
         for
           _                        <- validateSides(sides, "regular")
-          boundaryEdges            <- tilingDCEL.getBoundaryEdges
+          boundaryEdges            <- tiling.getBoundaryEdges
           edgeToBuildOn            <- boundaryEdges
             .find(_.origin.id == onEdgeStartingWithVertexId)
             .toRight(s"Edge starting with vertex $onEdgeStartingWithVertexId not found on the boundary.")
@@ -275,22 +275,22 @@ object TilingAddition:
 
     def addRegularPolygon(vertexId1: String, vertexId2: String, sides: Int): Either[String, TilingDCEL] =
       for
-        v1 <- tilingDCEL.findVertex(vertexId1).toRight(s"Vertex with ID $vertexId1 not found.")
-        v2 <- tilingDCEL.findVertex(vertexId2).toRight(s"Vertex with ID $vertexId2 not found.")
-        edge <- tilingDCEL.findEdgeBetween(v1, v2).toRight(s"Edge between vertices $vertexId1 and $vertexId2 not found.")
+        v1 <- tiling.findVertex(vertexId1).toRight(s"Vertex with ID $vertexId1 not found.")
+        v2 <- tiling.findVertex(vertexId2).toRight(s"Vertex with ID $vertexId2 not found.")
+        edge <- tiling.findEdgeBetween(v1, v2).toRight(s"Edge between vertices $vertexId1 and $vertexId2 not found.")
         _  <- validateSides(sides, "regular")
         polyAngle = polygonAngle(sides)
         result <-
-          if edge.incidentFace.contains(tilingDCEL.outerFace) then
+          if edge.incidentFace.contains(tiling.outerFace) then
           // it is a boundary edge
             addRegularPolygonToBoundary(vertexId1, sides)
-          else if edge.twin.exists(_.incidentFace.contains(tilingDCEL.outerFace))
+          else if edge.twin.exists(_.incidentFace.contains(tiling.outerFace))
             && polyAngle.toRational > edge.angle.get.toRational then
             // it is an inner edge with a boundary twin and the new polygon would be drawn outside the face
             if edge.prev.get.angle.get.toRational > polyAngle.toRational then
               Left("Polygon would be drawn inside the face")
             else
-              val boundaryAnglesFromVertex = tilingDCEL.getBoundaryEdgesPath(v1, v1).map(_.angle.get)
+              val boundaryAnglesFromVertex = tiling.getBoundaryEdgesPath(v1, v1).map(_.angle.get)
               val first = polyAngle - boundaryAnglesFromVertex.head.conjugate
               val last = polyAngle - boundaryAnglesFromVertex.last.conjugate
               val simplePolygonAngles = first :: boundaryAnglesFromVertex.tail.init ::: (last :: List.fill(sides - 2)(polyAngle))

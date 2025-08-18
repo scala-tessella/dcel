@@ -11,7 +11,7 @@ object TilingDeletion:
     innerTwins: List[HalfEdge]
   )
 
-  extension (tilingDCEL: TilingDCEL)
+  extension (tiling: TilingDCEL)
 
     def deletePolygon(faceId: String): Either[String, TilingDCEL] =
       for
@@ -19,17 +19,17 @@ object TilingDeletion:
         edgeClassification <- classifyFaceEdges(faceToDelete)
         _ <- validateFaceDeletion(faceToDelete, edgeClassification)
       yield
-        if tilingDCEL.innerFaces.length == 1 then TilingBuilder.empty
+        if tiling.innerFaces.length == 1 then TilingBuilder.empty
         else performFaceDeletion(faceToDelete, edgeClassification)
     
     private def findInnerFace(faceId: String): Either[String, Face] =
-      tilingDCEL.innerFaces.find(_.id == faceId)
+      tiling.innerFaces.find(_.id == faceId)
         .toRight(s"Inner face with ID $faceId not found.")
 
     private def classifyFaceEdges(face: Face): Either[String, EdgeClassification] =
       val faceEdges = face.halfEdgesSafe
       val twinEdges = faceEdges.map(_.twin.get)
-      val (boundaryTwins, innerTwins) = twinEdges.partition(_.incidentFace.contains(tilingDCEL.outerFace))
+      val (boundaryTwins, innerTwins) = twinEdges.partition(_.incidentFace.contains(tiling.outerFace))
       Right(EdgeClassification(faceEdges, boundaryTwins, innerTwins))
 
     private def validateFaceDeletion(face: Face, classification: EdgeClassification): Either[String, Unit] =
@@ -50,7 +50,7 @@ object TilingDeletion:
         case None => Left(s"Removing face ${face.id} would partition the tiling in two disconnected halves.")
         case Some(path) =>
           val innerVertices = path.map(_.origin).drop(1)
-          if tilingDCEL.boundary.intersect(innerVertices).isEmpty then Right(())
+          if tiling.boundary.intersect(innerVertices).isEmpty then Right(())
           else Left(s"Removing face ${face.id} would partition the tiling in two halves connected by just a vertex.")
 
 
@@ -101,7 +101,7 @@ object TilingDeletion:
 
       // Create new twin half-edges for the inner boundary edges, which will form a new segment of the outer boundary.
       val newOuterEdges = orderedInnerTwins.reverse.map { innerTwin =>
-        val newTwin = HalfEdge(innerTwin.destination.get, incidentFace = Some(tilingDCEL.outerFace))
+        val newTwin = HalfEdge(innerTwin.destination.get, incidentFace = Some(tiling.outerFace))
         newTwin.twinWith(innerTwin)
         newTwin
       }
@@ -124,14 +124,14 @@ object TilingDeletion:
           // No inner neighbors, just close the gap in the boundary.
           beforeGap.linkWith(afterGap)
 
-        tilingDCEL.outerFace.outerComponent = Some(beforeGap)
+        tiling.outerFace.outerComponent = Some(beforeGap)
 
       // Update the DCEL components.
       val removedEdges = faceEdges.toSet ++ boundaryTwins.toSet
-      val finalHalfEdges = tilingDCEL.halfEdges.filterNot(removedEdges.contains) ++ newOuterEdges
+      val finalHalfEdges = tiling.halfEdges.filterNot(removedEdges.contains) ++ newOuterEdges
 
       val verticesInUse = finalHalfEdges.map(_.origin).toSet
-      val finalVertices = tilingDCEL.vertices.filter(verticesInUse.contains)
+      val finalVertices = tiling.vertices.filter(verticesInUse.contains)
 
       // Update `leaving` pointers for affected vertices.
       finalVertices.foreach { vertex =>
@@ -139,14 +139,14 @@ object TilingDeletion:
           vertex.leaving = finalHalfEdges.find(_.origin == vertex)
       }
 
-      val finalInnerFaces = tilingDCEL.innerFaces.filterNot(_ == faceToDelete)
+      val finalInnerFaces = tiling.innerFaces.filterNot(_ == faceToDelete)
 
       // Recalculate angles on the new boundary.
       val verticesOnNewBoundary = (boundaryTwins.map(_.origin) ++ innerTwins.flatMap(e => List(e.origin, e.destination.get))).distinct
       verticesOnNewBoundary.foreach { vertex =>
-        val angleSum = vertex.getCurrentInteriorAngleSum(tilingDCEL.outerFace)
+        val angleSum = vertex.getCurrentInteriorAngleSum(tiling.outerFace)
         vertex.incidentEdges
-          .find(_.incidentFace.contains(tilingDCEL.outerFace))
+          .find(_.incidentFace.contains(tiling.outerFace))
           .foreach(_.angle = Some(angleSum.conjugate))
       }
 
@@ -154,16 +154,16 @@ object TilingDeletion:
         vertices = finalVertices,
         halfEdges = finalHalfEdges,
         innerFaces = finalInnerFaces,
-        outerFace = tilingDCEL.outerFace
+        outerFace = tiling.outerFace
       )
 
     def deleteEdge(vertexId1: String, vertexId2: String): Either[String, TilingDCEL] =
       for
-        v1 <- tilingDCEL.findVertex(vertexId1).toRight(s"Vertex with ID $vertexId1 not found.")
-        v2 <- tilingDCEL.findVertex(vertexId2).toRight(s"Vertex with ID $vertexId2 not found.")
-        edge <- tilingDCEL.findEdgeBetween(v1, v2).toRight(s"Edge between vertices $vertexId1 and $vertexId2 not found.")
+        v1 <- tiling.findVertex(vertexId1).toRight(s"Vertex with ID $vertexId1 not found.")
+        v2 <- tiling.findVertex(vertexId2).toRight(s"Vertex with ID $vertexId2 not found.")
+        edge <- tiling.findEdgeBetween(v1, v2).toRight(s"Edge between vertices $vertexId1 and $vertexId2 not found.")
         result <-
-          if edge.twin.exists(_.incidentFace.contains(tilingDCEL.outerFace)) then
+          if edge.twin.exists(_.incidentFace.contains(tiling.outerFace)) then
             // this should never happen if a TilingDCEL is well-formed, but just in case
             edge.incidentFace.map(_.id).toRight("Edge has no incident face").flatMap(deletePolygon)
           else
@@ -241,16 +241,16 @@ object TilingDeletion:
             endV.leaving = Some(pathEndNext)
 
           // Finalize DCEL
-          val finalVertices = tilingDCEL.vertices.filterNot(verticesToRemove.contains)
-          val finalHalfEdges = tilingDCEL.halfEdges.filterNot(edgesToRemove.contains)
-          val finalInnerFaces = tilingDCEL.innerFaces.filterNot(_ == faceToRemove)
+          val finalVertices = tiling.vertices.filterNot(verticesToRemove.contains)
+          val finalHalfEdges = tiling.halfEdges.filterNot(edgesToRemove.contains)
+          val finalInnerFaces = tiling.innerFaces.filterNot(_ == faceToRemove)
 
           val adjustedTiling =
             TilingDCEL(
               vertices = finalVertices,
               halfEdges = finalHalfEdges,
               innerFaces = finalInnerFaces,
-              outerFace = tilingDCEL.outerFace
+              outerFace = tiling.outerFace
             )
           val survivingFacePoints =
             faceToSurvive.halfEdgesSafe.map(_.origin.coords)
