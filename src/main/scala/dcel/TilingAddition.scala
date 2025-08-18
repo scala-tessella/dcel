@@ -277,11 +277,22 @@ object TilingAddition:
         v1 <- tilingDCEL.findVertex(vertexId1).toRight(s"Vertex with ID $vertexId1 not found.")
         v2 <- tilingDCEL.findVertex(vertexId2).toRight(s"Vertex with ID $vertexId2 not found.")
         edge <- tilingDCEL.findEdgeBetween(v1, v2).toRight(s"Edge between vertices $vertexId1 and $vertexId2 not found.")
+        _  <- validateSides(sides, "regular")
+        polyAngle = polygonAngle(sides)
         result <-
-          if edge.twin.exists(_.incidentFace.contains(tilingDCEL.outerFace)) then
-            edge.twin.map(_.origin.id).toRight("Edge has no twin").flatMap(addRegularPolygon(_, sides))
-          else if edge.incidentFace.contains(tilingDCEL.outerFace) then
+          if edge.incidentFace.contains(tilingDCEL.outerFace) then
+          // it is a boundary edge
             addRegularPolygon(edge.origin.id, sides)
+          else if edge.twin.exists(_.incidentFace.contains(tilingDCEL.outerFace))
+            && polyAngle.toRational > edge.angle.get.toRational then
+            // it is an inner edge with a boundary twin and the new polygon would be drawn outside the face
+            
+            // if
+            // * polygon does not cross the boundary
+            // * and polygon does not touch any vertex of the boundary (tricky what to do in this case)
+            // add the polygon but with conjugate angles
+            println("add inverted polygon to the boundary edge")
+            ???
           else
             ???
       yield result

@@ -177,10 +177,11 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     signedArea.toDouble should be < 0.0
   }
 
+  def startingTriangle: TilingDCEL = TilingBuilder.createRegularPolygon(3).value
+  
   // Basic addition tests
   it should "add a square to a triangle, producing a valid DCEL" in {
-    val triangle = TilingBuilder.createRegularPolygon(3).value
-    val result = triangle.addRegularPolygon("V1", 4)
+    val result = startingTriangle.addRegularPolygon("V1", 4)
 
     result.isRight shouldBe true
     val tiling = result.value
@@ -197,11 +198,31 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     anglesAroundV0.isFullCircle shouldBe true
   }
 
+  it should "do the same giving the directed edge" in {
+    val result = startingTriangle.addRegularPolygon("V1", "V3", 4)
+    result.isRight shouldBe true
+    val tiling = result.value
+//    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
+
+    verifyValidTiling(tiling)
+    val tiling2 = startingTriangle.addRegularPolygon("V1", 4).value
+    tiling.toString shouldEqual tiling2.toString
+  }
+
+  it should "add a polygon eclosing the tiling if the same edge is given in the opposite direction" in {
+    val triangle = startingTriangle
+    val result = triangle.addRegularPolygon("V3", "V1", 4)
+    result.isRight shouldBe true
+    val tiling = result.value
+//    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
+    verifyValidTiling(tiling)
+  }
+
   val irregularPentagonAngles: List[AngleDegree] =
     List(90, 150, 60, 150, 90).map(AngleDegree(_))
 
   it should "add an irregular pentagon to a triangle, producing a valid DCEL" in {
-    val triangle = TilingBuilder.createRegularPolygon(3).value
+    val triangle = startingTriangle
     val result = triangle.addSimplePolygon("V1", irregularPentagonAngles)
 
     result.isRight shouldBe true
@@ -215,7 +236,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "add the same irregular pentagon with a different orientation to a triangle, producing a valid DCEL" in {
-    val triangle = TilingBuilder.createRegularPolygon(3).value
+    val triangle = startingTriangle
     val result = triangle.addSimplePolygon("V1", irregularPentagonAngles.rotateRight(1))
 
     result.isRight shouldBe true
@@ -290,7 +311,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "add a hexagon to a triangle, producing a valid DCEL" in {
-    val triangle = TilingBuilder.createRegularPolygon(3).value
+    val triangle = startingTriangle
     val result = triangle.addRegularPolygon("V1", 6)
 
     result.isRight shouldBe true
@@ -305,7 +326,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   // Sequential addition tests
   it should "successfully add multiple polygons in sequence" in {
-    val triangle = TilingBuilder.createRegularPolygon(3).value
+    val triangle = startingTriangle
 
     val step1 = triangle.addRegularPolygon("V1", 3)
     step1.isRight shouldBe true
@@ -356,7 +377,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   // Large polygon tests
   it should "handle large polygons correctly" in {
-    val triangle = TilingBuilder.createRegularPolygon(3).value
+    val triangle = startingTriangle
     val result = triangle.addRegularPolygon("V1", 12) // Dodecagon
 
     result.isRight shouldBe true
@@ -382,7 +403,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "correctly handle vertices with multiple incident faces" in {
-    val triangle = TilingBuilder.createRegularPolygon(3).value
+    val triangle = startingTriangle
     val withTriangle2 = triangle.addRegularPolygon("V1", 3).value
     val withTriangle3 = withTriangle2.addRegularPolygon("V1", 3).value
 
@@ -402,14 +423,14 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "fail to add a polygon with 0 sides" in {
-    val triangle = TilingBuilder.createRegularPolygon(3).value
+    val triangle = startingTriangle
     val result = triangle.addRegularPolygon("V1", 0)
     result.isLeft shouldBe true
     result.left.value should include("must have at least 3 sides")
   }
 
   it should "fail to add a polygon with negative sides" in {
-    val triangle = TilingBuilder.createRegularPolygon(3).value
+    val triangle = startingTriangle
     val result = triangle.addRegularPolygon("V1", -1)
     result.isLeft shouldBe true
     result.left.value should include("must have at least 3 sides")
@@ -423,7 +444,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "fail to add a polygon on an empty vertex ID" in {
-    val triangle = TilingBuilder.createRegularPolygon(3).value
+    val triangle = startingTriangle
     val result = triangle.addRegularPolygon("", 3)
     result.isLeft shouldBe true
     result.left.value should include("not found on the boundary")
@@ -469,7 +490,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   // Face integrity tests
   it should "correctly assign face IDs to new faces" in {
-    val triangle = TilingBuilder.createRegularPolygon(3).value
+    val triangle = startingTriangle
     val result = triangle.addRegularPolygon("V1", 4)
 
     result.isRight shouldBe true
@@ -509,7 +530,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "successfully add a triangle with more than one edge shared" in {
-    val initialTiling = TilingBuilder.createRegularPolygon(3).value
+    val initialTiling = startingTriangle
 
     val result = initialTiling
       .maybeAddRegularPolygon("V1", 3).value
