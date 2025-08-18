@@ -357,7 +357,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
     tiling.getBoundaryEdges.value.head.angle = None
     val result = TilingDCEL.validate(tiling)
     result.isLeft shouldBe true
-    result.left.value should include("Undefined boundary angles")
+    result.left.value should include("Tiling has at least one half-edge with no angle defined")
   }
 
   it should "fail if a boundary angle is a full circle (360 degrees)" in {

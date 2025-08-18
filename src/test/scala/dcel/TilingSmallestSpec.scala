@@ -31,7 +31,7 @@ class TilingSmallestSpec extends AnyFlatSpec with Matchers with EitherValues:
     // Check structure
     tiling.vertices should have size 4
     tiling.innerFaces should have size 2
-    tiling.halfEdges should have size 10 // 4 boundary + 6 inner edges
+    tiling.halfEdges should have size 10 // 4 boundary edges + 6 inner edges
 
     // Check boundary angles
     tiling.outerFace.halfEdgesSafe.map(_.angle.get.toString).mkString(", ") shouldBe "240, 300, 240, 300"
