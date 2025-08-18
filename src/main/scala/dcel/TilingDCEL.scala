@@ -6,6 +6,8 @@ import TilingAddition.*
 import TilingDeletion.*
 import TilingSVG.*
 
+import ring_seq.RingSeq.rotationsAndReflections
+
 import scala.collection.mutable
 
 /**
@@ -173,13 +175,6 @@ case class TilingDCEL(
    * @return true if the two tilings are topologically equivalent, false otherwise.
    */
   def isTopologicallyEquivalentTo(other: TilingDCEL): Boolean =
-    def canonicalCycle(cycle: List[Int]): List[Int] =
-      if cycle.isEmpty then List.empty
-      else
-        val rotations = cycle.indices.map(i => cycle.drop(i) ++ cycle.take(i))
-        val reversed = cycle.reverse
-        val reversedRotations = reversed.indices.map(i => reversed.drop(i) ++ reversed.take(i))
-        (rotations ++ reversedRotations).min
 
     def getVertexSignature(vertex: Vertex, tiling: TilingDCEL): List[Int] =
       val faceCycle = vertex.incidentEdges.flatMap(_.incidentFace)
@@ -187,7 +182,7 @@ case class TilingDCEL(
         if face == tiling.outerFace then 0
         else face.halfEdgesSafe.size
       )
-      canonicalCycle(faceSizes)
+      faceSizes.rotationsAndReflections.min
 
     def toMultiset[T](list: List[T]): Map[T, Int] =
       list.groupMapReduce(identity)(_ => 1)(_ + _)
