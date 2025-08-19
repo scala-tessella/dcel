@@ -288,7 +288,6 @@ object TilingAddition:
             if edge.prev.get.angle.get.toRational > polyAngle.toRational then
               Left("Polygon would be drawn inside the face")
             else
-              // @todo should also check that the new vertices does not coincide with boundary
               val boundaryAnglesFromVertex = tiling.getBoundaryEdgesPath(v1, v1).map(_.angle.get)
               val first = polyAngle - boundaryAnglesFromVertex.head.conjugate
               val last = polyAngle - boundaryAnglesFromVertex.last.conjugate
