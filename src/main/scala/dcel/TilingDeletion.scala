@@ -157,13 +157,15 @@ object TilingDeletion:
         outerFace = tiling.outerFace
       )
 
-    def deleteEdge(vertexId1: String, vertexId2: String): Either[String, TilingDCEL] =
+    def deleteEdge(startVertexId: String, endVertexId: String): Either[String, TilingDCEL] =
       for
-        (_, _, edge) <- tiling.findVerticesAndEdgeBetween(vertexId1, vertexId2)
+        (_, _, edge) <- tiling.findVerticesAndEdgeBetween(startVertexId, endVertexId)
         result <-
-          if edge.twin.exists(_.incidentFace.contains(tiling.outerFace)) then
+          if tiling.isBoundaryEdge(edge.twin.get) then
             // this should never happen if a TilingDCEL is well-formed, but just in case
             edge.incidentFace.map(_.id).toRight("Edge has no incident face").flatMap(deletePolygon)
+          else if tiling.isBoundaryEdge(edge) then
+            edge.twin.get.incidentFace.map(_.id).toRight("Edge has no incident face").flatMap(deletePolygon)
           else
             performEdgePathDeletion(expandPathToDelete(edge))
       yield result

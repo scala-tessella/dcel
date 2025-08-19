@@ -273,36 +273,33 @@ object TilingAddition:
               clone.addSimplePolygonToBoundaryWithoutGuards(startingVertexId, holeAngles).get
                 .addRegularPolygonToBoundary(onEdgeStartingWithVertexId, sides)
 
-    def addRegularPolygon(vertexId1: String, vertexId2: String, sides: Int): Either[String, TilingDCEL] =
+    def addRegularPolygon(startVertexId: String, endVertexId: String, sides: Int): Either[String, TilingDCEL] =
       for
-        (v1, v2, edgeToBuildOn) <- tiling.findVerticesAndEdgeBetween(vertexId1, vertexId2)
+        (startVertex, endVertex, edgeToBuildOn) <- tiling.findVerticesAndEdgeBetween(startVertexId, endVertexId)
         _  <- validateSides(sides, "regular")
         polyAngle = polygonAngle(sides)
         result <-
-          val isBoundaryEdge = edgeToBuildOn.incidentFace.contains(tiling.outerFace)
-          if isBoundaryEdge then
-            addRegularPolygonToBoundary(vertexId1, sides)
+          if tiling.isBoundaryEdge(edgeToBuildOn) then
+            addRegularPolygonToBoundary(startVertexId, sides)
           else
-            val isTwinOfBoundary =
-              edgeToBuildOn.twin.get.incidentFace.contains(tiling.outerFace)
             // @todo it could work also with a "bottleneck" edge, that is with both vertices on the boundary, but the inner angles at vertex should be split
 //            val boundaryVertices = tiling.boundary
 //            // if both vertices belong to the boundary, either the edge is the twin of a boundary edge or is a "bottleneck"
 //            val hasBothVerticesOnBoundary = boundaryVertices.contains(v1) && boundaryVertices.contains(v2)
             val hasEnclosingStart =
-              isTwinOfBoundary
-                && tiling.getInnerAnglesAtVertex(v1.id).toOption.get.sum2.toRational < polyAngle.toRational
+              tiling.isBoundaryEdge(edgeToBuildOn.twin.get)
+                && tiling.getInnerAnglesAtVertex(startVertexId).toOption.get.sum2.toRational < polyAngle.toRational
             if hasEnclosingStart then
               val hasEnclosingEnd =
-                tiling.getInnerAnglesAtVertex(v2.id).toOption.get.sum2.toRational < polyAngle.toRational
+                tiling.getInnerAnglesAtVertex(endVertexId).toOption.get.sum2.toRational < polyAngle.toRational
               if !hasEnclosingEnd then
                 Left("Polygon would be drawn inside the face")
               else
-                val boundaryAnglesFromVertex = tiling.getBoundaryEdgesPath(v1, v1).map(_.angle.get)
+                val boundaryAnglesFromVertex = tiling.getBoundaryEdgesPath(startVertex, startVertex).map(_.angle.get)
                 val first = polyAngle - boundaryAnglesFromVertex.head.conjugate
                 val last = polyAngle - boundaryAnglesFromVertex.last.conjugate
                 val simplePolygonAngles = first :: boundaryAnglesFromVertex.tail.init ::: (last :: List.fill(sides - 2)(polyAngle))
-                addSimplePolygonToBoundary(vertexId1, simplePolygonAngles) match
+                addSimplePolygonToBoundary(startVertexId, simplePolygonAngles) match
                   case Left(message) if message.startsWith("The polygon is not simple") =>
                     Left("The polygon is touching other boundary edges.")
                   case either => either

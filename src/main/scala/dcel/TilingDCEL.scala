@@ -33,6 +33,9 @@ case class TilingDCEL(
   def findFace(id: String): Option[Face] =
     faces.find(_.id == id)
 
+  def isBoundaryEdge(halfEdge: HalfEdge): Boolean =
+    halfEdge.incidentFace.contains(outerFace)
+    
   def findEdgeBetween(v1: Vertex, v2: Vertex): Option[HalfEdge] =
     v1.incidentEdges.find(_.destination.contains(v2))
 
@@ -59,7 +62,7 @@ case class TilingDCEL(
     for
       vertex <- findVertex(vertexId).toRight(s"Vertex with ID $vertexId not found.")
       edges <- vertex.incidentEdgesSafe
-      innerEdges = edges.filterNot(_.incidentFace.contains(outerFace))
+      innerEdges = edges.filterNot(isBoundaryEdge)
       maybeAngles = innerEdges.map(_.angle)
       angles <- if (maybeAngles.contains(None))
         Left(s"Vertex with ID $vertexId has at least one inner edge with no angle defined.")

@@ -177,6 +177,23 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with EitherValues:
     newTiling.boundary.length shouldBe 4
   }
 
+  it should "successfully delete a boundary edge" in {
+    val tiling = TilingBuilder.createRegularPolygon(4).value
+      .addRegularPolygonToBoundary("V2", 4).value // Two squares
+    tiling.innerFaces.length shouldBe 2
+
+    // Deleting a boundary edge, e.g., (V1, V2) from the first square
+    val result = tiling.deleteEdge("V4", "V3")
+    result.isRight shouldBe true
+    val newTiling = result.value
+    verifyValidTiling(newTiling)
+
+    newTiling.innerFaces.length shouldBe 1
+    newTiling.innerFaces.head.id shouldBe "F2" // F1 is deleted
+    newTiling.vertices.length shouldBe 4
+    newTiling.boundary.length shouldBe 4
+  }
+
   it should "successfully delete a single inner edge, merging two faces" in {
     val tiling = TilingBuilder.createRegularPolygon(4).value
       .addRegularPolygonToBoundary("V2", 4).value // Two squares sharing edge (V2, V3)
