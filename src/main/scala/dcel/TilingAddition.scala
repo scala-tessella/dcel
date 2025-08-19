@@ -293,7 +293,10 @@ object TilingAddition:
               val first = polyAngle - boundaryAnglesFromVertex.head.conjugate
               val last = polyAngle - boundaryAnglesFromVertex.last.conjugate
               val simplePolygonAngles = first :: boundaryAnglesFromVertex.tail.init ::: (last :: List.fill(sides - 2)(polyAngle))
-              addSimplePolygonToBoundary(vertexId1, simplePolygonAngles)
+              addSimplePolygonToBoundary(vertexId1, simplePolygonAngles) match
+                case Left(message) if message.startsWith("The polygon is not simple") =>
+                  Left("The polygon is touching other boundary edges.")
+                case either => either
           else
             ???
       yield result
