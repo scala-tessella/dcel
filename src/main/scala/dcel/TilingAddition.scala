@@ -283,11 +283,15 @@ object TilingAddition:
           // it is a boundary edge
             addRegularPolygonToBoundary(vertexId1, sides)
           else
-            val boundaryVertices = tiling.boundary
-            // if both vertices belong to the boundary, either the edge is the twin of a boundary edge or is a "bottleneck"
-            val hasBothVerticesOnBoundary = boundaryVertices.contains(v1) && boundaryVertices.contains(v2)
+
+            val isTwinOfBoundary =
+              edge.twin.get.incidentFace.contains(tiling.outerFace)
+            // @todo it could work also with a "bottleneck" edge, that is with both vertices on the boundary, but the inner angles at vertex should be split
+//            val boundaryVertices = tiling.boundary
+//            // if both vertices belong to the boundary, either the edge is the twin of a boundary edge or is a "bottleneck"
+//            val hasBothVerticesOnBoundary = boundaryVertices.contains(v1) && boundaryVertices.contains(v2)
             val hasEnclosingStart =
-              hasBothVerticesOnBoundary
+              isTwinOfBoundary
                 && tiling.getInnerAnglesAtVertex(v1.id).toOption.get.sum2.toRational < polyAngle.toRational
             if hasEnclosingStart then
               val hasEnclosingEnd =
