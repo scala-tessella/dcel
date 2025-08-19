@@ -284,17 +284,15 @@ object TilingAddition:
             addRegularPolygonToBoundary(vertexId1, sides)
           else
             val boundaryVertices = tiling.boundary
-            if boundaryVertices.contains(v1)
-              && boundaryVertices.contains(v2)
-              && tiling.getInnerAnglesAtVertex(v1.id).toOption.get.sum2.toRational < polyAngle.toRational
-              then
-//              println(
-//                s"""
-//                   |v1 angles: ${tiling.getInnerAnglesAtVertex(v1.id).toOption.get}
-//                   |v2 angles: ${tiling.getInnerAnglesAtVertex(v2.id)}
-//                   |""".stripMargin)
-              // it is an inner edge with a boundary twin, and the new polygon would be drawn outside the face
-              if tiling.getInnerAnglesAtVertex(v2.id).toOption.get.sum2.toRational > polyAngle.toRational then
+            // if both vertices belong to the boundary, either the edge is the twin of a boundary edge or is a "bottleneck"
+            val hasBothVerticesOnBoundary = boundaryVertices.contains(v1) && boundaryVertices.contains(v2)
+            val hasEnclosingStart =
+              hasBothVerticesOnBoundary
+                && tiling.getInnerAnglesAtVertex(v1.id).toOption.get.sum2.toRational < polyAngle.toRational
+            if hasEnclosingStart then
+              val hasEnclosingEnd =
+                tiling.getInnerAnglesAtVertex(v2.id).toOption.get.sum2.toRational < polyAngle.toRational
+              if !hasEnclosingEnd then
                 Left("Polygon would be drawn inside the face")
               else
                 val boundaryAnglesFromVertex = tiling.getBoundaryEdgesPath(v1, v1).map(_.angle.get)
