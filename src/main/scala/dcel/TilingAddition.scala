@@ -275,17 +275,16 @@ object TilingAddition:
 
     def addRegularPolygon(vertexId1: String, vertexId2: String, sides: Int): Either[String, TilingDCEL] =
       for
-        (v1, v2, edge) <- tiling.findVerticesAndEdgeBetween(vertexId1, vertexId2)
+        (v1, v2, edgeToBuildOn) <- tiling.findVerticesAndEdgeBetween(vertexId1, vertexId2)
         _  <- validateSides(sides, "regular")
         polyAngle = polygonAngle(sides)
         result <-
-          if edge.incidentFace.contains(tiling.outerFace) then
-          // it is a boundary edge
+          val isBoundaryEdge = edgeToBuildOn.incidentFace.contains(tiling.outerFace)
+          if isBoundaryEdge then
             addRegularPolygonToBoundary(vertexId1, sides)
           else
-
             val isTwinOfBoundary =
-              edge.twin.get.incidentFace.contains(tiling.outerFace)
+              edgeToBuildOn.twin.get.incidentFace.contains(tiling.outerFace)
             // @todo it could work also with a "bottleneck" edge, that is with both vertices on the boundary, but the inner angles at vertex should be split
 //            val boundaryVertices = tiling.boundary
 //            // if both vertices belong to the boundary, either the edge is the twin of a boundary edge or is a "bottleneck"
