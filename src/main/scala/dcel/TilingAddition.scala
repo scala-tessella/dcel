@@ -275,9 +275,7 @@ object TilingAddition:
 
     def addRegularPolygon(vertexId1: String, vertexId2: String, sides: Int): Either[String, TilingDCEL] =
       for
-        v1 <- tiling.findVertex(vertexId1).toRight(s"Vertex with ID $vertexId1 not found.")
-        v2 <- tiling.findVertex(vertexId2).toRight(s"Vertex with ID $vertexId2 not found.")
-        edge <- tiling.findEdgeBetween(v1, v2).toRight(s"Edge between vertices $vertexId1 and $vertexId2 not found.")
+        (v1, _, edge) <- tiling.findVerticesAndEdgeBetween(vertexId1, vertexId2)
         _  <- validateSides(sides, "regular")
         polyAngle = polygonAngle(sides)
         result <-
@@ -290,6 +288,7 @@ object TilingAddition:
             if edge.prev.get.angle.get.toRational > polyAngle.toRational then
               Left("Polygon would be drawn inside the face")
             else
+              // @todo should also check that the new vertices does not coincide with boundary
               val boundaryAnglesFromVertex = tiling.getBoundaryEdgesPath(v1, v1).map(_.angle.get)
               val first = polyAngle - boundaryAnglesFromVertex.head.conjugate
               val last = polyAngle - boundaryAnglesFromVertex.last.conjugate

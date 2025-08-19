@@ -36,6 +36,14 @@ case class TilingDCEL(
   def findEdgeBetween(v1: Vertex, v2: Vertex): Option[HalfEdge] =
     v1.incidentEdges.find(_.destination.contains(v2))
 
+  def findVerticesAndEdgeBetween(vertexId1: String, vertexId2: String): Either[String, (Vertex, Vertex, HalfEdge)] =
+    for
+      v1 <- findVertex(vertexId1).toRight(s"Vertex with ID $vertexId1 not found.")
+      v2 <- findVertex(vertexId2).toRight(s"Vertex with ID $vertexId2 not found.")
+      edge <- findEdgeBetween(v1, v2).toRight(s"Edge between vertices $vertexId1 and $vertexId2 not found.")
+    yield
+      (v1, v2, edge)
+      
   def getAnglesAtVertex(vertexId: String): Either[String, List[AngleDegree]] =
     for
       vertex <- findVertex(vertexId).toRight(s"Vertex with ID $vertexId not found.")

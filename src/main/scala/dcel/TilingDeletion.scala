@@ -159,9 +159,7 @@ object TilingDeletion:
 
     def deleteEdge(vertexId1: String, vertexId2: String): Either[String, TilingDCEL] =
       for
-        v1 <- tiling.findVertex(vertexId1).toRight(s"Vertex with ID $vertexId1 not found.")
-        v2 <- tiling.findVertex(vertexId2).toRight(s"Vertex with ID $vertexId2 not found.")
-        edge <- tiling.findEdgeBetween(v1, v2).toRight(s"Edge between vertices $vertexId1 and $vertexId2 not found.")
+        (_, _, edge) <- tiling.findVerticesAndEdgeBetween(vertexId1, vertexId2)
         result <-
           if edge.twin.exists(_.incidentFace.contains(tiling.outerFace)) then
             // this should never happen if a TilingDCEL is well-formed, but just in case
