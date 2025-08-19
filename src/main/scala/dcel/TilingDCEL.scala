@@ -55,6 +55,18 @@ case class TilingDCEL(
         Right(maybeAngles.flatten)
     yield angles
 
+  def getInnerAnglesAtVertex(vertexId: String): Either[String, List[AngleDegree]] =
+    for
+      vertex <- findVertex(vertexId).toRight(s"Vertex with ID $vertexId not found.")
+      edges <- vertex.incidentEdgesSafe
+      innerEdges = edges.filterNot(_.incidentFace.contains(outerFace))
+      maybeAngles = innerEdges.map(_.angle)
+      angles <- if (maybeAngles.contains(None))
+        Left(s"Vertex with ID $vertexId has at least one inner edge with no angle defined.")
+      else
+        Right(maybeAngles.flatten)
+    yield angles
+
   def hasConnectedFaces: Boolean =
     innerFaces.isConnected
 

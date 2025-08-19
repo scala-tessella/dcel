@@ -275,29 +275,39 @@ object TilingAddition:
 
     def addRegularPolygon(vertexId1: String, vertexId2: String, sides: Int): Either[String, TilingDCEL] =
       for
-        (v1, _, edge) <- tiling.findVerticesAndEdgeBetween(vertexId1, vertexId2)
+        (v1, v2, edge) <- tiling.findVerticesAndEdgeBetween(vertexId1, vertexId2)
         _  <- validateSides(sides, "regular")
         polyAngle = polygonAngle(sides)
         result <-
           if edge.incidentFace.contains(tiling.outerFace) then
           // it is a boundary edge
             addRegularPolygonToBoundary(vertexId1, sides)
-          else if edge.twin.exists(_.incidentFace.contains(tiling.outerFace))
-            && polyAngle.toRational > edge.angle.get.toRational then
-            // it is an inner edge with a boundary twin, and the new polygon would be drawn outside the face
-            if edge.prev.get.angle.get.toRational > polyAngle.toRational then
-              Left("Polygon would be drawn inside the face")
-            else
-              val boundaryAnglesFromVertex = tiling.getBoundaryEdgesPath(v1, v1).map(_.angle.get)
-              val first = polyAngle - boundaryAnglesFromVertex.head.conjugate
-              val last = polyAngle - boundaryAnglesFromVertex.last.conjugate
-              val simplePolygonAngles = first :: boundaryAnglesFromVertex.tail.init ::: (last :: List.fill(sides - 2)(polyAngle))
-              addSimplePolygonToBoundary(vertexId1, simplePolygonAngles) match
-                case Left(message) if message.startsWith("The polygon is not simple") =>
-                  Left("The polygon is touching other boundary edges.")
-                case either => either
           else
-            ???
+            val boundaryVertices = tiling.boundary
+            if boundaryVertices.contains(v1)
+              && boundaryVertices.contains(v2)
+              && tiling.getInnerAnglesAtVertex(v1.id).toOption.get.sum2.toRational < polyAngle.toRational
+              then
+//              println(
+//                s"""
+//                   |v1 angles: ${tiling.getInnerAnglesAtVertex(v1.id).toOption.get}
+//                   |v2 angles: ${tiling.getInnerAnglesAtVertex(v2.id)}
+//                   |""".stripMargin)
+              // it is an inner edge with a boundary twin, and the new polygon would be drawn outside the face
+              if tiling.getInnerAnglesAtVertex(v2.id).toOption.get.sum2.toRational > polyAngle.toRational then
+                Left("Polygon would be drawn inside the face")
+              else
+                val boundaryAnglesFromVertex = tiling.getBoundaryEdgesPath(v1, v1).map(_.angle.get)
+                val first = polyAngle - boundaryAnglesFromVertex.head.conjugate
+                val last = polyAngle - boundaryAnglesFromVertex.last.conjugate
+                val simplePolygonAngles = first :: boundaryAnglesFromVertex.tail.init ::: (last :: List.fill(sides - 2)(polyAngle))
+                addSimplePolygonToBoundary(vertexId1, simplePolygonAngles) match
+                  case Left(message) if message.startsWith("The polygon is not simple") =>
+                    Left("The polygon is touching other boundary edges.")
+                  case either => either
+            else
+              ???
+
       yield result
 
   // Helper case classes for better structure

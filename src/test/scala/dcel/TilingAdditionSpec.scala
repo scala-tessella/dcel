@@ -714,6 +714,29 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     verifyValidTiling(tiling)
   }
 
+  it should "fail to add a polygon enclosing the tiling if the polygons starts inside" in {
+    val triangle = startingTriangle
+    val result = triangle
+      .addRegularPolygonToBoundary("V2", 4).value
+      .addRegularPolygon("V1", "V5", 5)
+
+    println(result)
+    result.isRight shouldBe true
+    val tiling = result.value
+    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
+    verifyValidTiling(tiling)
+  }
+
+  it should "fail to add a polygon enclosing the tiling if the polygon starts outside but end inside" in {
+    val triangle = startingTriangle
+    val result = triangle
+      .addRegularPolygonToBoundary("V2", 4).value
+      .addRegularPolygon("V4", "V2", 5)
+
+    result.isLeft shouldBe true
+    result.left.value should include("drawn inside the face")
+  }
+
   it should "fail to add a polygon enclosing the tiling if it touches other boundary edges" in {
     val square = TilingBuilder.createRegularPolygon(4).value
 
