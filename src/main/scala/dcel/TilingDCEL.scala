@@ -35,7 +35,7 @@ case class TilingDCEL(
 
   def isBoundaryEdge(halfEdge: HalfEdge): Boolean =
     halfEdge.incidentFace.contains(outerFace)
-    
+
   def findEdgeBetween(v1: Vertex, v2: Vertex): Option[HalfEdge] =
     v1.incidentEdges.find(_.destination.contains(v2))
 
@@ -111,7 +111,6 @@ case class TilingDCEL(
    */
   private def findBoundaryEdge(vertexId: String): Option[HalfEdge] =
     getBoundaryEdges.toOption.flatMap(_.find(_.origin.id == vertexId))
-
 
   def maybeAddRegularPolygonToBoundary(onEdgeStartingWithVertexId: String, sides: Int): Either[String, TilingDCEL] =
     this.addRegularPolygonToBoundary(onEdgeStartingWithVertexId, sides)
