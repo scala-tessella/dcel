@@ -168,6 +168,18 @@ object TilingAddition:
       yield
         result
 
+    private def determinePathDirection(pathFwd: List[HalfEdge], pathBack: List[HalfEdge]): (List[HalfEdge], Boolean) =
+      if pathFwd.sizeCompare(pathBack) < 0 then
+        (pathFwd, true)
+      else
+        (pathBack, false)
+
+    private def calculateHolePolygonAngles(holePath: List[HalfEdge]): List[AngleDegree] =
+      val holeAngles = holePath.map(_.angle.get)
+      val sumOfOtherAngles = holeAngles.tail.sum2
+      val closingAngle = SimplePolygon.alphaSum(holeAngles.length) - sumOfOtherAngles
+      closingAngle :: holeAngles.tail
+
     /** Calculates the angles needed to fill a hole in the tiling's boundary,
      *  determining the correct starting vertex and direction for the new polygon.
      *
@@ -184,15 +196,10 @@ object TilingAddition:
       val pathBack = boundaryEdges.getPath(from = v_new, to = v_match)
 
       val (holePath, isForward) =
-        if pathFwd.sizeCompare(pathBack) < 0 then (pathFwd, true)
-        else (pathBack, false)
+        determinePathDirection(pathFwd, pathBack)
 
       // 2. Calculate the internal angles for a new polygon that would fill this hole.
-      val holeAngles = holePath.map(_.angle.get)
-      val polygonAngles =
-        val sumOfOtherAngles = holeAngles.tail.sum2
-        val closingAngle = SimplePolygon.alphaSum(holeAngles.length) - sumOfOtherAngles
-        closingAngle :: holeAngles.tail
+      val polygonAngles = calculateHolePolygonAngles(holePath)
 
       // 3. Determine the starting vertex and adjust angle order based on the path direction.
       if isForward then
