@@ -215,7 +215,7 @@ object TilingAddition:
         else TilingDCEL.empty
 
       val (newVertices, newHalfEdges, newFace) =
-        additionalElements(edgeToBuildOn, angles, tiling.nextFaceId, tiling.outerFace, tempVertices, edgeResults, boundaryAngles)
+        innerAdditionalElements(edgeToBuildOn, angles, tiling.nextFaceId, tiling.outerFace, tempVertices, edgeResults, boundaryAngles)
       println(
         s"""
            |newVertices: $newVertices
@@ -384,7 +384,7 @@ object TilingAddition:
                 val faceEdges = innerFace.halfEdgesSafe
                 println(s"faceEdges: $faceEdges")
                 innerGrowthWithHoleCheck(startVertex, endVertex, edgeToBuildOn, angles, points, faceEdges)
-  
+
         yield result
 
       either match
@@ -484,6 +484,58 @@ object TilingAddition:
           Some(startOfLastBlock)
 
   private def additionalElements(
+    edgeToBuildOn: HalfEdge,
+    angles: List[AngleDegree],
+    newFaceId: String,
+    outer: Face,
+    newVertices: List[Vertex],
+    edgesResult: SharedEdgesResult,
+    boundaryAngles: BoundaryAngles
+  ): (List[Vertex], List[HalfEdge], Face) =
+    given outerFace: Face = outer
+
+    val newFace = Face(newFaceId)
+
+    // Different start and end vertex
+    val revisedStartVertex = edgesResult.startEdge.destination.get
+    val revisedEndVertex = edgesResult.endEdge.origin
+
+    // Different boundary angles
+    val revisedBoundaryAngles = BoundaryAngles(
+      start = edgesResult.startCheck,
+      end = edgesResult.endCheck,
+      newVertices = boundaryAngles.newVertices.drop(edgesResult.startCounter).dropRight(edgesResult.endCounter)
+    )
+
+    // Different boundary
+    val completeBoundary = BoundaryState(Some(edgesResult.startEdge), Some(edgesResult.endEdge))
+
+    val allVertices = revisedStartVertex :: newVertices ::: revisedEndVertex :: Nil
+
+    val revisedAngles = angles.reverse.drop(edgesResult.startCounter).dropRight(edgesResult.endCounter)
+
+    val edgePairs = createEdgePairs(allVertices, outerFace, newFace, revisedBoundaryAngles.start, revisedAngles)
+    val (newBoundaryEdges, newInnerEdges) = edgePairs.unzip
+
+    val sharedAngles = angles.takeRight(edgesResult.startCounter) ++ angles.take(edgesResult.endCounter + 1)
+    // Update existing structures
+    updateExistingStructures(
+      edgesResult.sharedEdges, newFace, sharedAngles,
+      newBoundaryEdges, completeBoundary, revisedBoundaryAngles
+    )
+
+    // Link new face edges
+    linkNewFaceEdges(edgeToBuildOn, edgesResult.sharedEdges, newInnerEdges.reverse, newFace)
+
+    // Connect to boundary
+    connectNewBoundaryEdges(newBoundaryEdges, completeBoundary, outerFace, edgesResult.sharedEdges)
+
+    // Update vertex leaving edges
+    updateVertexLeavingEdges(revisedStartVertex :: newVertices, newBoundaryEdges)
+
+    (newVertices, newBoundaryEdges ::: newInnerEdges, newFace)
+
+  private def innerAdditionalElements(
     edgeToBuildOn: HalfEdge,
     angles: List[AngleDegree],
     newFaceId: String,
