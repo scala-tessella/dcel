@@ -11,9 +11,9 @@ class TilingSmallestSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   behavior of "TilingDCEL smallest significant examples"
 
-  it should "add an enclosing square to a triangle, producing the smallest DCEL with a non boundary vertex" in {
-    val triangle = TilingBuilder.createRegularPolygon(3).value
-    val result = triangle.addRegularPolygon("V1", "V2", 4)
+  it should "add an inner triangle to a square, producing the smallest DCEL with a non boundary vertex" in {
+    val square = TilingBuilder.createRegularPolygon(4).value
+    val result = square.addRegularPolygon("V1", "V2", 3)
 
     result.isRight shouldBe true
     //    val tiling = result.value
@@ -47,10 +47,10 @@ class TilingSmallestSpec extends AnyFlatSpec with Matchers with EitherValues:
     boundary.map(_.id) should contain theSameElementsInOrderAs Vector("V1", "V3", "V2", "V4")
   }
 
-  it should "add an enclosing square to a triangle and then a triangle, producing the smallest DCEL with a non boundary face" in {
-    val triangle = TilingBuilder.createRegularPolygon(3).value
-    val result = triangle
-      .addRegularPolygon("V1", "V2", 4).value
+  it should "add an inner triangle to a square and then a triangle, producing the smallest DCEL with a non boundary face" in {
+    val square = TilingBuilder.createRegularPolygon(4).value
+    val result = square
+      .addRegularPolygon("V1", "V2", 3).value
       .addRegularPolygonToBoundary("V2", 3)
 
     result.isRight shouldBe true

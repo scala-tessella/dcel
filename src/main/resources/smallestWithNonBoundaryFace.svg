@@ -3,11 +3,11 @@
         <!-- Edges -->
         <g stroke-width="1.0" stroke="black">
             <line x1="0" y1="0" x2="50" y2="0"/>
-            <line x1="50" y1="0" x2="25" y2="-43.30127"/>
-            <line x1="25" y1="-43.30127" x2="0" y2="0"/>
-            <line x1="0" y1="0" x2="0" y2="-50"/>
-            <line x1="0" y1="-50" x2="50" y2="-50"/>
-            <line x1="50" y1="-50" x2="50" y2="0"/>
+            <line x1="50" y1="0" x2="50" y2="-50"/>
+            <line x1="50" y1="-50" x2="0" y2="-50"/>
+            <line x1="0" y1="-50" x2="0" y2="0"/>
+            <line x1="0" y1="0" x2="25" y2="-43.30127"/>
+            <line x1="25" y1="-43.30127" x2="50" y2="0"/>
             <line x1="50" y1="0" x2="25" y2="43.30127"/>
             <line x1="25" y1="43.30127" x2="0" y2="0"/>
         </g>
@@ -17,14 +17,14 @@
         </g>
         <!-- Inner Face Half-Edge Direction Arrows -->
         <g stroke-width="0.5" stroke="blue" fill="blue">
-            <polygon points="28,0 25,-1.2 25,1.2"/>
-            <polygon points="36,-24.248711 36.46077,-21.050635 38.53923,-22.250635"/>
-            <polygon points="11,-19.052559 13.53923,-21.050635 11.46077,-22.250635"/>
             <polygon points="14,-24.248711 11.46077,-22.250635 13.53923,-21.050635"/>
             <polygon points="39,-19.052559 38.53923,-22.250635 36.46077,-21.050635"/>
             <polygon points="50,-28 48.8,-25 51.2,-25"/>
             <polygon points="22,-50 25,-48.8 25,-51.2"/>
             <polygon points="0,-22 1.2,-25 -1.2,-25"/>
+            <polygon points="28,0 25,-1.2 25,1.2"/>
+            <polygon points="36,-24.248711 36.46077,-21.050635 38.53923,-22.250635"/>
+            <polygon points="11,-19.052559 13.53923,-21.050635 11.46077,-22.250635"/>
             <polygon points="22,-0 25,1.2 25,-1.2"/>
             <polygon points="14,24.248711 13.53923,21.050635 11.46077,22.250635"/>
             <polygon points="39,19.052559 36.46077,21.050635 38.53923,22.250635"/>
@@ -39,27 +39,27 @@
         </g>
         <!-- Leaving Edge Markers -->
         <g stroke-width="1.5" stroke="yellow" fill="yellow">
-            <polygon points="0,-14.5 -0.8,-12.5 0.8,-12.5"/>
+            <polygon points="7.25,-12.557368 5.55718,-11.225318 6.94282,-10.425318"/>
             <polygon points="42.75,12.557368 44.44282,11.225318 43.05718,10.425318"/>
-            <polygon points="17.75,-30.743902 19.44282,-32.075953 18.05718,-32.875953"/>
-            <polygon points="14.5,-50 12.5,-50.8 12.5,-49.2"/>
-            <polygon points="50,-35.5 50.8,-37.5 49.2,-37.5"/>
+            <polygon points="35.5,-50 37.5,-49.2 37.5,-50.8"/>
+            <polygon points="0,-35.5 0.8,-37.5 -0.8,-37.5"/>
+            <polygon points="32.25,-30.743902 31.94282,-32.875953 30.55718,-32.075953"/>
             <polygon points="17.75,30.743902 18.05718,32.875953 19.44282,32.075953"/>
         </g>
         <!-- Face Ids On Edges Labels -->
         <g fill="blue" alignment-baseline="middle" text-anchor="middle" font-size="4">
-            <text x="25" y="-4">F1</text>
-            <text x="34.035898" y="-19.650635">F1</text>
-            <text x="15.964102" y="-19.650635">F1</text>
-            <text x="9.035898" y="-23.650635">F2</text>
-            <text x="25" y="4">F3</text>
-            <text x="40.964102" y="-23.650635">F2</text>
+            <text x="25" y="-4">F2</text>
+            <text x="46" y="-25">F1</text>
+            <text x="25" y="-46">F1</text>
+            <text x="4" y="-25">F1</text>
             <text x="-4" y="-25">F0</text>
-            <text x="25" y="-54">F0</text>
+            <text x="25" y="4">F3</text>
             <text x="54" y="-25">F0</text>
-            <text x="4" y="-25">F2</text>
-            <text x="25" y="-46">F2</text>
-            <text x="46" y="-25">F2</text>
+            <text x="25" y="-54">F0</text>
+            <text x="9.035898" y="-23.650635">F1</text>
+            <text x="40.964102" y="-23.650635">F1</text>
+            <text x="15.964102" y="-19.650635">F2</text>
+            <text x="34.035898" y="-19.650635">F2</text>
             <text x="40.964102" y="23.650635">F0</text>
             <text x="9.035898" y="23.650635">F0</text>
             <text x="34.035898" y="19.650635">F3</text>
@@ -69,46 +69,46 @@
         <g fill="red">
             <circle cx="0" cy="0" r="2.0"/>
             <circle cx="50" cy="0" r="2.0"/>
-            <circle cx="25" cy="-43.30127" r="2.0"/>
-            <circle cx="0" cy="-50" r="2.0"/>
             <circle cx="50" cy="-50" r="2.0"/>
+            <circle cx="0" cy="-50" r="2.0"/>
+            <circle cx="25" cy="-43.30127" r="2.0"/>
             <circle cx="25" cy="43.30127" r="2.0"/>
         </g>
         <!-- Vertex Labels -->
         <g fill="darkblue" font-size="8">
             <text x="2.5" y="-2.5">V1</text>
             <text x="52.5" y="-2.5">V2</text>
-            <text x="27.5" y="-45.80127">V3</text>
+            <text x="52.5" y="-52.5">V3</text>
             <text x="2.5" y="-52.5">V4</text>
-            <text x="52.5" y="-52.5">V5</text>
+            <text x="27.5" y="-45.80127">V5</text>
             <text x="27.5" y="40.80127">V6</text>
         </g>
         <!-- Face Labels -->
         <g dominant-baseline="middle" text-anchor="middle" fill="green" font-size="6">
-            <text x="25" y="-14.433757">F1</text>
-            <text x="25" y="-28.660254">F2</text>
+            <text x="25" y="-28.660254">F1</text>
+            <text x="25" y="-14.433757">F2</text>
             <text x="25" y="14.433757">F3</text>
         </g>
         <!-- Inner Angle Labels -->
         <g dominant-baseline="middle" text-anchor="middle" fill="purple" font-size="5">
-            <text x="6.928203" y="-4">60°</text>
-            <text x="43.071797" y="-4">60°</text>
-            <text x="25" y="-35.30127">60°</text>
             <text x="5.258771" y="-6.028709">30°</text>
             <text x="25" y="-35.30127">300°</text>
             <text x="44.741229" y="-6.028709">30°</text>
             <text x="43.915278" y="-44.806143">90°</text>
             <text x="6.084722" y="-44.806143">90°</text>
+            <text x="6.928203" y="-4">60°</text>
+            <text x="43.071797" y="-4">60°</text>
+            <text x="25" y="-35.30127">60°</text>
             <text x="43.071797" y="4">60°</text>
             <text x="6.928203" y="4">60°</text>
             <text x="25" y="35.30127">60°</text>
         </g>
         <!-- Outer Angle Labels -->
         <g dominant-baseline="middle" text-anchor="middle" fill="orange" font-size="5">
-            <text x="-6.928203" y="4">210°</text>
-            <text x="-4.600489" y="-56.544884">270°</text>
-            <text x="54.600489" y="-56.544884">270°</text>
-            <text x="56.928203" y="4">210°</text>
+            <text x="-5.258771" y="6.028709">210°</text>
+            <text x="-6.084722" y="-55.193857">270°</text>
+            <text x="56.084722" y="-55.193857">270°</text>
+            <text x="55.258771" y="6.028709">210°</text>
             <text x="25" y="51.30127">300°</text>
         </g>
     </g>
