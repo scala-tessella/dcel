@@ -118,59 +118,6 @@ object TilingAddition:
       points: List[BigPoint],
       boundaryEdges: List[HalfEdge]
     ): Either[String, (TilingDCEL, TilingDCEL, Option[(Vertex, Vertex)])] =
-      additionalVertices(startVertex, endVertex, edgeToBuildOn, angles, points, tiling.nextVertexIndex, tiling.outerFace) match
-        case Left(value) => Left(value)
-        case Right((tempVertices, edgeResults, boundaryAngles)) =>
-          val adjustedTempVertices =
-            edgeResults.startEdge.destination.get :: tempVertices ::: List(edgeResults.endEdge.origin)
-
-          // here we must check if the new boundary intersects with the existing one
-          val newSides: List[BigLineSegment] =
-            adjustedTempVertices.sliding(2).toList.map { (_: @unchecked) match
-              case p1 :: p2 :: Nil => BigLineSegment(p1.coords, p2.coords)
-            }
-
-          val newBox =
-            BigBox.fromPoints(adjustedTempVertices.map(_.coords)).expand(1)
-
-          val oldSides: List[BigLineSegment] =
-            boundaryEdges.slidingO(2).toList.map {
-              case e1 :: e2 :: Nil => BigLineSegment(e1.origin.coords, e2.origin.coords)
-              case _ =>  BigLineSegment(BigPoint(), BigPoint())
-            }.filter(line => newBox.contains(line.p1) || newBox.contains(line.p2))
-
-          val hasIntersection =
-            oldSides.exists(oldSide => newSides.exists(newSide => oldSide.properlyIntersects(newSide)))
-          if hasIntersection then
-            return Left("Boundary intersection")
-
-          val maybeHoleClosure: Option[(Vertex, Vertex)] =
-            findHoleClosure(startVertex, boundaryEdges, tempVertices)
-
-          val deepCopiedOriginal: TilingDCEL =
-            if maybeHoleClosure.isDefined then tiling.deepCopy
-            else TilingDCEL.empty
-
-          val (newVertices, newHalfEdges, newFace) =
-            additionalElements(edgeToBuildOn, angles, tiling.nextFaceId, tempVertices, edgeResults, boundaryAngles)
-
-          // Return new DCEL with updated components
-          val grownTiling =
-            tiling.copy(
-              vertices = tiling.vertices ::: newVertices,
-              halfEdges = tiling.halfEdges ::: newHalfEdges,
-              innerFaces = tiling.innerFaces :+ newFace
-            )
-          Right((grownTiling, deepCopiedOriginal, maybeHoleClosure))
-
-    private def innerGrowthWithHoleCheck(
-      startVertex: Vertex,
-      endVertex: Vertex,
-      edgeToBuildOn: HalfEdge,
-      angles: List[AngleDegree],
-      points: List[BigPoint],
-      boundaryEdges: List[HalfEdge]
-    ): Either[String, (TilingDCEL, TilingDCEL, Option[(Vertex, Vertex)])] =
       val innerFace = edgeToBuildOn.incidentFace.get
 
       additionalVertices(startVertex, endVertex, edgeToBuildOn, angles, points, tiling.nextVertexIndex, innerFace) match
@@ -425,7 +372,7 @@ object TilingAddition:
                 println(s"face: $innerFace")
                 val faceEdges = innerFace.halfEdgesSafe
                 println(s"faceEdges: $faceEdges")
-                innerGrowthWithHoleCheck(startVertex, endVertex, edgeToBuildOn, angles, points, faceEdges)
+                growthWithHoleCheck(startVertex, endVertex, edgeToBuildOn, angles, points, faceEdges)
 
         yield
           result
