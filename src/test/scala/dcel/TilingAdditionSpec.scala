@@ -688,7 +688,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
       .maybeAddRegularPolygonToBoundary("V9", 3).value
       .maybeAddRegularPolygonToBoundary("V11", 3).value
       .maybeAddRegularPolygonToBoundary("V3", 5)
-    result.isRight shouldBe false
+    result.isLeft shouldBe true
   }
 
   it should "fail if just one vertex is added but crosses the boundary" in {
