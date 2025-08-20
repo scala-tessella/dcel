@@ -101,6 +101,31 @@ object TilingAddition:
         endCounter = appended.length
       )
 
+  private def checkForBoundaryIntersections(
+    adjustedTempVertices: List[Vertex],
+    boundaryEdges: List[HalfEdge]
+  ): Either[String, Unit] =
+    // Create line segments for the new boundary
+    val newSides = adjustedTempVertices.sliding(2).toList.map {
+      case p1 :: p2 :: Nil => BigLineSegment(p1.coords, p2.coords)
+      case _ => BigLineSegment(BigPoint(), BigPoint()) // This should never happen
+    }
+
+    // Create bounding box for spatial optimization
+    val newBox = BigBox.fromPoints(adjustedTempVertices.map(_.coords)).expand(1)
+
+    // Filter boundary edges that are potentially relevant
+    val oldSides = boundaryEdges.slidingO(2).toList.map {
+      case e1 :: e2 :: Nil => BigLineSegment(e1.origin.coords, e2.origin.coords)
+      case _ => BigLineSegment(BigPoint(), BigPoint())
+    }.filter(line => newBox.contains(line.p1) || newBox.contains(line.p2))
+
+    // Check for intersections
+    if oldSides.exists(oldSide => newSides.exists(newSide => oldSide.properlyIntersects(newSide))) then
+      Left("Boundary intersection")
+    else
+      Right(())
+
   extension (tiling: TilingDCEL)
 
     private def nextFaceId: String =
@@ -119,45 +144,19 @@ object TilingAddition:
     ): Either[String, (TilingDCEL, TilingDCEL, Option[(Vertex, Vertex)])] =
       val innerFace = edgeToBuildOn.incidentFace.get
 
-      additionalVertices(startVertex, endVertex, edgeToBuildOn, angles, points, tiling.nextVertexIndex, innerFace) match
-        case Left(value) => Left(value)
-        case Right((tempVertices, edgeResults, boundaryAngles)) =>
-
-          val adjustedTempVertices =
-            edgeResults.startEdge.destination.get :: tempVertices.drop(edgeResults.startCounter) ::: List(edgeResults.endEdge.origin)
-
-          // here we must check if the new boundary intersects with the existing one
-          val newSides: List[BigLineSegment] =
-            adjustedTempVertices.sliding(2).toList.map {
-              (_: @unchecked) match
-                case p1 :: p2 :: Nil => BigLineSegment(p1.coords, p2.coords)
-            }
-
-          val newBox =
-            BigBox.fromPoints(adjustedTempVertices.map(_.coords)).expand(1)
-
-          val oldSides: List[BigLineSegment] =
-            boundaryEdges.slidingO(2).toList.map {
-              case e1 :: e2 :: Nil => BigLineSegment(e1.origin.coords, e2.origin.coords)
-              case _ => BigLineSegment(BigPoint(), BigPoint())
-            }.filter(line => newBox.contains(line.p1) || newBox.contains(line.p2))
-
-          val hasIntersection =
-            oldSides.exists(oldSide => newSides.exists(newSide => oldSide.properlyIntersects(newSide)))
-
-          if hasIntersection then
-            return Left("Boundary intersection")
-
+      for
+        (tempVertices, edgeResults, boundaryAngles) <- additionalVertices(startVertex, endVertex, edgeToBuildOn, angles, points, tiling.nextVertexIndex, innerFace)
+        adjustedTempVertices =
+          edgeResults.startEdge.destination.get :: tempVertices.drop(edgeResults.startCounter) ::: List(edgeResults.endEdge.origin)
+        _ <- checkForBoundaryIntersections(adjustedTempVertices, boundaryEdges)
+        result <-
           val maybeHoleClosure: Option[(Vertex, Vertex)] =
             findHoleClosure(startVertex, boundaryEdges, tempVertices)
-
           val deepCopiedOriginal: TilingDCEL =
             if maybeHoleClosure.isDefined then tiling.deepCopy
             else TilingDCEL.empty
-
           val (newVertices, newHalfEdges, newFace) =
             additionalElements(edgeToBuildOn, angles, tiling.nextFaceId, tempVertices, edgeResults, boundaryAngles)
-
           // Return new DCEL with updated components
           val grownTiling =
             tiling.copy(
@@ -166,6 +165,8 @@ object TilingAddition:
               innerFaces = tiling.innerFaces :+ newFace
             )
           Right((grownTiling, deepCopiedOriginal, maybeHoleClosure))
+      yield
+        result
 
     /** Calculates the angles needed to fill a hole in the tiling's boundary,
      *  determining the correct starting vertex and direction for the new polygon.
