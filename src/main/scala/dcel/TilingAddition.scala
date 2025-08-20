@@ -120,15 +120,17 @@ object TilingAddition:
       val (tempVertices, edgeResults, boundaryAngles) =
         additionalVertices(startVertex, endVertex, edgeToBuildOn, angles, points, tiling.nextVertexIndex, tiling.outerFace)
 
+      val adjustedTempVertices =
+        edgeResults.startEdge.destination.get :: tempVertices ::: List(edgeResults.endEdge.origin)
+
       // here we must check if the new boundary intersects with the existing one
       val newSides: List[BigLineSegment] =
-        tempVertices.sliding(2).toList.map {
+        adjustedTempVertices.sliding(2).toList.map { (_: @unchecked) match
           case p1 :: p2 :: Nil => BigLineSegment(p1.coords, p2.coords)
-          case _ => BigLineSegment(BigPoint(), BigPoint())
         }
 
       val newBox =
-        BigBox.fromPoints(tempVertices.map(_.coords)).expand(1)
+        BigBox.fromPoints(adjustedTempVertices.map(_.coords)).expand(1)
 
       val oldSides: List[BigLineSegment] =
         boundaryEdges.slidingO(2).toList.map {
@@ -307,6 +309,10 @@ object TilingAddition:
                   case either => either
             else
               println(s"points: $points")
+              val innerFace = edgeToBuildOn.incidentFace.get
+              println(s"face: $innerFace")
+              val faceEdges = innerFace.halfEdgesSafe
+              println(s"faceEdges: $faceEdges")
               ???
 
       yield result

@@ -691,6 +691,12 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     result.isRight shouldBe false
   }
 
+  it should "fail if just one vertex is added but crosses the boundary" in {
+    val bench = TilingBuilder.createSimplePolygon(90, 180, 180, 90, 150, 60, 240, 330, 90, 90, 150, 150).value
+    val result = bench.addRegularPolygonToBoundary("V7", 3)
+    result.isLeft shouldBe true
+  }
+
   behavior of "TilingBuilder.addRegularPolygon"
 
   it should "act the same of addRegularPolygonToBoundary when applied to the boundary directed edge" in {
