@@ -262,6 +262,158 @@ object BigDecimalGeometry:
               if s1.intersects(s2) then boundary.break(false)
         true
 
+  /**
+   * A spatial grid for efficient line segment intersection detection.
+   * Divides the 2D space into cells and allows for faster neighbor queries.
+   */
+  class SpatialGrid(bounds: BigBox, cellSize: BigDecimal):
+    private val minX = bounds.minX
+    private val minY = bounds.minY
+    private val maxX = bounds.maxX
+    private val maxY = bounds.maxY
+
+    private val width = maxX - minX
+    private val height = maxY - minY
+
+    private val numCols = math.max(1, math.ceil((width / cellSize).toDouble).toInt)
+    private val numRows = math.max(1, math.ceil((height / cellSize).toDouble).toInt)
+
+    private val grid = Array.ofDim[mutable.Set[BigLineSegment]](numRows, numCols)
+
+    // Initialize the grid with empty sets
+    for
+      row <- 0 until numRows
+      col <- 0 until numCols
+    do
+      grid(row)(col) = mutable.Set.empty[BigLineSegment]
+
+    /**
+     * Converts a point to grid cell coordinates
+     */
+    private def cellCoordinates(point: BigPoint): (Int, Int) =
+      val col = math.min(math.max(((point.x - minX) / cellSize).toInt, 0), numCols - 1)
+      val row = math.min(math.max(((point.y - minY) / cellSize).toInt, 0), numRows - 1)
+      (row, col)
+
+    /**
+     * Gets all cells that a line segment crosses
+     */
+    private def getCellsForSegment(segment: BigLineSegment): Seq[(Int, Int)] =
+      val (row1, col1) = cellCoordinates(segment.p1)
+      val (row2, col2) = cellCoordinates(segment.p2)
+
+      // Bresenham-like algorithm to determine cells crossed by the segment
+      val cells = mutable.ArrayBuffer[(Int, Int)]()
+
+      // Always include the start and end cells
+      cells += ((row1, col1))
+
+      if row1 != row2 || col1 != col2 then
+        cells += ((row2, col2))
+
+        // For non-trivial segments, determine intermediate cells
+        val dx = (segment.p2.x - segment.p1.x).abs
+        val dy = (segment.p2.y - segment.p1.y).abs
+
+        // Only add more cells for longer segments
+        if dx > cellSize || dy > cellSize then
+          // Simple approximation: add all cells in the bounding box
+          val minRow = math.min(row1, row2)
+          val maxRow = math.max(row1, row2)
+          val minCol = math.min(col1, col2)
+          val maxCol = math.max(col1, col2)
+
+          for
+            row <- minRow to maxRow
+            col <- minCol to maxCol
+            if (row, col) != (row1, col1) && (row, col) != (row2, col2)
+          do
+            cells += ((row, col))
+
+      cells.distinct.toSeq
+
+    /**
+     * Adds a line segment to the grid
+     */
+    def addSegment(segment: BigLineSegment): Unit =
+      val cells = getCellsForSegment(segment)
+      cells.foreach { case (row, col) =>
+        grid(row)(col) += segment
+      }
+
+    /**
+     * Adds multiple line segments to the grid
+     */
+    def addSegments(segments: Seq[BigLineSegment]): Unit =
+      segments.foreach(addSegment)
+
+    /**
+     * Finds all segments in the grid that could potentially intersect the given segment
+     */
+    def getPotentialIntersections(segment: BigLineSegment): Set[BigLineSegment] =
+      val cells = getCellsForSegment(segment)
+      val candidates = mutable.Set.empty[BigLineSegment]
+
+      cells.foreach { case (row, col) =>
+        candidates ++= grid(row)(col)
+      }
+
+      candidates.toSet
+
+  /**
+   * Methods for detecting intersections between collections of line segments with spatial partitioning
+   */
+  object IntersectionDetection:
+
+    /**
+     * Checks if there are any proper intersections between two collections of line segments.
+     * Uses spatial partitioning for better performance with large collections.
+     *
+     * @param segments1 First collection of line segments
+     * @param segments2 Second collection of line segments
+     * @param cellSize  Size of each grid cell for spatial partitioning (auto-calculated if None)
+     * @return true if any segment from segments1 properly intersects any segment from segments2
+     */
+    def hasProperIntersection(
+                               segments1: Seq[BigLineSegment],
+                               segments2: Seq[BigLineSegment],
+                               cellSize: Option[BigDecimal] = None
+                             ): Boolean =
+      // Empty case handling
+      if segments1.isEmpty || segments2.isEmpty then return false
+
+      // If both collections are very small, use brute force approach
+      if segments1.length * segments2.length <= 100 then
+        return segments1.exists(s1 => segments2.exists(s2 => s1.properlyIntersects(s2)))
+
+      // Determine cell size - if not provided, estimate based on average segment length
+      val actualCellSize = cellSize.getOrElse {
+        val avgLength = (
+          segments1.map(s => s.p1.distanceTo(s.p2)).sum +
+            segments2.map(s => s.p1.distanceTo(s.p2)).sum
+          ) / (segments1.length + segments2.length)
+
+        // Cell size should be larger than average segment to reduce redundant checks
+        avgLength * 2
+      }
+
+      // Create bounding box for all segments
+      val allPoints = segments1.flatMap(s => List(s.p1, s.p2)) ++ segments2.flatMap(s => List(s.p1, s.p2))
+      val bounds = BigBox.fromPoints(allPoints).expand(actualCellSize)
+
+      // Create spatial grid and add the larger collection
+      val (smaller, larger) = if segments1.length <= segments2.length then (segments1, segments2) else (segments2, segments1)
+
+      val grid = SpatialGrid(bounds, actualCellSize)
+      grid.addSegments(larger)
+
+      // Check for intersections by only comparing segments from smaller collection
+      // with potentially intersecting segments from the larger collection
+      smaller.exists { segment =>
+        val candidates = grid.getPotentialIntersections(segment)
+        candidates.exists(candidate => segment.properlyIntersects(candidate))
+      }
+
   /** A line segment in the plane defined by its 2 endpoints using [[spire.math.BigDecimal]]. */
   case class BigLineSegment(p1: BigPoint, p2: BigPoint):
     /** The length of the line segment. */
@@ -314,16 +466,23 @@ object BigDecimalGeometry:
 
   extension (segments: List[BigLineSegment])
 
-    /** Checks if an intersection exists between one more spread and one less spread group of segments
-     *
-     * @param smallerArea a collection of segments found in an area smaller than the area of the former segments
-     * @param expansion margin to expand the smaller area box
-     * @param f an intersection function
+    /**
+     * Checks if this list of segments has any proper intersections with another list.
+     * Uses spatial partitioning for better performance.
      */
-    def intersects(smallerArea: List[BigLineSegment], expansion: BigDecimal, f: (BigLineSegment, BigLineSegment) => Boolean): Boolean =
-      val newBox = BigBox.fromPoints(smallerArea.flatMap(segment => List(segment.p1, segment.p2))).expand(expansion)
-      val filtered = segments.filter(segment => newBox.contains(segment.p1) || newBox.contains(segment.p2))
-      filtered.exists(filteredSegment => smallerArea.exists(segment => f(filteredSegment, segment)))
+    def hasProperIntersections(other: List[BigLineSegment]): Boolean =
+      IntersectionDetection.hasProperIntersection(segments, other)
+
+//    /** Checks if an intersection exists between one more spread and one less spread group of segments
+//     *
+//     * @param smallerArea a collection of segments found in an area smaller than the area of the former segments
+//     * @param expansion margin to expand the smaller area box
+//     * @param f an intersection function
+//     */
+//    def intersects(smallerArea: List[BigLineSegment], expansion: BigDecimal, f: (BigLineSegment, BigLineSegment) => Boolean): Boolean =
+//      val newBox = BigBox.fromPoints(smallerArea.flatMap(segment => List(segment.p1, segment.p2))).expand(expansion)
+//      val filtered = segments.filter(segment => newBox.contains(segment.p1) || newBox.contains(segment.p2))
+//      filtered.exists(filteredSegment => smallerArea.exists(segment => f(filteredSegment, segment)))
 
   case class BigBox(minX: BigDecimal, minY: BigDecimal, maxX: BigDecimal, maxY: BigDecimal):
 

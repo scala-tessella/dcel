@@ -117,7 +117,7 @@ object TilingAddition:
     }.toList
 
     // Check for intersections
-    if oldSides.intersects(newSides, 1, _.properlyIntersects(_)) then
+    if oldSides.hasProperIntersections(newSides) then
       Left("Boundary intersection")
     else
       Right(())
