@@ -111,17 +111,13 @@ object TilingAddition:
       case _ => BigLineSegment(BigPoint(), BigPoint()) // This should never happen
     }
 
-    // Create bounding box for spatial optimization
-    val newBox = BigBox.fromPoints(adjustedTempVertices.map(_.coords)).expand(1)
-
-    // Filter boundary edges that are potentially relevant
     val oldSides = boundaryEdges.slidingO(2).map {
       case e1 :: e2 :: Nil => BigLineSegment(e1.origin.coords, e2.origin.coords)
       case _ => BigLineSegment(BigPoint(), BigPoint())
-    }.filter(line => newBox.contains(line.p1) || newBox.contains(line.p2)).toList
+    }.toList
 
     // Check for intersections
-    if oldSides.exists(oldSide => newSides.exists(newSide => oldSide.properlyIntersects(newSide))) then
+    if oldSides.intersects(newSides, 1, _.properlyIntersects(_)) then
       Left("Boundary intersection")
     else
       Right(())

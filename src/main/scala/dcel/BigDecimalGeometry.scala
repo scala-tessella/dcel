@@ -311,7 +311,20 @@ object BigDecimalGeometry:
         val (o1, o2, o3, o4) = orientations(that)
         // General case: segments cross each other in their interiors
         o1 != o2 && o3 != o4
-      
+
+  extension (segments: List[BigLineSegment])
+
+    /** Checks if an intersection exists between one more spread and one less spread group of segments
+     *
+     * @param smallerArea a collection of segments found in an area smaller than the area of the former segments
+     * @param expansion margin to expand the smaller area box
+     * @param f an intersection function
+     */
+    def intersects(smallerArea: List[BigLineSegment], expansion: BigDecimal, f: (BigLineSegment, BigLineSegment) => Boolean): Boolean =
+      val newBox = BigBox.fromPoints(smallerArea.flatMap(segment => List(segment.p1, segment.p2))).expand(expansion)
+      val filtered = segments.filter(segment => newBox.contains(segment.p1) || newBox.contains(segment.p2))
+      filtered.exists(filteredSegment => smallerArea.exists(segment => f(filteredSegment, segment)))
+
   case class BigBox(minX: BigDecimal, minY: BigDecimal, maxX: BigDecimal, maxY: BigDecimal):
 
     def contains(point: BigPoint): Boolean =
