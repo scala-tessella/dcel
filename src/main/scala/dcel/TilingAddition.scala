@@ -390,15 +390,20 @@ object TilingAddition:
 
       either match
         case Left (value) => Left(value)
-        case Right ((revisedTiling, clone, maybeHoleClosure) ) =>
+        case Right ((revisedTiling, clone, maybeHoleClosure)) =>
           maybeHoleClosure match
             case None => Right(revisedTiling)
-            case Some ((v_match, v_new) ) =>
-              ???
-//              val (holeAngles, startingVertexId) =
-//              revisedTiling.holeAnglesWithDirection (v_match, v_new)
+            case Some((v_match, v_new)) =>
+              val (holeAngles, startingVertexId) =
+                revisedTiling.holeAnglesWithDirection(v_match, v_new)
+              println(
+                s"""
+                   |holeAngles: $holeAngles
+                   |startingVertexId: $startingVertexId
+                   |""".stripMargin)
 //              clone.addSimplePolygonToBoundaryWithoutGuards (startingVertexId, holeAngles).get
-//                .addRegularPolygonToBoundary(onEdgeStartingWithVertexId, sides)
+//                .addRegularPolygon(startVertexId, endVertexId, sides)
+              ???
 
   // Helper case classes for better structure
   private case class BoundaryAngles(
