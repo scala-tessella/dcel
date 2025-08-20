@@ -162,6 +162,75 @@ object TilingAddition:
         )
       Right((grownTiling, deepCopiedOriginal, maybeHoleClosure))
 
+    private def innerGrowthWithHoleCheck(
+      startVertex: Vertex,
+      endVertex: Vertex,
+      edgeToBuildOn: HalfEdge,
+      angles: List[AngleDegree],
+      points: List[BigPoint],
+      boundaryEdges: List[HalfEdge]
+    ): Either[String, (TilingDCEL, TilingDCEL, Option[(Vertex, Vertex)])] =
+      val (tempVertices, edgeResults, boundaryAngles) =
+        additionalVertices(startVertex, endVertex, edgeToBuildOn, angles, points, tiling.nextVertexIndex, tiling.outerFace)
+      println(
+        s"""
+           |tempVertices: $tempVertices
+           |edgeResults: $edgeResults
+           |startEdge: ${edgeResults.startEdge}
+           |endEdge: ${edgeResults.endEdge}
+           |boundaryAngles: $boundaryAngles""".stripMargin)
+
+      val adjustedTempVertices =
+        edgeResults.startEdge.destination.get :: tempVertices.drop(edgeResults.startCounter) ::: List(edgeResults.endEdge.origin)
+
+      // here we must check if the new boundary intersects with the existing one
+      val newSides: List[BigLineSegment] =
+        adjustedTempVertices.sliding(2).toList.map {
+          (_: @unchecked) match
+            case p1 :: p2 :: Nil => BigLineSegment(p1.coords, p2.coords)
+        }
+
+      val newBox =
+        BigBox.fromPoints(adjustedTempVertices.map(_.coords)).expand(1)
+
+      val oldSides: List[BigLineSegment] =
+        boundaryEdges.slidingO(2).toList.map {
+          case e1 :: e2 :: Nil => BigLineSegment(e1.origin.coords, e2.origin.coords)
+          case _ => BigLineSegment(BigPoint(), BigPoint())
+        }.filter(line => newBox.contains(line.p1) || newBox.contains(line.p2))
+
+      val hasIntersection =
+        oldSides.exists(oldSide => newSides.exists(newSide => oldSide.properlyIntersects(newSide)))
+      println(s"hasIntersection: $hasIntersection")
+
+      if hasIntersection then
+        return Left("Boundary intersection")
+
+      val maybeHoleClosure: Option[(Vertex, Vertex)] =
+        findHoleClosure(startVertex, boundaryEdges, tempVertices)
+
+      println(s"maybeHoleClosure: $maybeHoleClosure")
+      val deepCopiedOriginal: TilingDCEL =
+        if maybeHoleClosure.isDefined then tiling.deepCopy
+        else TilingDCEL.empty
+
+      val (newVertices, newHalfEdges, newFace) =
+        additionalElements(edgeToBuildOn, angles, tiling.nextFaceId, tiling.outerFace, tempVertices, edgeResults, boundaryAngles)
+      println(
+        s"""
+           |newVertices: $newVertices
+           |newHalfEdges: $newHalfEdges
+           |newFace: $newFace""".stripMargin)
+
+      // Return new DCEL with updated components
+      val grownTiling =
+        tiling.copy(
+          vertices = tiling.vertices ::: newVertices,
+          halfEdges = tiling.halfEdges ::: newHalfEdges,
+          innerFaces = tiling.innerFaces :+ newFace
+        )
+      Right((grownTiling, deepCopiedOriginal, maybeHoleClosure))
+
     /** Calculates the angles needed to fill a hole in the tiling's boundary,
      *  determining the correct starting vertex and direction for the new polygon.
      *
@@ -276,46 +345,59 @@ object TilingAddition:
                 .addRegularPolygonToBoundary(onEdgeStartingWithVertexId, sides)
 
     def addRegularPolygon(startVertexId: String, endVertexId: String, sides: Int): Either[String, TilingDCEL] =
-      for
-        (startVertex, endVertex, edgeToBuildOn) <- tiling.findVerticesAndEdgeBetween(startVertexId, endVertexId)
-        _  <- validateSides(sides, "regular")
-        polyAngle = polygonAngle(sides)
-        angles = List.fill(sides)(polyAngle)
-        points = calculateVertexPoints(angles, startVertex.coords, endVertex.coords)
-        result <-
-          if tiling.isBoundaryEdge(edgeToBuildOn) then
-            addRegularPolygonToBoundary(startVertexId, sides)
-          else
-            // @todo it could work also with a "bottleneck" edge, that is with both vertices on the boundary, but the inner angles at vertex should be split
-//            val boundaryVertices = tiling.boundary
-//            // if both vertices belong to the boundary, either the edge is the twin of a boundary edge or is a "bottleneck"
-//            val hasBothVerticesOnBoundary = boundaryVertices.contains(v1) && boundaryVertices.contains(v2)
-            val hasEnclosingStart =
-              tiling.isBoundaryEdge(edgeToBuildOn.twin.get)
-                && tiling.getInnerAnglesAtVertex(startVertexId).toOption.get.sum2.toRational < polyAngle.toRational
-            if hasEnclosingStart then
-              val hasEnclosingEnd =
-                tiling.getInnerAnglesAtVertex(endVertexId).toOption.get.sum2.toRational < polyAngle.toRational
-              if !hasEnclosingEnd then
-                Left("Polygon would be drawn inside the face")
-              else
-                val boundaryAnglesFromVertex = tiling.getBoundaryEdgesPath(startVertex, startVertex).map(_.angle.get)
-                val first = polyAngle - boundaryAnglesFromVertex.head.conjugate
-                val last = polyAngle - boundaryAnglesFromVertex.last.conjugate
-                val simplePolygonAngles = first :: boundaryAnglesFromVertex.tail.init ::: (last :: List.fill(sides - 2)(polyAngle))
-                addSimplePolygonToBoundary(startVertexId, simplePolygonAngles) match
-                  case Left(message) if message.startsWith("The polygon is not simple") =>
-                    Left("The polygon is touching other boundary edges.")
-                  case either => either
+      val either: Either[String, (TilingDCEL, TilingDCEL, Option[(Vertex, Vertex)])] =
+        for
+          (startVertex, endVertex, edgeToBuildOn) <- tiling.findVerticesAndEdgeBetween(startVertexId, endVertexId)
+          _  <- validateSides(sides, "regular")
+          polyAngle = polygonAngle(sides)
+          angles = List.fill(sides)(polyAngle)
+          points = calculateVertexPoints(angles, startVertex.coords, endVertex.coords)
+          result <-
+            if tiling.isBoundaryEdge(edgeToBuildOn) then
+              addRegularPolygonToBoundary(startVertexId, sides).map((_, TilingDCEL.empty, None))
             else
-              println(s"points: $points")
-              val innerFace = edgeToBuildOn.incidentFace.get
-              println(s"face: $innerFace")
-              val faceEdges = innerFace.halfEdgesSafe
-              println(s"faceEdges: $faceEdges")
-              ???
+              // @todo it could work also with a "bottleneck" edge, that is with both vertices on the boundary, but the inner angles at vertex should be split
+  //            val boundaryVertices = tiling.boundary
+  //            // if both vertices belong to the boundary, either the edge is the twin of a boundary edge or is a "bottleneck"
+  //            val hasBothVerticesOnBoundary = boundaryVertices.contains(v1) && boundaryVertices.contains(v2)
+              val hasEnclosingStart =
+                tiling.isBoundaryEdge(edgeToBuildOn.twin.get)
+                  && tiling.getInnerAnglesAtVertex(startVertexId).toOption.get.sum2.toRational < polyAngle.toRational
+              if hasEnclosingStart then
+                val hasEnclosingEnd =
+                  tiling.getInnerAnglesAtVertex(endVertexId).toOption.get.sum2.toRational < polyAngle.toRational
+                if !hasEnclosingEnd then
+                  Left("Polygon would be drawn inside the face")
+                else
+                  val boundaryAnglesFromVertex = tiling.getBoundaryEdgesPath(startVertex, startVertex).map(_.angle.get)
+                  val first = polyAngle - boundaryAnglesFromVertex.head.conjugate
+                  val last = polyAngle - boundaryAnglesFromVertex.last.conjugate
+                  val simplePolygonAngles = first :: boundaryAnglesFromVertex.tail.init ::: (last :: List.fill(sides - 2)(polyAngle))
+                  addSimplePolygonToBoundary(startVertexId, simplePolygonAngles) match
+                    case Left(message) if message.startsWith("The polygon is not simple") =>
+                      Left("The polygon is touching other boundary edges.")
+                    case either => either.map((_, TilingDCEL.empty, None))
+              else
+                println(s"points: $points")
+                val innerFace = edgeToBuildOn.incidentFace.get
+                println(s"face: $innerFace")
+                val faceEdges = innerFace.halfEdgesSafe
+                println(s"faceEdges: $faceEdges")
+                innerGrowthWithHoleCheck(startVertex, endVertex, edgeToBuildOn, angles, points, faceEdges)
+  
+        yield result
 
-      yield result
+      either match
+        case Left (value) => Left(value)
+        case Right ((revisedTiling, clone, maybeHoleClosure) ) =>
+          maybeHoleClosure match
+            case None => Right(revisedTiling)
+            case Some ((v_match, v_new) ) =>
+              ???
+//              val (holeAngles, startingVertexId) =
+//              revisedTiling.holeAnglesWithDirection (v_match, v_new)
+//              clone.addSimplePolygonToBoundaryWithoutGuards (startingVertexId, holeAngles).get
+//                .addRegularPolygonToBoundary(onEdgeStartingWithVertexId, sides)
 
   // Helper case classes for better structure
   private case class BoundaryAngles(

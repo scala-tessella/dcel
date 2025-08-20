@@ -715,9 +715,9 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     val result = square
       .addRegularPolygon("V1", "V2", 3)
 
-    println(result)
     result.isRight shouldBe true
     val tiling = result.value
+    println(TilingDCEL.validate(tiling))
     println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
     verifyValidTiling(tiling)
   }
