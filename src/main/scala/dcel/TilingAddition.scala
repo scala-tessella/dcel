@@ -234,6 +234,13 @@ object TilingAddition:
       yield
         result
 
+    private def maybeFilled(clone: TilingDCEL, maybeHoleClosure: Option[(Vertex, Vertex)]): Option[TilingDCEL] =
+      maybeHoleClosure.map((v_match, v_new) =>
+        val (holeAngles, startingVertexId, endingVertexId) =
+        tiling.holeAnglesWithDirection(v_match, v_new)
+        clone.addSimplePolygonWithoutGuards(startingVertexId, endingVertexId, holeAngles).get
+      )
+
     @tailrec
     def addSimplePolygon(startVertexId: String, endVertexId: String, angles: List[AngleDegree]): Either[String, TilingDCEL] =
       val either: Either[String, (TilingDCEL, TilingDCEL, Option[(Vertex, Vertex)])] =
@@ -253,13 +260,9 @@ object TilingAddition:
       either match
         case Left(value) => Left(value)
         case Right((revisedTiling, clone, maybeHoleClosure)) =>
-          maybeHoleClosure match
+          revisedTiling.maybeFilled(clone, maybeHoleClosure) match
             case None => Right(revisedTiling)
-            case Some((v_match, v_new)) =>
-              val (holeAngles, startingVertexId, endingVertexId) =
-                revisedTiling.holeAnglesWithDirection(v_match, v_new)
-              clone.addSimplePolygonWithoutGuards(startingVertexId, endingVertexId, holeAngles).get
-                .addSimplePolygon(startVertexId, endVertexId, angles)
+            case Some(holeFilled) => holeFilled.addSimplePolygon(startVertexId, endVertexId, angles)
 
     def addSimplePolygon(startVertexId: String, endVertexId: String, degrees: Int *): Either[String, TilingDCEL] =
       addSimplePolygon(startVertexId, endVertexId, degrees.map(AngleDegree(_)).toList)
@@ -302,15 +305,11 @@ object TilingAddition:
           result
 
       either match
-        case Left (value) => Left(value)
-        case Right ((revisedTiling, clone, maybeHoleClosure)) =>
-          maybeHoleClosure match
+        case Left(value) => Left(value)
+        case Right((revisedTiling, clone, maybeHoleClosure)) =>
+          revisedTiling.maybeFilled(clone, maybeHoleClosure) match
             case None => Right(revisedTiling)
-            case Some((v_match, v_new)) =>
-              val (holeAngles, startingVertexId, endingVertexId) =
-                revisedTiling.holeAnglesWithDirection(v_match, v_new)
-              clone.addSimplePolygonWithoutGuards(startingVertexId, endingVertexId, holeAngles).get
-                .addRegularPolygon(startVertexId, endVertexId, sides)
+            case Some(holeFilled) => holeFilled.addRegularPolygon(startVertexId, endVertexId, sides)
 
   // Helper case classes for better structure
   private case class BoundaryAngles(
