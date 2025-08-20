@@ -267,6 +267,7 @@ object BigDecimalGeometry:
    * Divides the 2D space into cells and allows for faster neighbor queries.
    */
   class SpatialGrid(bounds: BigBox, cellSize: BigDecimal):
+
     private val minX = bounds.minX
     private val minY = bounds.minY
     private val maxX = bounds.maxX
@@ -375,10 +376,10 @@ object BigDecimalGeometry:
      * @return true if any segment from segments1 properly intersects any segment from segments2
      */
     def hasProperIntersection(
-                               segments1: Seq[BigLineSegment],
-                               segments2: Seq[BigLineSegment],
-                               cellSize: Option[BigDecimal] = None
-                             ): Boolean =
+      segments1: Seq[BigLineSegment],
+      segments2: Seq[BigLineSegment],
+      cellSize: Option[BigDecimal] = None
+    ): Boolean =
       // Empty case handling
       if segments1.isEmpty || segments2.isEmpty then return false
 
@@ -470,19 +471,8 @@ object BigDecimalGeometry:
      * Checks if this list of segments has any proper intersections with another list.
      * Uses spatial partitioning for better performance.
      */
-    def hasProperIntersections(other: List[BigLineSegment]): Boolean =
-      IntersectionDetection.hasProperIntersection(segments, other)
-
-//    /** Checks if an intersection exists between one more spread and one less spread group of segments
-//     *
-//     * @param smallerArea a collection of segments found in an area smaller than the area of the former segments
-//     * @param expansion margin to expand the smaller area box
-//     * @param f an intersection function
-//     */
-//    def intersects(smallerArea: List[BigLineSegment], expansion: BigDecimal, f: (BigLineSegment, BigLineSegment) => Boolean): Boolean =
-//      val newBox = BigBox.fromPoints(smallerArea.flatMap(segment => List(segment.p1, segment.p2))).expand(expansion)
-//      val filtered = segments.filter(segment => newBox.contains(segment.p1) || newBox.contains(segment.p2))
-//      filtered.exists(filteredSegment => smallerArea.exists(segment => f(filteredSegment, segment)))
+    def hasProperIntersections(other: List[BigLineSegment], cellSize: Option[BigDecimal] = Some(2)): Boolean =
+      IntersectionDetection.hasProperIntersection(segments, other, cellSize)
 
   case class BigBox(minX: BigDecimal, minY: BigDecimal, maxX: BigDecimal, maxY: BigDecimal):
 
