@@ -766,6 +766,18 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     verifyValidTiling(tiling)
   }
 
+  it should "add an inner regular polygon creating a specular hole" in {
+    val bench = TilingBuilder.createRegularPolygon(12).value
+      .addRegularPolygon("V1", "V2", 4).value
+    val result = bench.addRegularPolygon("V11", "V12", 4)
+
+    result.isRight shouldBe true
+    val tiling = result.value
+//    println(TilingDCEL.validate(tiling))
+//    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
+    verifyValidTiling(tiling)
+  }
+
   it should "add a polygon enclosing the tiling if the same edge is given in the opposite direction" in {
     val triangle = startingTriangle
     val result = triangle.addRegularPolygon("V3", "V1", 4)

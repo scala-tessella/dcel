@@ -238,33 +238,7 @@ object TilingAddition:
      * @param v_match the existing vertex closing the hole
      * @param v_new   the new vertex closing the hole
      */
-    private def holeAnglesWithDirection(v_match: Vertex, v_new: Vertex): (List[AngleDegree], String) =
-      val face = tiling.halfEdges.find(_.origin.id == v_match.id).get.incidentFace.get
-      val boundaryEdges = face.halfEdgesSafe
-
-      // 1. Determine the shorter path (the "hole") on the boundary between the two vertices.
-      val pathFwd = boundaryEdges.getPath(from = v_match, to = v_new)
-      val pathBack = boundaryEdges.getPath(from = v_new, to = v_match)
-
-      val (holePath, isForward) =
-        if pathFwd.sizeCompare(pathBack) < 0 then (pathFwd, true)
-        else (pathBack, false)
-
-      // 2. Calculate the internal angles for a new polygon that would fill this hole.
-      val holeAngles = holePath.map(_.angle.get)
-      val polygonAngles =
-        val sumOfOtherAngles = holeAngles.tail.sum2
-        val closingAngle = SimplePolygon.alphaSum(holeAngles.length) - sumOfOtherAngles
-        closingAngle :: holeAngles.tail
-
-      // 3. Determine the starting vertex and adjust angle order based on the path direction.
-      if isForward then
-        (polygonAngles, v_match.id)
-      else
-        // For a backward path, the angles must be rotated, and the start vertex is different.
-        (polygonAngles.rotateRight(1), holePath.last.origin.id)
-
-    private def holeAnglesWithDirection2(v_match: Vertex, v_new: Vertex): (List[AngleDegree], String, String) =
+    private def holeAnglesWithDirection(v_match: Vertex, v_new: Vertex): (List[AngleDegree], String, String) =
       val matchEdge = tiling.halfEdges.find(_.origin.id == v_match.id).get
       val face = matchEdge.incidentFace.get
       val boundaryEdges = face.halfEdgesSafe
@@ -286,10 +260,11 @@ object TilingAddition:
 
       // 3. Determine the starting vertex and adjust angle order based on the path direction.
       if isForward then
-        (polygonAngles, v_match.id, matchEdge.destination.get.id)
+        (polygonAngles, v_match.id, holePath.head.destination.get.id)
       else
         // For a backward path, the angles must be rotated, and the start vertex is different.
-        (polygonAngles.rotateRight(1), holePath.last.origin.id, holePath.last.destination.get.id)
+        val lastEdge = holePath.last
+        (polygonAngles.rotateRight(1), lastEdge.origin.id, lastEdge.destination.get.id)
 
     @tailrec
     def addSimplePolygonToBoundary(onEdgeStartingWithVertexId: String, angles: List[AngleDegree]): Either[String, TilingDCEL] =
@@ -315,7 +290,7 @@ object TilingAddition:
           maybeHoleClosure match
             case None => Right(revisedTiling)
             case Some((v_match, v_new)) =>
-              val (holeAngles, startingVertexId) =
+              val (holeAngles, startingVertexId, _) =
                 revisedTiling.holeAnglesWithDirection(v_match, v_new)
               clone.addSimplePolygonToBoundaryWithoutGuards(startingVertexId, holeAngles).get
                 .addSimplePolygonToBoundary(onEdgeStartingWithVertexId, angles)
@@ -368,7 +343,7 @@ object TilingAddition:
           maybeHoleClosure match
             case None => Right(revisedTiling)
             case Some((v_match, v_new)) =>
-              val (holeAngles, startingVertexId) =
+              val (holeAngles, startingVertexId, _) =
                 revisedTiling.holeAnglesWithDirection(v_match, v_new)
               clone.addSimplePolygonToBoundaryWithoutGuards(startingVertexId, holeAngles).get
                 .addRegularPolygonToBoundary(onEdgeStartingWithVertexId, sides)
@@ -397,7 +372,7 @@ object TilingAddition:
           maybeHoleClosure match
             case None => Right(revisedTiling)
             case Some((v_match, v_new)) =>
-              val (holeAngles, startingVertexId) =
+              val (holeAngles, startingVertexId, _) =
                 revisedTiling.holeAnglesWithDirection(v_match, v_new)
               clone.addSimplePolygonToBoundaryWithoutGuards(startingVertexId, holeAngles).get
                 .addSimplePolygon(startVertexId, endVertexId, angles)
@@ -426,6 +401,7 @@ object TilingAddition:
           innerFaces = tiling.innerFaces :+ newFace
         )
 
+    @tailrec
     def addRegularPolygon(startVertexId: String, endVertexId: String, sides: Int): Either[String, TilingDCEL] =
       val either: Either[String, (TilingDCEL, TilingDCEL, Option[(Vertex, Vertex)])] =
         for
@@ -476,12 +452,7 @@ object TilingAddition:
             case None => Right(revisedTiling)
             case Some((v_match, v_new)) =>
               val (holeAngles, startingVertexId, endingVertexId) =
-                revisedTiling.holeAnglesWithDirection2(v_match, v_new)
-              println(
-                s"""
-                   |holeAngles: $holeAngles
-                   |startingVertexId: $startingVertexId
-                   |""".stripMargin)
+                revisedTiling.holeAnglesWithDirection(v_match, v_new)
               clone.addSimplePolygonWithoutGuards(startingVertexId, endingVertexId, holeAngles).get
                 .addRegularPolygon(startVertexId, endVertexId, sides)
 
