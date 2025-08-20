@@ -79,14 +79,13 @@ object TilingAddition:
       acc: List[HalfEdge],
       getNext: HalfEdge => HalfEdge,
       getVertex: HalfEdge => Vertex
-    ): Either[String, (List[HalfEdge], AngleDegree, HalfEdge)] = {
-      println(s"check: $check")
+    ): Either[String, (List[HalfEdge], AngleDegree, HalfEdge)] =
       if check.toRational < 0 then Left("Angle wider than container")
       else if !check.isFullCircle then Right((acc, check, edge))
+      else if angles.isEmpty then Left("Same as container")
       else
         val nextCheck = boundaryAngleForVertex(getVertex(edge), outerFace, angles.head)
         traverse(getNext(edge), nextCheck, angles.tail, edge :: acc, getNext, getVertex)
-    }
 
     for
       (prepended, startCheck, startEdge) <- traverse(edgeToBuildOn.prev.get, boundaryAngles.start, boundaryAngles.newVertices.reverse, Nil, _.prev.get, _.origin)
