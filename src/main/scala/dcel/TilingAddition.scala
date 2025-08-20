@@ -170,8 +170,9 @@ object TilingAddition:
       points: List[BigPoint],
       boundaryEdges: List[HalfEdge]
     ): Either[String, (TilingDCEL, TilingDCEL, Option[(Vertex, Vertex)])] =
+      val innerFace = edgeToBuildOn.incidentFace.get
       val (tempVertices, edgeResults, boundaryAngles) =
-        additionalVertices(startVertex, endVertex, edgeToBuildOn, angles, points, tiling.nextVertexIndex, tiling.outerFace)
+        additionalVertices(startVertex, endVertex, edgeToBuildOn, angles, points, tiling.nextVertexIndex, innerFace)
       println(
         s"""
            |tempVertices: $tempVertices
@@ -544,7 +545,9 @@ object TilingAddition:
     edgesResult: SharedEdgesResult,
     boundaryAngles: BoundaryAngles
   ): (List[Vertex], List[HalfEdge], Face) =
-    given outerFace: Face = outer
+    val innerFace = edgeToBuildOn.incidentFace.get
+
+    given outerFace: Face = innerFace
 
     val newFace = Face(newFaceId)
 
