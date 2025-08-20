@@ -278,6 +278,8 @@ object TilingAddition:
         (startVertex, endVertex, edgeToBuildOn) <- tiling.findVerticesAndEdgeBetween(startVertexId, endVertexId)
         _  <- validateSides(sides, "regular")
         polyAngle = polygonAngle(sides)
+        angles = List.fill(sides)(polyAngle)
+        points = calculateVertexPoints(angles, startVertex.coords, endVertex.coords)
         result <-
           if tiling.isBoundaryEdge(edgeToBuildOn) then
             addRegularPolygonToBoundary(startVertexId, sides)
@@ -304,6 +306,7 @@ object TilingAddition:
                     Left("The polygon is touching other boundary edges.")
                   case either => either
             else
+              println(s"points: $points")
               ???
 
       yield result
