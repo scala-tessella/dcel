@@ -346,14 +346,14 @@ object TilingAddition:
                 .addRegularPolygonToBoundary(onEdgeStartingWithVertexId, sides)
 
     def addRegularPolygon(startVertexId: String, endVertexId: String, sides: Int): Either[String, TilingDCEL] =
-      val either: Either[String, (TilingDCEL, TilingDCEL, Option[(Vertex, Vertex)])] =
+      val either: Either[String, (TilingDCEL, TilingDCEL, Option[(Vertex, Vertex)], HalfEdge)] =
         for
           (startVertex, endVertex, edgeToBuildOn) <- tiling.findVerticesAndEdgeBetween(startVertexId, endVertexId)
           _  <- validateSides(sides, "regular")
           polyAngle = polygonAngle(sides)
           angles = List.fill(sides)(polyAngle)
           points = calculateVertexPoints(angles, startVertex.coords, endVertex.coords)
-          result <-
+          (revisedTiling, clone, maybeHoleClosure) <-
             if tiling.isBoundaryEdge(edgeToBuildOn) then
               addRegularPolygonToBoundary(startVertexId, sides).map((_, TilingDCEL.empty, None))
             else
@@ -386,11 +386,12 @@ object TilingAddition:
                 println(s"faceEdges: $faceEdges")
                 innerGrowthWithHoleCheck(startVertex, endVertex, edgeToBuildOn, angles, points, faceEdges)
 
-        yield result
+        yield 
+          (revisedTiling, clone, maybeHoleClosure, edgeToBuildOn)
 
       either match
         case Left (value) => Left(value)
-        case Right ((revisedTiling, clone, maybeHoleClosure)) =>
+        case Right ((revisedTiling, clone, maybeHoleClosure, edgeToBuildOn)) =>
           maybeHoleClosure match
             case None => Right(revisedTiling)
             case Some((v_match, v_new)) =>
