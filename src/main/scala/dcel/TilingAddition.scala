@@ -346,6 +346,59 @@ object TilingAddition:
               clone.addSimplePolygonToBoundaryWithoutGuards(startingVertexId, holeAngles).get
                 .addRegularPolygonToBoundary(onEdgeStartingWithVertexId, sides)
 
+    @tailrec
+    def addSimplePolygon(startVertexId: String, endVertexId: String, angles: List[AngleDegree]): Either[String, TilingDCEL] =
+      val either: Either[String, (TilingDCEL, TilingDCEL, Option[(Vertex, Vertex)])] =
+        for
+          (startVertex, endVertex, edgeToBuildOn) <- tiling.findVerticesAndEdgeBetween(startVertexId, endVertexId)
+          _      <- validateSides(angles.length, "simple")
+          _      <- SimplePolygon.validatePolygonAngles(angles)
+          points = calculateVertexPoints(angles, startVertex.coords, endVertex.coords)
+          _      <- validatePoints(points)
+          result <-
+            val containerFace = edgeToBuildOn.incidentFace.get
+            println(s"face: $containerFace")
+            val containerBoundaryEdges = containerFace.halfEdgesSafe
+            println(s"containerBoundaryEdges: $containerBoundaryEdges")
+            growthWithHoleCheck(startVertex, endVertex, edgeToBuildOn, angles, points, containerBoundaryEdges)
+        yield
+          result
+
+      either match
+        case Left(value) => Left(value)
+        case Right((revisedTiling, clone, maybeHoleClosure)) =>
+          maybeHoleClosure match
+            case None => Right(revisedTiling)
+            case Some((v_match, v_new)) =>
+              val (holeAngles, startingVertexId) =
+                revisedTiling.holeAnglesWithDirection(v_match, v_new)
+              clone.addSimplePolygonToBoundaryWithoutGuards(startingVertexId, holeAngles).get
+                .addSimplePolygon(startVertexId, endVertexId, angles)
+       
+    def addSimplePolygon(startVertexId: String, endVertexId: String, degrees: Int *): Either[String, TilingDCEL] =
+      addSimplePolygon(startVertexId, endVertexId, degrees.map(AngleDegree(_)).toList)
+
+    private def addSimplePolygonWithoutGuards(startVertexId: String, endVertexId: String, angles: List[AngleDegree]): Option[TilingDCEL] =
+      for
+        (startVertex, endVertex, edgeToBuildOn) <- tiling.findVerticesAndEdgeBetween(startVertexId, endVertexId).toOption
+        points = calculateVertexPoints(angles, startVertex.coords, endVertex.coords)
+      yield
+        val containerFace = edgeToBuildOn.incidentFace.get
+//        val containerBoundaryEdges = containerFace.halfEdgesSafe
+
+        val (tempVertices, edgeResults, boundaryAngles) =
+          additionalVertices(startVertex, endVertex, edgeToBuildOn, angles, points, tiling.nextVertexIndex, containerFace)
+
+        val (newVertices, newHalfEdges, newFace) =
+          additionalElements(edgeToBuildOn, angles, tiling.nextFaceId, tempVertices, edgeResults, boundaryAngles)
+
+        // Return new DCEL with updated components
+        tiling.copy(
+          vertices = tiling.vertices ::: newVertices,
+          halfEdges = tiling.halfEdges ::: newHalfEdges,
+          innerFaces = tiling.innerFaces :+ newFace
+        )
+
     def addRegularPolygon(startVertexId: String, endVertexId: String, sides: Int): Either[String, TilingDCEL] =
       val either: Either[String, (TilingDCEL, TilingDCEL, Option[(Vertex, Vertex)])] =
         for
@@ -380,7 +433,6 @@ object TilingAddition:
                       Left("The polygon is touching other boundary edges.")
                     case either => either.map((_, TilingDCEL.empty, None))
               else
-                println(s"points: $points")
                 val innerFace = edgeToBuildOn.incidentFace.get
                 println(s"face: $innerFace")
                 val faceEdges = innerFace.halfEdgesSafe
@@ -403,7 +455,7 @@ object TilingAddition:
                    |holeAngles: $holeAngles
                    |startingVertexId: $startingVertexId
                    |""".stripMargin)
-//              clone.addSimplePolygonToBoundaryWithoutGuards (startingVertexId, holeAngles).get
+//              clone.addSimplePolygonWithoutGuards(startingVertexId, holeAngles).get
 //                .addRegularPolygon(startVertexId, endVertexId, sides)
               ???
 
