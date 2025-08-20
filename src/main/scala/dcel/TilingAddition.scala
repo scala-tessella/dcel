@@ -226,15 +226,6 @@ object TilingAddition:
     def addSimplePolygonToBoundary(onEdgeStartingWithVertexId: String, degrees: Int *): Either[String, TilingDCEL] =
       addSimplePolygonToBoundary(onEdgeStartingWithVertexId, degrees.map(AngleDegree(_)).toList)
 
-    private def addSimplePolygonToBoundaryWithoutGuards(onEdgeStartingWithVertexId: String, angles: List[AngleDegree]): Option[TilingDCEL] =
-      for
-        boundaryEdges <- tiling.getBoundaryEdges.toOption
-        edgeToBuildOn <- boundaryEdges.find(_.origin.id == onEdgeStartingWithVertexId)
-        (startVertex, endVertex) <- edgeToBuildOn.endpointsAsVertices
-        result <- addSimplePolygonWithoutGuards(startVertex.id, endVertex.id, angles)
-      yield
-        result
-
     def addRegularPolygonToBoundary(onEdgeStartingWithVertexId: String, sides: Int): Either[String, TilingDCEL] =
       for
         _ <- validateSides(sides, "regular")
@@ -265,9 +256,9 @@ object TilingAddition:
           maybeHoleClosure match
             case None => Right(revisedTiling)
             case Some((v_match, v_new)) =>
-              val (holeAngles, startingVertexId, _) =
+              val (holeAngles, startingVertexId, endingVertexId) =
                 revisedTiling.holeAnglesWithDirection(v_match, v_new)
-              clone.addSimplePolygonToBoundaryWithoutGuards(startingVertexId, holeAngles).get
+              clone.addSimplePolygonWithoutGuards(startingVertexId, endingVertexId, holeAngles).get
                 .addSimplePolygon(startVertexId, endVertexId, angles)
 
     def addSimplePolygon(startVertexId: String, endVertexId: String, degrees: Int *): Either[String, TilingDCEL] =
