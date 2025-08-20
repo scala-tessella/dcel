@@ -69,7 +69,7 @@ object TilingAddition:
   private def findSharedEdges(
     edgeToBuildOn: HalfEdge,
     boundaryAngles: BoundaryAngles
-  )(using outerFace: Face): SharedEdgesResult =
+  )(using outerFace: Face): Either[String, SharedEdgesResult] =
 
     @tailrec
     def traverse(
@@ -79,27 +79,28 @@ object TilingAddition:
       acc: List[HalfEdge],
       getNext: HalfEdge => HalfEdge,
       getVertex: HalfEdge => Vertex
-    ): (List[HalfEdge], AngleDegree, HalfEdge) =
-      if !check.isFullCircle then (acc, check, edge)
+    ): Either[String, (List[HalfEdge], AngleDegree, HalfEdge)] = {
+      println(s"check: $check")
+      if check.toRational < 0 then Left("Angle wider than container")
+      else if !check.isFullCircle then Right((acc, check, edge))
       else
         val nextCheck = boundaryAngleForVertex(getVertex(edge), outerFace, angles.head)
         traverse(getNext(edge), nextCheck, angles.tail, edge :: acc, getNext, getVertex)
+    }
 
-    val (prepended, startCheck, startEdge) =
-      traverse(edgeToBuildOn.prev.get, boundaryAngles.start, boundaryAngles.newVertices.reverse, Nil, _.prev.get, _.origin)
-
-    val (appended, endCheck, endEdge) =
-      traverse(edgeToBuildOn.next.get, boundaryAngles.end, boundaryAngles.newVertices, Nil, _.next.get, _.destination.get)
-
-    SharedEdgesResult(
-      sharedEdges = prepended ::: edgeToBuildOn :: appended.reverse,
-      startCheck = startCheck,
-      startEdge = startEdge,
-      startCounter = prepended.length,
-      endCheck = endCheck,
-      endEdge = endEdge,
-      endCounter = appended.length
-    )
+    for
+      (prepended, startCheck, startEdge) <- traverse(edgeToBuildOn.prev.get, boundaryAngles.start, boundaryAngles.newVertices.reverse, Nil, _.prev.get, _.origin)
+      (appended, endCheck, endEdge) <- traverse(edgeToBuildOn.next.get, boundaryAngles.end, boundaryAngles.newVertices, Nil, _.next.get, _.destination.get)
+    yield
+      SharedEdgesResult(
+        sharedEdges = prepended ::: edgeToBuildOn :: appended.reverse,
+        startCheck = startCheck,
+        startEdge = startEdge,
+        startCounter = prepended.length,
+        endCheck = endCheck,
+        endEdge = endEdge,
+        endCounter = appended.length
+      )
 
   extension (tiling: TilingDCEL)
 
@@ -117,50 +118,50 @@ object TilingAddition:
       points: List[BigPoint],
       boundaryEdges: List[HalfEdge]
     ): Either[String, (TilingDCEL, TilingDCEL, Option[(Vertex, Vertex)])] =
-      val (tempVertices, edgeResults, boundaryAngles) =
-        additionalVertices(startVertex, endVertex, edgeToBuildOn, angles, points, tiling.nextVertexIndex, tiling.outerFace)
+      additionalVertices(startVertex, endVertex, edgeToBuildOn, angles, points, tiling.nextVertexIndex, tiling.outerFace) match
+        case Left(value) => Left(value)
+        case Right((tempVertices, edgeResults, boundaryAngles)) =>
+          val adjustedTempVertices =
+            edgeResults.startEdge.destination.get :: tempVertices ::: List(edgeResults.endEdge.origin)
 
-      val adjustedTempVertices =
-        edgeResults.startEdge.destination.get :: tempVertices ::: List(edgeResults.endEdge.origin)
+          // here we must check if the new boundary intersects with the existing one
+          val newSides: List[BigLineSegment] =
+            adjustedTempVertices.sliding(2).toList.map { (_: @unchecked) match
+              case p1 :: p2 :: Nil => BigLineSegment(p1.coords, p2.coords)
+            }
 
-      // here we must check if the new boundary intersects with the existing one
-      val newSides: List[BigLineSegment] =
-        adjustedTempVertices.sliding(2).toList.map { (_: @unchecked) match
-          case p1 :: p2 :: Nil => BigLineSegment(p1.coords, p2.coords)
-        }
+          val newBox =
+            BigBox.fromPoints(adjustedTempVertices.map(_.coords)).expand(1)
 
-      val newBox =
-        BigBox.fromPoints(adjustedTempVertices.map(_.coords)).expand(1)
+          val oldSides: List[BigLineSegment] =
+            boundaryEdges.slidingO(2).toList.map {
+              case e1 :: e2 :: Nil => BigLineSegment(e1.origin.coords, e2.origin.coords)
+              case _ =>  BigLineSegment(BigPoint(), BigPoint())
+            }.filter(line => newBox.contains(line.p1) || newBox.contains(line.p2))
 
-      val oldSides: List[BigLineSegment] =
-        boundaryEdges.slidingO(2).toList.map {
-          case e1 :: e2 :: Nil => BigLineSegment(e1.origin.coords, e2.origin.coords)
-          case _ =>  BigLineSegment(BigPoint(), BigPoint())
-        }.filter(line => newBox.contains(line.p1) || newBox.contains(line.p2))
+          val hasIntersection =
+            oldSides.exists(oldSide => newSides.exists(newSide => oldSide.properlyIntersects(newSide)))
+          if hasIntersection then
+            return Left("Boundary intersection")
 
-      val hasIntersection =
-        oldSides.exists(oldSide => newSides.exists(newSide => oldSide.properlyIntersects(newSide)))
-      if hasIntersection then
-        return Left("Boundary intersection")
+          val maybeHoleClosure: Option[(Vertex, Vertex)] =
+            findHoleClosure(startVertex, boundaryEdges, tempVertices)
 
-      val maybeHoleClosure: Option[(Vertex, Vertex)] =
-        findHoleClosure(startVertex, boundaryEdges, tempVertices)
+          val deepCopiedOriginal: TilingDCEL =
+            if maybeHoleClosure.isDefined then tiling.deepCopy
+            else TilingDCEL.empty
 
-      val deepCopiedOriginal: TilingDCEL =
-        if maybeHoleClosure.isDefined then tiling.deepCopy
-        else TilingDCEL.empty
+          val (newVertices, newHalfEdges, newFace) =
+            additionalElements(edgeToBuildOn, angles, tiling.nextFaceId, tempVertices, edgeResults, boundaryAngles)
 
-      val (newVertices, newHalfEdges, newFace) =
-        additionalElements(edgeToBuildOn, angles, tiling.nextFaceId, tempVertices, edgeResults, boundaryAngles)
-
-      // Return new DCEL with updated components
-      val grownTiling =
-        tiling.copy(
-          vertices = tiling.vertices ::: newVertices,
-          halfEdges = tiling.halfEdges ::: newHalfEdges,
-          innerFaces = tiling.innerFaces :+ newFace
-        )
-      Right((grownTiling, deepCopiedOriginal, maybeHoleClosure))
+          // Return new DCEL with updated components
+          val grownTiling =
+            tiling.copy(
+              vertices = tiling.vertices ::: newVertices,
+              halfEdges = tiling.halfEdges ::: newHalfEdges,
+              innerFaces = tiling.innerFaces :+ newFace
+            )
+          Right((grownTiling, deepCopiedOriginal, maybeHoleClosure))
 
     private def innerGrowthWithHoleCheck(
       startVertex: Vertex,
@@ -171,66 +172,54 @@ object TilingAddition:
       boundaryEdges: List[HalfEdge]
     ): Either[String, (TilingDCEL, TilingDCEL, Option[(Vertex, Vertex)])] =
       val innerFace = edgeToBuildOn.incidentFace.get
-      val (tempVertices, edgeResults, boundaryAngles) =
-        additionalVertices(startVertex, endVertex, edgeToBuildOn, angles, points, tiling.nextVertexIndex, innerFace)
-      println(
-        s"""
-           |tempVertices: $tempVertices
-           |edgeResults: $edgeResults
-           |startEdge: ${edgeResults.startEdge}
-           |endEdge: ${edgeResults.endEdge}
-           |boundaryAngles: $boundaryAngles""".stripMargin)
 
-      val adjustedTempVertices =
-        edgeResults.startEdge.destination.get :: tempVertices.drop(edgeResults.startCounter) ::: List(edgeResults.endEdge.origin)
+      additionalVertices(startVertex, endVertex, edgeToBuildOn, angles, points, tiling.nextVertexIndex, innerFace) match
+        case Left(value) => Left(value)
+        case Right((tempVertices, edgeResults, boundaryAngles)) =>
 
-      // here we must check if the new boundary intersects with the existing one
-      val newSides: List[BigLineSegment] =
-        adjustedTempVertices.sliding(2).toList.map {
-          (_: @unchecked) match
-            case p1 :: p2 :: Nil => BigLineSegment(p1.coords, p2.coords)
-        }
+          val adjustedTempVertices =
+            edgeResults.startEdge.destination.get :: tempVertices.drop(edgeResults.startCounter) ::: List(edgeResults.endEdge.origin)
 
-      val newBox =
-        BigBox.fromPoints(adjustedTempVertices.map(_.coords)).expand(1)
+          // here we must check if the new boundary intersects with the existing one
+          val newSides: List[BigLineSegment] =
+            adjustedTempVertices.sliding(2).toList.map {
+              (_: @unchecked) match
+                case p1 :: p2 :: Nil => BigLineSegment(p1.coords, p2.coords)
+            }
 
-      val oldSides: List[BigLineSegment] =
-        boundaryEdges.slidingO(2).toList.map {
-          case e1 :: e2 :: Nil => BigLineSegment(e1.origin.coords, e2.origin.coords)
-          case _ => BigLineSegment(BigPoint(), BigPoint())
-        }.filter(line => newBox.contains(line.p1) || newBox.contains(line.p2))
+          val newBox =
+            BigBox.fromPoints(adjustedTempVertices.map(_.coords)).expand(1)
 
-      val hasIntersection =
-        oldSides.exists(oldSide => newSides.exists(newSide => oldSide.properlyIntersects(newSide)))
-      println(s"hasIntersection: $hasIntersection")
+          val oldSides: List[BigLineSegment] =
+            boundaryEdges.slidingO(2).toList.map {
+              case e1 :: e2 :: Nil => BigLineSegment(e1.origin.coords, e2.origin.coords)
+              case _ => BigLineSegment(BigPoint(), BigPoint())
+            }.filter(line => newBox.contains(line.p1) || newBox.contains(line.p2))
 
-      if hasIntersection then
-        return Left("Boundary intersection")
+          val hasIntersection =
+            oldSides.exists(oldSide => newSides.exists(newSide => oldSide.properlyIntersects(newSide)))
 
-      val maybeHoleClosure: Option[(Vertex, Vertex)] =
-        findHoleClosure(startVertex, boundaryEdges, tempVertices)
+          if hasIntersection then
+            return Left("Boundary intersection")
 
-      println(s"maybeHoleClosure: $maybeHoleClosure")
-      val deepCopiedOriginal: TilingDCEL =
-        if maybeHoleClosure.isDefined then tiling.deepCopy
-        else TilingDCEL.empty
+          val maybeHoleClosure: Option[(Vertex, Vertex)] =
+            findHoleClosure(startVertex, boundaryEdges, tempVertices)
 
-      val (newVertices, newHalfEdges, newFace) =
-        additionalElements(edgeToBuildOn, angles, tiling.nextFaceId, tempVertices, edgeResults, boundaryAngles)
-      println(
-        s"""
-           |newVertices: $newVertices
-           |newHalfEdges: $newHalfEdges
-           |newFace: $newFace""".stripMargin)
+          val deepCopiedOriginal: TilingDCEL =
+            if maybeHoleClosure.isDefined then tiling.deepCopy
+            else TilingDCEL.empty
 
-      // Return new DCEL with updated components
-      val grownTiling =
-        tiling.copy(
-          vertices = tiling.vertices ::: newVertices,
-          halfEdges = tiling.halfEdges ::: newHalfEdges,
-          innerFaces = tiling.innerFaces :+ newFace
-        )
-      Right((grownTiling, deepCopiedOriginal, maybeHoleClosure))
+          val (newVertices, newHalfEdges, newFace) =
+            additionalElements(edgeToBuildOn, angles, tiling.nextFaceId, tempVertices, edgeResults, boundaryAngles)
+
+          // Return new DCEL with updated components
+          val grownTiling =
+            tiling.copy(
+              vertices = tiling.vertices ::: newVertices,
+              halfEdges = tiling.halfEdges ::: newHalfEdges,
+              innerFaces = tiling.innerFaces :+ newFace
+            )
+          Right((grownTiling, deepCopiedOriginal, maybeHoleClosure))
 
     /** Calculates the angles needed to fill a hole in the tiling's boundary,
      *  determining the correct starting vertex and direction for the new polygon.
@@ -385,7 +374,7 @@ object TilingAddition:
 //        val containerBoundaryEdges = containerFace.halfEdgesSafe
 
         val (tempVertices, edgeResults, boundaryAngles) =
-          additionalVertices(startVertex, endVertex, edgeToBuildOn, angles, points, tiling.nextVertexIndex, containerFace)
+          additionalVertices(startVertex, endVertex, edgeToBuildOn, angles, points, tiling.nextVertexIndex, containerFace).toOption.get
 
         val (newVertices, newHalfEdges, newFace) =
           additionalElements(edgeToBuildOn, angles, tiling.nextFaceId, tempVertices, edgeResults, boundaryAngles)
@@ -472,7 +461,7 @@ object TilingAddition:
     points: List[BigPoint],
     vertexIndex: Int,
     outer: Face
-  ): (List[Vertex], SharedEdgesResult, BoundaryAngles) =
+  ): Either[String, (List[Vertex], SharedEdgesResult, BoundaryAngles)] =
     given outerFace: Face = outer
 
     // Calculate boundary angles
@@ -482,13 +471,15 @@ object TilingAddition:
       newVertices = angles.drop(2)
     )
 
-    val edgesResult = findSharedEdges(edgeToBuildOn, boundaryAngles)
+    for
+      edgesResult <- findSharedEdges(edgeToBuildOn, boundaryAngles)
 
     // Create new components
-    val vertexPoints = points.drop(2).reverse
-    val revisedVertexPoints = vertexPoints.drop(edgesResult.startCounter).dropRight(edgesResult.endCounter)
-    val newVertices = createVertices(revisedVertexPoints, vertexIndex)
-    (newVertices, edgesResult, boundaryAngles)
+      vertexPoints = points.drop(2).reverse
+      revisedVertexPoints = vertexPoints.drop(edgesResult.startCounter).dropRight(edgesResult.endCounter)
+      newVertices = createVertices(revisedVertexPoints, vertexIndex)
+    yield
+      (newVertices, edgesResult, boundaryAngles)
 
   /** Finds a couple of vertices from the existing and the additional boundary sharing the same coords
    *  and thus marking a hole

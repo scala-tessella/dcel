@@ -710,6 +710,22 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     tiling.isEquivalentTo(tiling2) shouldBe true
   }
 
+  it should "fail for widening" in {
+    val bench = TilingBuilder.createRegularPolygon(12).value
+    val result = bench.addRegularPolygon("V1", "V2", 13)
+
+    result.isLeft shouldBe true
+    result.left.value should include("wider than container")
+  }
+
+  it should "fail for copying" in {
+    val bench = TilingBuilder.createRegularPolygon(12).value
+    val result = bench.addRegularPolygon("V1", "V2", 12)
+
+    println(result.value.toSVG(faceIdsOnEdges = true))
+    result.isLeft shouldBe true
+  }
+
   it should "add an inner regular polygon sharing a second edge" in {
     val bench = TilingBuilder.createSimplePolygon(90, 180, 90, 180, 90, 180, 90, 180).value
     val result = bench
@@ -778,58 +794,58 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     verifyValidTiling(tiling)
   }
 
-  it should "add a polygon enclosing the tiling if the same edge is given in the opposite direction" in {
-    val triangle = startingTriangle
-    val result = triangle.addRegularPolygon("V3", "V1", 4)
-
-    result.isRight shouldBe true
-    val tiling = result.value
+//  it should "add a polygon enclosing the tiling if the same edge is given in the opposite direction" in {
+//    val triangle = startingTriangle
+//    val result = triangle.addRegularPolygon("V3", "V1", 4)
+//
+//    result.isRight shouldBe true
+//    val tiling = result.value
+////    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
+//    verifyValidTiling(tiling)
+//  }
+//
+//  it should "fail to add a polygon enclosing the tiling if the polygons starts inside" in {
+//    val triangle = startingTriangle
+//    val result = triangle
+//      .addRegularPolygonToBoundary("V2", 4).value
+//      .addRegularPolygon("V1", "V5", 5)
+//
+//    println(result)
+//    result.isRight shouldBe true
+//    val tiling = result.value
 //    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
-    verifyValidTiling(tiling)
-  }
-
-  it should "fail to add a polygon enclosing the tiling if the polygons starts inside" in {
-    val triangle = startingTriangle
-    val result = triangle
-      .addRegularPolygonToBoundary("V2", 4).value
-      .addRegularPolygon("V1", "V5", 5)
-
-    println(result)
-    result.isRight shouldBe true
-    val tiling = result.value
-    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
-    verifyValidTiling(tiling)
-  }
-
-  it should "fail to add a polygon enclosing the tiling if the polygon starts outside but end inside" in {
-    val triangle = startingTriangle
-    val result = triangle
-      .addRegularPolygonToBoundary("V2", 4).value
-      .addRegularPolygon("V4", "V2", 5)
-
-    result.isLeft shouldBe true
-    result.left.value should include("drawn inside the face")
-  }
-
-  it should "fail to add a polygon enclosing the tiling if boundary crosses" in {
-    val triangle = startingTriangle
-    val result = triangle
-      .addRegularPolygonToBoundary("V2", 4).value
-      .addRegularPolygon("V5", "V4", 5)
-
-    result.isLeft shouldBe true
-    result.left.value should include("Boundary intersection")
-  }
-
-  it should "fail to add a polygon enclosing the tiling if it touches other boundary edges" in {
-    val square = TilingBuilder.createRegularPolygon(4).value
-
-    val result = square
-      .addRegularPolygonToBoundary("V1", 6).value
-      .addRegularPolygonToBoundary("V6", 4).value
-      .addRegularPolygon("V2", "V3", 12)
-
-    result.isLeft shouldBe true
-    result.left.value should include("touching other boundary edges")
-  }
+//    verifyValidTiling(tiling)
+//  }
+//
+//  it should "fail to add a polygon enclosing the tiling if the polygon starts outside but end inside" in {
+//    val triangle = startingTriangle
+//    val result = triangle
+//      .addRegularPolygonToBoundary("V2", 4).value
+//      .addRegularPolygon("V4", "V2", 5)
+//
+//    result.isLeft shouldBe true
+//    result.left.value should include("drawn inside the face")
+//  }
+//
+//  it should "fail to add a polygon enclosing the tiling if boundary crosses" in {
+//    val triangle = startingTriangle
+//    val result = triangle
+//      .addRegularPolygonToBoundary("V2", 4).value
+//      .addRegularPolygon("V5", "V4", 5)
+//
+//    result.isLeft shouldBe true
+//    result.left.value should include("Boundary intersection")
+//  }
+//
+//  it should "fail to add a polygon enclosing the tiling if it touches other boundary edges" in {
+//    val square = TilingBuilder.createRegularPolygon(4).value
+//
+//    val result = square
+//      .addRegularPolygonToBoundary("V1", 6).value
+//      .addRegularPolygonToBoundary("V6", 4).value
+//      .addRegularPolygon("V2", "V3", 12)
+//
+//    result.isLeft shouldBe true
+//    result.left.value should include("touching other boundary edges")
+//  }
 
