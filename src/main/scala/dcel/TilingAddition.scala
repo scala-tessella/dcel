@@ -266,34 +266,18 @@ object TilingAddition:
         val lastEdge = holePath.last
         (polygonAngles.rotateRight(1), lastEdge.origin.id, lastEdge.destination.get.id)
 
-    @tailrec
     def addSimplePolygonToBoundary(onEdgeStartingWithVertexId: String, angles: List[AngleDegree]): Either[String, TilingDCEL] =
-      val either: Either[String, (TilingDCEL, TilingDCEL, Option[(Vertex, Vertex)])] =
-        for
-          _      <- validateSides(angles.length, "simple")
-          _      <- SimplePolygon.validatePolygonAngles(angles)
-          boundaryEdges <- tiling.getBoundaryEdges
-          edgeToBuildOn <- boundaryEdges
-            .find (_.origin.id == onEdgeStartingWithVertexId)
-            .toRight (s"Edge starting with vertex $onEdgeStartingWithVertexId not found on the boundary.")
-          (startVertex, endVertex) <- edgeToBuildOn.endpointsAsVertices
-            .toRight("Edge has no destination vertex.")
-          points = calculateVertexPoints(angles, startVertex.coords, endVertex.coords)
-          _      <- validatePoints(points)
-          result <- growthWithHoleCheck(startVertex, endVertex, edgeToBuildOn, angles, points, boundaryEdges)
-        yield
-          result
-
-      either match
-        case Left(value) => Left(value)
-        case Right((revisedTiling, clone, maybeHoleClosure)) =>
-          maybeHoleClosure match
-            case None => Right(revisedTiling)
-            case Some((v_match, v_new)) =>
-              val (holeAngles, startingVertexId, _) =
-                revisedTiling.holeAnglesWithDirection(v_match, v_new)
-              clone.addSimplePolygonToBoundaryWithoutGuards(startingVertexId, holeAngles).get
-                .addSimplePolygonToBoundary(onEdgeStartingWithVertexId, angles)
+      for
+        _ <- validateSides(angles.length, "simple")
+        boundaryEdges <- tiling.getBoundaryEdges
+        edgeToBuildOn <- boundaryEdges
+          .find(_.origin.id == onEdgeStartingWithVertexId)
+          .toRight(s"Edge starting with vertex $onEdgeStartingWithVertexId not found on the boundary.")
+        (startVertex, endVertex) <- edgeToBuildOn.endpointsAsVertices
+          .toRight("Edge has no destination vertex.")
+        result <- addSimplePolygon(startVertex.id, endVertex.id, angles)
+      yield
+        result
 
     def addSimplePolygonToBoundary(onEdgeStartingWithVertexId: String, degrees: Int *): Either[String, TilingDCEL] =
       addSimplePolygonToBoundary(onEdgeStartingWithVertexId, degrees.map(AngleDegree(_)).toList)
@@ -303,50 +287,62 @@ object TilingAddition:
         boundaryEdges <- tiling.getBoundaryEdges.toOption
         edgeToBuildOn <- boundaryEdges.find(_.origin.id == onEdgeStartingWithVertexId)
         (startVertex, endVertex) <- edgeToBuildOn.endpointsAsVertices
-        points = calculateVertexPoints(angles, startVertex.coords, endVertex.coords)
+        result <- addSimplePolygonWithoutGuards(startVertex.id, endVertex.id, angles)
       yield
+        result
+//        val (tempVertices, edgeResults, boundaryAngles) =
+//          additionalVertices(startVertex, endVertex, edgeToBuildOn, angles, points, tiling.nextVertexIndex, tiling.outerFace)
+//
+//        val (newVertices, newHalfEdges, newFace) =
+//          additionalElements(edgeToBuildOn, angles, tiling.nextFaceId, tempVertices, edgeResults, boundaryAngles)
+//
+//        // Return new DCEL with updated components
+//        tiling.copy(
+//          vertices = tiling.vertices ::: newVertices,
+//          halfEdges = tiling.halfEdges ::: newHalfEdges,
+//          innerFaces = tiling.innerFaces :+ newFace
+//        )
 
-        val (tempVertices, edgeResults, boundaryAngles) =
-          additionalVertices(startVertex, endVertex, edgeToBuildOn, angles, points, tiling.nextVertexIndex, tiling.outerFace)
-
-        val (newVertices, newHalfEdges, newFace) =
-          additionalElements(edgeToBuildOn, angles, tiling.nextFaceId, tempVertices, edgeResults, boundaryAngles)
-
-        // Return new DCEL with updated components
-        tiling.copy(
-          vertices = tiling.vertices ::: newVertices,
-          halfEdges = tiling.halfEdges ::: newHalfEdges,
-          innerFaces = tiling.innerFaces :+ newFace
-        )
-
-    @tailrec
+//    @tailrec
     def addRegularPolygonToBoundary(onEdgeStartingWithVertexId: String, sides: Int): Either[String, TilingDCEL] =
-      val either: Either[String, (TilingDCEL, TilingDCEL, Option[(Vertex, Vertex)])] =
-        for
-          _                        <- validateSides(sides, "regular")
-          boundaryEdges            <- tiling.getBoundaryEdges
-          edgeToBuildOn            <- boundaryEdges
-            .find(_.origin.id == onEdgeStartingWithVertexId)
-            .toRight(s"Edge starting with vertex $onEdgeStartingWithVertexId not found on the boundary.")
-          (startVertex, endVertex) <- edgeToBuildOn.endpointsAsVertices
-            .toRight("Edge has no destination vertex.")
-          polyAngle = polygonAngle(sides)
-          angles = List.fill(sides)(polyAngle)
-          points = calculateVertexPoints(angles, startVertex.coords, endVertex.coords)
-          result <- growthWithHoleCheck(startVertex, endVertex, edgeToBuildOn, angles, points, boundaryEdges)
-        yield
-          result
+      for
+        _ <- validateSides(sides, "regular")
+        boundaryEdges <- tiling.getBoundaryEdges
+        edgeToBuildOn <- boundaryEdges
+          .find(_.origin.id == onEdgeStartingWithVertexId)
+          .toRight(s"Edge starting with vertex $onEdgeStartingWithVertexId not found on the boundary.")
+        (startVertex, endVertex) <- edgeToBuildOn.endpointsAsVertices
+          .toRight("Edge has no destination vertex.")
+        result <- addRegularPolygon(startVertex.id, endVertex.id, sides)
+      yield
+        result
 
-      either match
-        case Left(value) => Left(value)
-        case Right((revisedTiling, clone, maybeHoleClosure)) =>
-          maybeHoleClosure match
-            case None => Right(revisedTiling)
-            case Some((v_match, v_new)) =>
-              val (holeAngles, startingVertexId, _) =
-                revisedTiling.holeAnglesWithDirection(v_match, v_new)
-              clone.addSimplePolygonToBoundaryWithoutGuards(startingVertexId, holeAngles).get
-                .addRegularPolygonToBoundary(onEdgeStartingWithVertexId, sides)
+//        val either: Either[String, (TilingDCEL, TilingDCEL, Option[(Vertex, Vertex)])] =
+//        for
+//          _                        <- validateSides(sides, "regular")
+//          boundaryEdges            <- tiling.getBoundaryEdges
+//          edgeToBuildOn            <- boundaryEdges
+//            .find(_.origin.id == onEdgeStartingWithVertexId)
+//            .toRight(s"Edge starting with vertex $onEdgeStartingWithVertexId not found on the boundary.")
+//          (startVertex, endVertex) <- edgeToBuildOn.endpointsAsVertices
+//            .toRight("Edge has no destination vertex.")
+//          polyAngle = polygonAngle(sides)
+//          angles = List.fill(sides)(polyAngle)
+//          points = calculateVertexPoints(angles, startVertex.coords, endVertex.coords)
+//          result <- growthWithHoleCheck(startVertex, endVertex, edgeToBuildOn, angles, points, boundaryEdges)
+//        yield
+//          result
+//
+//      either match
+//        case Left(value) => Left(value)
+//        case Right((revisedTiling, clone, maybeHoleClosure)) =>
+//          maybeHoleClosure match
+//            case None => Right(revisedTiling)
+//            case Some((v_match, v_new)) =>
+//              val (holeAngles, startingVertexId, _) =
+//                revisedTiling.holeAnglesWithDirection(v_match, v_new)
+//              clone.addSimplePolygonToBoundaryWithoutGuards(startingVertexId, holeAngles).get
+//                .addRegularPolygonToBoundary(onEdgeStartingWithVertexId, sides)
 
     @tailrec
     def addSimplePolygon(startVertexId: String, endVertexId: String, angles: List[AngleDegree]): Either[String, TilingDCEL] =
@@ -411,31 +407,31 @@ object TilingAddition:
           angles = List.fill(sides)(polyAngle)
           points = calculateVertexPoints(angles, startVertex.coords, endVertex.coords)
           result <-
-            if tiling.isBoundaryEdge(edgeToBuildOn) then
-              addRegularPolygonToBoundary(startVertexId, sides).map((_, TilingDCEL.empty, None))
-            else
-              // @todo it could work also with a "bottleneck" edge, that is with both vertices on the boundary, but the inner angles at vertex should be split
-  //            val boundaryVertices = tiling.boundary
-  //            // if both vertices belong to the boundary, either the edge is the twin of a boundary edge or is a "bottleneck"
-  //            val hasBothVerticesOnBoundary = boundaryVertices.contains(v1) && boundaryVertices.contains(v2)
-              val hasEnclosingStart =
-                tiling.isBoundaryEdge(edgeToBuildOn.twin.get)
-                  && tiling.getInnerAnglesAtVertex(startVertexId).toOption.get.sum2.toRational < polyAngle.toRational
-              if hasEnclosingStart then
-                val hasEnclosingEnd =
-                  tiling.getInnerAnglesAtVertex(endVertexId).toOption.get.sum2.toRational < polyAngle.toRational
-                if !hasEnclosingEnd then
-                  Left("Polygon would be drawn inside the face")
-                else
-                  val boundaryAnglesFromVertex = tiling.getBoundaryEdgesPath(startVertex, startVertex).map(_.angle.get)
-                  val first = polyAngle - boundaryAnglesFromVertex.head.conjugate
-                  val last = polyAngle - boundaryAnglesFromVertex.last.conjugate
-                  val simplePolygonAngles = first :: boundaryAnglesFromVertex.tail.init ::: (last :: List.fill(sides - 2)(polyAngle))
-                  addSimplePolygonToBoundary(startVertexId, simplePolygonAngles) match
-                    case Left(message) if message.startsWith("The polygon is not simple") =>
-                      Left("The polygon is touching other boundary edges.")
-                    case either => either.map((_, TilingDCEL.empty, None))
-              else
+//            if tiling.isBoundaryEdge(edgeToBuildOn) then
+//              addRegularPolygonToBoundary(startVertexId, sides).map((_, TilingDCEL.empty, None))
+//            else
+//              // @todo it could work also with a "bottleneck" edge, that is with both vertices on the boundary, but the inner angles at vertex should be split
+//  //            val boundaryVertices = tiling.boundary
+//  //            // if both vertices belong to the boundary, either the edge is the twin of a boundary edge or is a "bottleneck"
+//  //            val hasBothVerticesOnBoundary = boundaryVertices.contains(v1) && boundaryVertices.contains(v2)
+//              val hasEnclosingStart =
+//                tiling.isBoundaryEdge(edgeToBuildOn.twin.get)
+//                  && tiling.getInnerAnglesAtVertex(startVertexId).toOption.get.sum2.toRational < polyAngle.toRational
+//              if hasEnclosingStart then
+//                val hasEnclosingEnd =
+//                  tiling.getInnerAnglesAtVertex(endVertexId).toOption.get.sum2.toRational < polyAngle.toRational
+//                if !hasEnclosingEnd then
+//                  Left("Polygon would be drawn inside the face")
+//                else
+//                  val boundaryAnglesFromVertex = tiling.getBoundaryEdgesPath(startVertex, startVertex).map(_.angle.get)
+//                  val first = polyAngle - boundaryAnglesFromVertex.head.conjugate
+//                  val last = polyAngle - boundaryAnglesFromVertex.last.conjugate
+//                  val simplePolygonAngles = first :: boundaryAnglesFromVertex.tail.init ::: (last :: List.fill(sides - 2)(polyAngle))
+//                  addSimplePolygonToBoundary(startVertexId, simplePolygonAngles) match
+//                    case Left(message) if message.startsWith("The polygon is not simple") =>
+//                      Left("The polygon is touching other boundary edges.")
+//                    case either => either.map((_, TilingDCEL.empty, None))
+//              else
                 val innerFace = edgeToBuildOn.incidentFace.get
                 println(s"face: $innerFace")
                 val faceEdges = innerFace.halfEdgesSafe
