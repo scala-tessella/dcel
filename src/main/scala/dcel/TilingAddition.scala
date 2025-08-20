@@ -115,10 +115,10 @@ object TilingAddition:
     val newBox = BigBox.fromPoints(adjustedTempVertices.map(_.coords)).expand(1)
 
     // Filter boundary edges that are potentially relevant
-    val oldSides = boundaryEdges.slidingO(2).toList.map {
+    val oldSides = boundaryEdges.slidingO(2).map {
       case e1 :: e2 :: Nil => BigLineSegment(e1.origin.coords, e2.origin.coords)
       case _ => BigLineSegment(BigPoint(), BigPoint())
-    }.filter(line => newBox.contains(line.p1) || newBox.contains(line.p2))
+    }.filter(line => newBox.contains(line.p1) || newBox.contains(line.p2)).toList
 
     // Check for intersections
     if oldSides.exists(oldSide => newSides.exists(newSide => oldSide.properlyIntersects(newSide))) then
