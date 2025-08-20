@@ -209,15 +209,20 @@ object TilingAddition:
         val lastEdge = holePath.last
         (polygonAngles.rotateRight(1), lastEdge.origin.id, lastEdge.destination.get.id)
 
+    private def validateBoundaryEdge(startingWithVertexId: String): Either[String, (HalfEdge, Vertex, Vertex, List[HalfEdge])] =
+      for
+        boundaryEdges <- tiling.getBoundaryEdges
+        edgeToBuildOn <- boundaryEdges
+          .find(_.origin.id == startingWithVertexId)
+          .toRight(s"Edge starting with vertex $startingWithVertexId not found on the boundary.")
+        (startVertex, endVertex) <- edgeToBuildOn.endpointsAsVertices
+          .toRight("Edge has no destination vertex.")
+      yield (edgeToBuildOn, startVertex, endVertex, boundaryEdges)
+
     def addSimplePolygonToBoundary(onEdgeStartingWithVertexId: String, angles: List[AngleDegree]): Either[String, TilingDCEL] =
       for
         _ <- validateSides(angles.length, "simple")
-        boundaryEdges <- tiling.getBoundaryEdges
-        edgeToBuildOn <- boundaryEdges
-          .find(_.origin.id == onEdgeStartingWithVertexId)
-          .toRight(s"Edge starting with vertex $onEdgeStartingWithVertexId not found on the boundary.")
-        (startVertex, endVertex) <- edgeToBuildOn.endpointsAsVertices
-          .toRight("Edge has no destination vertex.")
+        (edgeToBuildOn, startVertex, endVertex, boundaryEdges) <- validateBoundaryEdge(onEdgeStartingWithVertexId)
         result <- addSimplePolygon(startVertex.id, endVertex.id, angles)
       yield
         result
@@ -237,12 +242,7 @@ object TilingAddition:
     def addRegularPolygonToBoundary(onEdgeStartingWithVertexId: String, sides: Int): Either[String, TilingDCEL] =
       for
         _ <- validateSides(sides, "regular")
-        boundaryEdges <- tiling.getBoundaryEdges
-        edgeToBuildOn <- boundaryEdges
-          .find(_.origin.id == onEdgeStartingWithVertexId)
-          .toRight(s"Edge starting with vertex $onEdgeStartingWithVertexId not found on the boundary.")
-        (startVertex, endVertex) <- edgeToBuildOn.endpointsAsVertices
-          .toRight("Edge has no destination vertex.")
+        (_, startVertex, endVertex, _) <- validateBoundaryEdge(onEdgeStartingWithVertexId)
         result <- addRegularPolygon(startVertex.id, endVertex.id, sides)
       yield
         result
