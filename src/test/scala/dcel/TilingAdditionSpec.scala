@@ -710,7 +710,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     tiling.isEquivalentTo(tiling2) shouldBe true
   }
 
-  it should "add an internal regular polygon sharing a second edge" in {
+  it should "add an inner regular polygon sharing a second edge" in {
     val bench = TilingBuilder.createSimplePolygon(90, 180, 90, 180, 90, 180, 90, 180).value
     val result = bench
       .addRegularPolygon("V1", "V2", 4)
