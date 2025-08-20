@@ -239,7 +239,8 @@ object TilingAddition:
      * @param v_new   the new vertex closing the hole
      */
     private def holeAnglesWithDirection(v_match: Vertex, v_new: Vertex): (List[AngleDegree], String) =
-      val boundaryEdges = tiling.getBoundaryEdges.toOption.get
+      val face = tiling.halfEdges.find(_.origin.id == v_match.id).get.incidentFace.get
+      val boundaryEdges = face.halfEdgesSafe
 
       // 1. Determine the shorter path (the "hole") on the boundary between the two vertices.
       val pathFwd = boundaryEdges.getPath(from = v_match, to = v_new)
@@ -346,14 +347,14 @@ object TilingAddition:
                 .addRegularPolygonToBoundary(onEdgeStartingWithVertexId, sides)
 
     def addRegularPolygon(startVertexId: String, endVertexId: String, sides: Int): Either[String, TilingDCEL] =
-      val either: Either[String, (TilingDCEL, TilingDCEL, Option[(Vertex, Vertex)], HalfEdge)] =
+      val either: Either[String, (TilingDCEL, TilingDCEL, Option[(Vertex, Vertex)])] =
         for
           (startVertex, endVertex, edgeToBuildOn) <- tiling.findVerticesAndEdgeBetween(startVertexId, endVertexId)
           _  <- validateSides(sides, "regular")
           polyAngle = polygonAngle(sides)
           angles = List.fill(sides)(polyAngle)
           points = calculateVertexPoints(angles, startVertex.coords, endVertex.coords)
-          (revisedTiling, clone, maybeHoleClosure) <-
+          result <-
             if tiling.isBoundaryEdge(edgeToBuildOn) then
               addRegularPolygonToBoundary(startVertexId, sides).map((_, TilingDCEL.empty, None))
             else
@@ -386,12 +387,12 @@ object TilingAddition:
                 println(s"faceEdges: $faceEdges")
                 innerGrowthWithHoleCheck(startVertex, endVertex, edgeToBuildOn, angles, points, faceEdges)
 
-        yield 
-          (revisedTiling, clone, maybeHoleClosure, edgeToBuildOn)
+        yield
+          result
 
       either match
         case Left (value) => Left(value)
-        case Right ((revisedTiling, clone, maybeHoleClosure, edgeToBuildOn)) =>
+        case Right ((revisedTiling, clone, maybeHoleClosure)) =>
           maybeHoleClosure match
             case None => Right(revisedTiling)
             case Some((v_match, v_new)) =>
