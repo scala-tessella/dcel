@@ -175,7 +175,6 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "create a valid TilingDCEL for a regular triangle" in {
     val tiling = TilingBuilder.createRhombusNet(3, 3, AngleDegree(60))
-    println(TilingDCEL.validate(tiling))
-    println(tiling.toSVG())
+//    println(TilingDCEL.validate(tiling))
     TilingDCEL.validate(tiling).isRight shouldBe true
   }

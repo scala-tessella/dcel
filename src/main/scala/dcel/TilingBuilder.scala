@@ -189,7 +189,8 @@ object TilingBuilder:
     }
 
     val vertices = Array.tabulate(height + 1, width + 1) { (j, i) =>
-      Vertex(s"V${j}_$i", points(j)(i))
+      val vertexId = j * (width + 1) + i + 1
+      Vertex(s"V$vertexId", points(j)(i))
     }
 
     val faces = Array.tabulate(height, width) { (j, i) =>
