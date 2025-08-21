@@ -758,6 +758,29 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with EitherValues:
     result.left.value should include("Boundary intersection")
   }
 
+  it should "add a special boundary regular polygon creating a hole" in {
+    val angles = List(120, 180, 180, 180, 120, 120, 180, 120, 60, 180, 300, 180, 180, 300, 180, 60, 120, 180, 120)
+    val bench = TilingBuilder.createSimplePolygon(angles *).value
+      .addRegularPolygonToBoundary("V16", 3).value
+
+    println(bench.toSVG())
+    val result = bench
+      .addRegularPolygonToBoundary("V16", 3)
+
+    result.isRight shouldBe true
+  }
+
+  it should "add another specular boundary regular polygon creating a hole" in {
+    val angles = List(120, 180, 180, 180, 120, 120, 180, 120, 60, 180, 300, 180, 180, 300, 180, 60, 120, 180, 120)
+    val bench = TilingBuilder.createSimplePolygon(angles *).value
+      .addRegularPolygonToBoundary("V10", 3).value
+
+    val result = bench
+      .addRegularPolygonToBoundary("V20", 3)
+
+    result.isRight shouldBe true
+  }
+
   it should "add an inner regular polygon creating a hole" in {
     val bench = TilingBuilder.createRegularPolygon(12).value
       .addRegularPolygon("V1", "V2", 4).value
