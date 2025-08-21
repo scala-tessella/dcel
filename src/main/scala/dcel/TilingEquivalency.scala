@@ -3,7 +3,7 @@ package dcel
 
 import BigDecimalGeometry.AngleDegree
 
-import ring_seq.RingSeq.rotationsAndReflections
+import ring_seq.RingSeq.{rotations, rotationsAndReflections}
 
 object TilingEquivalency:
 
@@ -153,3 +153,24 @@ object TilingEquivalency:
         faces => toMultiset(faces.map(getFaceSignature)),
         (vertices, _) => toMultiset(vertices.map(getVertexSignature))
       )
+      
+    def isRotationOf(other: TilingDCEL): Boolean =
+      given Ordering[AngleDegree] with
+        def compare(x: AngleDegree, y: AngleDegree): Int =
+          x.toRational.compare(y.toRational)
+
+      def getCanonicalAngleSequence(angles: List[AngleDegree]): List[AngleDegree] =
+        angles.rotations.min
+
+      def getFaceSignature(face: Face): List[AngleDegree] =
+        getCanonicalAngleSequence(face.halfEdgesSafe.flatMap(_.angle))
+
+      def getVertexSignature(vertex: Vertex): List[AngleDegree] =
+        getCanonicalAngleSequence(vertex.incidentEdges.flatMap(_.angle))
+
+      tiling.isEquivalentRawTo(
+        other,
+        faces => toMultiset(faces.map(getFaceSignature)),
+        (vertices, _) => toMultiset(vertices.map(getVertexSignature))
+      )
+  
