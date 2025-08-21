@@ -1,7 +1,7 @@
 package io.github.scala_tessella
 package dcel
 
-import BigDecimalGeometry.AngleDegree
+import BigDecimalGeometry.{AngleDegree, BigPoint}
 
 import ring_seq.RingSeq.rotationsAndReflections
 
@@ -11,6 +11,12 @@ object TilingEquivalency:
     list.groupMapReduce(identity)(_ => 1)(_ + _)
 
   extension (tiling: TilingDCEL)
+
+    private def createMaps(coordsTransformer: BigPoint => BigPoint): (Map[Vertex, Vertex], Map[HalfEdge, HalfEdge], Map[Face, Face]) =
+      val vertexMap = tiling.vertices.map(v => v -> Vertex(v.id, coordsTransformer(v.coords))).toMap
+      val halfEdgeMap = tiling.halfEdges.map(he => he -> HalfEdge(vertexMap(he.origin))).toMap
+      val faceMap = tiling.faces.map(f => f -> Face(f.id)).toMap
+      (vertexMap, halfEdgeMap, faceMap)
 
     private def copyHalfEdgeRelationships(halfEdgeMap: Map[HalfEdge, HalfEdge], faceMap: Map[Face, Face]): Unit =
       // Copy all relationships for half-edges
@@ -54,28 +60,31 @@ object TilingEquivalency:
         }
       }
 
-    /**
-     * Creates a deep copy of this TilingDCEL that is completely independent.
-     * Changes to the original will not affect the copy and vice versa.
-     *
-     * @return A new TilingDCEL instance with all components copied and properly linked.
-     */
-    def deepCopy: TilingDCEL =
+    private def copyVertexRelationships(
+      vertexLeavingTransformer: (Vertex, HalfEdge, Map[HalfEdge, HalfEdge]) => Unit,
+      vertexMap: Map[Vertex, Vertex],
+      halfEdgeMap: Map[HalfEdge, HalfEdge]
+    ): Unit =
+      // Copy vertex-leaving edge relationships
+      tiling.vertices.foreach { oldVertex =>
+        val newVertex = vertexMap(oldVertex)
+        oldVertex.leaving.foreach { oldLeavingEdge =>
+          vertexLeavingTransformer(newVertex, oldLeavingEdge, halfEdgeMap)
+        }
+      }
+
+    private def rawCopy(
+      coordsTransformer: BigPoint => BigPoint,
+      vertexLeavingTransformer: (Vertex, HalfEdge, Map[HalfEdge, HalfEdge]) => Unit
+    ): TilingDCEL =
       // Create mapping from old to new components
-      val vertexMap = tiling.vertices.map(v => v -> Vertex(v.id, v.coords)).toMap
-      val faceMap = tiling.faces.map(f => f -> Face(f.id)).toMap
-      val halfEdgeMap = tiling.halfEdges.map(he => he -> HalfEdge(vertexMap(he.origin))).toMap
+      val (vertexMap, halfEdgeMap, faceMap) = createMaps(coordsTransformer)
 
       // Copy all relationships for half-edges
       copyHalfEdgeRelationships(halfEdgeMap, faceMap)
 
       // Copy vertex-leaving edge relationships
-      tiling.vertices.foreach { oldVertex =>
-        val newVertex = vertexMap(oldVertex)
-        oldVertex.leaving.foreach { oldLeavingEdge =>
-          newVertex.leaving = Some(halfEdgeMap(oldLeavingEdge))
-        }
-      }
+      copyVertexRelationships(vertexLeavingTransformer, vertexMap, halfEdgeMap)
 
       // Copy face relationships
       copyFaceRelationships(halfEdgeMap, faceMap)
@@ -86,6 +95,20 @@ object TilingEquivalency:
         halfEdges = tiling.halfEdges.map(halfEdgeMap),
         innerFaces = tiling.innerFaces.map(faceMap),
         outerFace = faceMap(tiling.outerFace)
+      )
+
+    /**
+     * Creates a deep copy of this TilingDCEL that is completely independent.
+     * Changes to the original will not affect the copy and vice versa.
+     *
+     * @return A new TilingDCEL instance with all components copied and properly linked.
+     */
+    def deepCopy: TilingDCEL =
+      rawCopy(
+        coordsTransformer = identity,
+        vertexLeavingTransformer =
+          (newVertex, oldLeavingEdge, halfEdgeMap) =>
+            newVertex.leaving = Some(halfEdgeMap(oldLeavingEdge))
       )
 
     /** Creates a geometric reflection of the tiling across the vertical axis of its bounding box.
@@ -102,38 +125,16 @@ object TilingEquivalency:
       val maxX = xCoords.max
       val reflectionAxisX = (minX + maxX) / 2
 
-      // Create mapping from old to new components, reflecting vertex coordinates across the calculated vertical axis
-      val vertexMap = tiling.vertices.map { v =>
-        val newX = reflectionAxisX * 2 - v.coords.x
-        v -> Vertex(v.id, v.coords.copy(x = newX))
-      }.toMap
-      val faceMap = tiling.faces.map(f => f -> Face(f.id)).toMap
-      val halfEdgeMap = tiling.halfEdges.map(he => he -> HalfEdge(vertexMap(he.origin))).toMap
-
-      // Copy all relationships for half-edges
-      copyHalfEdgeRelationships(halfEdgeMap, faceMap)
-
-      // Copy vertex-leaving edge relationships
-      tiling.vertices.foreach { oldVertex =>
-        val newVertex = vertexMap(oldVertex)
-        oldVertex.leaving.foreach { oldLeavingEdge =>
-          // In the reflected copy, the edge cycle around a vertex is reversed.
-          // The new `leaving` edge should be the one that PRECEDES the old `leaving` edge's twin.
-          oldLeavingEdge.prev.flatMap(_.twin).foreach(newLeaving =>
-            newVertex.leaving = Some(halfEdgeMap(newLeaving))
-          )
-        }
-      }
-
-      // Copy face relationships
-      copyFaceRelationships(halfEdgeMap, faceMap)
-
-      // Create the new TilingDCEL with copied components
-      TilingDCEL(
-        vertices = tiling.vertices.map(vertexMap),
-        halfEdges = tiling.halfEdges.map(halfEdgeMap),
-        innerFaces = tiling.innerFaces.map(faceMap),
-        outerFace = faceMap(tiling.outerFace)
+      rawCopy(
+        // Reflecting vertex coordinates across the calculated vertical axis
+        coordsTransformer = point => point.copy(x = reflectionAxisX * 2 - point.x),
+        // In a reflected copy, the edge cycle around a vertex is reversed.
+        // The new `leaving` edge should be the one that PRECEDES the old `leaving` edge's twin.
+        vertexLeavingTransformer =
+          (newVertex, oldLeavingEdge, halfEdgeMap) =>
+            oldLeavingEdge.prev.flatMap(_.twin).foreach(newLeaving =>
+              newVertex.leaving = Some(halfEdgeMap(newLeaving))
+            )
       )
 
     private def hasSameSizesOf(other: TilingDCEL): Boolean =
