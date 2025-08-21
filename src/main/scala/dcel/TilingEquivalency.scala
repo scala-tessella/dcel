@@ -81,6 +81,73 @@ object TilingEquivalency:
         outerFace = faceMap(tiling.outerFace)
       )
 
+    /** Creates a geometric reflection of the tiling across the Y-axis.
+     *  It achieves this by creating a deep copy of the tiling structure,
+     *  while negating the x-coordinates of all vertices and reversing the orientation of the half-edge connections
+     * 
+     * @return
+     */
+    def reflectedCopy: TilingDCEL =
+      // Create mapping from old to new components, reflecting vertex coordinates across the Y-axis
+      val vertexMap = tiling.vertices.map(v => v -> Vertex(v.id, v.coords.copy(x = -v.coords.x))).toMap
+      val faceMap = tiling.faces.map(f => f -> Face(f.id)).toMap
+      val halfEdgeMap = tiling.halfEdges.map(he => he -> HalfEdge(vertexMap(he.origin))).toMap
+
+      // Copy all relationships for half-edges
+      tiling.halfEdges.foreach { oldEdge =>
+        val newEdge = halfEdgeMap(oldEdge)
+
+        // Copy twin relationship
+        oldEdge.twin.foreach { oldTwin =>
+          newEdge.twin = Some(halfEdgeMap(oldTwin))
+        }
+
+        // Copy incident face
+        oldEdge.incidentFace.foreach { oldFace =>
+          newEdge.incidentFace = Some(faceMap(oldFace))
+        }
+
+        // Swap next and prev relationships to reverse orientation
+        oldEdge.next.foreach { oldNext =>
+          newEdge.prev = Some(halfEdgeMap(oldNext))
+        }
+        oldEdge.prev.foreach { oldPrev =>
+          newEdge.next = Some(halfEdgeMap(oldPrev))
+        }
+
+        // Copy angle
+        newEdge.angle = oldEdge.angle
+      }
+
+      // Copy vertex-leaving edge relationships
+      tiling.vertices.foreach { oldVertex =>
+        val newVertex = vertexMap(oldVertex)
+        oldVertex.leaving.foreach { oldLeavingEdge =>
+          newVertex.leaving = Some(halfEdgeMap(oldLeavingEdge))
+        }
+      }
+
+      // Copy face outer component relationships
+      tiling.faces.foreach { oldFace =>
+        val newFace = faceMap(oldFace)
+        oldFace.outerComponent.foreach { oldOuterComponent =>
+          newFace.outerComponent = Some(halfEdgeMap(oldOuterComponent))
+        }
+
+        // Copy inner components
+        newFace.innerComponents = oldFace.innerComponents.map { optionalInnerComponent =>
+          optionalInnerComponent.map(halfEdgeMap)
+        }
+      }
+
+      // Create the new TilingDCEL with copied components
+      TilingDCEL(
+        vertices = tiling.vertices.map(vertexMap),
+        halfEdges = tiling.halfEdges.map(halfEdgeMap),
+        innerFaces = tiling.innerFaces.map(faceMap),
+        outerFace = faceMap(tiling.outerFace)
+      )
+
     private def hasSameSizesOf(other: TilingDCEL): Boolean =
       tiling.vertices.size == other.vertices.size
         && tiling.innerFaces.size == other.innerFaces.size

@@ -351,6 +351,15 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with EitherValues:
 
   }
 
+  behavior of "TilingDCEL.reflectedCopy"
+
+  it should "create a valid reflected copy" in {
+    val reflected = shapeL.reflectedCopy
+    println(TilingDCEL.validate(reflected))
+    TilingDCEL.validate(reflected).isRight shouldBe true
+    println(reflected.toSVG())
+  }
+
   behavior of "TilingDCEL.isRotationOf"
 
   it should "return false for two reflected shapes" in {
