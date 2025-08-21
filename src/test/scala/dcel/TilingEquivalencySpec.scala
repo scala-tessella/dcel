@@ -335,16 +335,36 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with EitherValues:
     .maybeAddRegularPolygonToBoundary("V4", 4).value
     .maybeAddRegularPolygonToBoundary("V7", 4).value
 
+  def shapeL2: TilingDCEL = createSquareTiling()
+    .maybeAddRegularPolygonToBoundary("V2", 4).value
+    .maybeAddRegularPolygonToBoundary("V2", 3).value
+
+  def shapeΓ2: TilingDCEL = createSquareTiling()
+    .maybeAddRegularPolygonToBoundary("V2", 4).value
+    .maybeAddRegularPolygonToBoundary("V3", 3).value
+
   it should "return true for two reflected shapes" in {
     shapeL.isTopologicallyEquivalentTo(shapeΓ) shouldBe true
     shapeL.isEquivalentTo(shapeΓ) shouldBe true
+    shapeL2.isTopologicallyEquivalentTo(shapeΓ2) shouldBe true
+    shapeL2.isEquivalentTo(shapeΓ2) shouldBe true
+
   }
 
   behavior of "TilingDCEL.isRotationOf"
 
   it should "return false for two reflected shapes" in {
+    shapeL2.isRotationOf(shapeΓ2) shouldBe false
     shapeL.isRotationOf(shapeΓ) shouldBe false
   }
+
+  behavior of "TilingDCEL.isReflectionOf"
+
+  it should "return true for two reflected shapes" in {
+    shapeL2.isReflectionOf(shapeΓ2) shouldBe true
+    shapeL.isReflectionOf(shapeΓ) shouldBe true
+  }
+
 
 
 

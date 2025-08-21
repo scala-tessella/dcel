@@ -173,4 +173,8 @@ object TilingEquivalency:
         faces => toMultiset(faces.map(getFaceSignature)),
         (vertices, _) => toMultiset(vertices.map(getVertexSignature))
       )
+
+    def isReflectionOf(other: TilingDCEL): Boolean =
+      !tiling.isRotationOf(other) && tiling.isEquivalentTo(other)
+  
   
