@@ -2,6 +2,7 @@ package io.github.scala_tessella
 package dcel
 
 import BigDecimalGeometry.{AngleDegree, BigPoint}
+import TilingDeletion.*
 import TilingEquivalency.*
 
 import org.scalatest.EitherValues
@@ -345,6 +346,17 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with EitherValues:
     shapeL.isEquivalentTo(shapeΓ) shouldBe true
     shapeL2.isTopologicallyEquivalentTo(shapeΓ2) shouldBe true
     shapeL2.isEquivalentTo(shapeΓ2) shouldBe true
+  }
+
+  def net: TilingDCEL = TilingBuilder.createRhombusNet(3, 6)
+
+  it should "fail for two similar but different tiling" in {
+    val shape1 = net.deleteEdge("V18", "V19").value
+    val shape2 = net.deleteEdge("V14", "V15").value
+//    println(shape1.toSVG())
+//    println(shape2.toSVG())
+    shape1.isTopologicallyEquivalentTo(shape2) shouldBe false
+//    shape1.isEquivalentTo(shape2) shouldBe false
   }
 
   behavior of "TilingDCEL.reflectedCopy"
