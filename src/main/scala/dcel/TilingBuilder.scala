@@ -239,34 +239,31 @@ object TilingBuilder:
       e4.angle = Some(alpha2)
 
     // Link outer face boundary
-    val boundaryEdges = new ListBuffer[HalfEdge]()
+    val innerBoundaryEdgesCCW = new ListBuffer[HalfEdge]()
     // Bottom boundary
-    for (i <- 0 until width) boundaryEdges += horizontal(0)(i)._1
+    for (i <- 0 until width) innerBoundaryEdgesCCW += horizontal(0)(i)._1
     // Right boundary
-    for (j <- 0 until height) boundaryEdges += vSlope(j)(width)._1
+    for (j <- 0 until height) innerBoundaryEdgesCCW += vSlope(j)(width)._1
     // Top boundary
-    for (i <- (0 until width).reverse) boundaryEdges += horizontal(height)(i)._2
+    for (i <- (0 until width).reverse) innerBoundaryEdgesCCW += horizontal(height)(i)._2
     // Left boundary
-    for (j <- (0 until height).reverse) boundaryEdges += vSlope(j)(0)._2
+    for (j <- (0 until height).reverse) innerBoundaryEdgesCCW += vSlope(j)(0)._2
 
-    val boundaryEdgesList = boundaryEdges.toList
-    boundaryEdgesList.zip(boundaryEdgesList.tail :+ boundaryEdgesList.head).foreach { (curr, next) =>
-      curr.next = Some(next)
-      next.prev = Some(curr)
-      curr.incidentFace = Some(fOuter)
-    }
-    fOuter.outerComponent = boundaryEdgesList.headOption
-
-    // Set outer angles
-    for outerEdge <- boundaryEdgesList do
-      val vertex = outerEdge.origin
-      val incident = vertex.incidentEdgesSafe.getOrElse(Nil)
-      val innerAnglesSum = incident.filterNot(_.incidentFace.contains(fOuter)).flatMap(_.angle).sum2
-      outerEdge.angle = Some(innerAnglesSum.conjugate)
+    val outerBoundaryCW = innerBoundaryEdgesCCW.toList.map(_.twin.get).reverse
+    outerBoundaryCW.linkInCycle()
+    outerBoundaryCW.foreach(_.incidentFace = Some(fOuter))
+    fOuter.outerComponent = outerBoundaryCW.headOption
 
     val allHalfEdges =
       horizontal.flatMap(row => row.flatMap(p => List(p._1, p._2))).toList ++
         vSlope.flatMap(row => row.flatMap(p => List(p._1, p._2))).toList
+
+    // Set outer angles
+    for outerEdge <- outerBoundaryCW do
+      val vertex = outerEdge.origin
+      val incident = allHalfEdges.filter(_.origin == vertex)
+      val innerAnglesSum = incident.filterNot(_.incidentFace.contains(fOuter)).flatMap(_.angle).sum2
+      outerEdge.angle = Some(innerAnglesSum.conjugate)
 
     TilingDCEL(
       vertices = vertices.flatten.toList,
