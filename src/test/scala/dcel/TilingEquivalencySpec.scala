@@ -350,11 +350,13 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with EitherValues:
 
   def net: TilingDCEL = TilingBuilder.createRhombusNet(3, 6)
 
+  /** <img src="file:../../resources/shape1.svg"/> */
+  def shape1: TilingDCEL = net.deleteEdge("V18", "V19").value
+
+  /** <img src="file:../../resources/shape2.svg"/> */
+  def shape2: TilingDCEL = net.deleteEdge("V14", "V15").value
+
   it should "fail for two similar but different tiling" in {
-    val shape1 = net.deleteEdge("V18", "V19").value
-    val shape2 = net.deleteEdge("V14", "V15").value
-//    println(shape1.toSVG())
-//    println(shape2.toSVG())
     shape1.isTopologicallyEquivalentTo(shape2) shouldBe false
 //    shape1.isEquivalentTo(shape2) shouldBe false
   }
