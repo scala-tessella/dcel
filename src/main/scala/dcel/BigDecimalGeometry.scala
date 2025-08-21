@@ -470,6 +470,9 @@ object BigDecimalGeometry:
     /**
      * Checks if this list of segments has any proper intersections with another list.
      * Uses spatial partitioning for better performance.
+     *
+     * @param other another list of segments
+     * @param cellSize  Size of each grid cell for spatial partitioning, defaulted to 2 that is double of unit segment
      */
     def hasProperIntersections(other: List[BigLineSegment], cellSize: Option[BigDecimal] = Some(2)): Boolean =
       IntersectionDetection.hasProperIntersection(segments, other, cellSize)
