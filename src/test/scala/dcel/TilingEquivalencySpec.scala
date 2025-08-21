@@ -330,50 +330,45 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with EitherValues:
     .maybeAddRegularPolygonToBoundary("V4", 4).value
     .maybeAddRegularPolygonToBoundary("V7", 4).value
 
-  def shapeΓ: TilingDCEL = createSquareTiling()
-    .maybeAddRegularPolygonToBoundary("V3", 4).value
-    .maybeAddRegularPolygonToBoundary("V4", 4).value
-    .maybeAddRegularPolygonToBoundary("V7", 4).value
+  def shapeΓ: TilingDCEL =
+    shapeL.verticallyReflectedCopy
 
   def shapeL2: TilingDCEL = createSquareTiling()
     .maybeAddRegularPolygonToBoundary("V2", 4).value
     .maybeAddRegularPolygonToBoundary("V2", 3).value
 
-  def shapeΓ2: TilingDCEL = createSquareTiling()
-    .maybeAddRegularPolygonToBoundary("V2", 4).value
-    .maybeAddRegularPolygonToBoundary("V3", 3).value
+  def shapeΓ2: TilingDCEL =
+    shapeL2.verticallyReflectedCopy
 
   it should "return true for two reflected shapes" in {
     shapeL.isTopologicallyEquivalentTo(shapeΓ) shouldBe true
     shapeL.isEquivalentTo(shapeΓ) shouldBe true
     shapeL2.isTopologicallyEquivalentTo(shapeΓ2) shouldBe true
     shapeL2.isEquivalentTo(shapeΓ2) shouldBe true
-
   }
 
   behavior of "TilingDCEL.reflectedCopy"
 
   it should "create a valid reflected copy" in {
     val reflected = shapeL.verticallyReflectedCopy
-    println(TilingDCEL.validate(reflected))
     TilingDCEL.validate(reflected).isRight shouldBe true
-    println(reflected.toSVG())
-  }
-
-  behavior of "TilingDCEL.isRotationOf"
-
-  it should "return false for two reflected shapes" in {
-    shapeL2.isRotationOf(shapeΓ2) shouldBe false
-    shapeL.isRotationOf(shapeΓ) shouldBe false
+//    println(reflected.toSVG())
   }
 
   behavior of "TilingDCEL.isReflectionOf"
 
-  it should "return true for two reflected shapes" in {
-    shapeL2.isReflectionOf(shapeΓ2) shouldBe true
+  it should "return true when comparing two reflected shapes" in {
     shapeL.isReflectionOf(shapeΓ) shouldBe true
+    shapeΓ.isReflectionOf(shapeL) shouldBe true
+    shapeL2.isReflectionOf(shapeΓ2) shouldBe true
+    shapeΓ2.isReflectionOf(shapeL2) shouldBe true
   }
 
+  behavior of "TilingDCEL.isRotationOf"
 
-
-
+  it should "return false when comparing two reflected shapes" in {
+    shapeL.isRotationOf(shapeΓ) shouldBe false
+    shapeΓ.isRotationOf(shapeL) shouldBe false
+    shapeL2.isRotationOf(shapeΓ2) shouldBe false
+    shapeΓ2.isRotationOf(shapeL2) shouldBe false
+  }
