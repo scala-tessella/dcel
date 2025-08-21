@@ -325,3 +325,19 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with EitherValues:
     square.isEquivalentTo(rhombus) shouldBe false
   }
 
+  it should "return true for two reflected shapes" in {
+    val lShape = createSquareTiling()
+      .maybeAddRegularPolygonToBoundary("V3", 4).value
+      .maybeAddRegularPolygonToBoundary("V4", 4).value
+      .maybeAddRegularPolygonToBoundary("V7", 4).value
+
+    val reflection = createSquareTiling()
+      .maybeAddRegularPolygonToBoundary("V3", 4).value
+      .maybeAddRegularPolygonToBoundary("V2", 4).value
+      .maybeAddRegularPolygonToBoundary("V7", 4).value
+
+    lShape.isTopologicallyEquivalentTo(reflection) shouldBe true
+    lShape.isEquivalentTo(reflection) shouldBe true
+  }
+
+
