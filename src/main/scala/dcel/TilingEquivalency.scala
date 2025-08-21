@@ -115,19 +115,19 @@ object TilingEquivalency:
      * It achieves this by creating a deep copy of the tiling structure,
      * while re-calculating the x-coordinates of all vertices and reversing the orientation of the half-edge connections
      */
-    def reflectedCopy: TilingDCEL =
+    def verticallyReflectedCopy: TilingDCEL =
       // Get all x-coordinates to find the bounding box
-      val xCoords = tiling.vertices.map(_.coords.x)
+      val yCoords = tiling.vertices.map(_.coords.y)
       // Return a deep copy if there are no vertices to reflect
-      if xCoords.isEmpty then return tiling.deepCopy
+      if yCoords.isEmpty then return tiling.deepCopy
 
-      val minX = xCoords.min
-      val maxX = xCoords.max
-      val reflectionAxisX = (minX + maxX) / 2
+      val minY = yCoords.min
+      val maxY = yCoords.max
+      val reflectionAxisY = (minY + maxY) / 2
 
       rawCopy(
-        // Reflecting vertex coordinates across the calculated vertical axis
-        coordsTransformer = point => point.copy(x = reflectionAxisX * 2 - point.x),
+        // Reflecting vertex coordinates across the calculated horizontal axis
+        coordsTransformer = point => point.copy(y = reflectionAxisY * 2 - point.y),
         // In a reflected copy, the edge cycle around a vertex is reversed.
         // The new `leaving` edge should be the one that PRECEDES the old `leaving` edge's twin.
         vertexLeavingTransformer =
