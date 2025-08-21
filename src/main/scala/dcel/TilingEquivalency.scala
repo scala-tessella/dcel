@@ -12,18 +12,7 @@ object TilingEquivalency:
 
   extension (tiling: TilingDCEL)
 
-    /**
-     * Creates a deep copy of this TilingDCEL that is completely independent.
-     * Changes to the original will not affect the copy and vice versa.
-     *
-     * @return A new TilingDCEL instance with all components copied and properly linked.
-     */
-    def deepCopy: TilingDCEL =
-      // Create mapping from old to new components
-      val vertexMap = tiling.vertices.map(v => v -> Vertex(v.id, v.coords)).toMap
-      val faceMap = tiling.faces.map(f => f -> Face(f.id)).toMap
-      val halfEdgeMap = tiling.halfEdges.map(he => he -> HalfEdge(vertexMap(he.origin))).toMap
-
+    private def copyHalfEdgeRelationships(halfEdgeMap: Map[HalfEdge, HalfEdge], faceMap: Map[Face, Face]): Unit =
       // Copy all relationships for half-edges
       tiling.halfEdges.foreach { oldEdge =>
         val newEdge = halfEdgeMap(oldEdge)
@@ -52,15 +41,7 @@ object TilingEquivalency:
         newEdge.angle = oldEdge.angle
       }
 
-      // Copy vertex-leaving edge relationships
-      tiling.vertices.foreach { oldVertex =>
-        val newVertex = vertexMap(oldVertex)
-        oldVertex.leaving.foreach { oldLeavingEdge =>
-          newVertex.leaving = Some(halfEdgeMap(oldLeavingEdge))
-        }
-      }
-
-      // Copy face outer component relationships
+    private def copyFaceRelationships(halfEdgeMap: Map[HalfEdge, HalfEdge], faceMap: Map[Face, Face]): Unit =
       tiling.faces.foreach { oldFace =>
         val newFace = faceMap(oldFace)
         oldFace.outerComponent.foreach { oldOuterComponent =>
@@ -72,6 +53,32 @@ object TilingEquivalency:
           optionalInnerComponent.map(halfEdgeMap)
         }
       }
+
+    /**
+     * Creates a deep copy of this TilingDCEL that is completely independent.
+     * Changes to the original will not affect the copy and vice versa.
+     *
+     * @return A new TilingDCEL instance with all components copied and properly linked.
+     */
+    def deepCopy: TilingDCEL =
+      // Create mapping from old to new components
+      val vertexMap = tiling.vertices.map(v => v -> Vertex(v.id, v.coords)).toMap
+      val faceMap = tiling.faces.map(f => f -> Face(f.id)).toMap
+      val halfEdgeMap = tiling.halfEdges.map(he => he -> HalfEdge(vertexMap(he.origin))).toMap
+
+      // Copy all relationships for half-edges
+      copyHalfEdgeRelationships(halfEdgeMap, faceMap)
+
+      // Copy vertex-leaving edge relationships
+      tiling.vertices.foreach { oldVertex =>
+        val newVertex = vertexMap(oldVertex)
+        oldVertex.leaving.foreach { oldLeavingEdge =>
+          newVertex.leaving = Some(halfEdgeMap(oldLeavingEdge))
+        }
+      }
+
+      // Copy face relationships
+      copyFaceRelationships(halfEdgeMap, faceMap)
 
       // Create the new TilingDCEL with copied components
       TilingDCEL(
@@ -81,64 +88,45 @@ object TilingEquivalency:
         outerFace = faceMap(tiling.outerFace)
       )
 
-    /** Creates a geometric reflection of the tiling across the Y-axis.
-     *  It achieves this by creating a deep copy of the tiling structure,
-     *  while negating the x-coordinates of all vertices and reversing the orientation of the half-edge connections
-     * 
-     * @return
+    /** Creates a geometric reflection of the tiling across the vertical axis of its bounding box.
+     * It achieves this by creating a deep copy of the tiling structure,
+     * while re-calculating the x-coordinates of all vertices and reversing the orientation of the half-edge connections
      */
     def reflectedCopy: TilingDCEL =
-      // Create mapping from old to new components, reflecting vertex coordinates across the Y-axis
-      val vertexMap = tiling.vertices.map(v => v -> Vertex(v.id, v.coords.copy(x = -v.coords.x))).toMap
+      // Get all x-coordinates to find the bounding box
+      val xCoords = tiling.vertices.map(_.coords.x)
+      // Return a deep copy if there are no vertices to reflect
+      if xCoords.isEmpty then return tiling.deepCopy
+
+      val minX = xCoords.min
+      val maxX = xCoords.max
+      val reflectionAxisX = (minX + maxX) / 2
+
+      // Create mapping from old to new components, reflecting vertex coordinates across the calculated vertical axis
+      val vertexMap = tiling.vertices.map { v =>
+        val newX = reflectionAxisX * 2 - v.coords.x
+        v -> Vertex(v.id, v.coords.copy(x = newX))
+      }.toMap
       val faceMap = tiling.faces.map(f => f -> Face(f.id)).toMap
       val halfEdgeMap = tiling.halfEdges.map(he => he -> HalfEdge(vertexMap(he.origin))).toMap
 
       // Copy all relationships for half-edges
-      tiling.halfEdges.foreach { oldEdge =>
-        val newEdge = halfEdgeMap(oldEdge)
-
-        // Copy twin relationship
-        oldEdge.twin.foreach { oldTwin =>
-          newEdge.twin = Some(halfEdgeMap(oldTwin))
-        }
-
-        // Copy incident face
-        oldEdge.incidentFace.foreach { oldFace =>
-          newEdge.incidentFace = Some(faceMap(oldFace))
-        }
-
-        // Swap next and prev relationships to reverse orientation
-        oldEdge.next.foreach { oldNext =>
-          newEdge.prev = Some(halfEdgeMap(oldNext))
-        }
-        oldEdge.prev.foreach { oldPrev =>
-          newEdge.next = Some(halfEdgeMap(oldPrev))
-        }
-
-        // Copy angle
-        newEdge.angle = oldEdge.angle
-      }
+      copyHalfEdgeRelationships(halfEdgeMap, faceMap)
 
       // Copy vertex-leaving edge relationships
       tiling.vertices.foreach { oldVertex =>
         val newVertex = vertexMap(oldVertex)
         oldVertex.leaving.foreach { oldLeavingEdge =>
-          newVertex.leaving = Some(halfEdgeMap(oldLeavingEdge))
+          // In the reflected copy, the edge cycle around a vertex is reversed.
+          // The new `leaving` edge should be the one that PRECEDES the old `leaving` edge's twin.
+          oldLeavingEdge.prev.flatMap(_.twin).foreach(newLeaving =>
+            newVertex.leaving = Some(halfEdgeMap(newLeaving))
+          )
         }
       }
 
-      // Copy face outer component relationships
-      tiling.faces.foreach { oldFace =>
-        val newFace = faceMap(oldFace)
-        oldFace.outerComponent.foreach { oldOuterComponent =>
-          newFace.outerComponent = Some(halfEdgeMap(oldOuterComponent))
-        }
-
-        // Copy inner components
-        newFace.innerComponents = oldFace.innerComponents.map { optionalInnerComponent =>
-          optionalInnerComponent.map(halfEdgeMap)
-        }
-      }
+      // Copy face relationships
+      copyFaceRelationships(halfEdgeMap, faceMap)
 
       // Create the new TilingDCEL with copied components
       TilingDCEL(
