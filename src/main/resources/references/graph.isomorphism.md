@@ -70,3 +70,51 @@ Here is the new implementation for `isTopologicallyEquivalentTo` in `src/main/sc
 
 
 This implementation replaces the previous heuristic-based checks with a full-fledged canonical labeling algorithm. It's a significant step up in power and should correctly resolve your failing test. Thank you for pushing me with this excellent problem
+
+## Question
+
+I have in mind a different approach, I wonder if it has already been tried. Starting from the boundary and getting inwards, recursively comparing the layer of polygons touching the boundary and "peeling" them away. Of course the peeling can soon degenerate in disconnected tilings each one with its own boundary. What do you think?
+## Answer
+
+_By Gemini 2.5 Pro on Aug 21, 2025_
+
+That's a very creative and intuitive approach! You've essentially described a "boundary peeling" or "layer-by-layer" comparison algorithm. It's an excellent idea, and it absolutely falls into a valid class of strategies for testing graph isomorphism. Let's break down what you're proposing and how it relates to standard practices.
+
+### Your "Boundary Peeling" Approach
+
+What you've outlined is a recursive algorithm that would look something like this:
+
+1.  **Compare Boundaries:** Start with the two tilings, `T1` and `T2`. First, compare their outer boundaries. This isn't just about the number of vertices. You'd need to create a **canonical signature** for each boundary. This signature could be a sequence representing the properties of each boundary vertex (e.g., its degree, the sizes of the faces attached to it, etc.). You'd find the lexicographically smallest version of this sequence across all rotations and reflections to ensure the signature is truly canonical.
+    *   If `BoundarySignature(T1) != BoundarySignature(T2)`, the tilings are different. End of story.
+
+2.  **"Peel" the Outer Layer:** If the boundaries match, you would then remove the layer of inner faces that are adjacent to the outer boundary in both tilings.
+    *   This is the most complex step in practice. In DCEL terms, this involves deleting those faces. The edges that were between the "peeled" layer and the "next" layer would become the new outer boundary of the remaining tiling.
+
+3.  **Handle Disconnections:** As you correctly predicted, after peeling the first layer, the remaining tiling might be composed of several disconnected "islands" of faces. You would need to:
+    *   Identify these connected components in both `T1` and `T2`.
+    *   For this to work, you must have the same number of disconnected components in both tilings.
+
+4.  **Recurse:** Now, you have two sets of smaller tilings (the components). You would need to pair them up. You could do this by generating a canonical signature for each component (by recursively calling this entire algorithm!) and checking if the multisets of signatures are identical.
+
+5.  **Termination:** The recursion stops when a tiling is empty. If both tilings are deconstructed to nothing in a matching way at every step, they are topologically equivalent.
+
+### What do I think?
+
+It's a brilliant idea, and conceptually, it is completely sound. It leverages the one canonical feature a tiling with a boundary has: the boundary itself.
+
+However, when compared to the **canonical labeling** (iterative refinement) method I proposed in my last answer, it has some significant practical drawbacks that generally make the labeling approach the preferred "standard":
+
+*   **Implementation Complexity:** Your "peeling" algorithm is much harder to implement. It requires a lot of complex and stateful manipulation of the DCEL structure:
+    *   Deleting multiple faces at once.
+    *   Correctly re-forming the new outer boundary.
+    *   Running connectivity algorithms to find the "islands".
+    *   Managing the recursion on multiple sub-problems.
+        This is significantly more error-prone than the canonical labeling method, which doesn't modify the graph at all—it only updates labels in a map.
+
+*   **Efficiency:** The peeling approach could be less efficient. The process of copying and modifying the DCEL structure at each step of the recursion can have a high overhead, especially for large tilings. The canonical labeling approach, while iterative, has a more predictable performance profile.
+
+*   **Handling of "Touching" Components:** A very tricky edge case for the peeling algorithm is when two parts of the next "layer" touch at a single vertex. This can make defining the new boundaries of the components ambiguous and difficult to handle correctly. The labeling approach handles this naturally, as information simply propagates through that vertex between the components.
+
+**In summary:** Your idea is a valid and fascinating alternative to canonical labeling. It shows you have a deep understanding of the problem's structure. The reason it's not the "standard" is primarily due to its implementation complexity and the difficulty of handling all the edge cases involved in destructively modifying the graph. The canonical labeling method achieves the same result—propagating information from the boundary inwards—but in a more robust, non-destructive, and easier-to-implement way.
+
+Thank you for the fascinating discussion! It's these kinds of subtle problems that make graph theory so interesting.
