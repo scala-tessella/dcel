@@ -226,10 +226,7 @@ object TilingBuilder:
       val e3 = horizontal(j + 1)(i)._2 // v(j+1,i+1) -> v(j+1,i)
       val e4 = vSlope(j)(i)._2 // v(j+1,i) -> v(j,i)
 
-      e1.next = Some(e2); e2.prev = Some(e1)
-      e2.next = Some(e3); e3.prev = Some(e2)
-      e3.next = Some(e4); e4.prev = Some(e3)
-      e4.next = Some(e1); e1.prev = Some(e4)
+      List(e1, e2, e3, e4).linkInCycle()
 
       e1.incidentFace = Some(face); e2.incidentFace = Some(face)
       e3.incidentFace = Some(face); e4.incidentFace = Some(face)
@@ -277,4 +274,3 @@ object TilingBuilder:
       innerFaces = faces.flatten.toList,
       outerFace = fOuter
     )
-  
