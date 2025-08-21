@@ -165,3 +165,116 @@ object TilingBuilder:
       points.append(currentPoint)
 
     points.toList
+
+  /**
+   * Create a tiling made of a net of identical rhombuses
+   *
+   * @param width  number of rhombuses on each row
+   * @param height number of rhombuses on each colum
+   * @param angle  degree of the first interior angle of each rhombus, the default angle creates a square net
+   */
+  def createRhombusNet(width: Int, height: Int, angle: AngleDegree = AngleDegree(90)): TilingDCEL =
+    if width <= 0 || height <= 0 then
+      return TilingBuilder.empty
+
+    val alpha1 = angle
+    val alpha2 = AngleDegree(180) - angle
+
+    val rad = angle.toBigRadian.toBigDecimal
+    val v_vec_x = spire.math.cos(rad)
+    val v_vec_y = spire.math.sin(rad)
+
+    val points = Array.tabulate(height + 1, width + 1) { (j, i) =>
+      BigPoint(BigDecimal(i) + v_vec_x * j, v_vec_y * j)
+    }
+
+    val vertices = Array.tabulate(height + 1, width + 1) { (j, i) =>
+      Vertex(s"V${j}_$i", points(j)(i))
+    }
+
+    val faces = Array.tabulate(height, width) { (j, i) =>
+      Face(s"F${j * width + i + 1}")
+    }
+    val fOuter = Face.outer
+
+    def createTwinPair(v1: Vertex, v2: Vertex): (HalfEdge, HalfEdge) =
+      val e1 = HalfEdge(v1)
+      val e2 = HalfEdge(v2)
+      e1.twinWith(e2)
+      (e1, e2)
+
+    val horizontal = Array.tabulate(height + 1, width) { (j, i) =>
+      createTwinPair(vertices(j)(i), vertices(j)(i + 1))
+    }
+    val vSlope = Array.tabulate(height, width + 1) { (j, i) =>
+      createTwinPair(vertices(j)(i), vertices(j + 1)(i))
+    }
+
+    // Set leaving edges for vertices
+    for j <- 0 to height; i <- 0 to width do
+      val v = vertices(j)(i)
+      if i < width then v.leaving = Some(horizontal(j)(i)._1)
+      else if j < height then v.leaving = Some(vSlope(j)(i)._1)
+      else if i > 0 then v.leaving = Some(horizontal(j)(i - 1)._2)
+      else if j > 0 then v.leaving = Some(vSlope(j - 1)(i)._2)
+
+    // Link inner faces
+    for j <- 0 until height; i <- 0 until width do
+      val face = faces(j)(i)
+      val e1 = horizontal(j)(i)._1 // v(j,i) -> v(j,i+1)
+      val e2 = vSlope(j)(i + 1)._1 // v(j,i+1) -> v(j+1,i+1)
+      val e3 = horizontal(j + 1)(i)._2 // v(j+1,i+1) -> v(j+1,i)
+      val e4 = vSlope(j)(i)._2 // v(j+1,i) -> v(j,i)
+
+      e1.next = Some(e2); e2.prev = Some(e1)
+      e2.next = Some(e3); e3.prev = Some(e2)
+      e3.next = Some(e4); e4.prev = Some(e3)
+      e4.next = Some(e1); e1.prev = Some(e4)
+
+      e1.incidentFace = Some(face); e2.incidentFace = Some(face)
+      e3.incidentFace = Some(face); e4.incidentFace = Some(face)
+
+      face.outerComponent = Some(e1)
+
+      e1.angle = Some(alpha1)
+      e2.angle = Some(alpha2)
+      e3.angle = Some(alpha1)
+      e4.angle = Some(alpha2)
+
+    // Link outer face boundary
+    val boundaryEdges = new ListBuffer[HalfEdge]()
+    // Bottom boundary
+    for (i <- 0 until width) boundaryEdges += horizontal(0)(i)._1
+    // Right boundary
+    for (j <- 0 until height) boundaryEdges += vSlope(j)(width)._1
+    // Top boundary
+    for (i <- (0 until width).reverse) boundaryEdges += horizontal(height)(i)._2
+    // Left boundary
+    for (j <- (0 until height).reverse) boundaryEdges += vSlope(j)(0)._2
+
+    val boundaryEdgesList = boundaryEdges.toList
+    boundaryEdgesList.zip(boundaryEdgesList.tail :+ boundaryEdgesList.head).foreach { (curr, next) =>
+      curr.next = Some(next)
+      next.prev = Some(curr)
+      curr.incidentFace = Some(fOuter)
+    }
+    fOuter.outerComponent = boundaryEdgesList.headOption
+
+    // Set outer angles
+    for outerEdge <- boundaryEdgesList do
+      val vertex = outerEdge.origin
+      val incident = vertex.incidentEdgesSafe.getOrElse(Nil)
+      val innerAnglesSum = incident.filterNot(_.incidentFace.contains(fOuter)).flatMap(_.angle).sum2
+      outerEdge.angle = Some(innerAnglesSum.conjugate)
+
+    val allHalfEdges =
+      horizontal.flatMap(row => row.flatMap(p => List(p._1, p._2))).toList ++
+        vSlope.flatMap(row => row.flatMap(p => List(p._1, p._2))).toList
+
+    TilingDCEL(
+      vertices = vertices.flatten.toList,
+      halfEdges = allHalfEdges,
+      innerFaces = faces.flatten.toList,
+      outerFace = fOuter
+    )
+  
