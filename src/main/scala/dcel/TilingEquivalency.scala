@@ -5,6 +5,8 @@ import BigDecimalGeometry.{AngleDegree, BigPoint}
 
 import ring_seq.RingSeq.rotationsAndReflections
 
+import scala.collection.mutable
+
 object TilingEquivalency:
 
   private def toMultiset[T](list: List[T]): Map[T, Int] =
@@ -137,6 +139,27 @@ object TilingEquivalency:
             )
       )
 
+    private def calculateBoundaryDistances: Map[Vertex, Int] =
+      val distances = mutable.Map[Vertex, Int]()
+      val queue = mutable.Queue[(Vertex, Int)]()
+
+      tiling.vertices.foreach { v =>
+        if v.incidentEdges.exists(_.incidentFace.contains(tiling.outerFace)) then
+          distances(v) = 0
+          queue.enqueue((v, 0))
+      }
+
+      while queue.nonEmpty do
+        val (current, dist) = queue.dequeue()
+        current.incidentEdges.foreach { edge =>
+          edge.destination.foreach { neighbor =>
+            if !distances.contains(neighbor) then
+              distances(neighbor) = dist + 1
+              queue.enqueue((neighbor, dist + 1))
+          }
+        }
+      distances.toMap
+
     private def hasSameSizesOf(other: TilingDCEL): Boolean =
       tiling.vertices.size == other.vertices.size
         && tiling.innerFaces.size == other.innerFaces.size
@@ -176,19 +199,41 @@ object TilingEquivalency:
      * @return true if the two tilings are topologically equivalent, false otherwise.
      */
     def isTopologicallyEquivalentTo(other: TilingDCEL): Boolean =
-      def getVertexSignature(vertex: Vertex, outerFace: Face): List[Int] =
-        val faceCycle = vertex.incidentEdges.flatMap(_.incidentFace)
-        val faceSizes = faceCycle.map(face =>
-          if face == outerFace then 0
-          else face.halfEdgesSafe.size
-        )
-        faceSizes.rotationsAndReflections.min
+      if !tiling.hasSameSizesOf(other) then
+        return false
 
-      isEquivalentRawTo(
-        other,
-        _.map(_.halfEdgesSafe.size).sorted,
-        (vertices, face) => toMultiset(vertices.map(getVertexSignature(_, face)))
-      )
+      def computeCanonicalSignature(t: TilingDCEL): Map[String, Int] =
+        // 1. Initial "colors" or labels for each vertex.
+        var signatures: Map[Vertex, String] = t.vertices.map { v =>
+          val faceCycle = v.incidentEdges.flatMap(_.incidentFace)
+          val faceSizes = faceCycle.map(face =>
+            if face == t.outerFace then 0
+            else face.halfEdgesSafe.size
+          )
+          // The initial signature is a combination of degree and the canonical face size sequence.
+          val initialSignature = s"${v.incidentEdges.size}:${faceSizes.rotationsAndReflections.min.mkString(",")}"
+          v -> initialSignature
+        }.toMap
+
+        // 2. Iteratively refine signatures. The number of iterations is chosen to be the number of vertices,
+        // which is a safe upper bound for information to propagate across the entire graph (related to graph diameter).
+        val iterations = t.vertices.size
+        (1 to iterations).foreach { _ =>
+          val nextSignatures = t.vertices.map { v =>
+            // 3. For each vertex, collect the signatures of its neighbors.
+            val neighborSignatures = v.incidentEdges.flatMap(_.destination).flatMap(signatures.get).sorted
+            // 4. The new signature is a hash/combination of the current signature and the neighbors' signatures.
+            val aggregatedSignature = s"${signatures(v)}|${neighborSignatures.mkString(";")}"
+            v -> aggregatedSignature
+          }.toMap
+          println(nextSignatures)
+          signatures = nextSignatures
+        }
+
+        // 5. The final result is the multiset of the stable signatures.
+        toMultiset(signatures.values.toList)
+
+      computeCanonicalSignature(tiling) == computeCanonicalSignature(other)
 
     def isEquivalentTo(other: TilingDCEL): Boolean =
       given Ordering[AngleDegree] with
