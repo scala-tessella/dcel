@@ -173,8 +173,21 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   behavior of "TilingBuilder.createRhombusNet"
 
-  it should "create a valid TilingDCEL for a regular triangle" in {
-    val tiling = TilingBuilder.createRhombusNet(3, 3, AngleDegree(60))
-//    println(TilingDCEL.validate(tiling))
-    TilingDCEL.validate(tiling).isRight shouldBe true
+  /** <img src="file:../../resources/rhombusNet.svg"/> */
+  def rhombusNet: TilingDCEL =
+    TilingBuilder.createRhombusNet(3, 3, AngleDegree(60))
+
+  it should "create a valid TilingDCEL with a net of rhombi" in {
+    TilingDCEL.validate(rhombusNet).isRight shouldBe true
   }
+
+  behavior of "TilingBuilder.createTriangleNet"
+
+  /** <img src="file:../../resources/triangleNet.svg"/> */
+  def triangleNet: TilingDCEL =
+    TilingBuilder.createTriangleNet(3, 3)
+
+  it should "create a valid TilingDCEL with a net of regular triangles" in {
+    TilingDCEL.validate(triangleNet).isRight shouldBe true
+  }
+

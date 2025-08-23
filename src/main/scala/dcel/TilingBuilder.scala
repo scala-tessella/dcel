@@ -167,10 +167,125 @@ object TilingBuilder:
     points.toList
 
   /**
-   * Create a tiling made of a net of identical rhombuses
+   * Create a tiling made of a net of regular triangles
    *
-   * @param width  number of rhombuses on each row
-   * @param height number of rhombuses on each colum
+   * @param width  number of triangle pairs (rhombi) on each row
+   * @param height number of triangle pairs (rhombi) on each colum
+   */
+  def createTriangleNet(width: Int, height: Int): TilingDCEL =
+    if width <= 0 || height <= 0 then
+      return TilingBuilder.empty
+
+    val triangleAngle = AngleDegree(60)
+
+    val rad = triangleAngle.toBigRadian.toBigDecimal
+    val v_vec_x = spire.math.cos(rad)
+    val v_vec_y = spire.math.sin(rad)
+
+    val points = Array.tabulate(height + 1, width + 1) { (j, i) =>
+      BigPoint(BigDecimal(i) + v_vec_x * j, v_vec_y * j)
+    }
+
+    val vertices = Array.tabulate(height + 1, width + 1) { (j, i) =>
+      val vertexId = j * (width + 1) + i + 1
+      Vertex(s"V$vertexId", points(j)(i))
+    }
+
+    // Two triangular faces per rhombus cell
+    val faces = Array.tabulate(height, width, 2) { (j, i, k) =>
+      Face(s"F${(j * width + i) * 2 + k + 1}")
+    }
+    val fOuter = Face.outer
+
+    def createTwinPair(v1: Vertex, v2: Vertex): (HalfEdge, HalfEdge) =
+      val e1 = HalfEdge(v1)
+      val e2 = HalfEdge(v2)
+      e1.twinWith(e2)
+      (e1, e2)
+
+    val horizontal = Array.tabulate(height + 1, width) { (j, i) =>
+      createTwinPair(vertices(j)(i), vertices(j)(i + 1))
+    }
+    val vSlope = Array.tabulate(height, width + 1) { (j, i) =>
+      createTwinPair(vertices(j)(i), vertices(j + 1)(i))
+    }
+    // These diagonals split each rhombus into two equilateral triangles
+    val diagonals = Array.tabulate(height, width) { (j, i) =>
+      createTwinPair(vertices(j)(i + 1), vertices(j + 1)(i))
+    }
+
+    // Set leaving edges for vertices
+    for j <- 0 to height; i <- 0 to width do
+      val v = vertices(j)(i)
+      if i < width then v.leaving = Some(horizontal(j)(i)._1)
+      else if j < height then v.leaving = Some(vSlope(j)(i)._1)
+      else if i > 0 then v.leaving = Some(horizontal(j)(i - 1)._2)
+      else if j > 0 then v.leaving = Some(vSlope(j - 1)(i)._2)
+
+    // Link inner faces
+    for j <- 0 until height; i <- 0 until width do
+      val face1 = faces(j)(i)(0) // Triangle (v_ji, v_ji1, v_j1i)
+      val face2 = faces(j)(i)(1) // Triangle (v_ji1, v_j1i1, v_j1i)
+
+      val e1 = horizontal(j)(i)._1 // v_ji -> v_ji1
+      val e2 = vSlope(j)(i + 1)._1 // v_ji1 -> v_j1i1
+      val e3 = horizontal(j + 1)(i)._2 // v_j1i1 -> v_j1i
+      val e4 = vSlope(j)(i)._2 // v_j1i -> v_ji
+      val e_diag = diagonals(j)(i)._1 // v_ji1 -> v_j1i
+      val e_diag_rev = diagonals(j)(i)._2 // v_j1i -> v_ji1
+
+      // Link face1
+      List(e1, e_diag, e4).linkInCycle()
+      e1.incidentFace = Some(face1); e_diag.incidentFace = Some(face1); e4.incidentFace = Some(face1)
+      face1.outerComponent = Some(e1)
+      e1.angle = Some(triangleAngle); e_diag.angle = Some(triangleAngle); e4.angle = Some(triangleAngle)
+
+      // Link face2
+      List(e2, e3, e_diag_rev).linkInCycle()
+      e2.incidentFace = Some(face2); e3.incidentFace = Some(face2); e_diag_rev.incidentFace = Some(face2)
+      face2.outerComponent = Some(e2)
+      e2.angle = Some(triangleAngle); e3.angle = Some(triangleAngle); e_diag_rev.angle = Some(triangleAngle)
+
+    // Link outer face boundary
+    val innerBoundaryEdgesCCW = new ListBuffer[HalfEdge]()
+    // Bottom boundary
+    for (i <- 0 until width) innerBoundaryEdgesCCW += horizontal(0)(i)._1
+    // Right boundary
+    for (j <- 0 until height) innerBoundaryEdgesCCW += vSlope(j)(width)._1
+    // Top boundary
+    for (i <- (0 until width).reverse) innerBoundaryEdgesCCW += horizontal(height)(i)._2
+    // Left boundary
+    for (j <- (0 until height).reverse) innerBoundaryEdgesCCW += vSlope(j)(0)._2
+
+    val outerBoundaryCW = innerBoundaryEdgesCCW.toList.map(_.twin.get).reverse
+    outerBoundaryCW.linkInCycle()
+    outerBoundaryCW.foreach(_.incidentFace = Some(fOuter))
+    fOuter.outerComponent = outerBoundaryCW.headOption
+
+    val allHalfEdges =
+      horizontal.flatMap(row => row.flatMap(p => List(p._1, p._2))).toList ++
+        vSlope.flatMap(row => row.flatMap(p => List(p._1, p._2))).toList ++
+        diagonals.flatMap(row => row.flatMap(p => List(p._1, p._2))).toList
+
+    // Set outer angles
+    for outerEdge <- outerBoundaryCW do
+      val vertex = outerEdge.origin
+      val incident = allHalfEdges.filter(_.origin == vertex)
+      val innerAnglesSum = incident.filterNot(_.incidentFace.contains(fOuter)).flatMap(_.angle).sum2
+      outerEdge.angle = Some(innerAnglesSum.conjugate)
+
+    TilingDCEL(
+      vertices = vertices.flatten.toList,
+      halfEdges = allHalfEdges,
+      innerFaces = faces.flatten.flatten.toList,
+      outerFace = fOuter
+    )
+
+  /**
+   * Create a tiling made of a net of identical rhombi
+   *
+   * @param width  number of rhombi on each row
+   * @param height number of rhombi on each colum
    * @param angle  degree of the first interior angle of each rhombus, the default angle creates a square net
    */
   def createRhombusNet(width: Int, height: Int, angle: AngleDegree = AngleDegree(90)): TilingDCEL =
