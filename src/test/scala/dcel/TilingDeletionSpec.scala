@@ -233,40 +233,20 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     verifyValidTiling(newTiling)
   }
 
-  it should "successfully delete a path of inner edges" in {
-    val tiling = square
-      .addRegularPolygonToBoundary("V1", 4).value
-      .addRegularPolygonToBoundary("V1", 4).value
-      .addRegularPolygonToBoundary("V2", 4).value
-
-    // Deleting the inner edges
-    val result = tiling
-      .deleteEdge("V1", "V2").value
-      .deleteEdge("V1", "V5").value
-      .deleteEdge("V1", "V4")
-    result.isRight shouldBe true
-    val newTiling = result.value
-//    println(newTiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
-//    println(TilingDCEL.validate(newTiling))
-    verifyValidTiling(newTiling)
+  /** <img src="file:../../resources/deletableNonBoundaryPath.svg"/> */
+  def deletableNonBoundaryPath: TilingDCEL = {
+    TilingBuilder.createRhombusNet(2, 2)
+      .deleteEdge("V4", "V5").value
+      .deleteEdge("V5", "V6").value
   }
 
-  def special: TilingDCEL =
-    triangle
-      .addRegularPolygonToBoundary("V1", 3).value
-      .addRegularPolygonToBoundary("V1", 3).value
-      .addRegularPolygonToBoundary("V1", 3).value
-      .addRegularPolygonToBoundary("V1", 3).value
-      .addRegularPolygonToBoundary("V1", 3).value
-      .addRegularPolygonToBoundary("V2", 6).value
-      .addRegularPolygonToBoundary("V6", 6).value
-      .addRegularPolygonToBoundary("V2", 4).value
-      .addRegularPolygonToBoundary("V15", 4).value
-      .addRegularPolygonToBoundary("V16", 4).value
-      .addRegularPolygonToBoundary("V18", 4).value
-      .addRegularPolygonToBoundary("V16", 4).value
-      .addRegularPolygonToBoundary("V23", 4).value
-      .deleteEdge("V4", "V5").value
+  it should "successfully delete a path of inner edges" in {
+    val result = deletableNonBoundaryPath
+      .deleteEdge("V2", "V5")
+    result.isRight shouldBe true
+    val newTiling = result.value
+    newTiling.innerFaces should have size 1
+  }
 
   /** <img src="file:../../resources/partitioningNonBoundaryFace.svg"/> */
   def partitioningNonBoundaryFace: TilingDCEL =
