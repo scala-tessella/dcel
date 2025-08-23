@@ -22,21 +22,6 @@
             <polygon points="39,-19.052559 38.53923,-22.250635 36.46077,-21.050635"/>
             <polygon points="22,-0 25,1.2 25,-1.2"/>
         </g>
-        <!-- Leaving Edge Markers -->
-        <g stroke-width="1.5" stroke="yellow" fill="yellow">
-            <polygon points="14.5,0 12.5,-0.8 12.5,0.8"/>
-            <polygon points="42.75,-12.557368 43.05718,-10.425318 44.44282,-11.225318"/>
-            <polygon points="17.75,-30.743902 19.44282,-32.075953 18.05718,-32.875953"/>
-        </g>
-        <!-- Face Ids On Edges Labels -->
-        <g fill="blue" alignment-baseline="middle" text-anchor="middle" font-size="4">
-            <text x="25" y="-4">F1</text>
-            <text x="34.035898" y="-19.650635">F1</text>
-            <text x="15.964102" y="-19.650635">F1</text>
-            <text x="9.035898" y="-23.650635">F0</text>
-            <text x="25" y="4">F0</text>
-            <text x="40.964102" y="-23.650635">F0</text>
-        </g>
         <!-- Vertices -->
         <g fill="red">
             <circle cx="0" cy="0" r="2.0"/>

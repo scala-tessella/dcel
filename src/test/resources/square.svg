@@ -25,24 +25,6 @@
             <polygon points="50,-22 51.2,-25 48.8,-25"/>
             <polygon points="22,-0 25,1.2 25,-1.2"/>
         </g>
-        <!-- Leaving Edge Markers -->
-        <g stroke-width="1.5" stroke="yellow" fill="yellow">
-            <polygon points="14.5,0 12.5,-0.8 12.5,0.8"/>
-            <polygon points="50,-14.5 49.2,-12.5 50.8,-12.5"/>
-            <polygon points="35.5,-50 37.5,-49.2 37.5,-50.8"/>
-            <polygon points="0,-35.5 0.8,-37.5 -0.8,-37.5"/>
-        </g>
-        <!-- Face Ids On Edges Labels -->
-        <g fill="blue" alignment-baseline="middle" text-anchor="middle" font-size="4">
-            <text x="25" y="-4">F1</text>
-            <text x="46" y="-25">F1</text>
-            <text x="25" y="-46">F1</text>
-            <text x="4" y="-25">F1</text>
-            <text x="-4" y="-25">F0</text>
-            <text x="25" y="4">F0</text>
-            <text x="54" y="-25">F0</text>
-            <text x="25" y="-54">F0</text>
-        </g>
         <!-- Vertices -->
         <g fill="red">
             <circle cx="0" cy="0" r="2.0"/>
