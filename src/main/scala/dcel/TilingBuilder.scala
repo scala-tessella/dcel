@@ -5,7 +5,7 @@ import BigDecimalGeometry.*
 import Polygon.{RegularPolygon, SimplePolygon}
 import spire.implicits.*
 
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable
 
 object TilingBuilder:
 
@@ -153,7 +153,7 @@ object TilingBuilder:
   ): List[BigPoint] =
     val n = angles.length
     // Start with V0 at the origin and V1
-    val points = ListBuffer(p0, p1)
+    val points = mutable.ListBuffer(p0, p1)
     var currentPoint = p1
     var heading = p0.angleTo(p1)
     // Calculate the positions of V2 through V(n-1)
@@ -247,7 +247,7 @@ object TilingBuilder:
       e2.angle = Some(triangleAngle); e3.angle = Some(triangleAngle); e_diag_rev.angle = Some(triangleAngle)
 
     // Link outer face boundary
-    val innerBoundaryEdgesCCW = new ListBuffer[HalfEdge]()
+    val innerBoundaryEdgesCCW = new mutable.ListBuffer[HalfEdge]()
     // Bottom boundary
     for (i <- 0 until width) innerBoundaryEdgesCCW += horizontal(0)(i)._1
     // Right boundary
@@ -355,7 +355,7 @@ object TilingBuilder:
       e4.angle = Some(alpha2)
 
     // Link outer face boundary
-    val innerBoundaryEdgesCCW = new ListBuffer[HalfEdge]()
+    val innerBoundaryEdgesCCW = new mutable.ListBuffer[HalfEdge]()
     // Bottom boundary
     for (i <- 0 until width) innerBoundaryEdgesCCW += horizontal(0)(i)._1
     // Right boundary
@@ -387,3 +387,16 @@ object TilingBuilder:
       innerFaces = faces.flatten.toList,
       outerFace = fOuter
     )
+
+  /**
+   * Create a tiling made of a net of identical hexagons
+   *
+   * @param width  number of hexagons on each row
+   * @param height number of hexagons on each colum
+   * @param angle  degree of the first and fourth interior angle of each hexagons, the default angle creates a regular hexagon net
+   */
+  def createHexagonNet(width: Int, height: Int, angle: AngleDegree = AngleDegree(120)): TilingDCEL =
+    if width <= 0 || height <= 0 then
+      return TilingBuilder.empty
+
+    ???
