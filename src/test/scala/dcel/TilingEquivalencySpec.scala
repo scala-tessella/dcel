@@ -5,26 +5,15 @@ import BigDecimalGeometry.{AngleDegree, BigPoint}
 import TilingDeletion.*
 import TilingEquivalency.*
 
-import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class TilingEquivalencySpec extends AnyFlatSpec with Matchers with EitherValues:
-
-  // Helper methods to create test data
-  private def createTriangleTiling(): TilingDCEL =
-    TilingBuilder.createRegularPolygon(3).value
-
-  private def createSquareTiling(): TilingDCEL =
-    TilingBuilder.createRegularPolygon(4).value
-
-  private def createHexagonTiling(): TilingDCEL =
-    TilingBuilder.createRegularPolygon(6).value
+class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   behavior of "TilingDCEL.deepCopy"
 
   it should "create a copy with same structural properties as original" in {
-    val original = createTriangleTiling()
+    val original = triangle
     val copy = original.deepCopy
 
     // Basic structural properties should match
@@ -45,7 +34,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "create completely independent objects" in {
-    val original = createSquareTiling()
+    val original = square
     val copy = original.deepCopy
 
     // Verify that all objects are different instances
@@ -63,7 +52,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "preserve all cross-references correctly" in {
-    val original = createHexagonTiling()
+    val original = hexagon
     val copy = original.deepCopy
 
     // Check vertex leaving edges
@@ -106,7 +95,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "maintain DCEL validation after copying" in {
-    val original = createTriangleTiling()
+    val original = triangle
     val copy = original.deepCopy
 
     // Both original and copy should validate successfully
@@ -115,7 +104,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "not affect original when copy is modified" in {
-    val original = createSquareTiling()
+    val original = square
     val copy = original.deepCopy
 
     // Get original boundary before modification
@@ -141,7 +130,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "not affect copy when original is modified" in {
-    val original = createTriangleTiling()
+    val original = triangle
     val copy = original.deepCopy
 
     // Get copy boundary before modification
@@ -175,7 +164,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "preserve boundary traversal functionality" in {
-    val original = createHexagonTiling()
+    val original = hexagon
     val copy = original.deepCopy
 
     // Boundary traversal should work the same way
@@ -191,7 +180,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "preserve angle information correctly" in {
-    val original = createTriangleTiling()
+    val original = triangle
     val copy = original.deepCopy
 
     // Check that angles are preserved
@@ -209,7 +198,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "maintain connectedness property" in {
-    val original = createSquareTiling()
+    val original = square
     val copy = original.deepCopy
 
     original.hasConnectedFaces shouldEqual copy.hasConnectedFaces
@@ -223,7 +212,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "work correctly for complex multi-polygon tilings" in {
-    val original = createTriangleTiling()
+    val original = triangle
       .maybeAddRegularPolygonToBoundary("V1", 4).value
       .maybeAddRegularPolygonToBoundary("V5", 3).value
 
@@ -252,43 +241,39 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with EitherValues:
   behavior of "TilingDCEL.isTopologicallyEquivalentTo"
 
   it should "return true for the same instance" in {
-    val triangle = createTriangleTiling()
     triangle.isTopologicallyEquivalentTo(triangle) shouldBe true
   }
 
   it should "return true for a deep copy of a tiling" in {
-    val square = createSquareTiling()
     val squareCopy = square.deepCopy
     square.isTopologicallyEquivalentTo(squareCopy) shouldBe true
   }
 
   it should "return true for two identical but separate tilings" in {
-    val triangle1 = createTriangleTiling()
-    val triangle2 = createTriangleTiling()
+    val triangle1 = triangle
+    val triangle2 = triangle
     triangle1.isTopologicallyEquivalentTo(triangle2) shouldBe true
   }
 
   it should "return false for tilings with different numbers of components" in {
-    val triangle = createTriangleTiling()
-    val square = createSquareTiling()
     triangle.isTopologicallyEquivalentTo(square) shouldBe false
   }
 
   it should "return false for tilings with different face signatures" in {
     // Both have 2 faces, 7 vertices, 16 half-edges
-    val tiling1 = createSquareTiling().maybeAddRegularPolygonToBoundary("V1", 3).value
+    val tiling1 = square.maybeAddRegularPolygonToBoundary("V1", 3).value
     // Both have 2 faces, 8 vertices, 18 half-edges
-    val tiling2 = createSquareTiling().maybeAddRegularPolygonToBoundary("V1", 4).value
+    val tiling2 = square.maybeAddRegularPolygonToBoundary("V1", 4).value
     tiling1.isTopologicallyEquivalentTo(tiling2) shouldBe false
   }
 
   it should "return true for two complex tilings built differently but structurally identical" in {
     // Tiling A: Add triangle to V1, then another to V4
-    val tilingA = createTriangleTiling()
+    val tilingA = triangle
       .maybeAddRegularPolygonToBoundary("V1", 3).value
       .maybeAddRegularPolygonToBoundary("V4", 3).value
     // Tiling B: Add triangle to V2, then another to V4
-    val tilingB = createTriangleTiling()
+    val tilingB = triangle
       .maybeAddRegularPolygonToBoundary("V2", 3).value
       .maybeAddRegularPolygonToBoundary("V4", 3).value
 
@@ -297,12 +282,13 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "return false for tilings with the same face signatures but different vertex signatures" in {
     // Tiling 1: Four squares in a 2x2 grid
-    val twoSquares = createSquareTiling().maybeAddRegularPolygonToBoundary("V1", 4).value
+    val twoSquares = square
+      .maybeAddRegularPolygonToBoundary("V1", 4).value
     val gridTiling = twoSquares.maybeAddRegularPolygonToBoundary("V2", 4).value
       .maybeAddRegularPolygonToBoundary("V7", 4).value // V7 is on the new edge
 
     // Tiling 2: Four squares in a line
-    val lineTiling = createSquareTiling()
+    val lineTiling = square
       .maybeAddRegularPolygonToBoundary("V1", 4).value
       .maybeAddRegularPolygonToBoundary("V4", 4).value
       .maybeAddRegularPolygonToBoundary("V6", 4).value
@@ -315,18 +301,16 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "return false for an empty tiling vs a non-empty one" in {
     val empty = TilingBuilder.empty
-    val triangle = createTriangleTiling()
     empty.isTopologicallyEquivalentTo(triangle) shouldBe false
   }
 
   it should "return false for two different rhombuses" in {
-    val square = createSquareTiling()
     val rhombus = TilingBuilder.createSimplePolygon(60, 120, 60, 120).value
     square.isTopologicallyEquivalentTo(rhombus) shouldBe true
     square.isEquivalentTo(rhombus) shouldBe false
   }
 
-  def shapeL: TilingDCEL = createSquareTiling()
+  def shapeL: TilingDCEL = square
     .maybeAddRegularPolygonToBoundary("V3", 4).value
     .maybeAddRegularPolygonToBoundary("V4", 4).value
     .maybeAddRegularPolygonToBoundary("V7", 4).value
@@ -334,7 +318,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with EitherValues:
   def shapeΓ: TilingDCEL =
     shapeL.verticallyReflectedCopy
 
-  def shapeL2: TilingDCEL = createSquareTiling()
+  def shapeL2: TilingDCEL = square
     .maybeAddRegularPolygonToBoundary("V2", 4).value
     .maybeAddRegularPolygonToBoundary("V2", 3).value
 
