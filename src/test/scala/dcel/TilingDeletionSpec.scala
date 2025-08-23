@@ -44,18 +44,26 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     result.left.value should include("is not adjacent to the outer boundary")
   }
 
+  /** <img src="file:../../resources/partitioningBoundaryFace.svg"/> */
+  def partitioningBoundaryFace: TilingDCEL =
+    triangle
+      .addRegularPolygonToBoundary("V2", 3).value
+      .addRegularPolygonToBoundary("V2", 3).value
+
   it should "fail to delete a face that would partition the tiling in two parts joined by a vertex" in {
-    val s1s2 = square.addRegularPolygonToBoundary("V2", 4).value
-    val s1s2s3 = s1s2.addRegularPolygonToBoundary("V2", 4).value
-    val result = s1s2s3.deletePolygon("F2")
+    val result = partitioningBoundaryFace.deletePolygon("F2")
     result.isLeft shouldBe true
     result.left.value should include("would partition the tiling in two halves connected by just a vertex")
   }
 
+  /** <img src="file:../../resources/disconnectingBoundaryFace.svg"/> */
+  def disconnectingBoundaryFace: TilingDCEL =
+    triangle
+      .addRegularPolygonToBoundary("V1", 4).value
+      .addRegularPolygonToBoundary("V4", 3).value
+
   it should "fail to delete a face that would partition the tiling in two disjoint parts" in {
-    val s1s2 = square.addRegularPolygonToBoundary("V1", 4).value
-    val s1s2s3 = s1s2.addRegularPolygonToBoundary("V5", 4).value
-    val result = s1s2s3.deletePolygon("F2")
+    val result = disconnectingBoundaryFace.deletePolygon("F2")
     result.isLeft shouldBe true
     result.left.value should include("would partition the tiling in two disconnected halves")
   }
