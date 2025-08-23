@@ -3,30 +3,30 @@ package dcel
 
 import TilingAddition.*
 
-import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class TilingSmallestSpec extends AnyFlatSpec with Matchers with EitherValues:
+class TilingSmallestSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   behavior of "TilingDCEL smallest significant examples"
 
-  it should "add an inner triangle to a square, producing the smallest DCEL with a non boundary vertex" in {
-    val square = TilingBuilder.createRegularPolygon(4).value
-    val result = square.addRegularPolygon("V1", "V2", 3)
+  /** <img src="file:../../resources/smallestWithNonBoundaryVertex.svg"/> */
+  def smallestVertex: Either[String, TilingDCEL] =
+    square.addRegularPolygon("V1", "V2", 3)
 
-    result.isRight shouldBe true
-    //    val tiling = result.value
-    //    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
+  it should "add an inner triangle to a square, producing the smallest DCEL with a non boundary vertex" in {
+    smallestVertex.isRight shouldBe true
   }
 
+  /** <img src="file:../../resources/smallestWithNonBoundaryEdge.svg"/> */
+  def smallestEdge: Either[String, TilingDCEL] =
+    triangle.addRegularPolygonToBoundary("V2", 3)
+
   it should "add a triangle to a triangle, producing the smallest DCEL with a non boundary edge" in {
-    val triangle = TilingBuilder.createRegularPolygon(3).value
-    val result = triangle.addRegularPolygonToBoundary("V2", 3)
+    val result = smallestEdge
 
     result.isRight shouldBe true
     val tiling = result.value
-//    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
 
     // Check structure
     tiling.vertices should have size 4
@@ -47,13 +47,12 @@ class TilingSmallestSpec extends AnyFlatSpec with Matchers with EitherValues:
     boundary.map(_.id) should contain theSameElementsInOrderAs Vector("V1", "V3", "V2", "V4")
   }
 
-  it should "add an inner triangle to a square and then a triangle, producing the smallest DCEL with a non boundary face" in {
-    val square = TilingBuilder.createRegularPolygon(4).value
-    val result = square
+  /** <img src="file:../../resources/smallestWithNonBoundaryFace.svg"/> */
+  def smallestFace: Either[String, TilingDCEL] =
+    square
       .addRegularPolygon("V1", "V2", 3).value
       .addRegularPolygonToBoundary("V2", 3)
 
-    result.isRight shouldBe true
-//    val tiling = result.value
-//    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
+  it should "add an inner triangle to a square and then a triangle, producing the smallest DCEL with a non boundary face" in {
+    smallestFace.isRight shouldBe true
   }

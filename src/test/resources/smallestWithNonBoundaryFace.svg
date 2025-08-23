@@ -37,34 +37,6 @@
             <polygon points="36,24.248711 38.53923,22.250635 36.46077,21.050635"/>
             <polygon points="11,19.052559 11.46077,22.250635 13.53923,21.050635"/>
         </g>
-        <!-- Leaving Edge Markers -->
-        <g stroke-width="1.5" stroke="yellow" fill="yellow">
-            <polygon points="7.25,-12.557368 5.55718,-11.225318 6.94282,-10.425318"/>
-            <polygon points="42.75,12.557368 44.44282,11.225318 43.05718,10.425318"/>
-            <polygon points="35.5,-50 37.5,-49.2 37.5,-50.8"/>
-            <polygon points="0,-35.5 0.8,-37.5 -0.8,-37.5"/>
-            <polygon points="32.25,-30.743902 31.94282,-32.875953 30.55718,-32.075953"/>
-            <polygon points="17.75,30.743902 18.05718,32.875953 19.44282,32.075953"/>
-        </g>
-        <!-- Face Ids On Edges Labels -->
-        <g fill="blue" alignment-baseline="middle" text-anchor="middle" font-size="4">
-            <text x="25" y="-4">F2</text>
-            <text x="46" y="-25">F1</text>
-            <text x="25" y="-46">F1</text>
-            <text x="4" y="-25">F1</text>
-            <text x="-4" y="-25">F0</text>
-            <text x="25" y="4">F3</text>
-            <text x="54" y="-25">F0</text>
-            <text x="25" y="-54">F0</text>
-            <text x="9.035898" y="-23.650635">F1</text>
-            <text x="40.964102" y="-23.650635">F1</text>
-            <text x="15.964102" y="-19.650635">F2</text>
-            <text x="34.035898" y="-19.650635">F2</text>
-            <text x="40.964102" y="23.650635">F0</text>
-            <text x="9.035898" y="23.650635">F0</text>
-            <text x="34.035898" y="19.650635">F3</text>
-            <text x="15.964102" y="19.650635">F3</text>
-        </g>
         <!-- Vertices -->
         <g fill="red">
             <circle cx="0" cy="0" r="2.0"/>
