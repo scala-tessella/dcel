@@ -17,6 +17,8 @@ trait TilingTestHelpers extends EitherValues:
   def square: TilingDCEL =
     TilingBuilder.createRegularPolygon(4).value
 
-  /** A tiling with a single hexagon */
+  /** A tiling with a single hexagon
+   * <img src="file:../../resources/hexagon.svg"/>
+   **/
   def hexagon: TilingDCEL =
     TilingBuilder.createRegularPolygon(6).value
