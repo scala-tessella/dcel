@@ -251,8 +251,8 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     verifyValidTiling(newTiling)
   }
 
-  it should "fail to delete edges if the surviving face is not a simple polygon" in {
-    val tiling = triangle
+  def special: TilingDCEL =
+    triangle
       .addRegularPolygonToBoundary("V1", 3).value
       .addRegularPolygonToBoundary("V1", 3).value
       .addRegularPolygonToBoundary("V1", 3).value
@@ -266,11 +266,18 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       .addRegularPolygonToBoundary("V18", 4).value
       .addRegularPolygonToBoundary("V16", 4).value
       .addRegularPolygonToBoundary("V23", 4).value
-
-    // Deleting the inner edges
-    val result = tiling
       .deleteEdge("V4", "V5").value
-      .deleteEdge("V2", "V3")
+
+  /** <img src="file:../../resources/partitioningNonBoundaryFace.svg"/> */
+  def partitioningNonBoundaryFace: TilingDCEL =
+    TilingBuilder.createRhombusNet(4, 3)
+      .deleteEdge("V8", "V13").value
+      .addRegularPolygon("V7", "V8", 3).value
+      .addRegularPolygon("V21", "V8", 3).value
+
+  it should "fail to delete edges if the surviving face is not a simple polygon" in {
+    val result = partitioningNonBoundaryFace
+      .deleteEdge("V7", "V21")
     result.isLeft shouldBe true
     result.left.value should include("is not simple")
   }
