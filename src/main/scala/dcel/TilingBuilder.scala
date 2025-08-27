@@ -392,28 +392,58 @@ object TilingBuilder:
    * Create a tiling made of a net of identical hexagons
    *
    * @param width  number of hexagons on each row
-   * @param height number of hexagons on each colum
+   * @param height number of hexagons on each column
+   * @param angle  interior angle (in degrees) for vertices 0 and 3 of each hexagon.
+   *               The remaining four interior angles are all equal and computed to satisfy the polygon angle sum.
+   *               Constraint: 0 < angle < 180. Default 120 creates the regular honeycomb.
    */
-  def createHexagonNet(width: Int, height: Int): TilingDCEL =
+  def createHexagonNet(width: Int, height: Int, angle: AngleDegree = AngleDegree(120)): TilingDCEL =
     if width <= 0 || height <= 0 then
       return TilingBuilder.empty
 
-    val hexagonAngle = AngleDegree(120)
+    // Validate the provided angle
+    if angle.isFullCircle || angle.toRational <= 0 || angle.toRational >= 180 then
+      return TilingBuilder.empty
 
-    // Hexagon geometry constants (unit side length)
-    // We will not use coordinates to deduplicate; instead, we use integer lattice keys (U, V).
-    // Coordinates are derived from keys only when creating the vertex:
-    //   x = (U + V) / 2
-    //   y = (sqrt(3)/2) * V
-    val sqrt3Over2 = spire.math.sqrt(BigDecimal(3)) / 2
+    // Hexagon per-face interior angles pattern: [a, b, b, a, b, b]
+    // Sum must be 720 => 2a + 4b = 720 => b = 180 - a/2
+    val alpha = angle
+    val beta: AngleDegree = AngleDegree(180) - (alpha / 2)
+
+    // Compute the three edge direction headings (in radians) for this hexagon shape.
+    // Starting from heading 0 for edge 0, add exterior turn angles (180 - interior).
+    val ext0 = AngleDegree(180) - alpha
+    val ext1 = AngleDegree(180) - beta
+    val ext2 = AngleDegree(180) - beta
+
+    val h0 = BigDecimalGeometry.BigRadian(0) // edge 0 heading
+    val h1 = (h0 + ext0.toBigRadian) // edge 1 heading
+    val h2 = (h1 + ext1.toBigRadian) // edge 2 heading
+
+    // Unit edge direction vectors d0, d1, d2 (others are opposite).
+    val d0x = spire.math.cos(h0.toBigDecimal);
+    val d0y = spire.math.sin(h0.toBigDecimal)
+    val d1x = spire.math.cos(h1.toBigDecimal);
+    val d1y = spire.math.sin(h1.toBigDecimal)
+    val d2x = spire.math.cos(h2.toBigDecimal);
+    val d2y = spire.math.sin(h2.toBigDecimal)
+
+    // Derive a linear lattice mapping f(U,V) = U*A + V*B so that the differences between
+    // our integer corner keys map to the actual edge direction vectors around each hexagon.
+    // From the key deltas and edge directions it follows:
+    //   A = -d1/2,  B = -d2
+    val Ax = -d1x / 2;
+    val Ay = -d1y / 2
+    val Bx = -d2x;
+    val By = -d2y
 
     // Map from integer lattice key to vertex instance
     val vertexByKey = mutable.Map[(Int, Int), Vertex]()
     var vertexCounter = 1
 
     def keyToCoords(U: Int, V: Int): BigPoint =
-      val x = BigDecimal(U + V) / 2
-      val y = sqrt3Over2 * BigDecimal(V)
+      val x = BigDecimal(U) * Ax + BigDecimal(V) * Bx
+      val y = BigDecimal(U) * Ay + BigDecimal(V) * By
       BigPoint(x, y)
 
     def getOrCreateVertex(U: Int, V: Int): Vertex =
@@ -424,10 +454,7 @@ object TilingBuilder:
       })
 
     // For each hexagon cell (i, j) we need the 6 corner keys (U, V) in CCW order.
-    // Derivation for flat-top hexagons with centers at:
-    //   cx = 3/2 * i, cy = (sqrt(3)) * j + (i % 2)*(sqrt(3)/2)
-    // Integer lattice key chosen as:
-    //   V = 2y/sqrt(3), U = 2x - V  (both integers for all hex corners)
+    // Flat-top-like indexing via integer keys (independent from coordinates).
     // For hex at (i, j), let s = i % 2 (0 or 1). Then the six corners have:
     //   k=0: (U, V) = ( 3i + 2 - 2j - s,     2j + s     )
     //   k=1: (U, V) = ( 3i     - 2j - s,     2j + s + 1 )
@@ -452,13 +479,11 @@ object TilingBuilder:
     val faces = Array.tabulate(height, width) { (j, i) => Face(s"F${j * width + i + 1}") }
     val fOuter = Face.outer
 
-    // Create reusable twin pairs per directed vertex pair. Store for BOTH orientations.
-    // The map returns the half-edge for the requested direction.
+    // Create reusable twin pairs per directed vertex pair. Store both orientations.
     val halfEdgeByDir = mutable.Map[(Vertex, Vertex), HalfEdge]()
 
     def getOrCreateHalfEdge(v1: Vertex, v2: Vertex): HalfEdge =
       halfEdgeByDir.getOrElseUpdate((v1, v2), {
-        // Create twin pair once and store both directions
         val e1 = HalfEdge(v1)
         val e2 = HalfEdge(v2)
         e1.twinWith(e2)
@@ -470,6 +495,11 @@ object TilingBuilder:
     for j <- 0 until height; i <- 0 until width do
       val face = faces(j)(i)
       val corners = hexCornerKeys(i, j).map((U, V) => getOrCreateVertex(U, V))
+
+      // Per-corner interior angles for this hexagon: [a, b, b, a, b, b]
+      val cornerAngles: Array[AngleDegree] =
+        Array(alpha, beta, beta, alpha, beta, beta)
+
       // Create/get the six directed half-edges in CCW order
       val edgesCCW =
         (0 until 6).toList.map { k =>
@@ -478,11 +508,11 @@ object TilingBuilder:
           getOrCreateHalfEdge(v1, v2)
         }
 
-      // Link inner face cycle
+      // Link inner face cycle and set per-corner angles
       edgesCCW.linkInCycle()
-      edgesCCW.foreach { e =>
+      edgesCCW.zipWithIndex.foreach { case (e, k) =>
         e.incidentFace = Some(face)
-        e.angle = Some(hexagonAngle)
+        e.angle = Some(cornerAngles(k))
       }
       face.outerComponent = edgesCCW.headOption
 
@@ -503,11 +533,9 @@ object TilingBuilder:
       if edges.isEmpty then return Nil
       val remaining = mutable.HashSet.from(edges)
       val ordered = mutable.ListBuffer[HalfEdge]()
-      // Start from an arbitrary boundary edge
       var current = edges.head
       ordered += current
       remaining -= current
-      // Follow next edges by matching origin to previous destination
       while remaining.nonEmpty do
         val nextOpt = remaining.find(e => current.destination.contains(e.origin))
         nextOpt match
@@ -516,7 +544,6 @@ object TilingBuilder:
             remaining -= next
             current = next
           case None =>
-            // If we can't form a perfect cycle (shouldn't happen), stop
             return ordered.toList
       ordered.toList
 
