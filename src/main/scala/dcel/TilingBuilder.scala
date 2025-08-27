@@ -400,106 +400,185 @@ object TilingBuilder:
 
     val hexagonAngle = AngleDegree(120)
 
-    val s = BigDecimal(1.0)
-    val h = s * spire.math.sqrt(BigDecimal(3)) / 2
-    val r = s * 1.5
+    // Hexagon geometry constants
+    val horizontalSpacing = BigDecimal("1.5") // 3/2 - distance between hexagon centers horizontally
+    val verticalSpacing = spire.math.sqrt(BigDecimal(3)) // sqrt(3) - vertical spacing
 
-    val faces = Array.tabulate(height, width) { (j, i) => Face(s"F${j * width + i + 1}") }
-    val fOuter = Face.outer
-
-    val allHalfEdges = mutable.ListBuffer[HalfEdge]()
-    // Using a string key for the map because BigPoint doesn't have a stable hashcode for almost-equal points
-    val vertexCache = mutable.Map[String, Vertex]()
+    // Create vertices based on hexagonal grid pattern
+    // We need vertices for each hexagon plus shared vertices
+    val vertexMap = mutable.Map[String, Vertex]()
     var vertexCounter = 1
 
-    def pointToKey(p: BigPoint): String =
-      f"${p.x.toDouble}%.6f:${p.y.toDouble}%.6f"
+    def createVertex(x: BigDecimal, y: BigDecimal): Vertex =
+      // Create a key based on rounded coordinates to handle shared vertices
+      val roundedX = (x * 1000000).setScale(0, BigDecimal.RoundingMode.HALF_UP) / 1000000
+      val roundedY = (y * 1000000).setScale(0, BigDecimal.RoundingMode.HALF_UP) / 1000000
+      val key = s"${roundedX}_${roundedY}"
 
-    def getOrCreateVertex(p: BigPoint): Vertex =
-      val key = pointToKey(p)
-      vertexCache.getOrElseUpdate(key, {
-        val v = Vertex(s"V$vertexCounter", p)
+      vertexMap.getOrElseUpdate(key, {
+        val vertex = Vertex(s"V$vertexCounter", BigPoint(roundedX, roundedY))
         vertexCounter += 1
-        v
+        vertex
       })
 
-    // Map to find twin edges: Map[(v_start_key, v_end_key), edge]
-    val innerEdgeMap = mutable.Map[(String, String), HalfEdge]()
+    // Create hexagon faces and their vertices
+    val faces = Array.tabulate(height, width) { (j, i) =>
+      Face(s"F${j * width + i + 1}")
+    }
+    val fOuter = Face.outer
 
+    def createTwinPair(v1: Vertex, v2: Vertex): (HalfEdge, HalfEdge) =
+      val e1 = HalfEdge(v1)
+      val e2 = HalfEdge(v2)
+      e1.twinWith(e2)
+      (e1, e2)
+
+    val edgeMap = mutable.Map[(String, String), (HalfEdge, HalfEdge)]()
+
+    def getOrCreateEdge(v1: Vertex, v2: Vertex): HalfEdge =
+      val key1 = (v1.id, v2.id)
+      val key2 = (v2.id, v1.id)
+
+      edgeMap.get(key1) match {
+        case Some((e1, _)) => e1
+        case None =>
+          edgeMap.get(key2) match {
+            case Some((_, e2)) => e2
+            case None =>
+              val (e1, e2) = createTwinPair(v1, v2)
+              edgeMap += (key1 -> (e1, e2))
+              e1
+          }
+      }
+
+    println(s"DEBUG: Creating hexagon net with width=$width, height=$height")
+
+    // For each hexagon, create its vertices and edges
     for j <- 0 until height; i <- 0 until width do
       val face = faces(j)(i)
 
-      // Calculate center of hexagon (i,j) with staggered columns
-      val cx = BigDecimal(i) * r
-      val cy = BigDecimal(j) * (h * 2) + (if (i % 2 == 1) h else 0)
+      // Calculate hexagon center
+      val centerX = horizontalSpacing * i
+      val centerY = verticalSpacing * j + (if i % 2 == 1 then verticalSpacing / 2 else BigDecimal(0))
 
-      // Vertices for a flat-topped hexagon in CCW order
-      val points = List(
-        BigPoint(cx - s / 2, cy + h), // Top-left
-        BigPoint(cx + s / 2, cy + h), // Top-right
-        BigPoint(cx + s, cy), // Right
-        BigPoint(cx + s / 2, cy - h), // Bottom-right
-        BigPoint(cx - s / 2, cy - h), // Bottom-left
-        BigPoint(cx - s, cy) // Left
-      )
-      val faceVertices = points.map(getOrCreateVertex)
-      val faceEdges = mutable.ListBuffer[HalfEdge]()
+      // Create 6 vertices around the hexagon center (unit circumradius)
+      val hexVertices = (0 until 6).map { k =>
+        val angle = BigDecimal(k) * spire.math.pi / 3 // 60-degree increments
+        val x = centerX + spire.math.cos(angle)
+        val y = centerY + spire.math.sin(angle)
+        createVertex(x, y)
+      }.toList
 
-      for k <- 0 until 6 do
-        val v_start = faceVertices(k)
-        val v_end = faceVertices((k + 1) % 6)
-        val key_start = pointToKey(v_start.coords)
-        val key_end = pointToKey(v_end.coords)
+      // Create edges for this hexagon
+      val hexEdges = (0 until 6).map { k =>
+        val v1 = hexVertices(k)
+        val v2 = hexVertices((k + 1) % 6)
+        getOrCreateEdge(v1, v2)
+      }.toList
 
-        val edge = HalfEdge(v_start)
-        edge.angle = Some(hexagonAngle)
+      // Link edges in cycle for this face
+      hexEdges.linkInCycle()
+      hexEdges.foreach { edge =>
         edge.incidentFace = Some(face)
+        edge.angle = Some(hexagonAngle)
+      }
 
-        // Check if twin exists
-        innerEdgeMap.get((key_end, key_start)) match
-          case Some(twin) =>
-            edge.twinWith(twin)
-            innerEdgeMap.remove((key_end, key_start)) // Remove paired edge
-          case None =>
-            innerEdgeMap((key_start, key_end)) = edge // Add unpaired edge
+      face.outerComponent = hexEdges.headOption
 
-        faceEdges.addOne(edge)
-        allHalfEdges.addOne(edge)
+    // Collect all vertices and set leaving edges
+    val allVertices = vertexMap.values.toList
+    val allHalfEdges = edgeMap.values.flatMap(pair => List(pair._1, pair._2)).toList
 
-      faceEdges.toList.linkInCycle()
-      face.outerComponent = faceEdges.headOption
+    allVertices.foreach { vertex =>
+      vertex.leaving = allHalfEdges.find(_.origin == vertex)
+    }
 
-    // Any edges left in innerEdgeMap are on the boundary
-    val boundaryInnerEdges = innerEdgeMap.values.toList
-    val outerBoundaryEdges = boundaryInnerEdges.map(inner => {
-      val outer = HalfEdge(inner.next.get.origin)
-      outer.twinWith(inner)
-      allHalfEdges.addOne(outer)
-      outer
-    })
+    // Identify boundary edges and set up outer face
+    val unsortedBoundaryEdges = allHalfEdges.filter(_.incidentFace.isEmpty)
 
-    // Link outer boundary
-    val destToOuterEdgeMap = outerBoundaryEdges.map(e => e.destination.get -> e).toMap
-    for (outerEdge <- outerBoundaryEdges)
-      val prevOuterEdge = destToOuterEdgeMap(outerEdge.origin)
-      outerEdge.linkWith(prevOuterEdge)
-      outerEdge.incidentFace = Some(fOuter)
-    fOuter.outerComponent = outerBoundaryEdges.headOption
+    println(s"DEBUG: Found ${unsortedBoundaryEdges.length} boundary edges (unsorted)")
 
-    // Set vertex leaving edges and outer angles
-    val allVertices = vertexCache.values.toList
-    for (vertex <- allVertices)
-      val incident = allHalfEdges.filter(_.origin == vertex).toList
-      vertex.leaving = incident.headOption // Set leaving edge
-      // Set outer angles for boundary vertices
-      if incident.exists(_.incidentFace.contains(fOuter)) then
-        val innerAngleSum = incident.filterNot(_.incidentFace.contains(fOuter)).flatMap(_.angle).sum2
-        val outerEdge = incident.find(_.incidentFace.contains(fOuter)).get
-        outerEdge.angle = Some(innerAngleSum.conjugate)
+    if unsortedBoundaryEdges.nonEmpty then
+      // Sort boundary edges to form a proper cycle
+      def sortBoundaryEdges(edges: List[HalfEdge]): List[HalfEdge] =
+        if edges.isEmpty then return Nil
 
-    TilingDCEL(
+        val result = mutable.ListBuffer[HalfEdge]()
+        val remaining = mutable.Set(edges: _*)
+        var current = edges.head
+
+        result += current
+        remaining -= current
+
+        while remaining.nonEmpty do
+          val nextEdgeOpt = remaining.find(_.origin == current.destination.get)
+          nextEdgeOpt match
+            case Some(nextEdge) =>
+              result += nextEdge
+              remaining -= nextEdge
+              current = nextEdge
+            case None =>
+              println(s"ERROR: Could not find next boundary edge after ${current}")
+              // Try to find any edge that connects
+              val anyConnected = remaining.find(edge =>
+                edge.origin == current.destination.get || edge.destination.contains(current.origin)
+              )
+              anyConnected match
+                case Some(edge) =>
+                  result += edge
+                  remaining -= edge
+                  current = edge
+                case None =>
+                  println(s"ERROR: No connected boundary edge found, breaking cycle")
+                  return result.toList
+
+        result.toList
+
+      val boundaryEdges = sortBoundaryEdges(unsortedBoundaryEdges)
+
+      println(s"DEBUG: Sorted boundary edges:")
+      boundaryEdges.foreach { edge =>
+        println(s"  ${edge.origin.id}(${edge.origin.coords.x.format},${edge.origin.coords.y.format}) -> ${edge.destination.map(_.id).getOrElse("?")}")
+      }
+
+      // Verify the boundary forms a proper cycle
+      val cycleClosed = boundaryEdges.nonEmpty &&
+        boundaryEdges.last.destination.contains(boundaryEdges.head.origin)
+
+      println(s"DEBUG: Boundary cycle closed: $cycleClosed")
+
+      if cycleClosed then
+        boundaryEdges.linkInCycle()
+        boundaryEdges.foreach(_.incidentFace = Some(fOuter))
+        fOuter.outerComponent = boundaryEdges.headOption
+
+        // Set outer face angles
+        println(s"DEBUG: Setting outer face angles for ${boundaryEdges.length} boundary edges...")
+        boundaryEdges.foreach { outerEdge =>
+          val vertex = outerEdge.origin
+          val allIncidentEdges = allHalfEdges.filter(_.origin == vertex)
+          val innerEdges = allIncidentEdges.filterNot(_.incidentFace.contains(fOuter))
+          val innerAngles = innerEdges.flatMap(_.angle)
+          val innerAnglesSum = innerAngles.sum2
+          val conjugateAngle = innerAnglesSum.conjugate
+
+          println(s"  Vertex ${vertex.id}: inner sum = ${innerAnglesSum.toRational.toDouble}°, outer = ${conjugateAngle.toRational.toDouble}°")
+
+          outerEdge.angle = Some(conjugateAngle)
+        }
+
+        // Validate the boundary angles
+        val boundaryAnglesForValidation = boundaryEdges.flatMap(_.angle).map(_.conjugate)
+        println(s"DEBUG: Boundary angles for validation: ${boundaryAnglesForValidation.map(_.toRational.toDouble).mkString(", ")}")
+      else
+        println(s"ERROR: Could not form proper boundary cycle")
+
+    val result = TilingDCEL(
       vertices = allVertices,
-      halfEdges = allHalfEdges.toList,
+      halfEdges = allHalfEdges,
       innerFaces = faces.flatten.toList,
       outerFace = fOuter
     )
+
+    result
+
