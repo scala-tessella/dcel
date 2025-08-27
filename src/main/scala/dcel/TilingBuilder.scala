@@ -573,12 +573,9 @@ object TilingBuilder:
       else
         println(s"ERROR: Could not form proper boundary cycle")
 
-    val result = TilingDCEL(
+    TilingDCEL(
       vertices = allVertices,
       halfEdges = allHalfEdges,
       innerFaces = faces.flatten.toList,
       outerFace = fOuter
     )
-
-    result
-
