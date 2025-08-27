@@ -193,12 +193,10 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   behavior of "TilingBuilder.createHexagonNet"
 
-  /** <img src="file:../../resources/triangleNet.svg"/> */
+  /** <img src="file:../../resources/hexagonNet.svg"/> */
   def hexagonNet: TilingDCEL =
-    TilingBuilder.createHexagonNet(3, 3, AngleDegree(60))
+    TilingBuilder.createHexagonNet(3, 3, AngleDegree(90))
 
   it should "create a valid TilingDCEL with a net of regular hexagons" in {
-//    println(TilingDCEL.validate(hexagonNet))
-    println(hexagonNet.toSVG())
     TilingDCEL.validate(hexagonNet).isRight shouldBe true
   }
