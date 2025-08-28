@@ -392,14 +392,7 @@ object TilingBuilder:
     // Interior angles per vertex in CCW order: [alpha, beta, beta, alpha, beta, beta]
     // Exterior turns at vertices: exts(k) = 180 - interior(k)
     val exteriorAngles: Array[AngleDegree] =
-      Array(
-        alpha.supplement,
-        beta.supplement,
-        beta.supplement,
-        alpha.supplement,
-        beta.supplement,
-        beta.supplement
-      )
+      Array(alpha, beta, beta, alpha, beta, beta).map(_.supplement)
 
     // IMPORTANT: The exterior turn exts(k) is applied at vertex k to go from edge k to edge (k+1).
     // Edge headings h(k) are the directions of edges (k) from vertex k to k+1.
