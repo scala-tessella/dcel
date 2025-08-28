@@ -34,7 +34,7 @@ case class TilingDCEL(
     faces.find(_.id == id)
 
   def isBoundaryEdge(halfEdge: HalfEdge): Boolean =
-    halfEdge.incidentFace.contains(outerFace)
+    halfEdge.hasIncidentFace(outerFace)
 
   def findEdgeBetween(v1: Vertex, v2: Vertex): Option[HalfEdge] =
     v1.incidentEdges.find(_.destination.contains(v2))

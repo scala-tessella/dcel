@@ -110,6 +110,9 @@ case class HalfEdge(
 
   def faceTraversalWithGuards[T](f: HalfEdge => T = identity): Either[String, List[T]] =
     traverseWithGuards[T](_.next)(f)
+    
+  def hasIncidentFace(face: Face): Boolean =
+    incidentFace.contains(face)
 
 object HalfEdge:
 
