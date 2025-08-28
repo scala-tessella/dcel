@@ -146,7 +146,7 @@ object TilingDeletion:
       verticesOnNewBoundary.foreach { vertex =>
         val angleSum = vertex.getCurrentInteriorAngleSum(tiling.outerFace)
         vertex.incidentEdges
-          .find(_.incidentFace.contains(tiling.outerFace))
+          .find(tiling.isBoundaryEdge)
           .foreach(_.angle = Some(angleSum.conjugate))
       }
 
