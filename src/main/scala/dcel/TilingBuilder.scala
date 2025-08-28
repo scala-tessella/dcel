@@ -247,6 +247,9 @@ object TilingBuilder:
     fOuter.outerComponent = outerBoundaryCW.headOption
     outerBoundaryCW
 
+  private def toHalfEdges(pairs: Array[Array[(HalfEdge, HalfEdge)]]): List[HalfEdge] =
+    pairs.flatMap(row => row.flatMap(p => List(p._1, p._2))).toList
+
   /**
    * Create a tiling made of a net of regular triangles
    *
@@ -304,9 +307,7 @@ object TilingBuilder:
     val outerBoundaryCW = linkOuterFace(height, width, horizontal, vSlope, fOuter)
 
     val allHalfEdges =
-      horizontal.flatMap(row => row.flatMap(p => List(p._1, p._2))).toList ++
-        vSlope.flatMap(row => row.flatMap(p => List(p._1, p._2))).toList ++
-        diagonals.flatMap(row => row.flatMap(p => List(p._1, p._2))).toList
+      toHalfEdges(horizontal) ++ toHalfEdges(vSlope) ++ toHalfEdges(diagonals)
 
     setOuterAngles(outerBoundaryCW, allHalfEdges, fOuter)
 
@@ -365,8 +366,7 @@ object TilingBuilder:
     val outerBoundaryCW = linkOuterFace(height, width, horizontal, vSlope, fOuter)
 
     val allHalfEdges =
-      horizontal.flatMap(row => row.flatMap(p => List(p._1, p._2))).toList ++
-        vSlope.flatMap(row => row.flatMap(p => List(p._1, p._2))).toList
+      toHalfEdges(horizontal) ++ toHalfEdges(vSlope)
 
     setOuterAngles(outerBoundaryCW, allHalfEdges, fOuter)
 
