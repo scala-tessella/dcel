@@ -250,6 +250,18 @@ object TilingBuilder:
   private def toHalfEdges(pairs: Array[Array[(HalfEdge, HalfEdge)]]): List[HalfEdge] =
     pairs.flatMap(row => row.flatMap(p => List(p._1, p._2))).toList
 
+  private def netHalfEdges(
+    horizontal: Array[Array[(HalfEdge, HalfEdge)]],
+    vSlope: Array[Array[(HalfEdge, HalfEdge)]],
+    i: Int,
+    j: Int
+  ): (HalfEdge, HalfEdge, HalfEdge, HalfEdge) =
+    val e1 = horizontal(j)(i)._1 // v_ji -> v_ji1
+    val e2 = vSlope(j)(i + 1)._1 // v_ji1 -> v_j1i1
+    val e3 = horizontal(j + 1)(i)._2 // v_j1i1 -> v_j1i
+    val e4 = vSlope(j)(i)._2 // v_j1i -> v_ji
+    (e1, e2, e3, e4)
+
   /**
    * Create a tiling made of a net of regular triangles
    *
@@ -285,10 +297,7 @@ object TilingBuilder:
       val face1 = faces(j)(i)(0) // Triangle (v_ji, v_ji1, v_j1i)
       val face2 = faces(j)(i)(1) // Triangle (v_ji1, v_j1i1, v_j1i)
 
-      val e1 = horizontal(j)(i)._1 // v_ji -> v_ji1
-      val e2 = vSlope(j)(i + 1)._1 // v_ji1 -> v_j1i1
-      val e3 = horizontal(j + 1)(i)._2 // v_j1i1 -> v_j1i
-      val e4 = vSlope(j)(i)._2 // v_j1i -> v_ji
+      val (e1, e2, e3, e4) = netHalfEdges(horizontal, vSlope, i, j)
       val e_diag = diagonals(j)(i)._1 // v_ji1 -> v_j1i
       val e_diag_rev = diagonals(j)(i)._2 // v_j1i -> v_ji1
 
@@ -346,10 +355,7 @@ object TilingBuilder:
     // Link inner faces
     for j <- 0 until height; i <- 0 until width do
       val face = faces(j)(i)
-      val e1 = horizontal(j)(i)._1 // v(j,i) -> v(j,i+1)
-      val e2 = vSlope(j)(i + 1)._1 // v(j,i+1) -> v(j+1,i+1)
-      val e3 = horizontal(j + 1)(i)._2 // v(j+1,i+1) -> v(j+1,i)
-      val e4 = vSlope(j)(i)._2 // v(j+1,i) -> v(j,i)
+      val (e1, e2, e3, e4) = netHalfEdges(horizontal, vSlope, i, j)
 
       List(e1, e2, e3, e4).linkInCycle()
 
