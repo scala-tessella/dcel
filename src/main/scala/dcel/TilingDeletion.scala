@@ -29,7 +29,7 @@ object TilingDeletion:
     private def classifyFaceEdges(face: Face): Either[String, EdgeClassification] =
       val faceEdges = face.halfEdgesSafe
       val twinEdges = faceEdges.map(_.twin.get)
-      val (boundaryTwins, innerTwins) = twinEdges.partition(_.incidentFace.contains(tiling.outerFace))
+      val (boundaryTwins, innerTwins) = twinEdges.partition(tiling.isBoundaryEdge)
       Right(EdgeClassification(faceEdges, boundaryTwins, innerTwins))
 
     private def validateFaceDeletion(face: Face, classification: EdgeClassification): Either[String, Unit] =
