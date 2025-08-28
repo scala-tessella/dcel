@@ -215,6 +215,14 @@ object TilingBuilder:
       else if i > 0 then v.leaving = Some(horizontal(j)(i - 1)._2)
       else if j > 0 then v.leaving = Some(vSlope(j - 1)(i)._2)
 
+  private def setOuterAngles(outerBoundaryCW: List[HalfEdge], allHalfEdges: List[HalfEdge], fOuter: Face): Unit =
+    // Set outer angles
+    for outerEdge <- outerBoundaryCW do
+      val vertex = outerEdge.origin
+      val incident = allHalfEdges.filter(_.origin == vertex)
+      val innerAnglesSum = incident.filterNot(_.incidentFace.contains(fOuter)).flatMap(_.angle).sum2
+      outerEdge.angle = Some(innerAnglesSum.conjugate)
+
   // Link outer face boundary
   private def linkOuterFace(
     height: Int,
@@ -232,7 +240,7 @@ object TilingBuilder:
     for (i <- (0 until width).reverse) innerBoundaryEdgesCCW += horizontal(height)(i)._2
     // Left boundary
     for (j <- (0 until height).reverse) innerBoundaryEdgesCCW += vSlope(j)(0)._2
-  
+
     val outerBoundaryCW = innerBoundaryEdgesCCW.toList.map(_.twin.get).reverse
     outerBoundaryCW.linkInCycle()
     outerBoundaryCW.foreach(_.incidentFace = Some(fOuter))
@@ -258,9 +266,9 @@ object TilingBuilder:
       Face(s"F${(j * width + i) * 2 + k + 1}")
     }
     val fOuter = Face.outer
-    
+
     val (horizontal, vSlope) = horizontalAndVSlope(height, width, vertices)
-    
+
     // These diagonals split each rhombus into two equilateral triangles
     val diagonals = Array.tabulate(height, width) { (j, i) =>
       createTwinPair(vertices(j)(i + 1), vertices(j + 1)(i))
@@ -294,18 +302,13 @@ object TilingBuilder:
       e2.angle = Some(triangleAngle); e3.angle = Some(triangleAngle); e_diag_rev.angle = Some(triangleAngle)
 
     val outerBoundaryCW = linkOuterFace(height, width, horizontal, vSlope, fOuter)
-    
+
     val allHalfEdges =
       horizontal.flatMap(row => row.flatMap(p => List(p._1, p._2))).toList ++
         vSlope.flatMap(row => row.flatMap(p => List(p._1, p._2))).toList ++
         diagonals.flatMap(row => row.flatMap(p => List(p._1, p._2))).toList
 
-    // Set outer angles
-    for outerEdge <- outerBoundaryCW do
-      val vertex = outerEdge.origin
-      val incident = allHalfEdges.filter(_.origin == vertex)
-      val innerAnglesSum = incident.filterNot(_.incidentFace.contains(fOuter)).flatMap(_.angle).sum2
-      outerEdge.angle = Some(innerAnglesSum.conjugate)
+    setOuterAngles(outerBoundaryCW, allHalfEdges, fOuter)
 
     TilingDCEL(
       vertices = vertices.flatten.toList,
@@ -327,7 +330,7 @@ object TilingBuilder:
 
     val alpha1 = angle
     val alpha2 = AngleDegree(180) - angle
-    
+
     val (points, vertices) = pointsVertices(height, width, angle)
 
     val faces = Array.tabulate(height, width) { (j, i) =>
@@ -365,12 +368,7 @@ object TilingBuilder:
       horizontal.flatMap(row => row.flatMap(p => List(p._1, p._2))).toList ++
         vSlope.flatMap(row => row.flatMap(p => List(p._1, p._2))).toList
 
-    // Set outer angles
-    for outerEdge <- outerBoundaryCW do
-      val vertex = outerEdge.origin
-      val incident = allHalfEdges.filter(_.origin == vertex)
-      val innerAnglesSum = incident.filterNot(_.incidentFace.contains(fOuter)).flatMap(_.angle).sum2
-      outerEdge.angle = Some(innerAnglesSum.conjugate)
+    setOuterAngles(outerBoundaryCW, allHalfEdges, fOuter)
 
     TilingDCEL(
       vertices = vertices.flatten.toList,
