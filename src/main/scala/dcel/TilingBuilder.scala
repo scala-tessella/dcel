@@ -159,7 +159,7 @@ object TilingBuilder:
     // Calculate the positions of V2 through V(n-1)
     for (i <- 1 until n - 1)
       val interiorAngle = angles(i)
-      val turnAngle = AngleDegree(180) - interiorAngle
+      val turnAngle = interiorAngle.supplement
       heading += turnAngle.toBigRadian
       currentPoint = currentPoint.plus(BigPoint.fromPolar(1, heading))
       points.append(currentPoint)
@@ -336,7 +336,7 @@ object TilingBuilder:
       return TilingBuilder.empty
 
     val alpha1 = angle
-    val alpha2 = AngleDegree(180) - angle
+    val alpha2 = angle.supplement
 
     val (points, vertices) = pointsVertices(height, width, angle)
 
@@ -387,26 +387,26 @@ object TilingBuilder:
       return TilingBuilder.empty
 
     val alpha = angle
-    val beta: AngleDegree = AngleDegree(180) - (alpha / 2)
+    val beta: AngleDegree = (alpha / 2).supplement
 
     // Interior angles per vertex in CCW order: [alpha, beta, beta, alpha, beta, beta]
     // Exterior turns at vertices: exts(k) = 180 - interior(k)
-    val exts: Array[AngleDegree] =
+    val exteriorAngles: Array[AngleDegree] =
       Array(
-        AngleDegree(180) - alpha,
-        AngleDegree(180) - beta,
-        AngleDegree(180) - beta,
-        AngleDegree(180) - alpha,
-        AngleDegree(180) - beta,
-        AngleDegree(180) - beta
+        alpha.supplement,
+        beta.supplement,
+        beta.supplement,
+        alpha.supplement,
+        beta.supplement,
+        beta.supplement
       )
 
     // IMPORTANT: The exterior turn exts(k) is applied at vertex k to go from edge k to edge (k+1).
     // Edge headings h(k) are the directions of edges (k) from vertex k to k+1.
     // Hence, h1 = h0 + exts(1), h2 = h1 + exts(2). (exts(0) turns from edge5 to edge0.)
     val h0 = BigDecimalGeometry.BigRadian(0)
-    val h1 = h0 + exts(1).toBigRadian
-    val h2 = h1 + exts(2).toBigRadian
+    val h1 = h0 + exteriorAngles(1).toBigRadian
+    val h2 = h1 + exteriorAngles(2).toBigRadian
 
     // Three global unit directions g0, g1, g2 (others are their opposites)
     val g0x = spire.math.cos(h0.toBigDecimal)
