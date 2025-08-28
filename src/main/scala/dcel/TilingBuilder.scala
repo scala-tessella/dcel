@@ -223,16 +223,6 @@ object TilingBuilder:
       val innerAnglesSum = incident.interiorAnglesSum(fOuter)
       outerEdge.angle = Some(innerAnglesSum.conjugate)
 
-  private def linkFace(heA: HalfEdge, heB: HalfEdge, heC: HalfEdge, face: Face, angle: AngleDegree): Unit =
-    List(heA, heB, heC).linkInCycle()
-    heA.incidentFace = Some(face)
-    heB.incidentFace = Some(face)
-    heC.incidentFace = Some(face)
-    face.outerComponent = Some(heA)
-    heA.angle = Some(angle)
-    heB.angle = Some(angle)
-    heC.angle = Some(angle)
-
   // Link outer face boundary
   private def linkOuterFace(
     height: Int,
@@ -312,10 +302,10 @@ object TilingBuilder:
       val e_diag_rev = diagonals(j)(i)._2 // v_j1i -> v_ji1
 
       // Link face1
-      linkFace(e1, e_diag, e4, face1, triangleAngle)
+      List(e1, e_diag, e4).linkFace(face1, triangleAngle)
 
       // Link face2
-      linkFace(e2, e3, e_diag_rev, face2, triangleAngle)
+      List(e2, e3, e_diag_rev).linkFace(face2, triangleAngle)
 
     val outerBoundaryCW = linkOuterFace(height, width, horizontal, vSlope, fOuter)
 
@@ -361,16 +351,8 @@ object TilingBuilder:
       val face = faces(j)(i)
       val (e1, e2, e3, e4) = netHalfEdges(horizontal, vSlope, i, j)
 
-      List(e1, e2, e3, e4).linkInCycle()
-
-      e1.incidentFace = Some(face); e2.incidentFace = Some(face)
-      e3.incidentFace = Some(face); e4.incidentFace = Some(face)
-
-      face.outerComponent = Some(e1)
-
-      e1.angle = Some(alpha1)
+      List(e1, e2, e3, e4).linkFace(face, alpha1)
       e2.angle = Some(alpha2)
-      e3.angle = Some(alpha1)
       e4.angle = Some(alpha2)
 
     val outerBoundaryCW = linkOuterFace(height, width, horizontal, vSlope, fOuter)

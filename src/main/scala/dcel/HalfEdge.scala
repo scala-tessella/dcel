@@ -156,6 +156,20 @@ object HalfEdge:
     def linkInSequence(): Unit =
       linkIn(_.sliding(2))
 
+    def setIncidentFace(face: Face): Unit =
+      halfEdges.foreach:
+        _.incidentFace = Some(face)
+
+    def setAngle(angle: AngleDegree): Unit =
+      halfEdges.foreach:
+        _.angle = Some(angle)
+
+    def linkFace(face: Face, angle: AngleDegree): Unit =
+      halfEdges.linkInCycle()
+      halfEdges.setIncidentFace(face)
+      face.outerComponent = halfEdges.headOption
+      halfEdges.setAngle(angle)
+
     def interiorAnglesSum(outerFace: Face): AngleDegree =
       halfEdges
         .filterNot(_.hasIncidentFace(outerFace))
