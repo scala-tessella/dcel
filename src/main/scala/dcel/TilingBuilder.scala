@@ -166,6 +166,79 @@ object TilingBuilder:
 
     points.toList
 
+  private def pointsVertices(height: Int, width: Int, angle: AngleDegree) =
+    val rad = angle.toBigRadian.toBigDecimal
+    val v_vec_x = spire.math.cos(rad)
+    val v_vec_y = spire.math.sin(rad)
+
+    val points = Array.tabulate(height + 1, width + 1) { (j, i) =>
+      BigPoint(BigDecimal(i) + v_vec_x * j, v_vec_y * j)
+    }
+
+    val vertices = Array.tabulate(height + 1, width + 1) { (j, i) =>
+      val vertexId = j * (width + 1) + i + 1
+      Vertex(s"V$vertexId", points(j)(i))
+    }
+    (points, vertices)
+
+  private def createTwinPair(v1: Vertex, v2: Vertex): (HalfEdge, HalfEdge) =
+    val e1 = HalfEdge(v1)
+    val e2 = HalfEdge(v2)
+    e1.twinWith(e2)
+    (e1, e2)
+
+  private def horizontalAndVSlope(
+    height: Int,
+    width: Int,
+    vertices: Array[Array[Vertex]]
+  ): (Array[Array[(HalfEdge, HalfEdge)]], Array[Array[(HalfEdge, HalfEdge)]]) =
+    val horizontal = Array.tabulate(height + 1, width) { (j, i) =>
+      createTwinPair(vertices(j)(i), vertices(j)(i + 1))
+    }
+    val vSlope = Array.tabulate(height, width + 1) { (j, i) =>
+      createTwinPair(vertices(j)(i), vertices(j + 1)(i))
+    }
+    (horizontal, vSlope)
+
+  // Set leaving edges for vertices
+  private def setLeavingEdges(
+    height: Int,
+    width: Int,
+    vertices: Array[Array[Vertex]],
+    horizontal: Array[Array[(HalfEdge, HalfEdge)]],
+    vSlope: Array[Array[(HalfEdge, HalfEdge)]]
+  ): Unit =
+    for j <- 0 to height; i <- 0 to width do
+      val v = vertices(j)(i)
+      if i < width then v.leaving = Some(horizontal(j)(i)._1)
+      else if j < height then v.leaving = Some(vSlope(j)(i)._1)
+      else if i > 0 then v.leaving = Some(horizontal(j)(i - 1)._2)
+      else if j > 0 then v.leaving = Some(vSlope(j - 1)(i)._2)
+
+  // Link outer face boundary
+  private def linkOuterFace(
+    height: Int,
+    width: Int,
+    horizontal: Array[Array[(HalfEdge, HalfEdge)]],
+    vSlope: Array[Array[(HalfEdge, HalfEdge)]],
+    fOuter: Face
+  ): List[HalfEdge] =
+    val innerBoundaryEdgesCCW = new mutable.ListBuffer[HalfEdge]()
+    // Bottom boundary
+    for (i <- 0 until width) innerBoundaryEdgesCCW += horizontal(0)(i)._1
+    // Right boundary
+    for (j <- 0 until height) innerBoundaryEdgesCCW += vSlope(j)(width)._1
+    // Top boundary
+    for (i <- (0 until width).reverse) innerBoundaryEdgesCCW += horizontal(height)(i)._2
+    // Left boundary
+    for (j <- (0 until height).reverse) innerBoundaryEdgesCCW += vSlope(j)(0)._2
+  
+    val outerBoundaryCW = innerBoundaryEdgesCCW.toList.map(_.twin.get).reverse
+    outerBoundaryCW.linkInCycle()
+    outerBoundaryCW.foreach(_.incidentFace = Some(fOuter))
+    fOuter.outerComponent = outerBoundaryCW.headOption
+    outerBoundaryCW
+
   /**
    * Create a tiling made of a net of regular triangles
    *
@@ -178,49 +251,23 @@ object TilingBuilder:
 
     val triangleAngle = AngleDegree(60)
 
-    val rad = triangleAngle.toBigRadian.toBigDecimal
-    val v_vec_x = spire.math.cos(rad)
-    val v_vec_y = spire.math.sin(rad)
-
-    val points = Array.tabulate(height + 1, width + 1) { (j, i) =>
-      BigPoint(BigDecimal(i) + v_vec_x * j, v_vec_y * j)
-    }
-
-    val vertices = Array.tabulate(height + 1, width + 1) { (j, i) =>
-      val vertexId = j * (width + 1) + i + 1
-      Vertex(s"V$vertexId", points(j)(i))
-    }
+    val (points, vertices) = pointsVertices(height, width, triangleAngle)
 
     // Two triangular faces per rhombus cell
     val faces = Array.tabulate(height, width, 2) { (j, i, k) =>
       Face(s"F${(j * width + i) * 2 + k + 1}")
     }
     val fOuter = Face.outer
-
-    def createTwinPair(v1: Vertex, v2: Vertex): (HalfEdge, HalfEdge) =
-      val e1 = HalfEdge(v1)
-      val e2 = HalfEdge(v2)
-      e1.twinWith(e2)
-      (e1, e2)
-
-    val horizontal = Array.tabulate(height + 1, width) { (j, i) =>
-      createTwinPair(vertices(j)(i), vertices(j)(i + 1))
-    }
-    val vSlope = Array.tabulate(height, width + 1) { (j, i) =>
-      createTwinPair(vertices(j)(i), vertices(j + 1)(i))
-    }
+    
+    val (horizontal, vSlope) = horizontalAndVSlope(height, width, vertices)
+    
     // These diagonals split each rhombus into two equilateral triangles
     val diagonals = Array.tabulate(height, width) { (j, i) =>
       createTwinPair(vertices(j)(i + 1), vertices(j + 1)(i))
     }
 
     // Set leaving edges for vertices
-    for j <- 0 to height; i <- 0 to width do
-      val v = vertices(j)(i)
-      if i < width then v.leaving = Some(horizontal(j)(i)._1)
-      else if j < height then v.leaving = Some(vSlope(j)(i)._1)
-      else if i > 0 then v.leaving = Some(horizontal(j)(i - 1)._2)
-      else if j > 0 then v.leaving = Some(vSlope(j - 1)(i)._2)
+    setLeavingEdges(height, width, vertices, horizontal, vSlope)
 
     // Link inner faces
     for j <- 0 until height; i <- 0 until width do
@@ -246,22 +293,8 @@ object TilingBuilder:
       face2.outerComponent = Some(e2)
       e2.angle = Some(triangleAngle); e3.angle = Some(triangleAngle); e_diag_rev.angle = Some(triangleAngle)
 
-    // Link outer face boundary
-    val innerBoundaryEdgesCCW = new mutable.ListBuffer[HalfEdge]()
-    // Bottom boundary
-    for (i <- 0 until width) innerBoundaryEdgesCCW += horizontal(0)(i)._1
-    // Right boundary
-    for (j <- 0 until height) innerBoundaryEdgesCCW += vSlope(j)(width)._1
-    // Top boundary
-    for (i <- (0 until width).reverse) innerBoundaryEdgesCCW += horizontal(height)(i)._2
-    // Left boundary
-    for (j <- (0 until height).reverse) innerBoundaryEdgesCCW += vSlope(j)(0)._2
-
-    val outerBoundaryCW = innerBoundaryEdgesCCW.toList.map(_.twin.get).reverse
-    outerBoundaryCW.linkInCycle()
-    outerBoundaryCW.foreach(_.incidentFace = Some(fOuter))
-    fOuter.outerComponent = outerBoundaryCW.headOption
-
+    val outerBoundaryCW = linkOuterFace(height, width, horizontal, vSlope, fOuter)
+    
     val allHalfEdges =
       horizontal.flatMap(row => row.flatMap(p => List(p._1, p._2))).toList ++
         vSlope.flatMap(row => row.flatMap(p => List(p._1, p._2))).toList ++
@@ -294,45 +327,17 @@ object TilingBuilder:
 
     val alpha1 = angle
     val alpha2 = AngleDegree(180) - angle
-
-    val rad = angle.toBigRadian.toBigDecimal
-    val v_vec_x = spire.math.cos(rad)
-    val v_vec_y = spire.math.sin(rad)
-
-    val points = Array.tabulate(height + 1, width + 1) { (j, i) =>
-      BigPoint(BigDecimal(i) + v_vec_x * j, v_vec_y * j)
-    }
-
-    val vertices = Array.tabulate(height + 1, width + 1) { (j, i) =>
-      val vertexId = j * (width + 1) + i + 1
-      Vertex(s"V$vertexId", points(j)(i))
-    }
+    
+    val (points, vertices) = pointsVertices(height, width, angle)
 
     val faces = Array.tabulate(height, width) { (j, i) =>
       Face(s"F${j * width + i + 1}")
     }
     val fOuter = Face.outer
 
-    def createTwinPair(v1: Vertex, v2: Vertex): (HalfEdge, HalfEdge) =
-      val e1 = HalfEdge(v1)
-      val e2 = HalfEdge(v2)
-      e1.twinWith(e2)
-      (e1, e2)
+    val (horizontal, vSlope) = horizontalAndVSlope(height, width, vertices)
 
-    val horizontal = Array.tabulate(height + 1, width) { (j, i) =>
-      createTwinPair(vertices(j)(i), vertices(j)(i + 1))
-    }
-    val vSlope = Array.tabulate(height, width + 1) { (j, i) =>
-      createTwinPair(vertices(j)(i), vertices(j + 1)(i))
-    }
-
-    // Set leaving edges for vertices
-    for j <- 0 to height; i <- 0 to width do
-      val v = vertices(j)(i)
-      if i < width then v.leaving = Some(horizontal(j)(i)._1)
-      else if j < height then v.leaving = Some(vSlope(j)(i)._1)
-      else if i > 0 then v.leaving = Some(horizontal(j)(i - 1)._2)
-      else if j > 0 then v.leaving = Some(vSlope(j - 1)(i)._2)
+    setLeavingEdges(height, width, vertices, horizontal, vSlope)
 
     // Link inner faces
     for j <- 0 until height; i <- 0 until width do
@@ -354,21 +359,7 @@ object TilingBuilder:
       e3.angle = Some(alpha1)
       e4.angle = Some(alpha2)
 
-    // Link outer face boundary
-    val innerBoundaryEdgesCCW = new mutable.ListBuffer[HalfEdge]()
-    // Bottom boundary
-    for (i <- 0 until width) innerBoundaryEdgesCCW += horizontal(0)(i)._1
-    // Right boundary
-    for (j <- 0 until height) innerBoundaryEdgesCCW += vSlope(j)(width)._1
-    // Top boundary
-    for (i <- (0 until width).reverse) innerBoundaryEdgesCCW += horizontal(height)(i)._2
-    // Left boundary
-    for (j <- (0 until height).reverse) innerBoundaryEdgesCCW += vSlope(j)(0)._2
-
-    val outerBoundaryCW = innerBoundaryEdgesCCW.toList.map(_.twin.get).reverse
-    outerBoundaryCW.linkInCycle()
-    outerBoundaryCW.foreach(_.incidentFace = Some(fOuter))
-    fOuter.outerComponent = outerBoundaryCW.headOption
+    val outerBoundaryCW = linkOuterFace(height, width, horizontal, vSlope, fOuter)
 
     val allHalfEdges =
       horizontal.flatMap(row => row.flatMap(p => List(p._1, p._2))).toList ++
