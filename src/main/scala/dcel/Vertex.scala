@@ -45,13 +45,13 @@ case class Vertex(
 
   def getCurrentInteriorAngleSum(outerFace: Face): AngleDegree =
     incidentEdges
-      .filterNot(_.incidentFace.contains(outerFace))
+      .filterNot(_.hasIncidentFace(outerFace))
       .flatMap(_.angle)
       .sum2
 
   def getCurrentInteriorAngleSumSafe(outerFace: Face): Either[String, AngleDegree] =
     incidentEdgesSafe.map(
-      _.filterNot(_.incidentFace.contains(outerFace))
+      _.filterNot(_.hasIncidentFace(outerFace))
       .flatMap(_.angle)
       .sum2
     )
