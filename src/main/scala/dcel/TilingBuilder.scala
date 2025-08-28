@@ -223,6 +223,9 @@ object TilingBuilder:
       val innerAnglesSum = incident.interiorAnglesSum(fOuter)
       outerEdge.angle = Some(innerAnglesSum.conjugate)
 
+  private def netFaces(height: Int, width: Int): Array[Array[Face]] =
+    Array.tabulate(height, width) { (j, i) => Face(s"F${j * width + i + 1}") }
+
   // Link outer face boundary
   private def linkOuterFace(
     height: Int,
@@ -337,9 +340,7 @@ object TilingBuilder:
 
     val (points, vertices) = pointsVertices(height, width, angle)
 
-    val faces = Array.tabulate(height, width) { (j, i) =>
-      Face(s"F${j * width + i + 1}")
-    }
+    val faces = netFaces(height, width)
     val fOuter = Face.outer
 
     val (horizontal, vSlope) = horizontalAndVSlope(height, width, vertices)
@@ -461,7 +462,7 @@ object TilingBuilder:
         e1
       })
 
-    val faces = Array.tabulate(height, width) { (j, i) => Face(s"F${j * width + i + 1}") }
+    val faces = netFaces(height, width)
     val fOuter = Face.outer
 
     for j <- 0 until height; i <- 0 until width do
