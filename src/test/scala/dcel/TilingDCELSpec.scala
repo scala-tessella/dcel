@@ -237,7 +237,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
   it should "return the angles for a vertex where all incident edges have an angle" in {
     val triangle = createTriangleTiling()
     val v1 = triangle.findVertex("V1").get
-    v1.incidentEdges.filter(_.incidentFace.contains(triangle.outerFace)).foreach(_.angle = Some(AngleDegree(300)))
+    v1.incidentEdges.filter(_.hasIncidentFace(triangle.outerFace)).foreach(_.angle = Some(AngleDegree(300)))
     val result = triangle.getAnglesAtVertex("V1")
     result.value should contain theSameElementsAs List(AngleDegree(60), AngleDegree(300))
   }

@@ -44,17 +44,10 @@ case class Vertex(
       case Some(startEdge) => startEdge.vertexTraversalWithGuards()
 
   def getCurrentInteriorAngleSum(outerFace: Face): AngleDegree =
-    incidentEdges
-      .filterNot(_.hasIncidentFace(outerFace))
-      .flatMap(_.angle)
-      .sum2
+    incidentEdges.interiorAnglesSum(outerFace)
 
   def getCurrentInteriorAngleSumSafe(outerFace: Face): Either[String, AngleDegree] =
-    incidentEdgesSafe.map(
-      _.filterNot(_.hasIncidentFace(outerFace))
-      .flatMap(_.angle)
-      .sum2
-    )
+    incidentEdgesSafe.map(_.interiorAnglesSum(outerFace))
 
   def degree: Int = incidentEdges.length
 

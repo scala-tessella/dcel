@@ -220,7 +220,7 @@ object TilingBuilder:
     for outerEdge <- outerBoundaryCW do
       val vertex = outerEdge.origin
       val incident = allHalfEdges.filter(_.origin == vertex)
-      val innerAnglesSum = incident.filterNot(_.incidentFace.contains(fOuter)).flatMap(_.angle).sum2
+      val innerAnglesSum = incident.interiorAnglesSum(fOuter)
       outerEdge.angle = Some(innerAnglesSum.conjugate)
 
   // Link outer face boundary
@@ -422,11 +422,11 @@ object TilingBuilder:
     val h2 = h1 + exts(2).toBigRadian
 
     // Three global unit directions g0, g1, g2 (others are their opposites)
-    val g0x = spire.math.cos(h0.toBigDecimal);
+    val g0x = spire.math.cos(h0.toBigDecimal)
     val g0y = spire.math.sin(h0.toBigDecimal)
-    val g1x = spire.math.cos(h1.toBigDecimal);
+    val g1x = spire.math.cos(h1.toBigDecimal)
     val g1y = spire.math.sin(h1.toBigDecimal)
-    val g2x = spire.math.cos(h2.toBigDecimal);
+    val g2x = spire.math.cos(h2.toBigDecimal)
     val g2y = spire.math.sin(h2.toBigDecimal)
 
     // Corner offsets as integer triples in the (g0,g1,g2) basis:
@@ -538,7 +538,7 @@ object TilingBuilder:
       boundaryOrdered.foreach { outerEdge =>
         val v = outerEdge.origin
         val incidentAtV = allHalfEdges.filter(_.origin eq v)
-        val innerAnglesSum = incidentAtV.filterNot(_.incidentFace.contains(fOuter)).flatMap(_.angle).sum2
+        val innerAnglesSum = incidentAtV.interiorAnglesSum(fOuter)
         outerEdge.angle = Some(innerAnglesSum.conjugate)
       }
 

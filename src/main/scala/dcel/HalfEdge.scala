@@ -110,7 +110,7 @@ case class HalfEdge(
 
   def faceTraversalWithGuards[T](f: HalfEdge => T = identity): Either[String, List[T]] =
     traverseWithGuards[T](_.next)(f)
-    
+
   def hasIncidentFace(face: Face): Boolean =
     incidentFace.contains(face)
 
@@ -155,6 +155,12 @@ object HalfEdge:
     // Helper function to link edges in a sequence
     def linkInSequence(): Unit =
       linkIn(_.sliding(2))
+
+    def interiorAnglesSum(outerFace: Face): AngleDegree =
+      halfEdges
+        .filterNot(_.hasIncidentFace(outerFace))
+        .flatMap(_.angle)
+        .sum2
 
     def getPath(from: Vertex, to: Vertex): List[HalfEdge] =
       val startEdgeOpt = halfEdges.find(_.origin == from)
