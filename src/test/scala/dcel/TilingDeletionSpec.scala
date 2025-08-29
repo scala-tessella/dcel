@@ -115,19 +115,21 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     newTiling.boundary.length shouldBe 4
   }
 
-  it should "delete an irregular polygon" in {
-    val result = triangle
+  /** <img src="file:../../resources/irregularFaces.svg"/> */
+  def irregularFaces: TilingDCEL =
+    triangle
       .addSimplePolygonToBoundary("V2", 15, 165, 15, 165).value
       .addSimplePolygonToBoundary("V3", 165, 15, 165, 15).value
       .addRegularPolygonToBoundary("V7", 4).value
       .addRegularPolygonToBoundary("V9", 4).value
       .addRegularPolygonToBoundary("V2", 4).value
-      .deletePolygon("F2")
 
+  it should "delete an irregular polygon" in {
+    val result = irregularFaces.deletePolygon("F2")
     result.isRight shouldBe true
     val tiling = result.value
-    //    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
-    //    println(validate(tiling))
+//    println(tiling.toSVG())
+//    println(validate(tiling))
     verifyValidTiling(tiling)
   }
 
