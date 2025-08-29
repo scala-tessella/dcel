@@ -128,20 +128,6 @@ object TilingBuilder:
       outerFace = fOuter
     ))
 
-  def calculateVertexPoints2(
-    angles: List[AngleDegree],
-    start: BigPoint = BigPoint(),
-    direction: AngleDegree = AngleDegree(0)
-  ): List[BigPoint] =
-    val p1: BigPoint =
-      if direction == AngleDegree(0) then
-        start.plus(BigPoint(1, 0))
-      else
-        start.plus(BigPoint.fromPolar(1, direction.toBigRadian))
-    calculateVertexPoints(angles, start, p1)
-
-  // Start with V0 at the origin and V1 on the X-axis
-
   /**
    * Calculates the coordinates of a polygon's vertices and validates that it's a closed polygon
    * with the correct side lengths and angles.
@@ -166,7 +152,18 @@ object TilingBuilder:
 
     points.toList
 
-  private def pointsVertices(height: Int, width: Int, angle: AngleDegree) =
+  /**
+   * Generates a grid of vertices for tessellation patterns.
+   *
+   * @param height The number of rows in the grid
+   * @param width  The number of columns in the grid
+   * @param angle  The angle for vertex positioning
+   */
+  private def pointsVertices(
+    height: Int,
+    width: Int,
+    angle: AngleDegree
+  ): (Array[Array[BigPoint]], Array[Array[Vertex]]) =
     val rad = angle.toBigRadian.toBigDecimal
     val v_vec_x = spire.math.cos(rad)
     val v_vec_y = spire.math.sin(rad)
