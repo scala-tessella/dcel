@@ -222,7 +222,8 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     tiling.innerFaces should have size 2
   }
 
-  def commonTiling: TilingDCEL =
+  /** <img src="file:../../resources/commonBench.svg"/> */
+  def commonBench: TilingDCEL =
     TilingBuilder.createRegularPolygon(4).value
       .maybeAddRegularPolygonToBoundary("V1", 3).value
       .maybeAddRegularPolygonToBoundary("V3", 3).value
@@ -231,7 +232,8 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       .maybeAddRegularPolygonToBoundary("V7", 4).value
 
   it should "add an irregular pentagon with shared edges" in {
-    val result = commonTiling.addSimplePolygonToBoundary("V4", irregularPentagonAngles.rotateLeft(2))
+    val result = commonBench
+      .addSimplePolygonToBoundary("V4", irregularPentagonAngles.rotateLeft(2))
 
     result.isRight shouldBe true
     val tiling = result.value
@@ -244,7 +246,8 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   }
 
   it should "add an irregular pentagon with shared edges to a different edge" in {
-    val result = commonTiling.addSimplePolygonToBoundary("V10", irregularPentagonAngles.rotateLeft(1))
+    val result = commonBench
+      .addSimplePolygonToBoundary("V10", irregularPentagonAngles.rotateLeft(1))
 
     result.isRight shouldBe true
     val tiling = result.value
@@ -257,7 +260,8 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   }
 
   it should "add an irregular pentagon with shared edges to a third different edge" in {
-    val result = commonTiling.addSimplePolygonToBoundary("V3", irregularPentagonAngles.rotateLeft(3))
+    val result = commonBench
+      .addSimplePolygonToBoundary("V3", irregularPentagonAngles.rotateLeft(3))
 
     result.isRight shouldBe true
     val tiling = result.value
@@ -566,7 +570,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   }
 
   it should "successfully fill a hole created by a shared vertex" in {
-    val result = commonTiling
+    val result = commonBench
       .maybeAddRegularPolygonToBoundary("V3", 4)
     result.isRight shouldBe true
 
@@ -597,7 +601,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   }
 
   it should "successfully fill a hole created by a shared edge" in {
-    val result = commonTiling
+    val result = commonBench
       .maybeAddRegularPolygonToBoundary("V9", 3).value
       .maybeAddRegularPolygonToBoundary("V11", 3).value
       .maybeAddRegularPolygonToBoundary("V3", 4)
@@ -650,7 +654,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   }
 
   it should "fail if boundary crossing" in {
-    val result = commonTiling
+    val result = commonBench
       .maybeAddRegularPolygonToBoundary("V9", 3).value
       .maybeAddRegularPolygonToBoundary("V11", 3).value
       .maybeAddRegularPolygonToBoundary("V3", 5)
