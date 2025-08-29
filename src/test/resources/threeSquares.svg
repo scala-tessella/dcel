@@ -1,0 +1,101 @@
+<svg width="140" height="140" viewBox="-70 -70 140 140" xmlns="http://www.w3.org/2000/svg">
+    <g>
+        <!-- Edges -->
+        <g stroke-width="1.0" stroke="black">
+            <line x1="0" y1="0" x2="50" y2="0"/>
+            <line x1="50" y1="0" x2="50" y2="-50"/>
+            <line x1="50" y1="-50" x2="0" y2="-50"/>
+            <line x1="0" y1="-50" x2="0" y2="0"/>
+            <line x1="0" y1="0" x2="-50" y2="-0"/>
+            <line x1="-50" y1="-0" x2="-50" y2="-50"/>
+            <line x1="-50" y1="-50" x2="0" y2="-50"/>
+            <line x1="0" y1="0" x2="-0" y2="50"/>
+            <line x1="-0" y1="50" x2="-50" y2="50"/>
+            <line x1="-50" y1="50" x2="-50" y2="-0"/>
+        </g>
+        <!-- Boundary Highlight -->
+        <g fill="none" stroke-width="3.0" stroke="red">
+            <polygon points="0,0 -0,50 -50,50 -50,-0 -50,-50 0,-50 50,-50 50,0"/>
+        </g>
+        <!-- Inner Face Half-Edge Direction Arrows -->
+        <g stroke-width="0.5" stroke="blue" fill="blue">
+            <polygon points="28,0 25,-1.2 25,1.2"/>
+            <polygon points="50,-28 48.8,-25 51.2,-25"/>
+            <polygon points="22,-50 25,-48.8 25,-51.2"/>
+            <polygon points="0,-22 1.2,-25 -1.2,-25"/>
+            <polygon points="0,-28 -1.2,-25 1.2,-25"/>
+            <polygon points="-28,-50 -25,-48.8 -25,-51.2"/>
+            <polygon points="-50,-22 -48.8,-25 -51.2,-25"/>
+            <polygon points="-22,-0 -25,-1.2 -25,1.2"/>
+            <polygon points="-28,-0 -25,1.2 -25,-1.2"/>
+            <polygon points="-50,28 -48.8,25 -51.2,25"/>
+            <polygon points="-22,50 -25,48.8 -25,51.2"/>
+            <polygon points="-0,22 -1.2,25 1.2,25"/>
+        </g>
+        <!-- Outer Face Half-Edge Direction Arrows -->
+        <g stroke-width="0.5" stroke="black" fill="black">
+            <polygon points="-0,28 1.2,25 -1.2,25"/>
+            <polygon points="-28,50 -25,51.2 -25,48.8"/>
+            <polygon points="-50,22 -51.2,25 -48.8,25"/>
+            <polygon points="-50,-28 -51.2,-25 -48.8,-25"/>
+            <polygon points="-22,-50 -25,-51.2 -25,-48.8"/>
+            <polygon points="28,-50 25,-51.2 25,-48.8"/>
+            <polygon points="50,-22 51.2,-25 48.8,-25"/>
+            <polygon points="22,-0 25,1.2 25,-1.2"/>
+        </g>
+        <!-- Vertices -->
+        <g fill="red">
+            <circle cx="0" cy="0" r="2.0"/>
+            <circle cx="50" cy="0" r="2.0"/>
+            <circle cx="50" cy="-50" r="2.0"/>
+            <circle cx="0" cy="-50" r="2.0"/>
+            <circle cx="-50" cy="-0" r="2.0"/>
+            <circle cx="-50" cy="-50" r="2.0"/>
+            <circle cx="-0" cy="50" r="2.0"/>
+            <circle cx="-50" cy="50" r="2.0"/>
+        </g>
+        <!-- Vertex Labels -->
+        <g fill="darkblue" font-size="8">
+            <text x="2.5" y="-2.5">V1</text>
+            <text x="52.5" y="-2.5">V2</text>
+            <text x="52.5" y="-52.5">V3</text>
+            <text x="2.5" y="-52.5">V4</text>
+            <text x="-47.5" y="-2.5">V5</text>
+            <text x="-47.5" y="-52.5">V6</text>
+            <text x="2.5" y="47.5">V7</text>
+            <text x="-47.5" y="47.5">V8</text>
+        </g>
+        <!-- Face Labels -->
+        <g dominant-baseline="middle" text-anchor="middle" fill="green" font-size="6">
+            <text x="25" y="-25">F1</text>
+            <text x="-25" y="-25">F2</text>
+            <text x="-25" y="25">F3</text>
+        </g>
+        <!-- Inner Angle Labels -->
+        <g dominant-baseline="middle" text-anchor="middle" fill="purple" font-size="5">
+            <text x="5.656854" y="-5.656854">90°</text>
+            <text x="44.343146" y="-5.656854">90°</text>
+            <text x="44.343146" y="-44.343146">90°</text>
+            <text x="5.656854" y="-44.343146">90°</text>
+            <text x="-5.656854" y="-5.656854">90°</text>
+            <text x="-5.656854" y="-44.343146">90°</text>
+            <text x="-44.343146" y="-44.343146">90°</text>
+            <text x="-44.343146" y="-5.656854">90°</text>
+            <text x="-5.656854" y="5.656854">90°</text>
+            <text x="-44.343146" y="5.656854">90°</text>
+            <text x="-44.343146" y="44.343146">90°</text>
+            <text x="-5.656854" y="44.343146">90°</text>
+        </g>
+        <!-- Outer Angle Labels -->
+        <g dominant-baseline="middle" text-anchor="middle" fill="orange" font-size="5">
+            <text x="-5.656854" y="5.656854">90°</text>
+            <text x="-2.529822" y="57.589466">270°</text>
+            <text x="-55.656854" y="55.656854">270°</text>
+            <text x="-57.589466" y="2.529822">180°</text>
+            <text x="-57.589466" y="-52.529822">270°</text>
+            <text x="-5.656854" y="-55.656854">180°</text>
+            <text x="55.656854" y="-55.656854">270°</text>
+            <text x="55.656854" y="5.656854">270°</text>
+        </g>
+    </g>
+</svg>

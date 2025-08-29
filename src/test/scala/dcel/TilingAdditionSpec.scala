@@ -505,7 +505,6 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       .maybeAddRegularPolygonToBoundary("V7", 6).value
 
   it should "successfully add an hexagon with more than one edge shared on both sides of the edge to build on" in {
-    println(threeHexagons.toSVG())
     val result = threeHexagons
       .maybeAddRegularPolygonToBoundary("V1", 6)
     result.isRight shouldBe true
@@ -538,12 +537,14 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     verifyValidTiling(newTiling)
   }
 
-  it should "successfully add a square with more than one edge shared on one side of the edge to build on" in {
-    val initialTiling = TilingBuilder.createRegularPolygon(4).value
+  /** <img src="file:../../resources/threeSquares.svg"/> */
+  def threeSquares: TilingDCEL =
+    square
+      .maybeAddRegularPolygonToBoundary("V1", 4).value
+      .maybeAddRegularPolygonToBoundary("V1", 4).value
 
-    val result = initialTiling
-      .maybeAddRegularPolygonToBoundary("V1", 4).value
-      .maybeAddRegularPolygonToBoundary("V1", 4).value
+  it should "successfully add a square with more than one edge shared on one side of the edge to build on" in {
+    val result = threeSquares
       .maybeAddRegularPolygonToBoundary("V1", 4)
     result.isRight shouldBe true
 
@@ -554,11 +555,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   }
 
   it should "successfully add a square with more than one edge shared on the other side of the edge to build on" in {
-    val initialTiling = TilingBuilder.createRegularPolygon(4).value
-
-    val result = initialTiling
-      .maybeAddRegularPolygonToBoundary("V1", 4).value
-      .maybeAddRegularPolygonToBoundary("V1", 4).value
+    val result = threeSquares
       .maybeAddRegularPolygonToBoundary("V2", 4)
     result.isRight shouldBe true
 
