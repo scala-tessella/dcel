@@ -224,7 +224,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
   /** <img src="file:../../resources/commonBench.svg"/> */
   def commonBench: TilingDCEL =
-    TilingBuilder.createRegularPolygon(4).value
+    square
       .maybeAddRegularPolygonToBoundary("V1", 3).value
       .maybeAddRegularPolygonToBoundary("V3", 3).value
       .maybeAddRegularPolygonToBoundary("V5", 3).value
@@ -479,12 +479,16 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     currentTiling.innerFaces should have size 7 // 1 hexagon + 6 triangles
   }
 
+  /** <img src="file:../../resources/commonBench.svg"/> */
+  def fiveTrianglesInHex: TilingDCEL =
+    triangle
+      .maybeAddRegularPolygonToBoundary("V1", 3).value
+      .maybeAddRegularPolygonToBoundary("V1", 3).value
+      .maybeAddRegularPolygonToBoundary("V1", 3).value
+      .maybeAddRegularPolygonToBoundary("V1", 3).value
+
   it should "successfully add a triangle with more than one edge shared" in {
-    val result = triangle
-      .maybeAddRegularPolygonToBoundary("V1", 3).value
-      .maybeAddRegularPolygonToBoundary("V1", 3).value
-      .maybeAddRegularPolygonToBoundary("V1", 3).value
-      .maybeAddRegularPolygonToBoundary("V1", 3).value
+    val result = fiveTrianglesInHex
       .maybeAddRegularPolygonToBoundary("V1", 3)
     result.isRight shouldBe true
 
