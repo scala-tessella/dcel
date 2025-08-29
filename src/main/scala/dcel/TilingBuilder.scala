@@ -70,7 +70,7 @@ object TilingBuilder:
     yield
       result
 
-        /**
+  /**
    * Given validated points and angles, builds the TilingDCEL structure.
    */
   private def buildDCELFromPoints(points: List[BigPoint], angles: List[AngleDegree]): Either[String, TilingDCEL] =
@@ -80,52 +80,51 @@ object TilingBuilder:
     val vertices = points.zipWithIndex.map { case (p, i) => Vertex(s"V${i + 1}", p) }
 
     // Create the two faces: one for the polygon, one for the outside
-    val fPoly = Face(Face.firstInnerId)
-    val fOuter = Face.outer
+    val polygonFace = Face(Face.firstInnerId)
+    val outerFace = Face.outer
 
     // Create all inner and outer half-edges, indexed by their origin vertex
     val innerEdges = vertices.map(HalfEdge.apply(_))
     val outerEdges = vertices.map(HalfEdge.apply(_))
 
     // Link all components together
-    for (i <- 0 until n)
-      val next_i = (i + 1) % n
+    for (i <- vertices.indices)
+      val nextIndex = (i + 1) % n
+      val prevIndex = (i + n - 1) % n
 
-      val inner_current = innerEdges(i)
-      val inner_next = innerEdges(next_i)
-
-      val outer_current = outerEdges(i)
-      val outer_next = outerEdges(next_i)
+      val currentInnerEdge = innerEdges(i)
+      val nextInnerEdge = innerEdges(nextIndex)
+      val currentOuterEdge = outerEdges(i)
+      val nextOuterEdge = outerEdges(nextIndex)
+      val prevOuterEdge = outerEdges(prevIndex)
 
       // Set vertex leaving edge
-      vertices(i).leaving = Some(inner_current)
+      vertices(i).leaving = Some(currentInnerEdge)
 
       // Link inner loop (counter-clockwise)
-      inner_current.next = Some(inner_next)
-      inner_next.prev = Some(inner_current)
-      inner_current.incidentFace = Some(fPoly)
-      inner_current.angle = Some(angles(i))
+      currentInnerEdge.next = Some(nextInnerEdge)
+      nextInnerEdge.prev = Some(currentInnerEdge)
+      currentInnerEdge.incidentFace = Some(polygonFace)
+      currentInnerEdge.angle = Some(angles(i))
 
       // The twin of the inner edge V_i -> V_{i+1} is the outer edge V_{i+1} -> V_i
-      inner_current.twin = Some(outer_next)
-      outer_next.twin = Some(inner_current)
+      currentInnerEdge.twin = Some(nextOuterEdge)
+      nextOuterEdge.twin = Some(currentInnerEdge)
 
       // Link outer loop (clockwise)
-      val prev_i = (i + n - 1) % n
-      val outer_prev = outerEdges(prev_i)
-      outer_current.next = Some(outer_prev)
-      outer_prev.prev = Some(outer_current)
-      outer_current.incidentFace = Some(fOuter)
-      outer_current.angle = Some(AngleDegree(360) - angles(i))
+      currentOuterEdge.next = Some(prevOuterEdge)
+      prevOuterEdge.prev = Some(currentOuterEdge)
+      currentOuterEdge.incidentFace = Some(outerFace)
+      currentOuterEdge.angle = Some(angles(i).conjugate)
 
-    fPoly.outerComponent = innerEdges.headOption
-    fOuter.outerComponent = outerEdges.headOption
+    polygonFace.outerComponent = innerEdges.headOption
+    outerFace.outerComponent = outerEdges.headOption
 
     Right(TilingDCEL(
       vertices = vertices,
       halfEdges = innerEdges ++ outerEdges,
-      innerFaces = List(fPoly),
-      outerFace = fOuter
+      innerFaces = List(polygonFace),
+      outerFace = outerFace
     ))
 
   /**
