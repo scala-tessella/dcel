@@ -479,7 +479,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     currentTiling.innerFaces should have size 7 // 1 hexagon + 6 triangles
   }
 
-  /** <img src="file:../../resources/commonBench.svg"/> */
+  /** <img src="file:../../resources/fiveTrianglesInHex.svg"/> */
   def fiveTrianglesInHex: TilingDCEL =
     triangle
       .maybeAddRegularPolygonToBoundary("V1", 3).value
@@ -498,12 +498,15 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     verifyValidTiling(newTiling)
   }
 
-  it should "successfully add an hexagon with more than one edge shared on both sides of the edge to build on" in {
-    val initialTiling = TilingBuilder.createRegularPolygon(6).value
-
-    val result = initialTiling
+  /** <img src="file:../../resources/threeHexagons.svg"/> */
+  def threeHexagons: TilingDCEL =
+    hexagon
       .maybeAddRegularPolygonToBoundary("V1", 6).value
       .maybeAddRegularPolygonToBoundary("V7", 6).value
+
+  it should "successfully add an hexagon with more than one edge shared on both sides of the edge to build on" in {
+    println(threeHexagons.toSVG())
+    val result = threeHexagons
       .maybeAddRegularPolygonToBoundary("V1", 6)
     result.isRight shouldBe true
 
@@ -514,11 +517,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   }
 
   it should "successfully add an hexagon with more than one edge shared on one side of the edge to build on" in {
-    val initialTiling = TilingBuilder.createRegularPolygon(6).value
-
-    val result = initialTiling
-      .maybeAddRegularPolygonToBoundary("V1", 6).value
-      .maybeAddRegularPolygonToBoundary("V7", 6).value
+    val result = threeHexagons
       .maybeAddRegularPolygonToBoundary("V2", 6)
     result.isRight shouldBe true
 
@@ -529,11 +528,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   }
 
   it should "successfully add an hexagon with more than one edge shared on the other side of the edge to build on" in {
-    val initialTiling = TilingBuilder.createRegularPolygon(6).value
-
-    val result = initialTiling
-      .maybeAddRegularPolygonToBoundary("V1", 6).value
-      .maybeAddRegularPolygonToBoundary("V7", 6).value
+    val result = threeHexagons
       .maybeAddRegularPolygonToBoundary("V7", 6)
     result.isRight shouldBe true
 
