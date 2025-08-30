@@ -576,17 +576,24 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     verifyValidTiling(newTiling)
   }
 
+  /** <img src="file:../../resources/irregularHoleAlmostJoinedBySide.svg"/> */
+  def irregularHoleAlmostJoinedBySide: TilingDCEL =
+    hexagon
+      .maybeAddRegularPolygonToBoundary("V6", 6).value
+      .maybeAddRegularPolygonToBoundary("V7", 6).value
+      .maybeAddRegularPolygonToBoundary("V11", 6).value
+      .maybeAddRegularPolygonToBoundary("V16", 6).value
+      .maybeAddRegularPolygonToBoundary("V19", 6).value
+      .maybeAddRegularPolygonToBoundary("V23", 6).value
+
+  /** <img src="file:../../resources/irregularHoleAlmostJoinedByVertex.svg"/> */
+  def irregularHoleAlmostJoinedByVertex: TilingDCEL =
+    irregularHoleAlmostJoinedBySide
+      .maybeAddRegularPolygonToBoundary("V27", 3).value
+
   it should "successfully fill another hole created by a shared vertex" in {
-    val result =
-      TilingBuilder.createRegularPolygon(6).value
-        .maybeAddRegularPolygonToBoundary("V6", 6).value
-        .maybeAddRegularPolygonToBoundary("V7", 6).value
-        .maybeAddRegularPolygonToBoundary("V11", 6).value
-        .maybeAddRegularPolygonToBoundary("V16", 6).value
-        .maybeAddRegularPolygonToBoundary("V19", 6).value
-        .maybeAddRegularPolygonToBoundary("V23", 6).value
-        .maybeAddRegularPolygonToBoundary("V27", 3).value
-        .maybeAddRegularPolygonToBoundary("V2", 3)
+    val result = irregularHoleAlmostJoinedByVertex
+      .maybeAddRegularPolygonToBoundary("V2", 3)
 
     result.isRight shouldBe true
 
@@ -610,15 +617,8 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   }
 
   it should "successfully fill another hole created by a shared edge" in {
-    val result =
-      TilingBuilder.createRegularPolygon(6).value
-        .maybeAddRegularPolygonToBoundary("V6", 6).value
-        .maybeAddRegularPolygonToBoundary("V7", 6).value
-        .maybeAddRegularPolygonToBoundary("V11", 6).value
-        .maybeAddRegularPolygonToBoundary("V16", 6).value
-        .maybeAddRegularPolygonToBoundary("V19", 6).value
-        .maybeAddRegularPolygonToBoundary("V23", 6).value
-        .maybeAddRegularPolygonToBoundary("V2", 6)
+    val result = irregularHoleAlmostJoinedBySide
+      .maybeAddRegularPolygonToBoundary("V2", 6)
 
     result.isRight shouldBe true
 
