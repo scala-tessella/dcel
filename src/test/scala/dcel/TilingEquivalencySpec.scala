@@ -282,16 +282,10 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
 
   it should "return false for tilings with the same face signatures but different vertex signatures" in {
     // Tiling 1: Four squares in a 2x2 grid
-    val twoSquares = square
-      .maybeAddRegularPolygonToBoundary("V1", 4).value
-    val gridTiling = twoSquares.maybeAddRegularPolygonToBoundary("V2", 4).value
-      .maybeAddRegularPolygonToBoundary("V7", 4).value // V7 is on the new edge
+    val gridTiling = TilingBuilder.createRhombusNet(2, 2) // V7 is on the new edge
 
     // Tiling 2: Four squares in a line
-    val lineTiling = square
-      .maybeAddRegularPolygonToBoundary("V1", 4).value
-      .maybeAddRegularPolygonToBoundary("V4", 4).value
-      .maybeAddRegularPolygonToBoundary("V6", 4).value
+    val lineTiling = TilingBuilder.createRhombusNet(4, 1)
 
     // Both have 4 square faces, but the arrangement of vertices is different.
     // Grid has a central vertex of degree 4, line does not.
