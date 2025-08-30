@@ -299,7 +299,6 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
   }
 
   it should "return false for two different rhombuses" in {
-    val rhombus = TilingBuilder.createSimplePolygon(60, 120, 60, 120).value
     square.isTopologicallyEquivalentTo(rhombus) shouldBe true
     square.isEquivalentTo(rhombus) shouldBe false
   }

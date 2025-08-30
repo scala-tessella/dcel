@@ -1,0 +1,61 @@
+<svg width="115" height="83" viewBox="-20 -63.30127 115 83.30127" xmlns="http://www.w3.org/2000/svg">
+    <g>
+        <!-- Edges -->
+        <g stroke-width="1.0" stroke="black">
+            <line x1="0" y1="0" x2="50" y2="0"/>
+            <line x1="50" y1="0" x2="75" y2="-43.30127"/>
+            <line x1="75" y1="-43.30127" x2="25" y2="-43.30127"/>
+            <line x1="25" y1="-43.30127" x2="0" y2="0"/>
+        </g>
+        <!-- Boundary Highlight -->
+        <g fill="none" stroke-width="3.0" stroke="red">
+            <polygon points="0,0 25,-43.30127 75,-43.30127 50,0"/>
+        </g>
+        <!-- Inner Face Half-Edge Direction Arrows -->
+        <g stroke-width="0.5" stroke="blue" fill="blue">
+            <polygon points="28,0 25,-1.2 25,1.2"/>
+            <polygon points="64,-24.248711 61.46077,-22.250635 63.53923,-21.050635"/>
+            <polygon points="47,-43.30127 50,-42.10127 50,-44.50127"/>
+            <polygon points="11,-19.052559 13.53923,-21.050635 11.46077,-22.250635"/>
+        </g>
+        <!-- Outer Face Half-Edge Direction Arrows -->
+        <g stroke-width="0.5" stroke="black" fill="black">
+            <polygon points="14,-24.248711 11.46077,-22.250635 13.53923,-21.050635"/>
+            <polygon points="53,-43.30127 50,-44.50127 50,-42.10127"/>
+            <polygon points="61,-19.052559 63.53923,-21.050635 61.46077,-22.250635"/>
+            <polygon points="22,-0 25,1.2 25,-1.2"/>
+        </g>
+        <!-- Vertices -->
+        <g fill="red">
+            <circle cx="0" cy="0" r="2.0"/>
+            <circle cx="50" cy="0" r="2.0"/>
+            <circle cx="75" cy="-43.30127" r="2.0"/>
+            <circle cx="25" cy="-43.30127" r="2.0"/>
+        </g>
+        <!-- Vertex Labels -->
+        <g fill="darkblue" font-size="8">
+            <text x="2.5" y="-2.5">V1</text>
+            <text x="52.5" y="-2.5">V2</text>
+            <text x="77.5" y="-45.80127">V3</text>
+            <text x="27.5" y="-45.80127">V4</text>
+        </g>
+        <!-- Face Labels -->
+        <g dominant-baseline="middle" text-anchor="middle" fill="green" font-size="6">
+            <text x="37.5" y="-21.650635">F1</text>
+        </g>
+        <!-- Inner Angle Labels -->
+        <g dominant-baseline="middle" text-anchor="middle" fill="purple" font-size="5">
+            <text x="6.928203" y="-4">60°</text>
+            <text x="46" y="-6.928203">120°</text>
+            <text x="68.071797" y="-39.30127">60°</text>
+            <text x="29" y="-36.373067">120°</text>
+        </g>
+        <!-- Outer Angle Labels -->
+        <g dominant-baseline="middle" text-anchor="middle" fill="orange" font-size="5">
+            <text x="-6.928203" y="4">300°</text>
+            <text x="21" y="-50.229473">240°</text>
+            <text x="81.928203" y="-47.30127">300°</text>
+            <text x="54" y="6.928203">240°</text>
+        </g>
+    </g>
+</svg>
