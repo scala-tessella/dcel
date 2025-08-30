@@ -628,18 +628,21 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     verifyValidTiling(newTiling)
   }
 
+  /** <img src="file:../../resources/irregularHolesAlmostJoinedBySide.svg"/> */
+  def irregularHolesAlmostJoinedBySide: TilingDCEL =
+    hexagon
+      .maybeAddRegularPolygonToBoundary("V6", 6).value
+      .maybeAddRegularPolygonToBoundary("V7", 6).value
+      .maybeAddRegularPolygonToBoundary("V11", 6).value
+      .maybeAddRegularPolygonToBoundary("V15", 6).value
+      .maybeAddRegularPolygonToBoundary("V21", 6).value
+      .maybeAddRegularPolygonToBoundary("V23", 6).value
+      .maybeAddRegularPolygonToBoundary("V27", 6).value
+      .maybeAddRegularPolygonToBoundary("V31", 6).value
+
   it should "successfully fill two holes created by shared edges" in {
-    val result =
-      TilingBuilder.createRegularPolygon(6).value
-        .maybeAddRegularPolygonToBoundary("V6", 6).value
-        .maybeAddRegularPolygonToBoundary("V7", 6).value
-        .maybeAddRegularPolygonToBoundary("V11", 6).value
-        .maybeAddRegularPolygonToBoundary("V15", 6).value
-        .maybeAddRegularPolygonToBoundary("V21", 6).value
-        .maybeAddRegularPolygonToBoundary("V23", 6).value
-        .maybeAddRegularPolygonToBoundary("V27", 6).value
-        .maybeAddRegularPolygonToBoundary("V31", 6).value
-        .maybeAddRegularPolygonToBoundary("V2", 6)
+    val result = irregularHolesAlmostJoinedBySide
+      .maybeAddRegularPolygonToBoundary("V2", 6)
 
     result.isRight shouldBe true
 
