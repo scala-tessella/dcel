@@ -662,9 +662,13 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     result.isLeft shouldBe true
   }
 
+  /** <img src="file:../../resources/irregularShape.svg"/> */
+  def irregularShape: TilingDCEL =
+    TilingBuilder.createSimplePolygon(90, 180, 180, 90, 150, 60, 240, 330, 90, 90, 150, 150).value
+
   it should "fail if just one vertex is added but crosses the boundary" in {
-    val bench = TilingBuilder.createSimplePolygon(90, 180, 180, 90, 150, 60, 240, 330, 90, 90, 150, 150).value
-    val result = bench.addRegularPolygonToBoundary("V7", 3)
+    val result = irregularShape
+      .addRegularPolygonToBoundary("V7", 3)
     result.isLeft shouldBe true
   }
 
@@ -697,9 +701,12 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     result.left.value should include("Same as container")
   }
 
+  /** <img src="file:../../resources/doubleSquare.svg"/> */
+  def doubleSquare: TilingDCEL =
+    TilingBuilder.createSimplePolygon(90, 180, 90, 180, 90, 180, 90, 180).value
+
   it should "add an inner regular polygon sharing a second edge" in {
-    val bench = TilingBuilder.createSimplePolygon(90, 180, 90, 180, 90, 180, 90, 180).value
-    val result = bench
+    val result = doubleSquare
       .addRegularPolygon("V1", "V2", 4)
 
     result.isRight shouldBe true
@@ -709,10 +716,13 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     verifyValidTiling(tiling)
   }
 
-  it should "add an inner regular polygon sharing more edges" in {
-    val bench = TilingBuilder.createSimplePolygon(90, 180, 90, 180, 90, 180, 90, 180).value
-    val result = bench
+  /** <img src="file:../../resources/concentricSquares.svg"/> */
+  def concentricSquares: TilingDCEL =
+    doubleSquare
       .addRegularPolygon("V1", "V2", 4).value
+
+  it should "add an inner regular polygon sharing more edges" in {
+    val result = concentricSquares
       .addRegularPolygon("V2", "V3", 4)
 
     result.isRight shouldBe true
