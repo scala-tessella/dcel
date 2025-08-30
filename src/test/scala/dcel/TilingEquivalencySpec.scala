@@ -310,11 +310,13 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
     square.isEquivalentTo(rhombus) shouldBe false
   }
 
+  /** <img src="file:../../resources/shapeL.svg"/> */
   def shapeL: TilingDCEL = square
     .maybeAddRegularPolygonToBoundary("V3", 4).value
     .maybeAddRegularPolygonToBoundary("V4", 4).value
     .maybeAddRegularPolygonToBoundary("V7", 4).value
 
+  /** <img src="file:../../resources/shapeΓ.svg"/> */
   def shapeΓ: TilingDCEL =
     shapeL.verticallyReflectedCopy
 
