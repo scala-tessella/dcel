@@ -782,10 +782,14 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     result.isRight shouldBe true
   }
 
-  it should "add an inner regular polygon creating a hole" in {
-    val bench = TilingBuilder.createRegularPolygon(12).value
+  /** <img src="file:../../resources/dodecagonWithInnerSquare.svg"/> */
+  def dodecagonWithInnerSquare: TilingDCEL =
+    TilingBuilder.createRegularPolygon(12).value
       .addRegularPolygon("V1", "V2", 4).value
-    val result = bench.addRegularPolygon("V3", "V4", 4)
+
+  it should "add an inner regular polygon creating a hole" in {
+    val result = dodecagonWithInnerSquare
+      .addRegularPolygon("V3", "V4", 4)
 
     result.isRight shouldBe true
     val tiling = result.value
@@ -795,9 +799,8 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   }
 
   it should "add an inner regular polygon creating a specular hole" in {
-    val bench = TilingBuilder.createRegularPolygon(12).value
-      .addRegularPolygon("V1", "V2", 4).value
-    val result = bench.addRegularPolygon("V11", "V12", 4)
+    val result = dodecagonWithInnerSquare
+      .addRegularPolygon("V11", "V12", 4)
 
     result.isRight shouldBe true
     val tiling = result.value
