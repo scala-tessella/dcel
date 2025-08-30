@@ -603,10 +603,14 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     verifyValidTiling(newTiling)
   }
 
-  it should "successfully fill a hole created by a shared edge" in {
-    val result = commonBench
+  /** <img src="file:../../resources/regularHoleAlmostJoinedBySide.svg"/> */
+  def regularHoleAlmostJoinedBySide: TilingDCEL =
+    commonBench
       .maybeAddRegularPolygonToBoundary("V9", 3).value
       .maybeAddRegularPolygonToBoundary("V11", 3).value
+
+  it should "successfully fill a hole created by a shared edge" in {
+    val result = regularHoleAlmostJoinedBySide
       .maybeAddRegularPolygonToBoundary("V3", 4)
     result.isRight shouldBe true
 
@@ -628,8 +632,8 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     verifyValidTiling(newTiling)
   }
 
-  /** <img src="file:../../resources/irregularHolesAlmostJoinedBySide.svg"/> */
-  def irregularHolesAlmostJoinedBySide: TilingDCEL =
+  /** <img src="file:../../resources/regularHolesAlmostJoinedBySide.svg"/> */
+  def regularHolesAlmostJoinedBySide: TilingDCEL =
     hexagon
       .maybeAddRegularPolygonToBoundary("V6", 6).value
       .maybeAddRegularPolygonToBoundary("V7", 6).value
@@ -641,7 +645,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       .maybeAddRegularPolygonToBoundary("V31", 6).value
 
   it should "successfully fill two holes created by shared edges" in {
-    val result = irregularHolesAlmostJoinedBySide
+    val result = regularHolesAlmostJoinedBySide
       .maybeAddRegularPolygonToBoundary("V2", 6)
 
     result.isRight shouldBe true
@@ -653,9 +657,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   }
 
   it should "fail if boundary crossing" in {
-    val result = commonBench
-      .maybeAddRegularPolygonToBoundary("V9", 3).value
-      .maybeAddRegularPolygonToBoundary("V11", 3).value
+    val result = regularHoleAlmostJoinedBySide
       .maybeAddRegularPolygonToBoundary("V3", 5)
     result.isLeft shouldBe true
   }
