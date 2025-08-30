@@ -320,10 +320,12 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
   def shapeΓ: TilingDCEL =
     shapeL.verticallyReflectedCopy
 
+  /** <img src="file:../../resources/shapeL2.svg"/> */
   def shapeL2: TilingDCEL = square
     .maybeAddRegularPolygonToBoundary("V2", 4).value
     .maybeAddRegularPolygonToBoundary("V2", 3).value
 
+  /** <img src="file:../../resources/shapeΓ2.svg"/> */
   def shapeΓ2: TilingDCEL =
     shapeL2.verticallyReflectedCopy
 
