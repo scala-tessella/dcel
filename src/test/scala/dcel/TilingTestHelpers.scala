@@ -17,10 +17,13 @@ trait TilingTestHelpers extends EitherValues:
   def square: TilingDCEL =
     TilingBuilder.createRegularPolygon(4).value
 
+  /** A tiling with a single rhombus
+   * <img src="file:../../resources/rhombus.svg"/>
+   **/
   def rhombus: TilingDCEL =
     TilingBuilder.createSimplePolygon(60, 120, 60, 120).value
 
-  /** A tiling with a single hexagon
+  /** A tiling with a single regular hexagon
    * <img src="file:../../resources/hexagon.svg"/>
    **/
   def hexagon: TilingDCEL =
