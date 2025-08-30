@@ -732,43 +732,51 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     verifyValidTiling(tiling)
   }
 
+  /** <img src="file:../../resources/parallelogram.svg"/> */
+  def parallelogram: TilingDCEL =
+    TilingBuilder.createSimplePolygon(30, 180, 150, 30, 180, 150).value
+
   it should "fail to add an inner regular polygon crossing the boundary" in {
-    val bench = TilingBuilder.createSimplePolygon(30, 180, 150, 30, 180, 150).value
-    val result = bench
+    val result = parallelogram
       .addRegularPolygon("V2", "V3", 3)
 
     result.isLeft shouldBe true
     result.left.value should include("Boundary intersection")
   }
+
+  /** <img src="file:../../resources/parallelogramPlusTriangle.svg"/> */
+  def parallelogramPlusTriangle: TilingDCEL =
+    parallelogram.addRegularPolygonToBoundary("V6", 3).value
 
   it should "fail to add an inner regular polygon crossing the polygon boundary" in {
-    val bench = TilingBuilder.createSimplePolygon(30, 180, 150, 30, 180, 150).value
-    val result = bench
-      .addRegularPolygonToBoundary("V6", 3).value
+    val result = parallelogramPlusTriangle
       .addRegularPolygon("V2", "V3", 3)
 
     result.isLeft shouldBe true
     result.left.value should include("Boundary intersection")
   }
 
-  it should "add a special boundary regular polygon creating a hole" in {
+  def base: TilingDCEL =
     val angles = List(120, 180, 180, 180, 120, 120, 180, 120, 60, 180, 300, 180, 180, 300, 180, 60, 120, 180, 120)
-    val bench = TilingBuilder.createSimplePolygon(angles *).value
-      .addRegularPolygonToBoundary("V16", 3).value
+    TilingBuilder.createSimplePolygon(angles *).value
 
-    println(bench.toSVG())
-    val result = bench
+  /** <img src="file:../../resources/anotherAlmostJoinedByVertex.svg"/> */
+  def anotherAlmostJoinedByVertex: TilingDCEL =
+    base.addRegularPolygonToBoundary("V16", 3).value
+
+  it should "add a special boundary regular polygon creating a hole" in {
+    val result = anotherAlmostJoinedByVertex
       .addRegularPolygonToBoundary("V16", 3)
 
     result.isRight shouldBe true
   }
 
-  it should "add another specular boundary regular polygon creating a hole" in {
-    val angles = List(120, 180, 180, 180, 120, 120, 180, 120, 60, 180, 300, 180, 180, 300, 180, 60, 120, 180, 120)
-    val bench = TilingBuilder.createSimplePolygon(angles *).value
-      .addRegularPolygonToBoundary("V10", 3).value
+  /** <img src="file:../../resources/anotherAlmostJoinedByVertexSpecular.svg"/> */
+  def anotherAlmostJoinedByVertexSpecular: TilingDCEL =
+    base.addRegularPolygonToBoundary("V10", 3).value
 
-    val result = bench
+  it should "add another specular boundary regular polygon creating a hole" in {
+    val result = anotherAlmostJoinedByVertexSpecular
       .addRegularPolygonToBoundary("V20", 3)
 
     result.isRight shouldBe true
