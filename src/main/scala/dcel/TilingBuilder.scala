@@ -454,7 +454,10 @@ object TilingBuilder:
     val faces = netFaces(height, width)
     val fOuter = Face.outer
 
-    for j <- 0 until height; i <- 0 until width do
+    for 
+      j <- 0 until height
+      i <- 0 until width
+    do
       val face = faces(j)(i)
       val b = baseTriple(i, j)
       val cornerKeys = (0 until 6).map(k => addTriples(b, cornerTriples(k))).toList
@@ -486,25 +489,7 @@ object TilingBuilder:
 
     val boundaryEdgesCW = allHalfEdges.filter(_.incidentFace.isEmpty)
 
-    def orderBoundary(edges: List[HalfEdge]): List[HalfEdge] =
-      if edges.isEmpty then return Nil
-      val remaining = mutable.HashSet.from(edges)
-      val ordered = mutable.ListBuffer[HalfEdge]()
-      var current = edges.head
-      ordered += current
-      remaining -= current
-      while remaining.nonEmpty do
-        val nextOpt = remaining.find(e => current.destination.contains(e.origin))
-        nextOpt match
-          case Some(next) =>
-            ordered += next
-            remaining -= next
-            current = next
-          case None =>
-            return ordered.toList
-      ordered.toList
-
-    val boundaryOrdered = orderBoundary(boundaryEdgesCW)
+    val boundaryOrdered = boundaryEdgesCW.orderBoundary
 
     if boundaryOrdered.nonEmpty then
       boundaryOrdered.linkInCycle()

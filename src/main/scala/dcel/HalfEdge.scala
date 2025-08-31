@@ -236,3 +236,22 @@ object HalfEdge:
         if path.size == halfEdges.size then Some(path.toList)
         else None // Graph is not connected
       }
+
+    def orderBoundary: List[HalfEdge] =
+      if halfEdges.isEmpty then return Nil
+      val remaining = mutable.HashSet.from(halfEdges)
+      val ordered = mutable.ListBuffer[HalfEdge]()
+      var current = halfEdges.head
+      ordered += current
+      remaining -= current
+      while remaining.nonEmpty do
+        val nextOpt = remaining.find(e => current.destination.contains(e.origin))
+        nextOpt match
+          case Some(next) =>
+            ordered += next
+            remaining -= next
+            current = next
+          case None =>
+            return ordered.toList
+      ordered.toList
+  
