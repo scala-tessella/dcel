@@ -263,3 +263,13 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     result.isLeft shouldBe true
     result.left.value should include("is not simple")
   }
+
+  behavior of "TilingDCEL.deleteVertex"
+
+  it should "delete an interior vertex" in {
+    val result = TilingBuilder.createRhombusNet(2, 2)
+      .deleteVertex("V5")
+    result.isRight shouldBe true
+    val newTiling = result.value
+    newTiling.innerFaces should have size 1
+  }
