@@ -254,4 +254,3 @@ object HalfEdge:
           case None =>
             return ordered.toList
       ordered.toList
-  
