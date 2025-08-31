@@ -107,7 +107,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
     val original = square
     val copy = original.deepCopy
 
-    // Get original boundary before modification
+    // Get the original boundary before modification
     val originalBoundaryBefore = original.boundary
     val copyBoundaryBefore = copy.boundary
 
@@ -115,16 +115,16 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
 
     // Modify the copy by adding a polygon
     val modifiedCopy = copy.maybeAddRegularPolygonToBoundary("V1", 3)
-    modifiedCopy shouldBe a[Right[_, _]]
+    modifiedCopy shouldBe a[Right[?, ?]]
 
     // Original should remain unchanged
     val originalBoundaryAfter = original.boundary
     originalBoundaryBefore shouldEqual originalBoundaryAfter
 
-    // Original structure should still be valid
+    // The original structure should still be valid
     TilingDCEL.validate(original) shouldBe Right(())
 
-    // Original should have same number of components as before
+    // Original should have the same number of components as before
     original.vertices should have length 4
     original.innerFaces should have length 1
   }
@@ -138,7 +138,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
 
     // Modify the original by adding a polygon
     val modifiedOriginal = original.maybeAddRegularPolygonToBoundary("V1", 4)
-    modifiedOriginal shouldBe a[Right[_, _]]
+    modifiedOriginal shouldBe a[Right[?, ?]]
 
     // Copy should remain unchanged
     val copyBoundaryAfter = copy.boundary
@@ -147,7 +147,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
     // Copy structure should still be valid
     TilingDCEL.validate(copy) shouldBe Right(())
 
-    // Copy should have same number of components as before
+    // Copy should have the same number of components as before
     copy.vertices should have length 3
     copy.innerFaces should have length 1
   }
@@ -171,7 +171,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
     original.boundary shouldEqual copy.boundary
     original.boundarySafe shouldEqual copy.boundarySafe
 
-    // The actual vertex instances should be different but have same properties
+    // The actual vertex instances should be different but have the same properties
     original.boundary.zip(copy.boundary).foreach { case (origV, copyV) =>
       origV should not be theSameInstanceAs(copyV)
       origV.id shouldEqual copyV.id
@@ -218,7 +218,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
 
     val copy = original.deepCopy
 
-    // Verify structure is preserved
+    // Verify the structure is preserved
     copy.vertices should have length original.vertices.length
     copy.innerFaces should have length original.innerFaces.length
 
@@ -230,8 +230,8 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
     val modifiedOriginal = original.maybeAddRegularPolygonToBoundary("V2", 6)
     val modifiedCopy = copy.maybeAddRegularPolygonToBoundary("V3", 5)
 
-    modifiedOriginal shouldBe a[Right[_, _]]
-    modifiedCopy shouldBe a[Right[_, _]]
+    modifiedOriginal shouldBe a[Right[?, ?]]
+    modifiedCopy shouldBe a[Right[?, ?]]
 
     // They should have different numbers of faces now
     modifiedOriginal.value.innerFaces should have length (original.innerFaces.length + 1)
@@ -268,11 +268,11 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
   }
 
   it should "return true for two complex tilings built differently but structurally identical" in {
-    // Tiling A: Add triangle to V1, then another to V4
+    // Tiling A: Add a triangle to V1, then another to V4
     val tilingA = triangle
       .maybeAddRegularPolygonToBoundary("V1", 3).value
       .maybeAddRegularPolygonToBoundary("V4", 3).value
-    // Tiling B: Add triangle to V2, then another to V4
+    // Tiling B: Add a triangle to V2, then another to V4
     val tilingB = triangle
       .maybeAddRegularPolygonToBoundary("V2", 3).value
       .maybeAddRegularPolygonToBoundary("V4", 3).value
