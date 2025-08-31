@@ -20,8 +20,14 @@ object TilingDeletion:
         _ <- validateFaceDeletion(faceToDelete, edgeClassification)
       yield
         if tiling.innerFaces.length == 1 then TilingBuilder.empty
-        else performFaceDeletion(faceToDelete, edgeClassification)
-    
+        else if edgeClassification.boundaryTwins.nonEmpty then
+          performFaceDeletion(faceToDelete, edgeClassification)
+        else
+          val vertices = faceToDelete.getVertices.toOption.get
+          vertices.foldLeft(Right(tiling): Either[String, TilingDCEL]) {
+            (either, vertex) => either.flatMap(_.deleteVertex(vertex.id))
+          }.toOption.get
+
     private def findInnerFace(faceId: String): Either[String, Face] =
       tiling.innerFaces.find(_.id == faceId)
         .toRight(s"Inner face with ID $faceId not found.")
@@ -34,7 +40,7 @@ object TilingDeletion:
 
     private def validateFaceDeletion(face: Face, classification: EdgeClassification): Either[String, Unit] =
       for
-        _ <- validateFaceIsBoundaryAdjacent(face, classification.boundaryTwins)
+//        _ <- validateFaceIsBoundaryAdjacent(face, classification.boundaryTwins)
         _ <- validateDeletionWontPartition(face, classification.innerTwins)
       yield ()
 
@@ -51,7 +57,7 @@ object TilingDeletion:
         case Some(path) =>
           val innerVertices = path.map(_.origin).drop(1)
           if tiling.boundary.intersect(innerVertices).isEmpty then Right(())
-          else Left(s"Removing face ${face.id} would partition the tiling in two halves connected by just a vertex.")
+          else Left(s"Removing face ${face.id} would partition the tiling in two or more parts connected by just a vertex.")
 
 
 //      val innerVertices = innerTwins.map(_.origin).drop(1)

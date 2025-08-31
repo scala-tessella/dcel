@@ -14,7 +14,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val comprehensiveCheck = TilingDCEL.validate(tiling)
     comprehensiveCheck.isRight shouldBe true
 
-  behavior of "TilingDCEL.deletePolygon"
+  behavior of "TilingDCEL.deleteFace"
 
   it should "fail to delete a face that does not exist" in {
     val result = square.deleteFace("F_NonExistent")
@@ -33,7 +33,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     newTiling.boundary.map(_.id).length shouldBe 0
   }
 
-  it should "fail to delete a face that is not on the boundary" in {
+  it should "fail to delete a face touching the boundary in different points" in {
     val tiling = square
       .addRegularPolygonToBoundary("V2", 4).value
       .addRegularPolygonToBoundary("V3", 4).value
@@ -41,7 +41,15 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       .addRegularPolygonToBoundary("V1", 4).value
     val result = tiling.deleteFace(Face.firstInnerId)
     result.isLeft shouldBe true
-    result.left.value should include("is not adjacent to the outer boundary")
+    result.left.value should include("would partition the tiling in two or more parts")
+  }
+
+  it should "delete a face that is not on the boundary" in {
+    val tiling = TilingBuilder.createRhombusNet(3, 3)
+    val result = tiling.deleteFace("F5")
+    result.isRight shouldBe true
+    val newTiling = result.value
+    newTiling.innerFaces.length shouldBe 1
   }
 
   /** <img src="file:../../resources/partitioningBoundaryFace.svg"/> */
@@ -53,7 +61,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   it should "fail to delete a face that would partition the tiling in two parts joined by a vertex" in {
     val result = partitioningBoundaryFace.deleteFace("F2")
     result.isLeft shouldBe true
-    result.left.value should include("would partition the tiling in two halves connected by just a vertex")
+    result.left.value should include("would partition the tiling in two or more parts connected by just a vertex")
   }
 
   /** <img src="file:../../resources/disconnectingBoundaryFace.svg"/> */
