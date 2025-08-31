@@ -813,13 +813,9 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   /** <img src="file:../../resources/vertexCrossing.svg"/> */
   def vertexCrossing: TilingDCEL =
     TilingBuilder.createTriangleNet(4, 4)
+      .deleteVertex("V13").value
       .deletePolygon("F16").value
       .deletePolygon("F15").value
-      .deletePolygon("F14").value
-      .deletePolygon("F13").value
-      .deletePolygon("F12").value
-      .deletePolygon("F21").value
-      .deletePolygon("F20").value
       .deletePolygon("F19").value
 
   it should "fail to add a polygon that crosses the boundary at vertices" in {
