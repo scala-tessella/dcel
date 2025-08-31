@@ -2,6 +2,7 @@ package io.github.scala_tessella
 package dcel
 
 import TilingAddition.*
+import TilingDeletion.*
 import TilingEquivalency.*
 import BigDecimalGeometry.{AngleDegree, BigPoint}
 
@@ -807,4 +808,24 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
 //    println(TilingDCEL.validate(tiling))
 //    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
     verifyValidTiling(tiling)
+  }
+
+  /** <img src="file:../../resources/vertexCrossing.svg"/> */
+  def vertexCrossing: TilingDCEL =
+    TilingBuilder.createTriangleNet(4, 4)
+      .deletePolygon("F16").value
+      .deletePolygon("F15").value
+      .deletePolygon("F14").value
+      .deletePolygon("F13").value
+      .deletePolygon("F12").value
+      .deletePolygon("F21").value
+      .deletePolygon("F20").value
+      .deletePolygon("F19").value
+
+  it should "fail to add a polygon that crosses the boundary at vertices" in {
+    val result = vertexCrossing
+      .addRegularPolygonToBoundary("V9", 6)
+
+    result.isLeft shouldBe true
+    result.left.value should include("Angle wider than container")
   }
