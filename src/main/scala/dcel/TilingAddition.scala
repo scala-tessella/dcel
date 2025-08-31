@@ -137,11 +137,11 @@ object TilingAddition:
       angles: List[AngleDegree],
       points: List[BigPoint],
       boundaryEdges: List[HalfEdge]
-    ): Either[String, (TilingDCEL, TilingDCEL, Option[(Vertex, Vertex)])] =
-      val innerFace = edgeToBuildOn.incidentFace.get
+    ): Either[String, (TilingDCEL, TilingDCEL, Face, Option[(Vertex, Vertex)])] =
+      val containerFace = edgeToBuildOn.incidentFace.get
 
       for
-        (tempVertices, edgeResults, boundaryAngles) <- additionalVertices(startVertex, endVertex, edgeToBuildOn, angles, points, tiling.nextVertexIndex, innerFace)
+        (tempVertices, edgeResults, boundaryAngles) <- additionalVertices(startVertex, endVertex, edgeToBuildOn, angles, points, tiling.nextVertexIndex, containerFace)
         adjustedTempVertices =
           edgeResults.startEdge.destination.get :: tempVertices.drop(edgeResults.startCounter) ::: List(edgeResults.endEdge.origin)
         _ <- checkForBoundaryIntersections(adjustedTempVertices, boundaryEdges)
@@ -160,7 +160,7 @@ object TilingAddition:
               halfEdges = tiling.halfEdges ::: newHalfEdges,
               innerFaces = tiling.innerFaces :+ newFace
             )
-          Right((grownTiling, deepCopiedOriginal, maybeHoleClosure))
+          Right((grownTiling, deepCopiedOriginal, containerFace, maybeHoleClosure))
       yield
         result
 
@@ -182,10 +182,8 @@ object TilingAddition:
      * @param v_match the existing vertex closing the hole
      * @param v_new   the new vertex closing the hole
      */
-    private def holeAnglesWithDirection(v_match: Vertex, v_new: Vertex): (List[AngleDegree], String, String) =
-      val matchEdge = tiling.halfEdges.find(_.origin.id == v_match.id).get
-      val face = matchEdge.incidentFace.get
-      val boundaryEdges = face.halfEdgesSafe
+    private def holeAnglesWithDirection(v_match: Vertex, v_new: Vertex, containerFace: Face): (List[AngleDegree], String, String) =
+      val boundaryEdges = containerFace.halfEdgesSafe
 
       // 1. Determine the shorter path (the "hole") on the boundary between the two vertices.
       val pathFwd = boundaryEdges.getPath(from = v_match, to = v_new)
@@ -234,16 +232,16 @@ object TilingAddition:
       yield
         result
 
-    private def maybeFilled(clone: TilingDCEL, maybeHoleClosure: Option[(Vertex, Vertex)]): Option[TilingDCEL] =
+    private def maybeFilled(clone: TilingDCEL, containerFace: Face, maybeHoleClosure: Option[(Vertex, Vertex)]): Option[TilingDCEL] =
       maybeHoleClosure.map((v_match, v_new) =>
         val (holeAngles, startingVertexId, endingVertexId) =
-        tiling.holeAnglesWithDirection(v_match, v_new)
+        tiling.holeAnglesWithDirection(v_match, v_new, containerFace)
         clone.addSimplePolygonWithoutGuards(startingVertexId, endingVertexId, holeAngles).get
       )
 
     @tailrec
     def addSimplePolygon(startVertexId: String, endVertexId: String, angles: List[AngleDegree]): Either[String, TilingDCEL] =
-      val either: Either[String, (TilingDCEL, TilingDCEL, Option[(Vertex, Vertex)])] =
+      val either: Either[String, (TilingDCEL, TilingDCEL, Face, Option[(Vertex, Vertex)])] =
         for
           (startVertex, endVertex, edgeToBuildOn) <- tiling.findVerticesAndEdgeBetween(startVertexId, endVertexId)
           _      <- validateSides(angles.length, "simple")
@@ -259,8 +257,8 @@ object TilingAddition:
 
       either match
         case Left(value) => Left(value)
-        case Right((revisedTiling, clone, maybeHoleClosure)) =>
-          revisedTiling.maybeFilled(clone, maybeHoleClosure) match
+        case Right((revisedTiling, clone, containerFace, maybeHoleClosure)) =>
+          revisedTiling.maybeFilled(clone, containerFace, maybeHoleClosure) match
             case None => Right(revisedTiling)
             case Some(holeFilled) => holeFilled.addSimplePolygon(startVertexId, endVertexId, angles)
 
@@ -289,7 +287,7 @@ object TilingAddition:
 
     @tailrec
     def addRegularPolygon(startVertexId: String, endVertexId: String, sides: Int): Either[String, TilingDCEL] =
-      val either: Either[String, (TilingDCEL, TilingDCEL, Option[(Vertex, Vertex)])] =
+      val either: Either[String, (TilingDCEL, TilingDCEL, Face, Option[(Vertex, Vertex)])] =
         for
           (startVertex, endVertex, edgeToBuildOn) <- tiling.findVerticesAndEdgeBetween(startVertexId, endVertexId)
           _  <- validateSides(sides, "regular")
@@ -297,17 +295,17 @@ object TilingAddition:
           angles = List.fill(sides)(polyAngle)
           points = calculateVertexPoints(angles, startVertex.coords, endVertex.coords)
           result <-
-            val innerFace = edgeToBuildOn.incidentFace.get
-            val faceEdges = innerFace.halfEdgesSafe
-            growthWithHoleCheck(startVertex, endVertex, edgeToBuildOn, angles, points, faceEdges)
+            val containerFace = edgeToBuildOn.incidentFace.get
+            val containerBoundaryEdges = containerFace.halfEdgesSafe
+            growthWithHoleCheck(startVertex, endVertex, edgeToBuildOn, angles, points, containerBoundaryEdges)
 
         yield
           result
 
       either match
         case Left(value) => Left(value)
-        case Right((revisedTiling, clone, maybeHoleClosure)) =>
-          revisedTiling.maybeFilled(clone, maybeHoleClosure) match
+        case Right((revisedTiling, clone, containerFace, maybeHoleClosure)) =>
+          revisedTiling.maybeFilled(clone, containerFace, maybeHoleClosure) match
             case None => Right(revisedTiling)
             case Some(holeFilled) => holeFilled.addRegularPolygon(startVertexId, endVertexId, sides)
 
