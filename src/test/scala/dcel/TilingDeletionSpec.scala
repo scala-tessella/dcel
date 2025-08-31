@@ -289,3 +289,36 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val newTiling = result.value
     newTiling.innerFaces should have size 1
   }
+
+  it should "delete a boundary vertex" in {
+    val result = TilingBuilder.createTriangleNet(3, 3)
+      .deleteVertex("V1")
+    result.isRight shouldBe true
+    val newTiling = result.value
+    newTiling.innerFaces.length shouldBe 17
+  }
+
+  it should "delete another boundary vertex" in {
+    val result = TilingBuilder.createTriangleNet(3, 3)
+      .deleteVertex("V2")
+    result.isRight shouldBe true
+    val newTiling = result.value
+    println(newTiling.toSVG())
+    newTiling.innerFaces.length shouldBe 15
+  }
+
+  it should "delete a third boundary vertex" in {
+    val result = TilingBuilder.createTriangleNet(3, 3)
+      .deleteVertex("V3")
+    result.isRight shouldBe true
+    val newTiling = result.value
+    newTiling.innerFaces.length shouldBe 15
+  }
+
+  it should "delete a fourth boundary vertex" in {
+    val result = TilingBuilder.createTriangleNet(3, 3)
+      .deleteVertex("V4")
+    result.isRight shouldBe true
+    val newTiling = result.value
+    newTiling.innerFaces.length shouldBe 16
+  }

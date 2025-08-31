@@ -268,10 +268,18 @@ object TilingDeletion:
     def deleteVertex(vertexId: String): Either[String, TilingDCEL] =
       for
         vertex <- tiling.findVertex(vertexId).toRight(s"Vertex with ID $vertexId not found.")
-        _ <- if tiling.boundary.contains(vertex) then Left(s"Vertex with ID $vertexId on boundary.") else Right(())
         adjacentEdges = tiling.halfEdges.filter(_.origin == vertex)
-        result <- adjacentEdges.tail.foldLeft(Right(tiling): Either[String, TilingDCEL]) {
-          (either, edge) => either.flatMap(_.deleteEdge(edge.origin.id, edge.destination.get.id))
-        }
+        result <-
+          val boundaryVertices = tiling.boundary
+          if boundaryVertices.contains(vertex) then 
+            val (boundaryEdges, interiorEdges) = adjacentEdges.partition(edge => boundaryVertices.contains(edge.destination.get))
+            val withoutInteriorEdges = interiorEdges.foldLeft(Right(tiling): Either[String, TilingDCEL]) {
+              (either, edge) => either.flatMap(_.deleteEdge(edge.origin.id, edge.destination.get.id))
+            }
+            withoutInteriorEdges.flatMap(_.deleteEdge(vertexId, boundaryEdges.head.destination.get.id))
+          else
+            adjacentEdges.tail.foldLeft(Right(tiling): Either[String, TilingDCEL]) {
+              (either, edge) => either.flatMap(_.deleteEdge(edge.origin.id, edge.destination.get.id))
+            }
       yield
         result
