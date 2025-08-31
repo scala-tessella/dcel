@@ -825,3 +825,16 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     result.isLeft shouldBe true
     result.left.value should include("Angle wider than container")
   }
+
+  /** <img src="file:../../resources/vertexCrossingSimplified.svg"/> */
+  def vertexCrossingSimplified: TilingDCEL =
+    vertexCrossing
+      .deleteVertex("V19").value
+
+  it should "fail to add a polygon that crosses the boundary simplified" in {
+    val result = vertexCrossingSimplified
+      .addRegularPolygonToBoundary("V9", 6)
+
+    result.isLeft shouldBe true
+    result.left.value should include("Angle wider than container")
+  }
