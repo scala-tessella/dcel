@@ -273,3 +273,11 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val newTiling = result.value
     newTiling.innerFaces should have size 1
   }
+
+  it should "delete another interior vertex" in {
+    val result = irregularFaces
+      .deleteVertex("V2")
+    result.isRight shouldBe true
+    val newTiling = result.value
+    newTiling.innerFaces should have size 1
+  }
