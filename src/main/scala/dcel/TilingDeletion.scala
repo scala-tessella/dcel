@@ -271,8 +271,13 @@ object TilingDeletion:
         adjacentEdges = tiling.halfEdges.filter(_.origin == vertex)
         result <-
           val boundaryVertices = tiling.boundary
-          if boundaryVertices.contains(vertex) then 
-            val (boundaryEdges, interiorEdges) = adjacentEdges.partition(edge => boundaryVertices.contains(edge.destination.get))
+          if boundaryVertices.contains(vertex) then
+            val boundaryHalfEdges = tiling.getBoundaryEdges.toOption.get
+            val start: HalfEdge = boundaryHalfEdges.find(_.origin == vertex).get
+            val prev = start.prev.get
+            val (boundaryEdges, interiorEdges) = adjacentEdges.partition(edge =>
+              edge.destination.get == start.destination.get || edge.destination.get == prev.origin
+            )
             val withoutInteriorEdges = interiorEdges.foldLeft(Right(tiling): Either[String, TilingDCEL]) {
               (either, edge) => either.flatMap(_.deleteEdge(edge.origin.id, edge.destination.get.id))
             }

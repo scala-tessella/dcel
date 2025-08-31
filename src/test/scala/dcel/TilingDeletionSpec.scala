@@ -303,7 +303,6 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       .deleteVertex("V2")
     result.isRight shouldBe true
     val newTiling = result.value
-    println(newTiling.toSVG())
     newTiling.innerFaces.length shouldBe 15
   }
 
