@@ -17,13 +17,13 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   behavior of "TilingDCEL.deletePolygon"
 
   it should "fail to delete a face that does not exist" in {
-    val result = square.deletePolygon("F_NonExistent")
+    val result = square.deleteFace("F_NonExistent")
     result.isLeft shouldBe true
     result.left.value should include("not found")
   }
 
   it should "successfully delete a single square, leaving an empty tiling" in {
-    val result = square.deletePolygon(Face.firstInnerId)
+    val result = square.deleteFace(Face.firstInnerId)
     result.isRight shouldBe true
 
     val newTiling = result.value
@@ -39,7 +39,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       .addRegularPolygonToBoundary("V3", 4).value
       .addRegularPolygonToBoundary("V4", 4).value
       .addRegularPolygonToBoundary("V1", 4).value
-    val result = tiling.deletePolygon(Face.firstInnerId)
+    val result = tiling.deleteFace(Face.firstInnerId)
     result.isLeft shouldBe true
     result.left.value should include("is not adjacent to the outer boundary")
   }
@@ -51,7 +51,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       .addRegularPolygonToBoundary("V2", 3).value
 
   it should "fail to delete a face that would partition the tiling in two parts joined by a vertex" in {
-    val result = partitioningBoundaryFace.deletePolygon("F2")
+    val result = partitioningBoundaryFace.deleteFace("F2")
     result.isLeft shouldBe true
     result.left.value should include("would partition the tiling in two halves connected by just a vertex")
   }
@@ -63,7 +63,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       .addRegularPolygonToBoundary("V4", 3).value
 
   it should "fail to delete a face that would partition the tiling in two disjoint parts" in {
-    val result = disconnectingBoundaryFace.deletePolygon("F2")
+    val result = disconnectingBoundaryFace.deleteFace("F2")
     result.isLeft shouldBe true
     result.left.value should include("would partition the tiling in two disconnected halves")
   }
@@ -72,14 +72,14 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val s1s2 = square.addRegularPolygonToBoundary("V2", 4).value
     val s1s2s3 = s1s2.addRegularPolygonToBoundary("V2", 4).value
     val s1s2s3s4 = s1s2s3.addRegularPolygonToBoundary("V2", 4).value
-    val result = s1s2s3s4.deletePolygon("F2")
+    val result = s1s2s3s4.deleteFace("F2")
     result.isRight shouldBe true
   }
 
   it should "delete another face that would NOT partition the tiling in two parts" in {
     val s1s2 = hexagon.addRegularPolygonToBoundary("V2", 6).value
     val s1s2s3 = s1s2.addRegularPolygonToBoundary("V2", 6).value
-    val result = s1s2s3.deletePolygon("F2")
+    val result = s1s2s3.deleteFace("F2")
     result.isRight shouldBe true
   }
 
@@ -88,7 +88,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       .addRegularPolygonToBoundary("V2", 4).value
     tiling.innerFaces.length shouldBe 2
 
-    val result = tiling.deletePolygon("F2")
+    val result = tiling.deleteFace("F2")
     result.isRight shouldBe true
     val newTiling = result.value
     verifyValidTiling(newTiling)
@@ -104,7 +104,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       .addRegularPolygonToBoundary("V2", 4).value
     tiling.innerFaces.length shouldBe 2
 
-    val result = tiling.deletePolygon(Face.firstInnerId)
+    val result = tiling.deleteFace(Face.firstInnerId)
     result.isRight shouldBe true
     val newTiling = result.value
     verifyValidTiling(newTiling)
@@ -125,7 +125,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       .addRegularPolygonToBoundary("V2", 4).value
 
   it should "delete an irregular polygon" in {
-    val result = irregularFaces.deletePolygon("F2")
+    val result = irregularFaces.deleteFace("F2")
     result.isRight shouldBe true
     val tiling = result.value
 //    println(tiling.toSVG())

@@ -13,7 +13,7 @@ object TilingDeletion:
 
   extension (tiling: TilingDCEL)
 
-    def deletePolygon(faceId: String): Either[String, TilingDCEL] =
+    def deleteFace(faceId: String): Either[String, TilingDCEL] =
       for
         faceToDelete <- findInnerFace(faceId)
         edgeClassification <- classifyFaceEdges(faceToDelete)
@@ -163,9 +163,9 @@ object TilingDeletion:
         result <-
           if tiling.isBoundaryEdge(edge.twin.get) then
             // this should never happen if a TilingDCEL is well-formed, but just in case
-            edge.incidentFace.map(_.id).toRight("Edge has no incident face").flatMap(deletePolygon)
+            edge.incidentFace.map(_.id).toRight("Edge has no incident face").flatMap(deleteFace)
           else if tiling.isBoundaryEdge(edge) then
-            edge.twin.get.incidentFace.map(_.id).toRight("Edge has no incident face").flatMap(deletePolygon)
+            edge.twin.get.incidentFace.map(_.id).toRight("Edge has no incident face").flatMap(deleteFace)
           else
             performEdgePathDeletion(expandPathToDelete(edge))
       yield result

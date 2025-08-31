@@ -115,8 +115,8 @@ case class TilingDCEL(
   def maybeAddRegularPolygonToBoundary(onEdgeStartingWithVertexId: String, sides: Int): Either[String, TilingDCEL] =
     this.addRegularPolygonToBoundary(onEdgeStartingWithVertexId, sides)
     
-  def maybeDeletePolygon(faceId: String): Either[String, TilingDCEL] =
-    this.deletePolygon(faceId)  
+  def maybeDeleteFace(faceId: String): Either[String, TilingDCEL] =
+    this.deleteFace(faceId)
 
   /**
    * Generates an SVG representation of the tiling.
