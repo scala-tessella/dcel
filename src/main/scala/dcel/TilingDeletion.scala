@@ -45,12 +45,6 @@ object TilingDeletion:
       val (boundaryTwins, innerTwins) = twinEdges.partition(tiling.isBoundaryEdge)
       Right(EdgeClassification(faceEdges, boundaryTwins, innerTwins))
 
-    private def validateFaceIsBoundaryAdjacent(face: Face, boundaryTwins: List[HalfEdge]): Either[String, Unit] =
-      if boundaryTwins.isEmpty then
-        Left(s"Face ${face.id} is not adjacent to the outer boundary.")
-      else
-        Right(())
-
     /**
      * Validates that removing a face won't partition the tiling into disconnected components.
      *
@@ -59,7 +53,6 @@ object TilingDeletion:
      * @return Either an error message if deletion would partition the tiling, or Unit if safe
      */
     private def validateDeletionWontPartition(face: Face, innerTwins: List[HalfEdge]): Either[String, Unit] =
-//      val neighborInnerFaces = innerTwins.map(_.incidentFace.get).distinct
       innerTwins.maybePath match
         case None => Left(s"Removing face ${face.id} would partition the tiling in two disconnected halves.")
         case Some(path) =>
