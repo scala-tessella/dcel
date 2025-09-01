@@ -5,6 +5,13 @@ import scala.annotation.tailrec
 
 object TilingDeletion:
 
+  /**
+   * Classification of edges around a face being deleted.
+   *
+   * @param faceEdges     The half-edges that bound the face to be deleted
+   * @param boundaryTwins Twin edges that are on the outer boundary
+   * @param innerTwins    Twin edges that are interior to the tiling
+   */
   private case class EdgeClassification(
     faceEdges: List[HalfEdge],
     boundaryTwins: List[HalfEdge],
@@ -44,6 +51,13 @@ object TilingDeletion:
       else
         Right(())
 
+    /**
+     * Validates that removing a face won't partition the tiling into disconnected components.
+     *
+     * @param face       The face to be deleted
+     * @param innerTwins The twin edges of the face that are interior (not on boundary)
+     * @return Either an error message if deletion would partition the tiling, or Unit if safe
+     */
     private def validateDeletionWontPartition(face: Face, innerTwins: List[HalfEdge]): Either[String, Unit] =
 //      val neighborInnerFaces = innerTwins.map(_.incidentFace.get).distinct
       innerTwins.maybePath match
