@@ -57,19 +57,22 @@ object TilingDeletion:
       val EdgeClassification(faceEdges, boundaryTwins, innerTwins) = classification
       val orderedInnerTwins = innerTwins.maybePath.getOrElse(List.empty)
 
-      // Create new twin half-edges for the inner boundary edges, which will form a new segment of the outer boundary.
+      val newOuterEdges = createNewOuterBoundaryEdges(orderedInnerTwins)
+      relinkBoundaryAroundDeletedFace(boundaryTwins, newOuterEdges)
+      updateDCELAfterFaceDeletion(faceToDelete, faceEdges, boundaryTwins, newOuterEdges, innerTwins)
+
+    private def createNewOuterBoundaryEdges(orderedInnerTwins: List[HalfEdge]): List[HalfEdge] =
       val newOuterEdges = orderedInnerTwins.reverse.map { innerTwin =>
         val newTwin = HalfEdge(innerTwin.destination.get, incidentFace = Some(tiling.outerFace))
         newTwin.twinWith(innerTwin)
         newTwin
       }
-
-      // Link the new outer edges together to form a chain.
       newOuterEdges.linkInCycle()
+      newOuterEdges
 
-      // Re-link the main outer boundary around the deleted face.
-      val boundaryTwinsSet = boundaryTwins.toSet
+    private def relinkBoundaryAroundDeletedFace(boundaryTwins: List[HalfEdge], newOuterEdges: List[HalfEdge]): Unit =
       if boundaryTwins.nonEmpty then
+        val boundaryTwinsSet = boundaryTwins.toSet
         val firstBoundaryTwin = boundaryTwins.find(edge => !boundaryTwinsSet.contains(edge.prev.get)).get
         val lastBoundaryTwin = boundaryTwins.find(edge => !boundaryTwinsSet.contains(edge.next.get)).get
         val beforeGap = firstBoundaryTwin.prev.get
@@ -84,22 +87,40 @@ object TilingDeletion:
 
         tiling.outerFace.outerComponent = Some(beforeGap)
 
-      // Update the DCEL components.
+    private def updateDCELAfterFaceDeletion(
+      faceToDelete: Face,
+      faceEdges: List[HalfEdge],
+      boundaryTwins: List[HalfEdge],
+      newOuterEdges: List[HalfEdge],
+      innerTwins: List[HalfEdge]
+    ): TilingDCEL =
       val removedEdges = faceEdges.toSet ++ boundaryTwins.toSet
       val finalHalfEdges = tiling.halfEdges.filterNot(removedEdges.contains) ++ newOuterEdges
 
       val verticesInUse = finalHalfEdges.map(_.origin).toSet
       val finalVertices = tiling.vertices.filter(verticesInUse.contains)
 
-      // Update `leaving` pointers for affected vertices.
-      finalVertices.foreach { vertex =>
+      updateVertexLeavingPointers(finalVertices, removedEdges, finalHalfEdges)
+      recalculateBoundaryAngles(boundaryTwins, innerTwins)
+
+      TilingDCEL(
+        vertices = finalVertices,
+        halfEdges = finalHalfEdges,
+        innerFaces = tiling.innerFaces.filterNot(_ == faceToDelete),
+        outerFace = tiling.outerFace
+      )
+
+    private def updateVertexLeavingPointers(
+      vertices: List[Vertex],
+      removedEdges: Set[HalfEdge],
+      finalHalfEdges: List[HalfEdge]
+    ): Unit =
+      vertices.foreach { vertex =>
         if vertex.leaving.exists(removedEdges.contains) then
           vertex.leaving = finalHalfEdges.find(_.origin == vertex)
       }
 
-      val finalInnerFaces = tiling.innerFaces.filterNot(_ == faceToDelete)
-
-      // Recalculate angles on the new boundary.
+    private def recalculateBoundaryAngles(boundaryTwins: List[HalfEdge], innerTwins: List[HalfEdge]): Unit =
       val verticesOnNewBoundary = (boundaryTwins.map(_.origin) ++ innerTwins.flatMap(e => List(e.origin, e.destination.get))).distinct
       verticesOnNewBoundary.foreach { vertex =>
         val angleSum = vertex.getCurrentInteriorAngleSum(tiling.outerFace)
@@ -107,13 +128,6 @@ object TilingDeletion:
           .find(tiling.isBoundaryEdge)
           .foreach(_.angle = Some(angleSum.conjugate))
       }
-
-      TilingDCEL(
-        vertices = finalVertices,
-        halfEdges = finalHalfEdges,
-        innerFaces = finalInnerFaces,
-        outerFace = tiling.outerFace
-      )
 
     def deleteEdge(startVertexId: String, endVertexId: String): Either[String, TilingDCEL] =
       for
