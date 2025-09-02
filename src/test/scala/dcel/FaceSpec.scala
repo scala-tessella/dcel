@@ -303,7 +303,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
     // he1.next is None - broken chain
     face.outerComponent = Some(he1)
     
-    face.halfEdgesUnsafe shouldBe List.empty
+    face.halfEdges.isLeft shouldBe true
   }
 
   it should "return edges when halfEdges succeeds" in {
