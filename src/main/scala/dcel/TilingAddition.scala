@@ -155,10 +155,11 @@ object TilingAddition:
             additionalElements(edgeToBuildOn, angles, tiling.nextFaceId, tempVertices, edgeResults, boundaryAngles)
           // Return new DCEL with updated components
           val grownTiling =
-            tiling.copy(
+            TilingDCEL(
               vertices = tiling.vertices ::: newVertices,
               halfEdges = tiling.halfEdges ::: newHalfEdges,
-              innerFaces = tiling.innerFaces :+ newFace
+              innerFaces = tiling.innerFaces :+ newFace,
+              outerFace = tiling.outerFace
             )
           Right((grownTiling, deepCopiedOriginal, containerFace, maybeHoleClosure))
       yield
@@ -279,10 +280,11 @@ object TilingAddition:
           additionalElements(edgeToBuildOn, angles, tiling.nextFaceId, tempVertices, edgeResults, boundaryAngles)
 
         // Return new DCEL with updated components
-        tiling.copy(
+        TilingDCEL(
           vertices = tiling.vertices ::: newVertices,
           halfEdges = tiling.halfEdges ::: newHalfEdges,
-          innerFaces = tiling.innerFaces :+ newFace
+          innerFaces = tiling.innerFaces :+ newFace,
+          outerFace = tiling.outerFace
         )
 
     @tailrec

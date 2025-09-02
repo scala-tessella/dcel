@@ -16,7 +16,7 @@ import scala.collection.mutable
  * @param innerFaces List of the tiling's interior faces.
  * @param outerFace  The single, unbounded outer face of the tiling.
  */
-case class TilingDCEL(
+case class TilingDCEL private(
   vertices: List[Vertex],
   halfEdges: List[HalfEdge],
   innerFaces: List[Face],
@@ -138,6 +138,25 @@ case class TilingDCEL(
     this.toScalableVectorGraphics(strokeWidth, padding, scale, showHalfEdgeTraversal, leavingEdgeMarkers, faceIdsOnEdges)
 
 object TilingDCEL:
+
+  // Private internal constructor that bypasses validation
+  private[dcel] def apply(
+    vertices: List[Vertex],
+    halfEdges: List[HalfEdge],
+    innerFaces: List[Face],
+    outerFace: Face
+  ): TilingDCEL =
+    new TilingDCEL(vertices, halfEdges, innerFaces, outerFace)
+
+  // Smart constructor for untrusted sources
+  def fromUntrusted(
+    vertices: List[Vertex],
+    halfEdges: List[HalfEdge],
+    innerFaces: List[Face],
+    outerFace: Face
+  ): Either[String, TilingDCEL] =
+    val candidateTiling = apply(vertices, halfEdges, innerFaces, outerFace)
+    validate(candidateTiling).map(_ => candidateTiling)
 
   def empty: TilingDCEL =
     TilingDCEL(
