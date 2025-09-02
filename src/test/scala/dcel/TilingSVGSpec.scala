@@ -8,7 +8,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.EitherValues
 
-class TilingSVGSpec extends AnyFlatSpec with Matchers with EitherValues:
+class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   behavior of "TilingSVG.toScalableVectorGraphics"
 
@@ -21,7 +21,6 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with EitherValues:
     TilingBuilder.createRegularPolygon(4).value
 
   it should "generate valid SVG for an empty tiling" in {
-    val emptyTiling = TilingBuilder.empty
     val svg = emptyTiling.toScalableVectorGraphics()
 
     svg should include("<svg")
@@ -482,7 +481,7 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with EitherValues:
     val linePattern = """x1="([^"]+)" y1="([^"]+)" x2="([^"]+)" y2="([^"]+)"""".r
     val matches = linePattern.findAllMatchIn(svg).take(1).toList
 
-    matches should not be empty
+    matches should not be emptyTiling
     val firstMatch = matches.head
 
     val x1 = firstMatch.group(1).toDouble
@@ -515,7 +514,7 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with EitherValues:
     // But should still include necessary precision
     val coordinatePattern = """\d+(\.\d+)?""".r
     val coordinates = coordinatePattern.findAllIn(svg).toList
-    coordinates should not be empty
+    coordinates should not be emptyTiling
   }
 
   behavior of "SVG sections"

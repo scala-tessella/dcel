@@ -26,7 +26,7 @@ object TilingDeletion:
         edgeClassification <- classifyFaceEdges(faceToDelete)
         _ <- validateDeletionWontPartition(faceToDelete, edgeClassification.innerTwins)
       yield
-        if tiling.innerFaces.length == 1 then TilingBuilder.empty
+        if tiling.innerFaces.length == 1 then TilingDCEL.empty
         else if edgeClassification.boundaryTwins.nonEmpty then
           performFaceDeletion(faceToDelete, edgeClassification)
         else

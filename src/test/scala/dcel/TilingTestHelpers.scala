@@ -4,6 +4,9 @@ import org.scalatest.EitherValues
 
 /** A trait for test classes with helper methods to create tiling fixtures. */
 trait TilingTestHelpers extends EitherValues:
+  
+  def emptyTiling: TilingDCEL =
+    TilingDCEL.empty
 
   /** A tiling with a single triangle
    * <img src="file:../../resources/triangle.svg"/>

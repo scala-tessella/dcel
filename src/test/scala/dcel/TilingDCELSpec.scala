@@ -7,7 +7,7 @@ import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
+class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   // Helper methods to create test data
   private def createTriangleTiling(): TilingDCEL =
@@ -29,7 +29,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "return only outer face when no inner faces exist" in {
-    val empty = TilingBuilder.empty
+    val empty = emptyTiling
     empty.faces should have length 1
     empty.faces should contain only empty.outerFace
   }
@@ -50,8 +50,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "find vertices in empty tiling" in {
-    val empty = TilingBuilder.empty
-    empty.findVertex("V0") shouldBe None
+    emptyTiling.findVertex("V0") shouldBe None
   }
 
   behavior of "TilingDCEL.findFace"
@@ -101,8 +100,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
   behavior of "TilingDCEL.hasConnectedFaces"
 
   it should "return true for empty tiling" in {
-    val empty = TilingBuilder.empty
-    empty.hasConnectedFaces shouldBe true
+    emptyTiling.hasConnectedFaces shouldBe true
   }
 
   it should "return true for single polygon tiling" in {
@@ -121,8 +119,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
   behavior of "TilingDCEL.boundary"
 
   it should "return empty vector for empty tiling" in {
-    val empty = TilingBuilder.empty
-    empty.boundary shouldBe Vector.empty
+    emptyTiling.boundary shouldBe Vector.empty
   }
 
   it should "return correct boundary vertices for triangle in clockwise order" in {
@@ -157,8 +154,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "return empty vector for empty tiling" in {
-    val empty = TilingBuilder.empty
-    empty.boundarySafe shouldBe Right(Vector.empty)
+    emptyTiling.boundarySafe shouldBe Right(Vector.empty)
   }
 
   it should "fail for malformed boundary loop" in {
@@ -191,8 +187,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
   behavior of "TilingDCEL.getBoundaryEdges"
 
   it should "return empty list for empty tiling" in {
-    val empty = TilingBuilder.empty
-    empty.getBoundaryEdges shouldBe Right(List.empty)
+    emptyTiling.getBoundaryEdges shouldBe Right(List.empty)
   }
 
   it should "return boundary edges in correct order" in {
@@ -264,6 +259,16 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with EitherValues:
     val result = triangle.getAnglesAtVertex("V1")
     result.isLeft shouldBe true
     result.left.value should include("Broken edge chain")
+  }
+
+  behavior of "TilingDCEL.empty"
+
+  it should "create empty tiling" in {
+    val emptyTiling = TilingDCEL.empty
+    emptyTiling.vertices shouldBe empty
+    emptyTiling.halfEdges shouldBe empty
+    emptyTiling.innerFaces shouldBe empty
+    emptyTiling.outerFace.id shouldBe Face.outerId
   }
 
   behavior of "TilingDCEL.validate"

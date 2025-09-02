@@ -9,14 +9,6 @@ import scala.collection.mutable
 
 object TilingBuilder:
 
-  def empty: TilingDCEL =
-    TilingDCEL(
-      vertices = List.empty,
-      halfEdges = List.empty,
-      innerFaces = List.empty,
-      outerFace = Face.outer
-    )
-
   def validateSides(sides: Int, polygonType: String): Either[String, Unit] =
     if sides >= 3 then Right(())
     else Left(s"A $polygonType polygon must have at least 3 sides, but $sides were specified.")
@@ -269,7 +261,7 @@ object TilingBuilder:
    */
   def createTriangleNet(width: Int, height: Int): TilingDCEL =
     if width <= 0 || height <= 0 then
-      return TilingBuilder.empty
+      return TilingDCEL.empty
 
     val triangleAngle = AngleDegree(60)
 
@@ -329,7 +321,7 @@ object TilingBuilder:
    */
   def createRhombusNet(width: Int, height: Int, angle: AngleDegree = AngleDegree(90)): TilingDCEL =
     if width <= 0 || height <= 0 then
-      return TilingBuilder.empty
+      return TilingDCEL.empty
 
     val alpha1 = angle
     val alpha2 = angle.supplement
@@ -377,10 +369,10 @@ object TilingBuilder:
    */
   def createHexagonNet(width: Int, height: Int, angle: AngleDegree = AngleDegree(120)): TilingDCEL =
     if width <= 0 || height <= 0 then
-      return TilingBuilder.empty
+      return TilingDCEL.empty
 
     if angle.isFullCircle || angle.toRational <= 0 || angle.toRational >= 180 then
-      return TilingBuilder.empty
+      return TilingDCEL.empty
 
     val alpha = angle
     val beta: AngleDegree = (alpha / 2).supplement

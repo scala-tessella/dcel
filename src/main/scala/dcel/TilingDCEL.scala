@@ -140,7 +140,12 @@ case class TilingDCEL(
 object TilingDCEL:
 
   def empty: TilingDCEL =
-    TilingBuilder.empty
+    TilingDCEL(
+      vertices = List.empty,
+      halfEdges = List.empty,
+      innerFaces = List.empty,
+      outerFace = Face.outer
+    )
 
   def createSimplePolygon(angles: List[AngleDegree]): Either[String, TilingDCEL] =
     TilingBuilder.createSimplePolygon(angles)

@@ -153,7 +153,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
   }
 
   it should "work correctly with empty tiling" in {
-    val original = TilingBuilder.empty
+    val original = emptyTiling
     val copy = original.deepCopy
 
     copy.vertices shouldBe empty
@@ -294,8 +294,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
   }
 
   it should "return false for an empty tiling vs a non-empty one" in {
-    val empty = TilingBuilder.empty
-    empty.isTopologicallyEquivalentTo(triangle) shouldBe false
+    emptyTiling.isTopologicallyEquivalentTo(triangle) shouldBe false
   }
 
   it should "return false for two different rhombuses" in {
