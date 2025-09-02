@@ -57,7 +57,7 @@ case class Face(
   def getVertices: Either[String, List[Vertex]] =
     outerComponent match
       case None => Right(List.empty)
-      case Some(startEdge) => startEdge.faceTraversalWithGuards(_.origin)
+      case Some(startEdge) => startEdge.faceTraversal(_.origin)
 
   /**
    * Get all half-edges forming a face loop.
@@ -65,10 +65,10 @@ case class Face(
   def halfEdges: Either[String, List[HalfEdge]] =
     outerComponent match
       case None => Right(List.empty)
-      case Some(start) => start.faceTraversalWithGuards()
+      case Some(start) => start.faceTraversal()
 
-  // Add a safe version that returns an empty list on error
-  def halfEdgesSafe: List[HalfEdge] =
+  // Add an unsafe version that returns an empty list on error
+  def halfEdgesUnsafe: List[HalfEdge] =
     halfEdges.getOrElse(List.empty)
 
 object Face:
@@ -81,7 +81,7 @@ object Face:
   
   def adjacencyMap(faces: List[Face]): Map[Face, List[Face]] =
     faces.map { face =>
-      face -> face.halfEdgesSafe
+      face -> face.halfEdgesUnsafe
         .flatMap(edge =>
           for
             twin <- edge.twin

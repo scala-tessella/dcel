@@ -74,7 +74,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
       edge.prev.get.next should contain(edge)
 
       // Origin relationships - check that the edge is among the vertex's incident edges
-      edge.origin.incidentEdges should contain(edge)
+      edge.origin.incidentEdgesUnsafe should contain(edge)
 
       // Incident face relationships
       edge.incidentFace shouldBe defined
@@ -89,7 +89,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
     // Additional check: verify that leaving edges are actually incident to their vertices
     copy.vertices.foreach { vertex =>
       vertex.leaving.foreach { leavingEdge =>
-        vertex.incidentEdges should contain(leavingEdge)
+        vertex.incidentEdgesUnsafe should contain(leavingEdge)
       }
     }
   }
@@ -289,7 +289,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
 
     // Both have 4 square faces, but the arrangement of vertices is different.
     // Grid has a central vertex of degree 4, line does not.
-    gridTiling.innerFaces.map(_.halfEdgesSafe.size) should contain theSameElementsAs lineTiling.innerFaces.map(_.halfEdgesSafe.size)
+    gridTiling.innerFaces.map(_.halfEdgesUnsafe.size) should contain theSameElementsAs lineTiling.innerFaces.map(_.halfEdgesUnsafe.size)
     gridTiling.isTopologicallyEquivalentTo(lineTiling) shouldBe false
   }
 

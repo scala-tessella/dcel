@@ -96,7 +96,7 @@ object TilingSVG:
   private def createAngleLabels(tilingDCEL: TilingDCEL, config: SvgConfig): (Seq[Elem], Seq[Elem]) =
     val innerAngleLabels = tilingDCEL.innerFaces.flatMap { face =>
       val centroid = calculateCentroid(face.getVertices.getOrElse(List.empty))
-      face.halfEdgesSafe.map { halfEdge =>
+      face.halfEdgesUnsafe.map { halfEdge =>
         val direction = calculateDirection(halfEdge.origin.coords, centroid)
         createAngleLabel(halfEdge, direction, config)
       }
@@ -151,7 +151,7 @@ object TilingSVG:
   private def createTraversalArrows(tilingDCEL: TilingDCEL, config: SvgConfig): Seq[Elem] =
     if !config.showHalfEdgeTraversal then Nil
     else tilingDCEL.innerFaces.flatMap { face =>
-      val halfEdges = face.halfEdgesSafe
+      val halfEdges = face.halfEdgesUnsafe
       if halfEdges.length <= 1 then Nil
       else
         val looped = halfEdges :+ halfEdges.head
@@ -243,7 +243,7 @@ object TilingSVG:
 
       // Generate all elements
       val edgeLines = createEdgeLines(tiling, scale)
-      val innerFaceArrows = createHalfEdgeArrows(tiling.innerFaces.flatMap(_.halfEdgesSafe), config)
+      val innerFaceArrows = createHalfEdgeArrows(tiling.innerFaces.flatMap(_.halfEdgesUnsafe), config)
       val outerFaceArrows = createHalfEdgeArrows(tiling.getBoundaryEdges.getOrElse(Nil), config)
       val (innerAngleLabels, outerAngleLabels) = createAngleLabels(tiling, config)
       val boundaryPolygon = createBoundaryElements(tiling, config)

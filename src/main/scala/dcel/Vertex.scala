@@ -33,31 +33,31 @@ case class Vertex(
     if isComplete then Right(())
     else Left("Missing leaving edge")
 
-  def incidentEdges: List[HalfEdge] =
+  def incidentEdgesUnsafe: List[HalfEdge] =
     leaving match
       case None => List.empty
-      case Some(startEdge) => startEdge.vertexTraversal()
+      case Some(startEdge) => startEdge.vertexTraversalUnsafe()
 
-  def incidentEdgesSafe: Either[String, List[HalfEdge]] =
+  def incidentEdges: Either[String, List[HalfEdge]] =
     leaving match
       case None => Right(List.empty)
-      case Some(startEdge) => startEdge.vertexTraversalWithGuards()
+      case Some(startEdge) => startEdge.vertexTraversal()
 
-  def getCurrentInteriorAngleSum(outerFace: Face): AngleDegree =
-    incidentEdges.interiorAnglesSum(outerFace)
+  def currentInteriorAngleSumUnsafe(outerFace: Face): AngleDegree =
+    incidentEdgesUnsafe.interiorAnglesSum(outerFace)
 
-  def getCurrentInteriorAngleSumSafe(outerFace: Face): Either[String, AngleDegree] =
-    incidentEdgesSafe.map(_.interiorAnglesSum(outerFace))
+  def currentInteriorAngleSum(outerFace: Face): Either[String, AngleDegree] =
+    incidentEdges.map(_.interiorAnglesSum(outerFace))
 
-  def degree: Int = incidentEdges.length
+  def degree: Int = incidentEdgesUnsafe.length
 
   def isThread: Boolean = degree == 2
 
-  def adjacentVertices: List[Vertex] =
-    incidentEdges.flatMap(_.destination)
+  def adjacentVerticesUnsafe: List[Vertex] =
+    incidentEdgesUnsafe.flatMap(_.destination)
 
-  def incidentFaces: List[Face] =
-    incidentEdges.flatMap(_.incidentFace)
+  def incidentFacesUnsafe: List[Face] =
+    incidentEdgesUnsafe.flatMap(_.incidentFace)
 
 object Vertex:
 

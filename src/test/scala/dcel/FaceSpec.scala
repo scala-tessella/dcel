@@ -303,13 +303,13 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
     // he1.next is None - broken chain
     face.outerComponent = Some(he1)
     
-    face.halfEdgesSafe shouldBe List.empty
+    face.halfEdgesUnsafe shouldBe List.empty
   }
 
   it should "return edges when halfEdges succeeds" in {
     val (face, edges, _) = createTriangleFace("F_triangle")
     
-    face.halfEdgesSafe should contain theSameElementsInOrderAs edges
+    face.halfEdgesUnsafe should contain theSameElementsInOrderAs edges
   }
 
   behavior of "Face.area"

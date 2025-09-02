@@ -232,7 +232,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   it should "return the angles for a vertex where all incident edges have an angle" in {
     val triangle = createTriangleTiling()
     val v1 = triangle.findVertex("V1").get
-    v1.incidentEdges.filter(_.hasIncidentFace(triangle.outerFace)).foreach(_.angle = Some(AngleDegree(300)))
+    v1.incidentEdgesUnsafe.filter(_.hasIncidentFace(triangle.outerFace)).foreach(_.angle = Some(AngleDegree(300)))
     val result = triangle.getAnglesAtVertex("V1")
     result.value should contain theSameElementsAs List(AngleDegree(60), AngleDegree(300))
   }
@@ -343,7 +343,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val twoSquares = createSquareTiling().maybeAddRegularPolygonToBoundary("V1", 4).value
     // V2 is on the boundary. The inner edge from V2 belongs to the first square.
     val v2 = twoSquares.findVertex("V2").get
-    val innerEdgeFromV2 = v2.incidentEdges.find(_.incidentFace.exists(_.id == Face.firstInnerId)).get
+    val innerEdgeFromV2 = v2.incidentEdgesUnsafe.find(_.incidentFace.exists(_.id == Face.firstInnerId)).get
 
     // Distort the angle, which affects both the face and boundary angle sums
     innerEdgeFromV2.angle = Some(AngleDegree(80))

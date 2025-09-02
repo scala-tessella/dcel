@@ -64,7 +64,7 @@ case class HalfEdge(
     if errors.isEmpty then Right(())
     else Left(errors.mkString(", "))
 
-  private def traverse[T](direction: HalfEdge => Option[HalfEdge])(f: HalfEdge => T = identity): List[T] =
+  private def traverseUnsafe[T](direction: HalfEdge => Option[HalfEdge])(f: HalfEdge => T = identity): List[T] =
     val startEdge = this
 
     @tailrec
@@ -76,13 +76,13 @@ case class HalfEdge(
 
     collectEdges(startEdge, Nil)
 
-  def vertexTraversal[T](f: HalfEdge => T = identity): List[T] =
+  def vertexTraversalUnsafe[T](f: HalfEdge => T = identity): List[T] =
+    traverseUnsafe[T](_.twin.flatMap(_.next))(f)
+
+  def vertexTraversal[T](f: HalfEdge => T = identity): Either[String, List[T]] =
     traverse[T](_.twin.flatMap(_.next))(f)
 
-  def vertexTraversalWithGuards[T](f: HalfEdge => T = identity): Either[String, List[T]] =
-    traverseWithGuards[T](_.twin.flatMap(_.next))(f)
-
-  private def traverseWithGuards[T](direction: HalfEdge => Option[HalfEdge])(f: HalfEdge => T = identity): Either[String, List[T]] =
+  private def traverse[T](direction: HalfEdge => Option[HalfEdge])(f: HalfEdge => T = identity): Either[String, List[T]] =
     val startEdge = this
     val visited = mutable.Set[HalfEdge]()
 
@@ -105,11 +105,11 @@ case class HalfEdge(
 
     collectEdges(startEdge, Nil)
 
-  def faceTraversal[T](f: HalfEdge => T = identity): List[T] =
-    traverse[T](_.next)(f)
+  def faceTraversalUnsafe[T](f: HalfEdge => T = identity): List[T] =
+    traverseUnsafe[T](_.next)(f)
 
-  def faceTraversalWithGuards[T](f: HalfEdge => T = identity): Either[String, List[T]] =
-    traverseWithGuards[T](_.next)(f)
+  def faceTraversal[T](f: HalfEdge => T = identity): Either[String, List[T]] =
+    traverse[T](_.next)(f)
 
   def hasIncidentFace(face: Face): Boolean =
     incidentFace.contains(face)

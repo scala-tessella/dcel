@@ -31,7 +31,7 @@ object TilingAddition:
     outerFace: Face,
     additionalInteriorAngle: AngleDegree
   ): AngleDegree =
-    val currentInteriorSum = vertex.getCurrentInteriorAngleSum(outerFace)
+    val currentInteriorSum = vertex.currentInteriorAngleSumUnsafe(outerFace)
     (currentInteriorSum + additionalInteriorAngle).conjugate
 
   private def createEdgePairs(
@@ -184,7 +184,7 @@ object TilingAddition:
      * @param v_new   the new vertex closing the hole
      */
     private def holeAnglesWithDirection(v_match: Vertex, v_new: Vertex, containerFace: Face): (List[AngleDegree], String, String) =
-      val boundaryEdges = containerFace.halfEdgesSafe
+      val boundaryEdges = containerFace.halfEdgesUnsafe
 
       // 1. Determine the shorter path (the "hole") on the boundary between the two vertices.
       val pathFwd = boundaryEdges.getPath(from = v_match, to = v_new)
@@ -251,7 +251,7 @@ object TilingAddition:
           _      <- validatePoints(points)
           result <-
             val containerFace = edgeToBuildOn.incidentFace.get
-            val containerBoundaryEdges = containerFace.halfEdgesSafe
+            val containerBoundaryEdges = containerFace.halfEdgesUnsafe
             growthWithHoleCheck(startVertex, endVertex, edgeToBuildOn, angles, points, containerBoundaryEdges)
         yield
           result
@@ -298,7 +298,7 @@ object TilingAddition:
           points = calculateVertexPoints(angles, startVertex.coords, endVertex.coords)
           result <-
             val containerFace = edgeToBuildOn.incidentFace.get
-            val containerBoundaryEdges = containerFace.halfEdgesSafe
+            val containerBoundaryEdges = containerFace.halfEdgesUnsafe
             growthWithHoleCheck(startVertex, endVertex, edgeToBuildOn, angles, points, containerBoundaryEdges)
 
         yield

@@ -144,14 +144,14 @@ object TilingEquivalency:
       val queue = mutable.Queue[(Vertex, Int)]()
 
       tiling.vertices.foreach { v =>
-        if v.incidentEdges.exists(_.incidentFace.contains(tiling.outerFace)) then
+        if v.incidentEdgesUnsafe.exists(_.incidentFace.contains(tiling.outerFace)) then
           distances(v) = 0
           queue.enqueue((v, 0))
       }
 
       while queue.nonEmpty do
         val (current, dist) = queue.dequeue()
-        current.incidentEdges.foreach { edge =>
+        current.incidentEdgesUnsafe.foreach { edge =>
           edge.destination.foreach { neighbor =>
             if !distances.contains(neighbor) then
               distances(neighbor) = dist + 1
@@ -205,13 +205,13 @@ object TilingEquivalency:
       def computeCanonicalSignature(t: TilingDCEL): Map[String, Int] =
         // 1. Initial "colors" or labels for each vertex.
         var signatures: Map[Vertex, String] = t.vertices.map { v =>
-          val faceCycle = v.incidentEdges.flatMap(_.incidentFace)
+          val faceCycle = v.incidentEdgesUnsafe.flatMap(_.incidentFace)
           val faceSizes = faceCycle.map(face =>
             if face == t.outerFace then 0
-            else face.halfEdgesSafe.size
+            else face.halfEdgesUnsafe.size
           )
           // The initial signature is a combination of degree and the canonical face size sequence.
-          val initialSignature = s"${v.incidentEdges.size}:${faceSizes.rotationsAndReflections.min.mkString(",")}"
+          val initialSignature = s"${v.incidentEdgesUnsafe.size}:${faceSizes.rotationsAndReflections.min.mkString(",")}"
           v -> initialSignature
         }.toMap
 
@@ -221,7 +221,7 @@ object TilingEquivalency:
         (1 to iterations).foreach { _ =>
           val nextSignatures = t.vertices.map { v =>
             // 3. For each vertex, collect the signatures of its neighbors.
-            val neighborSignatures = v.incidentEdges.flatMap(_.destination).flatMap(signatures.get).sorted
+            val neighborSignatures = v.incidentEdgesUnsafe.flatMap(_.destination).flatMap(signatures.get).sorted
             // 4. The new signature is a hash/combination of the current signature and the neighbors' signatures.
             val aggregatedSignature = s"${signatures(v)}|${neighborSignatures.mkString(";")}"
             v -> aggregatedSignature
@@ -244,10 +244,10 @@ object TilingEquivalency:
         angles.rotationsAndReflections.min
 
       def getFaceSignature(face: Face): List[AngleDegree] =
-        getCanonicalAngleSequence(face.halfEdgesSafe.flatMap(_.angle))
+        getCanonicalAngleSequence(face.halfEdgesUnsafe.flatMap(_.angle))
 
       def getVertexSignature(vertex: Vertex): List[AngleDegree] =
-        getCanonicalAngleSequence(vertex.incidentEdges.flatMap(_.angle))
+        getCanonicalAngleSequence(vertex.incidentEdgesUnsafe.flatMap(_.angle))
 
       tiling.isEquivalentRawTo(
         other,

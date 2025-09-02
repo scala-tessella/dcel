@@ -136,10 +136,10 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with EitherValues:
     tiling.faces.length shouldBe 2
     tiling.faces.map(_.id).mkString(", ") shouldBe "F0, F1"
     tiling.halfEdges.length shouldBe 8
-    tiling.outerFace.halfEdgesSafe.map(_.angle.get).mkString(", ") shouldBe "270, 270, 270, 270"
-    tiling.outerFace.halfEdgesSafe.map(_.incidentFace.get.id).mkString(", ") shouldBe "F0, F0, F0, F0"
-    tiling.innerFaces.map(_.halfEdgesSafe.map(_.angle.get).mkString(", ")) shouldBe List("90, 90, 90, 90")
-    tiling.innerFaces.map(_.halfEdgesSafe.map(_.incidentFace.get.id).mkString(", ")) shouldBe List("F1, F1, F1, F1")
+    tiling.outerFace.halfEdgesUnsafe.map(_.angle.get).mkString(", ") shouldBe "270, 270, 270, 270"
+    tiling.outerFace.halfEdgesUnsafe.map(_.incidentFace.get.id).mkString(", ") shouldBe "F0, F0, F0, F0"
+    tiling.innerFaces.map(_.halfEdgesUnsafe.map(_.angle.get).mkString(", ")) shouldBe List("90, 90, 90, 90")
+    tiling.innerFaces.map(_.halfEdgesUnsafe.map(_.incidentFace.get.id).mkString(", ")) shouldBe List("F1, F1, F1, F1")
   }
 
   it should "create a valid TilingDCEL for a regular pentagon" in {
@@ -149,10 +149,10 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with EitherValues:
     tiling.vertices.length shouldBe 5
     tiling.faces.length shouldBe 2
     tiling.halfEdges.length shouldBe 10
-    tiling.outerFace.halfEdgesSafe.map(_.angle.get).mkString(", ") shouldBe "252, 252, 252, 252, 252"
-    tiling.outerFace.halfEdgesSafe.map(_.incidentFace.get.id).mkString(", ") shouldBe "F0, F0, F0, F0, F0"
-    tiling.innerFaces.map(_.halfEdgesSafe.map(_.angle.get).mkString(", ")) shouldBe List("108, 108, 108, 108, 108")
-    tiling.innerFaces.map(_.halfEdgesSafe.map(_.incidentFace.get.id).mkString(", ")) shouldBe List("F1, F1, F1, F1, F1")
+    tiling.outerFace.halfEdgesUnsafe.map(_.angle.get).mkString(", ") shouldBe "252, 252, 252, 252, 252"
+    tiling.outerFace.halfEdgesUnsafe.map(_.incidentFace.get.id).mkString(", ") shouldBe "F0, F0, F0, F0, F0"
+    tiling.innerFaces.map(_.halfEdgesUnsafe.map(_.angle.get).mkString(", ")) shouldBe List("108, 108, 108, 108, 108")
+    tiling.innerFaces.map(_.halfEdgesUnsafe.map(_.incidentFace.get.id).mkString(", ")) shouldBe List("F1, F1, F1, F1, F1")
   }
 
   it should "fail to create a polygon with fewer than 3 sides" in {

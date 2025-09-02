@@ -40,7 +40,7 @@ object TilingDeletion:
         .toRight(s"Inner face with ID $faceId not found.")
 
     private def classifyFaceEdges(face: Face): Either[String, EdgeClassification] =
-      val faceEdges = face.halfEdgesSafe
+      val faceEdges = face.halfEdgesUnsafe
       val twinEdges = faceEdges.map(_.twin.get)
       val (boundaryTwins, innerTwins) = twinEdges.partition(tiling.isBoundaryEdge)
       Right(EdgeClassification(faceEdges, boundaryTwins, innerTwins))
@@ -130,8 +130,8 @@ object TilingDeletion:
     private def recalculateBoundaryAngles(boundaryTwins: List[HalfEdge], innerTwins: List[HalfEdge]): Unit =
       val verticesOnNewBoundary = (boundaryTwins.map(_.origin) ++ innerTwins.flatMap(e => List(e.origin, e.destination.get))).distinct
       verticesOnNewBoundary.foreach { vertex =>
-        val angleSum = vertex.getCurrentInteriorAngleSum(tiling.outerFace)
-        vertex.incidentEdges
+        val angleSum = vertex.currentInteriorAngleSumUnsafe(tiling.outerFace)
+        vertex.incidentEdgesUnsafe
           .find(tiling.isBoundaryEdge)
           .foreach(_.angle = Some(angleSum.conjugate))
       }
@@ -157,9 +157,9 @@ object TilingDeletion:
         else
           val nextEdge =
             if forward then
-              vertex.incidentEdges.find(_ ne edge.twin.get).get
+              vertex.incidentEdgesUnsafe.find(_ ne edge.twin.get).get
             else
-              vertex.incidentEdges.find(_ ne edge).get.twin.get
+              vertex.incidentEdgesUnsafe.find(_ ne edge).get.twin.get
           val newPath = if forward then path :+ nextEdge else nextEdge :: path
           expand(newPath, forward)
 
@@ -173,7 +173,7 @@ object TilingDeletion:
           val twinsToDelete = edges.map(_.twin.get)
           val faceToSurvive = edges.head.incidentFace.get
           val faceToRemove = twinsToDelete.head.incidentFace.get
-          val edgesOfFaceToRemove = faceToRemove.halfEdgesSafe
+          val edgesOfFaceToRemove = faceToRemove.halfEdgesUnsafe
 
           // Capture angles at endpoints before modification
           val startV = edges.head.origin
@@ -232,7 +232,7 @@ object TilingDeletion:
               outerFace = tiling.outerFace
             )
           val survivingFacePoints =
-            faceToSurvive.halfEdgesSafe.map(_.origin.coords)
+            faceToSurvive.halfEdgesUnsafe.map(_.origin.coords)
           if !survivingFacePoints.hasNoAlmostEqualPoints() then
             Left(s"The surviving face ${faceToSurvive.id} is not simple (it has vertices that are equal, which is not allowed).")
           else

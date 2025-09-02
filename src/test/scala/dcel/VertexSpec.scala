@@ -97,7 +97,7 @@ class VertexSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "return empty list when vertex has no leaving edge" in {
     val vertex = Vertex("V1", BigPoint(0, 0))
-    vertex.incidentEdges shouldBe List.empty
+    vertex.incidentEdgesUnsafe shouldBe List.empty
   }
 
   it should "return single edge when vertex has one self-loop edge" in {
@@ -111,7 +111,7 @@ class VertexSpec extends AnyFlatSpec with Matchers with EitherValues:
     
     vertex.leaving = Some(edge)
     
-    vertex.incidentEdges shouldBe List(edge)
+    vertex.incidentEdgesUnsafe shouldBe List(edge)
   }
 
   it should "return all incident edges in a triangle configuration" in {
@@ -137,7 +137,7 @@ class VertexSpec extends AnyFlatSpec with Matchers with EitherValues:
     // Set leaving edges
     v1.leaving = Some(e12)
     
-    val incidentEdges = v1.incidentEdges
+    val incidentEdges = v1.incidentEdgesUnsafe
     incidentEdges should contain theSameElementsAs List(e12, e13)
   }
 
@@ -169,7 +169,7 @@ class VertexSpec extends AnyFlatSpec with Matchers with EitherValues:
     
     center.leaving = Some(ec1)
     
-    val incidentEdges = center.incidentEdges
+    val incidentEdges = center.incidentEdgesUnsafe
     incidentEdges should contain theSameElementsAs List(ec1, ec2, ec3, ec4)
   }
 
@@ -186,7 +186,7 @@ class VertexSpec extends AnyFlatSpec with Matchers with EitherValues:
     vertex.leaving = Some(edge1)
     
     // Should return just the starting edge when chain is broken
-    vertex.incidentEdges shouldBe List(edge1)
+    vertex.incidentEdgesUnsafe shouldBe List(edge1)
   }
 
   behavior of "Vertex.degree"
@@ -262,7 +262,7 @@ class VertexSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "return empty list for isolated vertex" in {
     val vertex = Vertex("V1", BigPoint(0, 0))
-    vertex.adjacentVertices shouldBe List.empty
+    vertex.adjacentVerticesUnsafe shouldBe List.empty
   }
 
   it should "return adjacent vertices in triangle" in {
@@ -281,7 +281,7 @@ class VertexSpec extends AnyFlatSpec with Matchers with EitherValues:
     
     v1.leaving = Some(e12)
     
-    val adjacent = v1.adjacentVertices
+    val adjacent = v1.adjacentVerticesUnsafe
     adjacent should contain theSameElementsAs List(v2, v3)
   }
 
@@ -297,7 +297,7 @@ class VertexSpec extends AnyFlatSpec with Matchers with EitherValues:
     vertex.leaving = Some(edge)
     
     // Self-loop should list the vertex as adjacent to itself
-    vertex.adjacentVertices shouldBe List(vertex)
+    vertex.adjacentVerticesUnsafe shouldBe List(vertex)
   }
 
   it should "return all adjacent vertices for complex vertex" in {
@@ -324,7 +324,7 @@ class VertexSpec extends AnyFlatSpec with Matchers with EitherValues:
     
     center.leaving = Some(ec1)
     
-    val adjacent = center.adjacentVertices
+    val adjacent = center.adjacentVerticesUnsafe
     adjacent should contain theSameElementsAs List(v1, v2, v3, v4)
   }
 
@@ -332,7 +332,7 @@ class VertexSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "return empty list for isolated vertex" in {
     val vertex = Vertex("V1", BigPoint(0, 0))
-    vertex.incidentFaces shouldBe List.empty
+    vertex.incidentFacesUnsafe shouldBe List.empty
   }
 
   it should "return incident faces for vertex in triangle" in {
@@ -356,7 +356,7 @@ class VertexSpec extends AnyFlatSpec with Matchers with EitherValues:
     
     v1.leaving = Some(e12)
     
-    val faces = v1.incidentFaces
+    val faces = v1.incidentFacesUnsafe
     faces should contain theSameElementsAs List(innerFace, innerFace)
   }
 
@@ -371,7 +371,7 @@ class VertexSpec extends AnyFlatSpec with Matchers with EitherValues:
     
     vertex.leaving = Some(edge)
     
-    vertex.incidentFaces shouldBe List.empty
+    vertex.incidentFacesUnsafe shouldBe List.empty
   }
 
   behavior of "Vertex companion object methods"

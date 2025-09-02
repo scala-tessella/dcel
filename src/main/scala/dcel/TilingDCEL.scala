@@ -37,7 +37,7 @@ case class TilingDCEL private(
     halfEdge.hasIncidentFace(outerFace)
 
   def findEdgeBetween(v1: Vertex, v2: Vertex): Option[HalfEdge] =
-    v1.incidentEdges.find(_.destination.contains(v2))
+    v1.incidentEdgesUnsafe.find(_.destination.contains(v2))
 
   def findVerticesAndEdgeBetween(vertexId1: String, vertexId2: String): Either[String, (Vertex, Vertex, HalfEdge)] =
     for
@@ -50,7 +50,7 @@ case class TilingDCEL private(
   def getAnglesAtVertex(vertexId: String): Either[String, List[AngleDegree]] =
     for
       vertex <- findVertex(vertexId).toRight(s"Vertex with ID $vertexId not found.")
-      edges <- vertex.incidentEdgesSafe
+      edges <- vertex.incidentEdges
       maybeAngles = edges.map(_.angle)
       angles <- if (maybeAngles.contains(None))
         Left(s"Vertex with ID $vertexId has at least one edge with no angle.")
@@ -61,7 +61,7 @@ case class TilingDCEL private(
   def getInnerAnglesAtVertex(vertexId: String): Either[String, List[AngleDegree]] =
     for
       vertex <- findVertex(vertexId).toRight(s"Vertex with ID $vertexId not found.")
-      edges <- vertex.incidentEdgesSafe
+      edges <- vertex.incidentEdges
       innerEdges = edges.filterNot(isBoundaryEdge)
       maybeAngles = innerEdges.map(_.angle)
       angles <- if (maybeAngles.contains(None))
@@ -84,12 +84,12 @@ case class TilingDCEL private(
    */
   def boundary: Vector[Vertex] =
     outerFace.outerComponent match
-      case Some(startEdge) => startEdge.faceTraversal(_.origin).toVector
+      case Some(startEdge) => startEdge.faceTraversalUnsafe(_.origin).toVector
       case None => Vector.empty
 
   def boundarySafe: Either[String, Vector[Vertex]] =
     outerFace.outerComponent match
-      case Some(startEdge) => startEdge.faceTraversalWithGuards(_.origin).map(_.toVector)
+      case Some(startEdge) => startEdge.faceTraversal(_.origin).map(_.toVector)
       case None => Right(Vector.empty)
 
   /**
@@ -97,7 +97,7 @@ case class TilingDCEL private(
    */
   def getBoundaryEdges: Either[String, List[HalfEdge]] =
     outerFace.outerComponent match
-      case Some(startEdge) => startEdge.faceTraversalWithGuards()
+      case Some(startEdge) => startEdge.faceTraversal()
       case None => Right(List.empty)
 
   def getBoundaryEdgesPath(from: Vertex, to: Vertex): List[HalfEdge] =
@@ -241,7 +241,7 @@ object TilingDCEL:
     // Check angles' sum for the tiling boundary (interior view)
     tiling.boundarySafe match
       case Right(boundaryVertices) if boundaryVertices.length >= 3 =>
-        val boundaryAngles = boundaryVertices.map(_.getCurrentInteriorAngleSumSafe(tiling.outerFace)).toList
+        val boundaryAngles = boundaryVertices.map(_.currentInteriorAngleSum(tiling.outerFace)).toList
         if boundaryAngles.exists(_.isLeft) then
           boundaryAngles.filter(_.isLeft).map(_.swap.toOption.get).foreach(error => errors += s"Boundary angles calculation failed: $error")
         else
