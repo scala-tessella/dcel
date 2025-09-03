@@ -36,42 +36,42 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "find an existing vertex by id" in {
     val triangle = createTriangleTiling()
-    triangle.findVertex("V1") shouldBe defined
-    triangle.findVertex("V2") shouldBe defined
-    triangle.findVertex("V3") shouldBe defined
+    triangle.findVertexUnsafe("V1") shouldBe defined
+    triangle.findVertexUnsafe("V2") shouldBe defined
+    triangle.findVertexUnsafe("V3") shouldBe defined
   }
 
   it should "return None for non-existent vertex id" in {
     val triangle = createTriangleTiling()
-    triangle.findVertex("V999") shouldBe None
-    triangle.findVertex("NonExistent") shouldBe None
+    triangle.findVertexUnsafe("V999") shouldBe None
+    triangle.findVertexUnsafe("NonExistent") shouldBe None
   }
 
   it should "find vertices in empty tiling" in {
-    emptyTiling.findVertex("V0") shouldBe None
+    emptyTiling.findVertexUnsafe("V0") shouldBe None
   }
 
   behavior of "TilingDCEL.findFace"
 
   it should "find an existing face by id" in {
     val triangle = createTriangleTiling()
-    triangle.findFace(Face.outerId) shouldBe defined
-    triangle.findFace(Face.firstInnerId) shouldBe defined
+    triangle.findFace(Face.outerId).toOption shouldBe defined
+    triangle.findFace(Face.firstInnerId).toOption shouldBe defined
   }
 
   it should "return None for non-existent face id" in {
     val triangle = createTriangleTiling()
-    triangle.findFace("F999") shouldBe None
-    triangle.findFace("NonExistent") shouldBe None
+    triangle.findFace("F999").toOption shouldBe None
+    triangle.findFace("NonExistent").toOption shouldBe None
   }
 
   behavior of "TilingDCEL.findEdgeBetween"
 
   it should "find an edge between two connected vertices" in {
     val triangle = createTriangleTiling()
-    val v0 = triangle.findVertex("V1").get
-    val v1 = triangle.findVertex("V2").get
-    val v2 = triangle.findVertex("V3").get
+    val v0 = triangle.findVertexUnsafe("V1").get
+    val v1 = triangle.findVertexUnsafe("V2").get
+    val v2 = triangle.findVertexUnsafe("V3").get
 
     triangle.findEdgeBetween(v0, v1) shouldBe defined
     triangle.findEdgeBetween(v1, v2) shouldBe defined
@@ -80,8 +80,8 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "return None for vertices that are not connected" in {
     val square = createSquareTiling()
-    val v0 = square.findVertex("V1").get
-    val v2 = square.findVertex("V3").get
+    val v0 = square.findVertexUnsafe("V1").get
+    val v2 = square.findVertexUnsafe("V3").get
 
     // V0 and V2 are diagonal vertices in a square, not directly connected
     square.findEdgeBetween(v0, v2) shouldBe None
@@ -90,7 +90,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   it should "return None when either vertex has no incident edges" in {
     val isolatedVertex = Vertex("Isolated", BigPoint(10, 10))
     val triangle = createTriangleTiling()
-    val v0 = triangle.findVertex("V1").get
+    val v0 = triangle.findVertexUnsafe("V1").get
 
     triangle.findEdgeBetween(isolatedVertex, v0) shouldBe None
   }
@@ -229,7 +229,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "return the angles for a vertex where all incident edges have an angle" in {
     val triangle = createTriangleTiling()
-    val v1 = triangle.findVertex("V1").get
+    val v1 = triangle.findVertexUnsafe("V1").get
     v1.incidentEdgesUnsafe.filter(_.hasIncidentFace(triangle.outerFace)).foreach(_.angle = Some(AngleDegree(300)))
     val result = triangle.getAnglesAtVertex("V1")
     result.value should contain theSameElementsAs List(AngleDegree(60), AngleDegree(300))
@@ -252,11 +252,11 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "fail if the incident edge loop is broken" in {
     val triangle = createTriangleTiling()
-    val v1Leaving = triangle.findVertex("V1").get.leaving.get
+    val v1Leaving = triangle.findVertexUnsafe("V1").get.leaving.get
     v1Leaving.twin = None // Break the chain for vertex traversal
     val result = triangle.getAnglesAtVertex("V1")
     result.isLeft shouldBe true
-    result.left.value should include("Broken edge chain")
+    result.left.value.message should include("Broken edge chain")
   }
 
   behavior of "TilingDCEL.empty"
@@ -286,7 +286,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     square.vertices.head.leaving = None
     val result = TilingDCEL.validate(square)
     result.isLeft shouldBe true
-    result.left.value should include("has no leaving edge")
+    result.left.value.message should include("has no leaving edge")
   }
 
   it should "fail if an edge has no twin" in {
@@ -294,7 +294,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     square.halfEdges.head.twin = None
     val result = TilingDCEL.validate(square)
     result.isLeft shouldBe true
-    result.left.value should include("has no twin")
+    result.left.value.message should include("has no twin")
   }
 
   it should "fail if an edge's next/prev relationship is broken" in {
@@ -303,7 +303,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     edge.next.get.prev = None // Break the link
     val result = TilingDCEL.validate(square)
     result.isLeft shouldBe true
-    result.left.value should startWith("Next/prev relationship broken")
+    result.left.value.message should startWith("Next/prev relationship broken")
   }
 
   it should "fail if an inner face has an incorrect sum of angles" in {
@@ -312,7 +312,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     square.innerFaces.head.outerComponent.get.angle = Some(AngleDegree(89))
     val result = TilingDCEL.validate(square)
     result.isLeft shouldBe true
-    result.left.value should include("The sum of interior angles is incorrect")
+    result.left.value.message should include("The sum of interior angles is incorrect")
   }
 
   it should "fail if an inner face has a full circle angle" in {
@@ -325,7 +325,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     edges(3).angle = Some(AngleDegree(-90))
     val result = TilingDCEL.validate(square)
     result.isLeft shouldBe true
-    result.left.value should include("cannot have full circles as interior angles")
+    result.left.value.message should include("cannot have full circles as interior angles")
   }
 
   it should "fail if a face edge does not point back to the face" in {
@@ -334,13 +334,13 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     square.innerFaces.head.outerComponent.get.incidentFace = None
     val result = TilingDCEL.validate(square)
     result.isLeft shouldBe true
-    result.left.value should include("references back")
+    result.left.value.message should include("references back")
   }
 
   it should "fail if the boundary angles do not sum correctly" in {
     val twoSquares = createSquareTiling().maybeAddRegularPolygonToBoundary("V1", 4).value
     // V2 is on the boundary. The inner edge from V2 belongs to the first square.
-    val v2 = twoSquares.findVertex("V2").get
+    val v2 = twoSquares.findVertexUnsafe("V2").get
     val innerEdgeFromV2 = v2.incidentEdgesUnsafe.find(_.incidentFace.exists(_.id == Face.firstInnerId)).get
 
     // Distort the angle, which affects both the face and boundary angle sums
@@ -348,7 +348,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
     val result = TilingDCEL.validate(twoSquares)
     result.isLeft shouldBe true
-    val error = result.left.value
+    val error = result.left.value.message
     // Check that at least one of the expected errors is present, as iteration order is not guaranteed
     val faceError = "Face F1: The sum of interior angles is incorrect"
     val boundaryError = "Boundary: The sum of interior angles is incorrect"
@@ -360,7 +360,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     tiling.getBoundaryEdges.value.head.angle = None
     val result = TilingDCEL.validate(tiling)
     result.isLeft shouldBe true
-    result.left.value should include("Tiling has at least one half-edge with no angle defined")
+    result.left.value.message should include("Tiling has at least one half-edge with no angle defined")
   }
 
   it should "fail if a boundary angle is a full circle (360 degrees)" in {
@@ -368,7 +368,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     tiling.getBoundaryEdges.value.head.angle = Some(AngleDegree(360))
     val result = TilingDCEL.validate(tiling)
     result.isLeft shouldBe true
-    result.left.value should include("Full circle boundary angles")
+    result.left.value.message should include("Full circle boundary angles")
   }
 
   it should "fail if a boundary angle is a full circle (0 degrees)" in {
@@ -376,5 +376,5 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     tiling.getBoundaryEdges.value.head.angle = Some(AngleDegree(0))
     val result = TilingDCEL.validate(tiling)
     result.isLeft shouldBe true
-    result.left.value should include("Full circle boundary angles")
+    result.left.value.message should include("Full circle boundary angles")
   }

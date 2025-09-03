@@ -26,11 +26,17 @@ case class TilingDCEL private(
   def faces: List[Face] =
     outerFace :: innerFaces
 
-  def findVertex(id: String): Option[Vertex] =
-    vertices.find(_.id == id)
+  def findVertexUnsafe(vertexId: String): Option[Vertex] =
+    vertices.find(_.id == vertexId)
 
-  def findFace(id: String): Option[Face] =
-    faces.find(_.id == id)
+  def findVertex(vertexId: String): Either[TilingError, Vertex] =
+    findVertexUnsafe(vertexId).toRight(NotFoundError("Vertex", vertexId))
+
+  def findFace(faceId: String): Either[TilingError, Face] =
+    faces.find(_.id == faceId).toRight(NotFoundError("Face", faceId))
+
+  def findInnerFace(faceId: String): Either[TilingError, Face] =
+    innerFaces.find(_.id == faceId).toRight(NotFoundError("Inner face", faceId))
 
   def isBoundaryEdge(halfEdge: HalfEdge): Boolean =
     halfEdge.hasIncidentFace(outerFace)
@@ -38,43 +44,43 @@ case class TilingDCEL private(
   def findEdgeBetween(v1: Vertex, v2: Vertex): Option[HalfEdge] =
     v1.incidentEdgesUnsafe.find(_.destination.contains(v2))
 
-  def findVerticesAndEdgeBetween(vertexId1: String, vertexId2: String): Either[String, (Vertex, Vertex, HalfEdge)] =
+  def findVerticesAndEdgeBetween(vertexId1: String, vertexId2: String): Either[TilingError, (Vertex, Vertex, HalfEdge)] =
     for
-      v1 <- findVertex(vertexId1).toRight(s"Vertex with ID $vertexId1 not found.")
-      v2 <- findVertex(vertexId2).toRight(s"Vertex with ID $vertexId2 not found.")
-      edge <- findEdgeBetween(v1, v2).toRight(s"Edge between vertices $vertexId1 and $vertexId2 not found.")
+      v1 <- findVertex(vertexId1)
+      v2 <- findVertex(vertexId2)
+      edge <- findEdgeBetween(v1, v2).toRight(NotFoundError("Edge", s"between $vertexId1 and $vertexId2"))
     yield
       (v1, v2, edge)
 
   def getAnglesAtVertexUnsafe(vertexId: String): List[AngleDegree] =
-    val vertex = findVertex(vertexId).get
+    val vertex = findVertexUnsafe(vertexId).get
     val edges = vertex.incidentEdgesUnsafe
     edges.map(_.angle.get)
 
-  def getAnglesAtVertex(vertexId: String): Either[String, List[AngleDegree]] =
+  def getAnglesAtVertex(vertexId: String): Either[TilingError, List[AngleDegree]] =
     for
-      vertex <- findVertex(vertexId).toRight(s"Vertex with ID $vertexId not found.")
-      edges <- vertex.incidentEdges
+      vertex <- findVertex(vertexId)
+      edges <- vertex.incidentEdges.left.map(TopologyError.apply)
       maybeAngles = edges.map(_.angle)
       angles <- if (maybeAngles.contains(None))
-        Left(s"Vertex with ID $vertexId has at least one edge with no angle.")
+        Left(ValidationError(s"Vertex with ID $vertexId has at least one edge with no angle."))
       else
         Right(maybeAngles.flatten)
     yield angles
 
   def getInnerAnglesAtVertexUnsafe(vertexId: String): List[AngleDegree] =
-    val vertex = findVertex(vertexId).get
+    val vertex = findVertexUnsafe(vertexId).get
     val edges = vertex.incidentEdgesUnsafe
     edges.filterNot(isBoundaryEdge).map(_.angle.get)
 
-  def getInnerAnglesAtVertex(vertexId: String): Either[String, List[AngleDegree]] =
+  def getInnerAnglesAtVertex(vertexId: String): Either[TilingError, List[AngleDegree]] =
     for
-      vertex <- findVertex(vertexId).toRight(s"Vertex with ID $vertexId not found.")
-      edges <- vertex.incidentEdges
+      vertex <- findVertex(vertexId)
+      edges <- vertex.incidentEdges.left.map(TopologyError.apply)
       innerEdges = edges.filterNot(isBoundaryEdge)
       maybeAngles = innerEdges.map(_.angle)
       angles <- if (maybeAngles.contains(None))
-        Left(s"Vertex with ID $vertexId has at least one inner edge with no angle defined.")
+        Left(ValidationError(s"Vertex with ID $vertexId has at least one inner edge with no angle defined."))
       else
         Right(maybeAngles.flatten)
     yield angles
@@ -96,9 +102,9 @@ case class TilingDCEL private(
       case Some(startEdge) => startEdge.faceTraversalUnsafe(_.origin).toVector
       case None => Vector.empty
 
-  def boundary: Either[String, Vector[Vertex]] =
+  def boundary: Either[TilingError, Vector[Vertex]] =
     outerFace.outerComponent match
-      case Some(startEdge) => startEdge.faceTraversal(_.origin).map(_.toVector)
+      case Some(startEdge) => startEdge.faceTraversal(_.origin).map(_.toVector).left.map(TopologyError.apply)
       case None => Right(Vector.empty)
 
   def getBoundaryEdgesUnsafe: List[HalfEdge] =
@@ -109,9 +115,9 @@ case class TilingDCEL private(
   /**
    * Helper method to get all half-edges forming the outer boundary loop.
    */
-  def getBoundaryEdges: Either[String, List[HalfEdge]] =
+  def getBoundaryEdges: Either[TilingError, List[HalfEdge]] =
     outerFace.outerComponent match
-      case Some(startEdge) => startEdge.faceTraversal()
+      case Some(startEdge) => startEdge.faceTraversal().left.map(TopologyError.apply)
       case None => Right(List.empty)
 
   def getBoundaryEdgesPathUnsafe(from: Vertex, to: Vertex): List[HalfEdge] =
@@ -126,10 +132,10 @@ case class TilingDCEL private(
   private def findBoundaryEdge(vertexId: String): Option[HalfEdge] =
     getBoundaryEdges.toOption.flatMap(_.find(_.origin.id == vertexId))
 
-  def maybeAddRegularPolygonToBoundary(onEdgeStartingWithVertexId: String, sides: Int): Either[String, TilingDCEL] =
+  def maybeAddRegularPolygonToBoundary(onEdgeStartingWithVertexId: String, sides: Int): Either[TilingError, TilingDCEL] =
     this.addRegularPolygonToBoundary(onEdgeStartingWithVertexId, sides)
     
-  def maybeDeleteFace(faceId: String): Either[String, TilingDCEL] =
+  def maybeDeleteFace(faceId: String): Either[TilingError, TilingDCEL] =
     this.deleteFace(faceId)
 
   /**
@@ -168,7 +174,7 @@ object TilingDCEL:
     halfEdges: List[HalfEdge],
     innerFaces: List[Face],
     outerFace: Face
-  ): Either[String, TilingDCEL] =
+  ): Either[TilingError, TilingDCEL] =
     val candidateTiling = apply(vertices, halfEdges, innerFaces, outerFace)
     validate(candidateTiling).map(_ => candidateTiling)
 
@@ -180,13 +186,13 @@ object TilingDCEL:
       outerFace = Face.outer
     )
 
-  def createSimplePolygon(angles: List[AngleDegree]): Either[String, TilingDCEL] =
+  def createSimplePolygon(angles: List[AngleDegree]): Either[TilingError, TilingDCEL] =
     TilingBuilder.createSimplePolygon(angles)
 
-  def createRegularPolygon(sides: Int): Either[String, TilingDCEL] =
-    TilingBuilder.createRegularPolygon(sides): Either[String, TilingDCEL]
+  def createRegularPolygon(sides: Int): Either[TilingError, TilingDCEL] =
+    TilingBuilder.createRegularPolygon(sides)
 
-  def validateTopologically(tiling: TilingDCEL): Either[String, Unit] =
+  def validateTopologically(tiling: TilingDCEL): Either[TilingError, Unit] =
     val errors = mutable.ListBuffer[String]()
 
     // Check vertex consistency
@@ -231,7 +237,7 @@ object TilingDCEL:
     if tiling.innerFaces.exists(_.hasHoles) then
       errors += "Face with inner holes"
 
-    if errors.isEmpty then Right(()) else Left(errors.mkString("; "))
+    if errors.isEmpty then Right(()) else Left(TopologyError(errors.mkString("; ")))
 
   def validateGeometrically(tiling: TilingDCEL): Either[String, Unit] =
     val errors = mutable.ListBuffer[String]()
@@ -306,9 +312,9 @@ object TilingDCEL:
 
     if errors.isEmpty then Right(()) else Left(errors.mkString("; "))
 
-  def validate(tiling: TilingDCEL): Either[String, Unit] =
+  def validate(tiling: TilingDCEL): Either[TilingError, Unit] =
     val topoErrors = validateTopologically(tiling).left.toOption
     val geoErrors = validateGeometrically(tiling).left.toOption
     val spaceErrors = validateSpatially(tiling).left.toOption
     val allErrors = (topoErrors.toList ++ geoErrors.toList ++ spaceErrors.toList).mkString("; ")
-    if allErrors.isEmpty then Right(()) else Left(allErrors)
+    if allErrors.isEmpty then Right(()) else Left(ValidationError(allErrors))

@@ -54,7 +54,7 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with EitherValues:
     val result = TilingBuilder.createSimplePolygon(twoAngles)
 
     result.isLeft shouldBe true
-    result.left.value should include ("at least 3 sides")
+    result.left.value.message should include ("at least 3 sides")
   }
 
   it should "fail if an interior angle is a full circle" in {
@@ -63,7 +63,7 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with EitherValues:
     val result = TilingBuilder.createSimplePolygon(anglesWithFullCircle)
 
     result.isLeft shouldBe true
-    result.left.value shouldBe "The polygon cannot have full circles as interior angles."
+    result.left.value.message shouldBe "The polygon cannot have full circles as interior angles."
   }
 
   it should "fail if the sum of interior angles is incorrect" in {
@@ -71,7 +71,7 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with EitherValues:
     val result = TilingBuilder.createSimplePolygon(wrongSumAngles)
 
     result.isLeft shouldBe true
-    result.left.value should include ("The sum of interior angles is incorrect")
+    result.left.value.message should include ("The sum of interior angles is incorrect")
   }
 
   it should "fail if the polygon is self-intersecting" in {
@@ -83,7 +83,7 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with EitherValues:
     val result = TilingBuilder.createSimplePolygon(intersectingAngles)
 
     result.isLeft shouldBe true
-    result.left.value should include ("The polygon is not simple (it has vertices that are equal, which is not allowed)")
+    result.left.value.message should include ("The polygon is not simple (it has vertices that are equal, which is not allowed)")
   }
 
   it should "fail if the polygon does not close geometrically, even with correct angle sum" in {
@@ -93,7 +93,7 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with EitherValues:
     val result = TilingBuilder.createSimplePolygon(nonClosingAngles)
 
     result.isLeft shouldBe true
-    result.left.value should include ("The polygon does not close")
+    result.left.value.message should include ("The polygon does not close")
   }
 
   it should "fail if the angles are geometrically inconsistent" in {
@@ -102,7 +102,7 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with EitherValues:
     val result = TilingBuilder.createSimplePolygon(inconsistentAngles)
 
     result.isLeft shouldBe true
-    result.left.value should include ("The sum of interior angles is incorrect")
+    result.left.value.message should include ("The sum of interior angles is incorrect")
   }
 
   it should "fail for a four-sided polygon with 60-degree angles" in {
@@ -111,7 +111,7 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with EitherValues:
     val result = TilingBuilder.createSimplePolygon(invalidAngles)
 
     result.isLeft shouldBe true
-    result.left.value should include ("The sum of interior angles is incorrect")
+    result.left.value.message should include ("The sum of interior angles is incorrect")
   }
 
   behavior of "TilingBuilder.createRegularPolygon"
@@ -156,7 +156,7 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with EitherValues:
   it should "fail to create a polygon with fewer than 3 sides" in {
     val result = TilingBuilder.createRegularPolygon(2)
     result.isLeft shouldBe true
-    result.left.value should include ("at least 3 sides")
+    result.left.value.message should include ("at least 3 sides")
   }
 
   behavior of "TilingBuilder.createRhombusNet"

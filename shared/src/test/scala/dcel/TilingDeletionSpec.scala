@@ -17,7 +17,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   it should "fail to delete a face that does not exist" in {
     val result = square.deleteFace("F_NonExistent")
     result.isLeft shouldBe true
-    result.left.value should include("not found")
+    result.left.value.message should include("not found")
   }
 
   it should "successfully delete a single square, leaving an empty tiling" in {
@@ -39,7 +39,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       .addRegularPolygonToBoundary("V1", 4).value
     val result = tiling.deleteFace(Face.firstInnerId)
     result.isLeft shouldBe true
-    result.left.value should include("would partition the tiling in two or more parts")
+    result.left.value.message should include("would partition the tiling in two or more parts")
   }
 
   it should "delete a face that is not on the boundary" in {
@@ -59,7 +59,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   it should "fail to delete a face that would partition the tiling in two parts joined by a vertex" in {
     val result = partitioningBoundaryFace.deleteFace("F2")
     result.isLeft shouldBe true
-    result.left.value should include("would partition the tiling in two or more parts connected by just a vertex")
+    result.left.value.message should include("would partition the tiling in two or more parts connected by just a vertex")
   }
 
   /** <img src="file:../../resources/disconnectingBoundaryFace.svg"/> */
@@ -71,7 +71,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   it should "fail to delete a face that would partition the tiling in two disjoint parts" in {
     val result = disconnectingBoundaryFace.deleteFace("F2")
     result.isLeft shouldBe true
-    result.left.value should include("would partition the tiling in two disconnected halves")
+    result.left.value.message should include("would partition the tiling in two disconnected halves")
   }
 
   it should "delete a face that would NOT partition the tiling in two parts" in {
@@ -144,26 +144,26 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   it should "fail to delete an edge if a vertex does not exist" in {
     val result = square.deleteEdge("V1", "V_NonExistent")
     result.isLeft shouldBe true
-    result.left.value should include("Vertex with ID V_NonExistent not found.")
+    result.left.value.message should include("Vertex with ID V_NonExistent not found.")
   }
 
   it should "fail to delete an edge if the vertices are not connected" in {
     val result = square.deleteEdge("V1", "V3")
     result.isLeft shouldBe true
-    result.left.value should include("Edge between vertices V1 and V3 not found.")
+    result.left.value.message should include("Edge between vertices V1 and V3 not found.")
   }
 
   it should "fail to delete an edge if it has no incident face" in {
     val tiling = square
-    val v1 = tiling.findVertex("V1").get
-    val v2 = tiling.findVertex("V2").get
+    val v1 = tiling.findVertexUnsafe("V1").get
+    val v2 = tiling.findVertexUnsafe("V2").get
     // Manually corrupt the DCEL for testing purposes
     val edge = tiling.findEdgeBetween(v1, v2).get
     edge.incidentFace = None
 
     val result = tiling.deleteEdge("V1", "V2")
     result.isLeft shouldBe true
-    result.left.value should include("Edge has no incident face")
+    result.left.value.message should include("Edge has no incident face")
   }
 
   it should "successfully delete a boundary edge by deleting the adjacent face" in {
@@ -267,7 +267,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val result = partitioningNonBoundaryFace
       .deleteEdge("V7", "V21")
     result.isLeft shouldBe true
-    result.left.value should include("is not simple")
+    result.left.value.message should include("is not simple")
   }
 
   behavior of "TilingDCEL.deleteVertex"

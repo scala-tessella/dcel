@@ -19,9 +19,9 @@ object TilingDeletion:
 
   extension (tiling: TilingDCEL)
 
-    def deleteFace(faceId: String): Either[String, TilingDCEL] =
+    def deleteFace(faceId: String): Either[TilingError, TilingDCEL] =
       for
-        faceToDelete <- findInnerFace(faceId)
+        faceToDelete <- tiling.findInnerFace(faceId)
         edgeClassification <- classifyFaceEdges(faceToDelete)
         _ <- validateDeletionWontPartition(faceToDelete, edgeClassification.innerTwins)
       yield
@@ -30,15 +30,11 @@ object TilingDeletion:
           performFaceDeletion(faceToDelete, edgeClassification)
         else
           val vertices = faceToDelete.getVerticesUnsafe
-          vertices.foldLeft(Right(tiling): Either[String, TilingDCEL]) {
+          vertices.foldLeft(Right(tiling): Either[TilingError, TilingDCEL]) {
             (either, vertex) => either.flatMap(_.deleteVertex(vertex.id))
           }.toOption.get
 
-    private def findInnerFace(faceId: String): Either[String, Face] =
-      tiling.innerFaces.find(_.id == faceId)
-        .toRight(s"Inner face with ID $faceId not found.")
-
-    private def classifyFaceEdges(face: Face): Either[String, EdgeClassification] =
+    private def classifyFaceEdges(face: Face): Either[TilingError, EdgeClassification] =
       val faceEdges = face.halfEdgesUnsafe
       val twinEdges = faceEdges.map(_.twin.get)
       val (boundaryTwins, innerTwins) = twinEdges.partition(tiling.isBoundaryEdge)
@@ -51,13 +47,13 @@ object TilingDeletion:
      * @param innerTwins The twin edges of the face that are interior (not on boundary)
      * @return Either an error message if deletion would partition the tiling, or Unit if safe
      */
-    private def validateDeletionWontPartition(face: Face, innerTwins: List[HalfEdge]): Either[String, Unit] =
+    private def validateDeletionWontPartition(face: Face, innerTwins: List[HalfEdge]): Either[TilingError, Unit] =
       innerTwins.maybePath match
-        case None => Left(s"Removing face ${face.id} would partition the tiling in two disconnected halves.")
+        case None => Left(TopologyError(s"Removing face ${face.id} would partition the tiling in two disconnected halves."))
         case Some(path) =>
           val innerVertices = path.map(_.origin).drop(1)
           if tiling.boundaryUnsafe.intersect(innerVertices).isEmpty then Right(())
-          else Left(s"Removing face ${face.id} would partition the tiling in two or more parts connected by just a vertex.")
+          else Left(TopologyError(s"Removing face ${face.id} would partition the tiling in two or more parts connected by just a vertex."))
 
     private def performFaceDeletion(faceToDelete: Face, classification: EdgeClassification): TilingDCEL =
       val EdgeClassification(faceEdges, boundaryTwins, innerTwins) = classification
@@ -135,15 +131,15 @@ object TilingDeletion:
           .foreach(_.angle = Some(angleSum.conjugate))
       }
 
-    def deleteEdge(startVertexId: String, endVertexId: String): Either[String, TilingDCEL] =
+    def deleteEdge(startVertexId: String, endVertexId: String): Either[TilingError, TilingDCEL] =
       for
         (_, _, edge) <- tiling.findVerticesAndEdgeBetween(startVertexId, endVertexId)
         result <-
           if tiling.isBoundaryEdge(edge.twin.get) then
             // this should never happen if a TilingDCEL is well-formed, but just in case
-            edge.incidentFace.map(_.id).toRight("Edge has no incident face").flatMap(deleteFace)
+            edge.incidentFace.map(_.id).toRight(ValidationError("Edge has no incident face")).flatMap(deleteFace)
           else if tiling.isBoundaryEdge(edge) then
-            edge.twin.get.incidentFace.map(_.id).toRight("Edge has no incident face").flatMap(deleteFace)
+            edge.twin.get.incidentFace.map(_.id).toRight(ValidationError("Edge has no incident face")).flatMap(deleteFace)
           else
             performEdgePathDeletion(expandPathToDelete(edge))
       yield result
@@ -165,9 +161,9 @@ object TilingDeletion:
       val forwardExpanded = expand(List(startEdge), forward = true)
       expand(forwardExpanded, forward = false)
 
-    private def performEdgePathDeletion(pathToDelete: List[HalfEdge]): Either[String, TilingDCEL] =
+    private def performEdgePathDeletion(pathToDelete: List[HalfEdge]): Either[TilingError, TilingDCEL] =
       pathToDelete match
-        case Nil => Left("Cannot delete an empty path of edges.")
+        case Nil => Left(TopologyError("Cannot delete an empty path of edges."))
         case edges =>
           val twinsToDelete = edges.map(_.twin.get)
           val faceToSurvive = edges.head.incidentFace.get
@@ -233,13 +229,13 @@ object TilingDeletion:
           val survivingFacePoints =
             faceToSurvive.halfEdgesUnsafe.map(_.origin.coords)
           if !survivingFacePoints.hasNoAlmostEqualPoints() then
-            Left(s"The surviving face ${faceToSurvive.id} is not simple (it has vertices that are equal, which is not allowed).")
+            Left(ValidationError(s"The surviving face ${faceToSurvive.id} is not simple (it has vertices that are equal, which is not allowed)."))
           else
             Right(adjustedTiling)
 
-    def deleteVertex(vertexId: String): Either[String, TilingDCEL] =
+    def deleteVertex(vertexId: String): Either[TilingError, TilingDCEL] =
       for
-        vertex <- tiling.findVertex(vertexId).toRight(s"Vertex with ID $vertexId not found.")
+        vertex <- tiling.findVertex(vertexId)
         adjacentEdges = tiling.halfEdges.filter(_.origin == vertex)
         result <-
           val boundaryVertices = tiling.boundaryUnsafe
@@ -250,12 +246,12 @@ object TilingDeletion:
             val (boundaryEdges, interiorEdges) = adjacentEdges.partition(edge =>
               edge.destination.get == start.destination.get || edge.destination.get == prev.origin
             )
-            val withoutInteriorEdges = interiorEdges.foldLeft(Right(tiling): Either[String, TilingDCEL]) {
+            val withoutInteriorEdges = interiorEdges.foldLeft(Right(tiling): Either[TilingError, TilingDCEL]) {
               (either, edge) => either.flatMap(_.deleteEdge(edge.origin.id, edge.destination.get.id))
             }
             withoutInteriorEdges.flatMap(_.deleteEdge(vertexId, boundaryEdges.head.destination.get.id))
           else
-            adjacentEdges.tail.foldLeft(Right(tiling): Either[String, TilingDCEL]) {
+            adjacentEdges.tail.foldLeft(Right(tiling): Either[TilingError, TilingDCEL]) {
               (either, edge) => either.flatMap(_.deleteEdge(edge.origin.id, edge.destination.get.id))
             }
       yield

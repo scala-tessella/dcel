@@ -9,18 +9,18 @@ import scala.collection.mutable
 
 object TilingBuilder:
 
-  def validateSides(sides: Int, polygonType: String): Either[String, Unit] =
+  def validateSides(sides: Int, polygonType: String): Either[TilingError, Unit] =
     if sides >= 3 then Right(())
-    else Left(s"A $polygonType polygon must have at least 3 sides, but $sides were specified.")
+    else Left(TopologyError(s"A $polygonType polygon must have at least 3 sides, but $sides were specified."))
 
-  def validatePoints(points: List[BigPoint]): Either[String, Unit] =
+  def validatePoints(points: List[BigPoint]): Either[TilingError, Unit] =
     // Check if the final edge, from V(n-1) back to V0, has the correct length and angles
     val lastEdgeLength = points.head.distanceTo(points.last)
     if spire.math.abs(lastEdgeLength - 1.0) > ACCURACY then
-      return Left(f"The polygon does not close. The final edge has length $lastEdgeLength%.4f instead of 1.0.")
+      return Left(TopologyError(f"The polygon does not close. The final edge has length $lastEdgeLength%.4f instead of 1.0."))
 
     if !points.hasNoAlmostEqualPoints() then
-      return Left("The polygon is not simple (it has vertices that are equal, which is not allowed).")
+      return Left(TopologyError("The polygon is not simple (it has vertices that are equal, which is not allowed)."))
 
     Right(())
 
@@ -31,7 +31,7 @@ object TilingBuilder:
    *               counter-clockwise traversal of the polygon boundary.
    * @return       Either a String explaining the validation error, or the successfully created TilingDCEL.
    */
-  def createSimplePolygon(angles: List[AngleDegree]): Either[String, TilingDCEL] =
+  def createSimplePolygon(angles: List[AngleDegree]): Either[TilingError, TilingDCEL] =
     for
       _      <- validateSides(angles.length, "simple")
       _      <- SimplePolygon.validatePolygonAngles(angles)
@@ -41,7 +41,7 @@ object TilingBuilder:
     yield
       result
 
-  def createSimplePolygon(degrees: Int *): Either[String, TilingDCEL] =
+  def createSimplePolygon(degrees: Int *): Either[TilingError, TilingDCEL] =
     createSimplePolygon(degrees.map(AngleDegree(_)).toList)
     
   /**
@@ -50,7 +50,7 @@ object TilingBuilder:
    * @param sides The number of sides for the regular polygon.
    * @return      Either a String explaining the validation error, or the successfully created TilingDCEL.
    */
-  def createRegularPolygon(sides: Int): Either[String, TilingDCEL] =
+  def createRegularPolygon(sides: Int): Either[TilingError, TilingDCEL] =
     for
       _      <- validateSides(sides, "regular")
       angle = RegularPolygon(sides).alpha
@@ -65,7 +65,7 @@ object TilingBuilder:
   /**
    * Given validated points and angles, builds the TilingDCEL structure.
    */
-  private def buildDCELFromPoints(points: List[BigPoint], angles: List[AngleDegree]): Either[String, TilingDCEL] =
+  private def buildDCELFromPoints(points: List[BigPoint], angles: List[AngleDegree]): Either[TilingError, TilingDCEL] =
     val n = points.length
 
     // Create vertices from the calculated points

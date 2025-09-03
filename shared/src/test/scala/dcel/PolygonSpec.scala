@@ -30,14 +30,14 @@ class PolygonSpec extends AnyFlatSpec with Matchers with EitherValues:
     val wrongAngles = List(AngleDegree(90), AngleDegree(90), AngleDegree(90), AngleDegree(89))
     val result = SimplePolygon.validatePolygonAngles(wrongAngles)
     result.isLeft shouldBe true
-    result.left.value should include("The sum of interior angles is incorrect")
+    result.left.value.message should include("The sum of interior angles is incorrect")
   }
 
   it should "invalidate angles if any angle is a full circle" in {
     val anglesWithFullCircle = List(AngleDegree(360), AngleDegree(0), AngleDegree(90), AngleDegree(-90))
     val result = SimplePolygon.validatePolygonAngles(anglesWithFullCircle)
     result.isLeft shouldBe true
-    result.left.value should include("cannot have full circles as interior angles")
+    result.left.value.message should include("cannot have full circles as interior angles")
   }
 
   behavior of "RegularPolygon"

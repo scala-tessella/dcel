@@ -188,7 +188,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     tiling.innerFaces should have size 2
 
     // Check that the sum of angles around shared vertices is 360°
-    val v0 = tiling.findVertex("V1").get
+    val v0 = tiling.findVertexUnsafe("V1").get
     val anglesAroundV0 = v0.incidentEdgesUnsafe.flatMap(_.angle).sum2
     anglesAroundV0.isFullCircle shouldBe true
   }
@@ -375,31 +375,31 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   it should "fail to add a polygon with less than 3 sides" in {
     val result = square.addRegularPolygonToBoundary("V2", 2)
     result.isLeft shouldBe true
-    result.left.value should include("must have at least 3 sides")
+    result.left.value.message should include("must have at least 3 sides")
   }
 
   it should "fail to add a polygon with 0 sides" in {
     val result = triangle.addRegularPolygonToBoundary("V1", 0)
     result.isLeft shouldBe true
-    result.left.value should include("must have at least 3 sides")
+    result.left.value.message should include("must have at least 3 sides")
   }
 
   it should "fail to add a polygon with negative sides" in {
     val result = triangle.addRegularPolygonToBoundary("V1", -1)
     result.isLeft shouldBe true
-    result.left.value should include("must have at least 3 sides")
+    result.left.value.message should include("must have at least 3 sides")
   }
 
   it should "fail to add a polygon on a non-existent vertex" in {
     val result = square.addRegularPolygonToBoundary("V99", 3)
     result.isLeft shouldBe true
-    result.left.value should include("not found on the boundary")
+    result.left.value.message should include("not found on the boundary")
   }
 
   it should "fail to add a polygon on an empty vertex ID" in {
     val result = triangle.addRegularPolygonToBoundary("", 3)
     result.isLeft shouldBe true
-    result.left.value should include("not found on the boundary")
+    result.left.value.message should include("not found on the boundary")
   }
 
   // Boundary integrity tests
@@ -690,7 +690,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val result = bench.addRegularPolygon("V1", "V2", 13)
 
     result.isLeft shouldBe true
-    result.left.value should include("wider than container")
+    result.left.value.message should include("wider than container")
   }
 
   it should "fail for being the same as the container" in {
@@ -698,7 +698,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val result = bench.addRegularPolygon("V1", "V2", 12)
 
     result.isLeft shouldBe true
-    result.left.value should include("Same as container")
+    result.left.value.message should include("Same as container")
   }
 
   /** <img src="file:../../resources/doubleSquare.svg"/> */
@@ -741,7 +741,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       .addRegularPolygon("V2", "V3", 3)
 
     result.isLeft shouldBe true
-    result.left.value should include("Boundary intersection")
+    result.left.value.message should include("Boundary intersection")
   }
 
   /** <img src="file:../../resources/parallelogramPlusTriangle.svg"/> */
@@ -753,7 +753,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       .addRegularPolygon("V2", "V3", 3)
 
     result.isLeft shouldBe true
-    result.left.value should include("Boundary intersection")
+    result.left.value.message should include("Boundary intersection")
   }
 
   def base: TilingDCEL =
@@ -822,7 +822,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       .addRegularPolygonToBoundary("V9", 6)
 
     result.isLeft shouldBe true
-    result.left.value should include("Angle wider than container")
+    result.left.value.message should include("Angle wider than container")
   }
 
   /** <img src="file:../../resources/vertexCrossingSimplified.svg"/> */
@@ -835,5 +835,5 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       .addRegularPolygonToBoundary("V9", 6)
 
     result.isLeft shouldBe true
-    result.left.value should include("Angle wider than container")
+    result.left.value.message should include("Angle wider than container")
   }
