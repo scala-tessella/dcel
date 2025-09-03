@@ -2,7 +2,6 @@ package dcel
 
 import dcel.BigDecimalGeometry.BigPoint
 import dcel.TilingSVG.*
-import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
