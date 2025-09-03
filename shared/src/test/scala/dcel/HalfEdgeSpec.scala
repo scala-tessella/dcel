@@ -180,7 +180,7 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with EitherValues:
     val result = edge.validate()
     result.isLeft shouldBe true
     
-    val errorMessage = result.left.value
+    val errorMessage = result.left.value.message
     errorMessage should include("Missing twin edge")
     errorMessage should include("Missing incident face")
     errorMessage should include("Missing next edge")
@@ -201,7 +201,7 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with EitherValues:
     val result = edge.validate()
     result.isLeft shouldBe true
     
-    val errorMessage = result.left.value
+    val errorMessage = result.left.value.message
     errorMessage should not include "Missing twin edge"
     errorMessage should not include "Missing incident face"
     errorMessage should include("Missing next edge")

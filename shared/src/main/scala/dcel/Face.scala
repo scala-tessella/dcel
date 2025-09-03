@@ -40,14 +40,14 @@ case class Face(
   def hasHoles: Boolean =
     innerComponents.nonEmpty
 
-  def validate(): Either[String, Unit] =
+  def validate(): Either[ValidationError, Unit] =
     val errors = List(
       Option.when(outerComponent.isEmpty)("Missing outer component edge"),
       Option.when(innerComponents.isEmpty)("Missing inner components edges"),
     ).flatten
 
     if errors.isEmpty then Right(())
-    else Left(errors.mkString(", "))
+    else Left(ValidationError(errors.mkString(", ")))
 
   def getVerticesUnsafe: List[Vertex] =
     outerComponent.get.faceTraversalUnsafe(_.origin)

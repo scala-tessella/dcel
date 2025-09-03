@@ -88,7 +88,7 @@ class VertexSpec extends AnyFlatSpec with Matchers with EitherValues:
     val vertex = Vertex("V1", BigPoint(0, 0))
     val result = vertex.validate()
     result.isLeft shouldBe true
-    result.left.value shouldBe "Missing leaving edge"
+    result.left.value.message shouldBe "Missing leaving edge"
   }
 
   behavior of "Vertex.incidentEdges"

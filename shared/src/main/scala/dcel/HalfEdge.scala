@@ -32,7 +32,7 @@ case class HalfEdge(
   override def hashCode(): Int = System.identityHashCode(this)
 
   override def toString: String = 
-    s"HalfEdge ${origin.id} -> ${destination.map(_.id).getOrElse("?")}${validate().swap.map(msg => s" [$msg]").getOrElse("")}"
+    s"HalfEdge ${origin.id} -> ${destination.map(_.id).getOrElse("?")}${validate().swap.map(error => s" [${error.message}]").getOrElse("")}"
 
   def destination: Option[Vertex] =
     twin.map(_.origin)
@@ -51,7 +51,7 @@ case class HalfEdge(
   def isComplete: Boolean =
     twin.isDefined && incidentFace.isDefined && next.isDefined && prev.isDefined && angle.isDefined
 
-  def validate(): Either[String, Unit] =
+  def validate(): Either[ValidationError, Unit] =
     val errors = List(
       Option.when(twin.isEmpty)("Missing twin edge"),
       Option.when(incidentFace.isEmpty)("Missing incident face"),
@@ -61,7 +61,7 @@ case class HalfEdge(
     ).flatten
 
     if errors.isEmpty then Right(())
-    else Left(errors.mkString(", "))
+    else Left(ValidationError(errors.mkString(", ")))
 
   private def traverseUnsafe[T](direction: HalfEdge => Option[HalfEdge])(f: HalfEdge => T = identity): List[T] =
     val startEdge = this

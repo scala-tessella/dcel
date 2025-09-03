@@ -23,14 +23,14 @@ case class Vertex(
   override def hashCode(): Int = id.hashCode
 
   override def toString: String =
-    s"Vertex $id at coords (${coords.x.format}, ${coords.y.format})${validate().swap.map(msg => s" [$msg]").getOrElse("")}"
+    s"Vertex $id at coords (${coords.x.format}, ${coords.y.format})${validate().swap.map(error => s" [${error.message}]").getOrElse("")}"
 
   def isComplete: Boolean =
     leaving.isDefined
 
-  def validate(): Either[String, Unit] =
+  def validate(): Either[ValidationError, Unit] =
     if isComplete then Right(())
-    else Left("Missing leaving edge")
+    else Left(ValidationError("Missing leaving edge"))
 
   def incidentEdgesUnsafe: List[HalfEdge] =
     leaving match

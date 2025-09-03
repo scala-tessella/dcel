@@ -153,7 +153,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
     
     val result = face.validate()
     result.isLeft shouldBe true
-    result.left.value should include("Missing outer component edge")
+    result.left.value.message should include("Missing outer component edge")
   }
 
   it should "return Left with missing inner components error" in {
@@ -163,7 +163,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
     
     val result = face.validate()
     result.isLeft shouldBe true
-    result.left.value should include("Missing inner components edges")
+    result.left.value.message should include("Missing inner components edges")
   }
 
   it should "return Left with both errors when both are missing" in {
@@ -171,7 +171,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
     
     val result = face.validate()
     result.isLeft shouldBe true
-    val errorMessage = result.left.value
+    val errorMessage = result.left.value.message
     errorMessage should include("Missing outer component edge")
     errorMessage should include("Missing inner components edges")
   }
