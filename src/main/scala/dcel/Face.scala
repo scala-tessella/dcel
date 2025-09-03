@@ -50,6 +50,9 @@ case class Face(
     if errors.isEmpty then Right(())
     else Left(errors.mkString(", "))
 
+  def getVerticesUnsafe: List[Vertex] =
+    outerComponent.get.faceTraversalUnsafe(_.origin)
+
   /**
    * Get all vertices that form the boundary of a face.
    * Returns vertices in the order they appear around the face boundary.

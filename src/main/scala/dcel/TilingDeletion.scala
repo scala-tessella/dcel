@@ -30,7 +30,7 @@ object TilingDeletion:
         else if edgeClassification.boundaryTwins.nonEmpty then
           performFaceDeletion(faceToDelete, edgeClassification)
         else
-          val vertices = faceToDelete.getVertices.toOption.get
+          val vertices = faceToDelete.getVerticesUnsafe
           vertices.foldLeft(Right(tiling): Either[String, TilingDCEL]) {
             (either, vertex) => either.flatMap(_.deleteVertex(vertex.id))
           }.toOption.get

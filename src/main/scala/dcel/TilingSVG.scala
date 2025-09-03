@@ -95,7 +95,7 @@ object TilingSVG:
 
   private def createAngleLabels(tilingDCEL: TilingDCEL, config: SvgConfig): (Seq[Elem], Seq[Elem]) =
     val innerAngleLabels = tilingDCEL.innerFaces.flatMap { face =>
-      val centroid = calculateCentroid(face.getVertices.getOrElse(List.empty))
+      val centroid = calculateCentroid(face.getVerticesUnsafe)
       face.halfEdgesUnsafe.map { halfEdge =>
         val direction = calculateDirection(halfEdge.origin.coords, centroid)
         createAngleLabel(halfEdge, direction, config)
@@ -104,7 +104,7 @@ object TilingSVG:
 
     val outerAngleLabels = tilingDCEL.getBoundaryEdges.getOrElse(Nil).map { halfEdge =>
       val centroid = tilingDCEL.innerFaces.headOption
-        .flatMap(_.getVertices.toOption)
+        .map(_.getVerticesUnsafe)
         .filter(_.nonEmpty)
         .map(calculateCentroid)
         .getOrElse(BigPoint(0, 0))
@@ -141,11 +141,9 @@ object TilingSVG:
     (circles, labels)
 
   private def createFaceLabels(tilingDCEL: TilingDCEL, config: SvgConfig): Seq[Elem] =
-    tilingDCEL.innerFaces.flatMap { face =>
-      face.getVertices.toOption.filter(_.nonEmpty).map { vertices =>
-        val (x, y) = calculateCentroid(vertices).toSvgCoords(config.scale)
-        <text x={x} y={y}>{face.id}</text>
-      }
+    tilingDCEL.innerFaces.map { face =>
+      val (x, y) = calculateCentroid(face.getVerticesUnsafe).toSvgCoords(config.scale)
+      <text x={x} y={y}>{face.id}</text>
     }
 
   private def createTraversalArrows(tilingDCEL: TilingDCEL, config: SvgConfig): Seq[Elem] =
