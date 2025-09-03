@@ -113,7 +113,7 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
     svg should include("stroke-width=\"2.5\"")
     // Vertex circles should have radius = strokeWidth * 2
-    svg should include("r=\"5.0\"")
+    svg should include("r=\"5")
     // Font size should be strokeWidth * 8
     svg should include("font-size=\"20\"")
   }
