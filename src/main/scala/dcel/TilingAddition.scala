@@ -204,15 +204,16 @@ object TilingAddition:
         val lastEdge = holePath.last
         (polygonAngles.rotateRight(1), lastEdge.origin.id, lastEdge.destination.get.id)
 
-    private def validateBoundaryEdge(startingWithVertexId: String): Either[String, (HalfEdge, Vertex, Vertex, List[HalfEdge])] =
+    private def validateBoundaryEdge(startingWithVertexId: String): Either[String, (HalfEdge, Vertex, Vertex, List[HalfEdge])] = {
+      val boundaryEdges = tiling.getBoundaryEdgesUnsafe
       for
-        boundaryEdges <- tiling.getBoundaryEdges
         edgeToBuildOn <- boundaryEdges
           .find(_.origin.id == startingWithVertexId)
           .toRight(s"Edge starting with vertex $startingWithVertexId not found on the boundary.")
         (startVertex, endVertex) <- edgeToBuildOn.endpointsAsVertices
           .toRight("Edge has no destination vertex.")
       yield (edgeToBuildOn, startVertex, endVertex, boundaryEdges)
+    }
 
     def addSimplePolygonToBoundary(onEdgeStartingWithVertexId: String, angles: List[AngleDegree]): Either[String, TilingDCEL] =
       for

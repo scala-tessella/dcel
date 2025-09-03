@@ -116,7 +116,7 @@ object TilingSVG:
     (innerAngleLabels, outerAngleLabels)
 
   private def createBoundaryElements(tilingDCEL: TilingDCEL, config: SvgConfig): Option[Elem] =
-    tilingDCEL.boundary match
+    tilingDCEL.boundaryUnsafe match
       case vertices if vertices.nonEmpty =>
         val points = vertices.map { v =>
           val (x, y) = v.coords.toSvgCoords(config.scale)

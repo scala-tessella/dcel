@@ -119,26 +119,26 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   behavior of "TilingDCEL.boundary"
 
   it should "return empty vector for empty tiling" in {
-    emptyTiling.boundary shouldBe Vector.empty
+    emptyTiling.boundaryUnsafe shouldBe Vector.empty
   }
 
   it should "return correct boundary vertices for triangle in clockwise order" in {
     val triangle = createTriangleTiling()
-    val boundary = triangle.boundary
+    val boundary = triangle.boundaryUnsafe
     boundary should have length 3
     boundary.map(_.id) should contain theSameElementsInOrderAs Vector("V1", "V3", "V2")
   }
 
   it should "return correct boundary vertices for square in clockwise order" in {
     val square = createSquareTiling()
-    val boundary = square.boundary
+    val boundary = square.boundaryUnsafe
     boundary should have length 4
     boundary.map(_.id) should contain theSameElementsInOrderAs Vector("V1", "V4", "V3", "V2")
   }
 
   it should "return correct boundary vertices for hexagon" in {
     val hexagon = createHexagonTiling()
-    val boundary = hexagon.boundary
+    val boundary = hexagon.boundaryUnsafe
     boundary should have length 6
     boundary.map(_.id) should contain theSameElementsInOrderAs Vector("V1", "V6", "V5", "V4", "V3", "V2")
   }
@@ -147,14 +147,14 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "return same result as boundary for well-formed tilings" in {
     val triangle = createTriangleTiling()
-    triangle.boundarySafe.value shouldEqual triangle.boundary
+    triangle.boundary.value shouldEqual triangle.boundaryUnsafe
 
     val square = createSquareTiling()
-    square.boundarySafe.value shouldEqual square.boundary
+    square.boundary.value shouldEqual square.boundaryUnsafe
   }
 
   it should "return empty vector for empty tiling" in {
-    emptyTiling.boundarySafe shouldBe Right(Vector.empty)
+    emptyTiling.boundary shouldBe Right(Vector.empty)
   }
 
   it should "fail for malformed boundary loop" in {
@@ -168,7 +168,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       firstEdge.next = Some(secondEdge)
       secondEdge.next = Some(secondEdge) // Make second edge point to itself
 
-      triangle.boundarySafe.isLeft shouldBe true
+      triangle.boundary.isLeft shouldBe true
     }
   }
 
@@ -180,7 +180,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       // Break the chain by setting next to None
       firstEdge.next = None
 
-      triangle.boundarySafe.isLeft shouldBe true
+      triangle.boundary.isLeft shouldBe true
     }
   }
 

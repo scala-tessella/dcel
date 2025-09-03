@@ -46,7 +46,12 @@ case class TilingDCEL private(
       edge <- findEdgeBetween(v1, v2).toRight(s"Edge between vertices $vertexId1 and $vertexId2 not found.")
     yield
       (v1, v2, edge)
-      
+
+  def getAnglesAtVertexUnsafe(vertexId: String): List[AngleDegree] =
+    val vertex = findVertex(vertexId).get
+    val edges = vertex.incidentEdgesUnsafe
+    edges.map(_.angle.get)
+
   def getAnglesAtVertex(vertexId: String): Either[String, List[AngleDegree]] =
     for
       vertex <- findVertex(vertexId).toRight(s"Vertex with ID $vertexId not found.")
@@ -57,6 +62,11 @@ case class TilingDCEL private(
       else
         Right(maybeAngles.flatten)
     yield angles
+
+  def getInnerAnglesAtVertexUnsafe(vertexId: String): List[AngleDegree] =
+    val vertex = findVertex(vertexId).get
+    val edges = vertex.incidentEdgesUnsafe
+    edges.filterNot(isBoundaryEdge).map(_.angle.get)
 
   def getInnerAnglesAtVertex(vertexId: String): Either[String, List[AngleDegree]] =
     for
@@ -82,15 +92,20 @@ case class TilingDCEL private(
    * @return A Vector of Vertices forming the perimeter, in clockwise order.
    *         Returns an empty Vector if the outer face has no boundary component.
    */
-  def boundary: Vector[Vertex] =
+  def boundaryUnsafe: Vector[Vertex] =
     outerFace.outerComponent match
       case Some(startEdge) => startEdge.faceTraversalUnsafe(_.origin).toVector
       case None => Vector.empty
 
-  def boundarySafe: Either[String, Vector[Vertex]] =
+  def boundary: Either[String, Vector[Vertex]] =
     outerFace.outerComponent match
       case Some(startEdge) => startEdge.faceTraversal(_.origin).map(_.toVector)
       case None => Right(Vector.empty)
+
+  def getBoundaryEdgesUnsafe: List[HalfEdge] =
+    outerFace.outerComponent match
+      case Some(startEdge) => startEdge.faceTraversalUnsafe()
+      case None => List.empty
 
   /**
    * Helper method to get all half-edges forming the outer boundary loop.
@@ -100,8 +115,8 @@ case class TilingDCEL private(
       case Some(startEdge) => startEdge.faceTraversal()
       case None => Right(List.empty)
 
-  def getBoundaryEdgesPath(from: Vertex, to: Vertex): List[HalfEdge] =
-    getBoundaryEdges.getOrElse(List.empty).getPath(from, to)
+  def getBoundaryEdgesPathUnsafe(from: Vertex, to: Vertex): List[HalfEdge] =
+    getBoundaryEdgesUnsafe.getPath(from, to)
 
   /**
    * Finds a boundary half-edge that originates at the vertex with the given ID.
@@ -239,7 +254,7 @@ object TilingDCEL:
     }
 
     // Check angles' sum for the tiling boundary (interior view)
-    tiling.boundarySafe match
+    tiling.boundary match
       case Right(boundaryVertices) if boundaryVertices.length >= 3 =>
         val boundaryAngles = boundaryVertices.map(_.currentInteriorAngleSum(tiling.outerFace)).toList
         if boundaryAngles.exists(_.isLeft) then
@@ -265,7 +280,7 @@ object TilingDCEL:
       case _ => // Not enough edges
 
     // Check angles' sum for each interior vertex
-    val boundaryVertices = tiling.boundary.toSet
+    val boundaryVertices = tiling.boundaryUnsafe.toSet
     val interiorVertices = tiling.vertices.filterNot(boundaryVertices.contains)
     interiorVertices.foreach { vertex =>
       tiling.getAnglesAtVertex(vertex.id) match
@@ -282,7 +297,7 @@ object TilingDCEL:
   def validateSpatially(tiling: TilingDCEL): Either[String, Unit] =
     val errors = mutable.ListBuffer[String]()
 
-    tiling.boundarySafe match
+    tiling.boundary match
       case Right(boundaryVertices) =>
         if boundaryVertices.length >= 3 then
           if !boundaryVertices.map(_.coords).toList.hasNoAlmostEqualPoints() then
