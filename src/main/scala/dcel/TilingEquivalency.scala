@@ -198,7 +198,7 @@ object TilingEquivalency:
      * @param other The other TilingDCEL to compare with.
      * @return true if the two tilings are topologically equivalent, false otherwise.
      */
-    def isTopologicallyEquivalentTo(other: TilingDCEL): Boolean =
+    def isTopologicallyEquivalentRobustTo(other: TilingDCEL): Boolean =
       if !tiling.hasSameSizesOf(other) then
         return false
 
@@ -234,6 +234,21 @@ object TilingEquivalency:
         toMultiset(signatures.values.toList)
 
       computeCanonicalSignature(tiling) == computeCanonicalSignature(other)
+
+    def isTopologicallyEquivalentTo(other: TilingDCEL): Boolean =
+      def getVertexSignature(vertex: Vertex, outerFace: Face): List[Int] =
+        val faceCycle = vertex.incidentEdgesUnsafe.flatMap(_.incidentFace)
+        val faceSizes = faceCycle.map(face =>
+          if face == outerFace then 0
+          else face.halfEdgesUnsafe.size
+        )
+        faceSizes.rotationsAndReflections.min
+
+      isEquivalentRawTo(
+        other,
+        _.map(_.halfEdgesUnsafe.size).sorted,
+        (vertices, face) => toMultiset(vertices.map(getVertexSignature(_, face)))
+      )
 
     def isEquivalentTo(other: TilingDCEL): Boolean =
       given Ordering[AngleDegree] with
