@@ -78,17 +78,17 @@ case class HalfEdge(
   def vertexTraversalUnsafe[T](f: HalfEdge => T = identity): List[T] =
     traverseUnsafe[T](_.twin.flatMap(_.next))(f)
 
-  def vertexTraversal[T](f: HalfEdge => T = identity): Either[String, List[T]] =
+  def vertexTraversal[T](f: HalfEdge => T = identity): Either[TilingError, List[T]] =
     traverse[T](_.twin.flatMap(_.next))(f)
 
-  private def traverse[T](direction: HalfEdge => Option[HalfEdge])(f: HalfEdge => T = identity): Either[String, List[T]] =
+  private def traverse[T](direction: HalfEdge => Option[HalfEdge])(f: HalfEdge => T = identity): Either[TilingError, List[T]] =
     val startEdge = this
     val visited = mutable.Set[HalfEdge]()
 
     @tailrec
-    def collectEdges(current: HalfEdge, acc: List[T]): Either[String, List[T]] =
+    def collectEdges(current: HalfEdge, acc: List[T]): Either[TilingError, List[T]] =
       if visited.contains(current) then
-        Left(s"Cycle detected: edge from vertex ${current.origin.id} has already been visited")
+        Left(TopologyError(s"Cycle detected: edge from vertex ${current.origin.id} has already been visited"))
       else
         visited += current
         val updatedAcc = f(current) :: acc
@@ -100,14 +100,14 @@ case class HalfEdge(
             // next == startEdge, we've completed the traversal
             Right(updatedAcc.reverse)
           case None =>
-            Left(s"Broken edge chain: edge from vertex ${current.origin.id} has no next")
+            Left(TopologyError(s"Broken edge chain: edge from vertex ${current.origin.id} has no next"))
 
     collectEdges(startEdge, Nil)
 
   def faceTraversalUnsafe[T](f: HalfEdge => T = identity): List[T] =
     traverseUnsafe[T](_.next)(f)
 
-  def faceTraversal[T](f: HalfEdge => T = identity): Either[String, List[T]] =
+  def faceTraversal[T](f: HalfEdge => T = identity): Either[TilingError, List[T]] =
     traverse[T](_.next)(f)
 
   def hasIncidentFace(face: Face): Boolean =

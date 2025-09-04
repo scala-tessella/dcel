@@ -37,7 +37,7 @@ case class Vertex(
       case None => List.empty
       case Some(startEdge) => startEdge.vertexTraversalUnsafe()
 
-  def incidentEdges: Either[String, List[HalfEdge]] =
+  def incidentEdges: Either[TilingError, List[HalfEdge]] =
     leaving match
       case None => Right(List.empty)
       case Some(startEdge) => startEdge.vertexTraversal()
@@ -45,7 +45,7 @@ case class Vertex(
   def currentInteriorAngleSumUnsafe(outerFace: Face): AngleDegree =
     incidentEdgesUnsafe.interiorAnglesSum(outerFace)
 
-  def currentInteriorAngleSum(outerFace: Face): Either[String, AngleDegree] =
+  def currentInteriorAngleSum(outerFace: Face): Either[TilingError, AngleDegree] =
     incidentEdges.map(_.interiorAnglesSum(outerFace))
 
   def degree: Int = incidentEdgesUnsafe.length

@@ -60,7 +60,7 @@ case class TilingDCEL private(
   def getAnglesAtVertex(vertexId: String): Either[TilingError, List[AngleDegree]] =
     for
       vertex <- findVertex(vertexId)
-      edges <- vertex.incidentEdges.left.map(TopologyError.apply)
+      edges <- vertex.incidentEdges
       maybeAngles = edges.map(_.angle)
       angles <- if (maybeAngles.contains(None))
         Left(ValidationError(s"Vertex with ID $vertexId has at least one edge with no angle."))
@@ -76,7 +76,7 @@ case class TilingDCEL private(
   def getInnerAnglesAtVertex(vertexId: String): Either[TilingError, List[AngleDegree]] =
     for
       vertex <- findVertex(vertexId)
-      edges <- vertex.incidentEdges.left.map(TopologyError.apply)
+      edges <- vertex.incidentEdges
       innerEdges = edges.filterNot(isBoundaryEdge)
       maybeAngles = innerEdges.map(_.angle)
       angles <- if (maybeAngles.contains(None))
@@ -104,7 +104,7 @@ case class TilingDCEL private(
 
   def boundary: Either[TilingError, Vector[Vertex]] =
     outerFace.outerComponent match
-      case Some(startEdge) => startEdge.faceTraversal(_.origin).map(_.toVector).left.map(TopologyError.apply)
+      case Some(startEdge) => startEdge.faceTraversal(_.origin).map(_.toVector)
       case None => Right(Vector.empty)
 
   def getBoundaryEdgesUnsafe: List[HalfEdge] =
@@ -117,7 +117,7 @@ case class TilingDCEL private(
    */
   def getBoundaryEdges: Either[TilingError, List[HalfEdge]] =
     outerFace.outerComponent match
-      case Some(startEdge) => startEdge.faceTraversal().left.map(TopologyError.apply)
+      case Some(startEdge) => startEdge.faceTraversal()
       case None => Right(List.empty)
 
   def getBoundaryEdgesPathUnsafe(from: Vertex, to: Vertex): List[HalfEdge] =
