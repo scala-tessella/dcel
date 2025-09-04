@@ -237,14 +237,14 @@ object TilingDCEL:
     if tiling.innerFaces.exists(_.hasHoles) then
       errors += "Face with inner holes"
 
-    if errors.isEmpty then Right(()) else Left(TopologyError(errors.mkString("; ")))
+    if errors.isEmpty then Right(()) else Left(TilingError.combineValidationErrors(errors.toList))
 
-  def validateGeometrically(tiling: TilingDCEL): Either[String, Unit] =
+  def validateGeometrically(tiling: TilingDCEL): Either[TilingError, Unit] =
     val errors = mutable.ListBuffer[String]()
 
     // Check if all half-edges have an angle
     if tiling.halfEdges.exists(_.angle.isEmpty) then
-      return Left("Tiling has at least one half-edge with no angle defined.")
+      return Left(ValidationError("Tiling has at least one half-edge with no angle defined."))
 
     // Check angles' sum for each inner face
     tiling.innerFaces.foreach { face =>
@@ -297,9 +297,9 @@ object TilingDCEL:
           errors += s"Could not validate angles for interior vertex ${vertex.id} due to: $error"
     }
 
-    if errors.isEmpty then Right(()) else Left(errors.mkString("; "))
+    if errors.isEmpty then Right(()) else Left(TilingError.combineValidationErrors(errors.toList))
 
-  def validateSpatially(tiling: TilingDCEL): Either[String, Unit] =
+  def validateSpatially(tiling: TilingDCEL): Either[TilingError, Unit] =
     val errors = mutable.ListBuffer[String]()
 
     tiling.boundary match
@@ -310,11 +310,11 @@ object TilingDCEL:
       case Left(error) =>
         errors += s"Could not validate boundary angles due to: $error"
 
-    if errors.isEmpty then Right(()) else Left(errors.mkString("; "))
+    if errors.isEmpty then Right(()) else Left(TilingError.combineValidationErrors(errors.toList))
 
   def validate(tiling: TilingDCEL): Either[TilingError, Unit] =
-    val topoErrors = validateTopologically(tiling).left.toOption
-    val geoErrors = validateGeometrically(tiling).left.toOption
-    val spaceErrors = validateSpatially(tiling).left.toOption
-    val allErrors = (topoErrors.toList ++ geoErrors.toList ++ spaceErrors.toList).mkString("; ")
-    if allErrors.isEmpty then Right(()) else Left(ValidationError(allErrors))
+    val topoErrors = validateTopologically(tiling).left.toOption.map(_.message)
+    val geoErrors = validateGeometrically(tiling).left.toOption.map(_.message)
+    val spaceErrors = validateSpatially(tiling).left.toOption.map(_.message)
+    val allErrors = topoErrors.toList ++ geoErrors.toList ++ spaceErrors.toList
+    if allErrors.isEmpty then Right(()) else Left(TilingError.combineValidationErrors(allErrors))
