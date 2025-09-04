@@ -8,7 +8,7 @@ case class ValidationError(message: String) extends TilingError
 case class TopologyError(message: String) extends TilingError
 case class GeometryError(message: String) extends TilingError
 case class NotFoundError(entity: String, id: String) extends TilingError {
-  def message: String = s"$entity with ID '$id' not found"
+  def message: String = s"$entity with ID '$id' not found."
 }
 
 object TilingError {

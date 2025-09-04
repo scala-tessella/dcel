@@ -144,13 +144,13 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   it should "fail to delete an edge if a vertex does not exist" in {
     val result = square.deleteEdge("V1", "V_NonExistent")
     result.isLeft shouldBe true
-    result.left.value.message should include("Vertex with ID V_NonExistent not found.")
+    result.left.value.message should include("Vertex with ID 'V_NonExistent' not found.")
   }
 
   it should "fail to delete an edge if the vertices are not connected" in {
     val result = square.deleteEdge("V1", "V3")
     result.isLeft shouldBe true
-    result.left.value.message should include("Edge between vertices V1 and V3 not found.")
+    result.left.value.message should include("Edge with ID 'between V1 and V3' not found.")
   }
 
   it should "fail to delete an edge if it has no incident face" in {
