@@ -31,3 +31,12 @@ trait TilingTestHelpers extends EitherValues:
    */
   def hexagon: TilingDCEL =
     TilingBuilder.createRegularPolygon(6).value
+    
+  val V1: VertexId = VertexId("V1")
+  val V2: VertexId = VertexId("V2")
+  val V3: VertexId = VertexId("V3")
+  val V4: VertexId = VertexId("V4")
+  val V5: VertexId = VertexId("V5")
+  val V6: VertexId = VertexId("V6")
+  
+  val F1: FaceId = FaceId("F1")

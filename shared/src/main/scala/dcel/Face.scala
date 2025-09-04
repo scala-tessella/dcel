@@ -18,10 +18,10 @@ case class Face(
 ):
   override def equals(obj: Any): Boolean =
     obj match
-      case that: Face => this.id == that.id
+      case that: Face => this.id.value == that.id.value
       case _ => false
 
-  override def hashCode(): Int = id.hashCode
+  override def hashCode(): Int = id.value.hashCode
 
   override def toString: String = s"Face $id"
 

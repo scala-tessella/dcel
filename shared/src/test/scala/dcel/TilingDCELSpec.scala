@@ -35,19 +35,19 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "find an existing vertex by id" in {
     val triangle = createTriangleTiling()
-    triangle.findVertexUnsafe("V1") shouldBe defined
-    triangle.findVertexUnsafe("V2") shouldBe defined
-    triangle.findVertexUnsafe("V3") shouldBe defined
+    triangle.findVertexUnsafe(V1) shouldBe defined
+    triangle.findVertexUnsafe(V2) shouldBe defined
+    triangle.findVertexUnsafe(V3) shouldBe defined
   }
 
   it should "return None for non-existent vertex id" in {
     val triangle = createTriangleTiling()
-    triangle.findVertexUnsafe("V999") shouldBe None
-    triangle.findVertexUnsafe("NonExistent") shouldBe None
+    triangle.findVertexUnsafe(VertexId("V999")) shouldBe None
+    triangle.findVertexUnsafe(VertexId("NonExistent")) shouldBe None
   }
 
   it should "find vertices in empty tiling" in {
-    emptyTiling.findVertexUnsafe("V0") shouldBe None
+    emptyTiling.findVertexUnsafe(VertexId("V0")) shouldBe None
   }
 
   behavior of "TilingDCEL.findFace"
@@ -68,9 +68,9 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "find an edge between two connected vertices" in {
     val triangle = createTriangleTiling()
-    val v0 = triangle.findVertexUnsafe("V1").get
-    val v1 = triangle.findVertexUnsafe("V2").get
-    val v2 = triangle.findVertexUnsafe("V3").get
+    val v0 = triangle.findVertexUnsafe(V1).get
+    val v1 = triangle.findVertexUnsafe(V2).get
+    val v2 = triangle.findVertexUnsafe(V3).get
 
     triangle.findEdgeBetween(v0, v1) shouldBe defined
     triangle.findEdgeBetween(v1, v2) shouldBe defined
@@ -79,17 +79,17 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "return None for vertices that are not connected" in {
     val square = createSquareTiling()
-    val v0 = square.findVertexUnsafe("V1").get
-    val v2 = square.findVertexUnsafe("V3").get
+    val v0 = square.findVertexUnsafe(V1).get
+    val v2 = square.findVertexUnsafe(V3).get
 
     // V0 and V2 are diagonal vertices in a square, not directly connected
     square.findEdgeBetween(v0, v2) shouldBe None
   }
 
   it should "return None when either vertex has no incident edges" in {
-    val isolatedVertex = Vertex("Isolated", BigPoint(10, 10))
+    val isolatedVertex = Vertex(VertexId("Isolated"), BigPoint(10, 10))
     val triangle = createTriangleTiling()
-    val v0 = triangle.findVertexUnsafe("V1").get
+    val v0 = triangle.findVertexUnsafe(V1).get
 
     triangle.findEdgeBetween(isolatedVertex, v0) shouldBe None
   }
@@ -109,7 +109,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   }
 
   it should "return true for connected multi-polygon tiling" in {
-    val twoTriangles = createTriangleTiling().maybeAddRegularPolygonToBoundary("V1", 3).value
+    val twoTriangles = createTriangleTiling().maybeAddRegularPolygonToBoundary(V1, 3).value
     twoTriangles.hasConnectedFaces shouldBe true
   }
 
@@ -123,21 +123,21 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val triangle = createTriangleTiling()
     val boundary = triangle.boundaryUnsafe
     boundary should have length 3
-    boundary.map(_.id) should contain theSameElementsInOrderAs Vector("V1", "V3", "V2")
+    boundary.map(_.id) should contain theSameElementsInOrderAs Vector(V1, V3, V2)
   }
 
   it should "return correct boundary vertices for square in clockwise order" in {
     val square = createSquareTiling()
     val boundary = square.boundaryUnsafe
     boundary should have length 4
-    boundary.map(_.id) should contain theSameElementsInOrderAs Vector("V1", "V4", "V3", "V2")
+    boundary.map(_.id) should contain theSameElementsInOrderAs Vector(V1, V4, V3, V2)
   }
 
   it should "return correct boundary vertices for hexagon" in {
     val hexagon = createHexagonTiling()
     val boundary = hexagon.boundaryUnsafe
     boundary should have length 6
-    boundary.map(_.id) should contain theSameElementsInOrderAs Vector("V1", "V6", "V5", "V4", "V3", "V2")
+    boundary.map(_.id) should contain theSameElementsInOrderAs Vector(V1, "V6", "V5", V4, V3, V2)
   }
 
   behavior of "TilingDCEL.boundarySafe"
@@ -194,7 +194,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
     // Check that edges form a closed loop
     val vertices = boundaryEdges.map(_.origin)
-    vertices.map(_.id) should contain theSameElementsInOrderAs Vector("V1", "V3", "V2")
+    vertices.map(_.id) should contain theSameElementsInOrderAs Vector(V1, V3, V2)
   }
 
   it should "fail for malformed boundary with visited edge" in {
@@ -228,15 +228,15 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "return the angles for a vertex where all incident edges have an angle" in {
     val triangle = createTriangleTiling()
-    val v1 = triangle.findVertexUnsafe("V1").get
+    val v1 = triangle.findVertexUnsafe(V1).get
     v1.incidentEdgesUnsafe.filter(_.hasIncidentFace(triangle.outerFace)).foreach(_.angle = Some(AngleDegree(300)))
-    val result = triangle.getAnglesAtVertex("V1")
+    val result = triangle.getAnglesAtVertex(V1)
     result.value should contain theSameElementsAs List(AngleDegree(60), AngleDegree(300))
   }
 
   it should "return an error for a non-existent vertex" in {
     val triangle = createTriangleTiling()
-    val result = triangle.getAnglesAtVertex("V999")
+    val result = triangle.getAnglesAtVertex(VertexId("V999"))
     result.isLeft shouldBe true
     result.left.value.message shouldEqual "Vertex with ID 'V999' not found."
   }
@@ -244,16 +244,16 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   it should "return an error if an inner incident edge has no angle" in {
     val square = createSquareTiling()
     square.innerFaces.head.halfEdges.toOption.get.head.angle = None
-    val result = square.getAnglesAtVertex("V1")
+    val result = square.getAnglesAtVertex(V1)
     result.isLeft shouldBe true
     result.left.value.message shouldEqual "Vertex with ID V1 has at least one edge with no angle."
   }
 
   it should "fail if the incident edge loop is broken" in {
     val triangle = createTriangleTiling()
-    val v1Leaving = triangle.findVertexUnsafe("V1").get.leaving.get
+    val v1Leaving = triangle.findVertexUnsafe(V1).get.leaving.get
     v1Leaving.twin = None // Break the chain for vertex traversal
-    val result = triangle.getAnglesAtVertex("V1")
+    val result = triangle.getAnglesAtVertex(V1)
     result.isLeft shouldBe true
     result.left.value.message should include("Broken edge chain")
   }
@@ -276,7 +276,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   }
 
   it should "succeed for a valid multi-polygon tiling" in {
-    val twoSquares = createSquareTiling().maybeAddRegularPolygonToBoundary("V1", 4).value
+    val twoSquares = createSquareTiling().maybeAddRegularPolygonToBoundary(V1, 4).value
     TilingDCEL.validate(twoSquares) shouldBe Right(())
   }
 
@@ -337,9 +337,9 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   }
 
   it should "fail if the boundary angles do not sum correctly" in {
-    val twoSquares = createSquareTiling().maybeAddRegularPolygonToBoundary("V1", 4).value
+    val twoSquares = createSquareTiling().maybeAddRegularPolygonToBoundary(V1, 4).value
     // V2 is on the boundary. The inner edge from V2 belongs to the first square.
-    val v2 = twoSquares.findVertexUnsafe("V2").get
+    val v2 = twoSquares.findVertexUnsafe(V2).get
     val innerEdgeFromV2 = v2.incidentEdgesUnsafe.find(_.incidentFace.exists(_.id == FaceId.firstInnerId)).get
 
     // Distort the angle, which affects both the face and boundary angle sums

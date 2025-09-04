@@ -4,7 +4,7 @@ package dcel
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class TopologySpec extends AnyFlatSpec with Matchers:
+class TopologySpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   behavior of "Topology.breadthFirstSearch"
 
@@ -222,9 +222,9 @@ class TopologySpec extends AnyFlatSpec with Matchers:
   it should "work with vertices from DCEL" in {
     import BigDecimalGeometry.BigPoint
     
-    val v1 = Vertex("V1", BigPoint(0, 0))
-    val v2 = Vertex("V2", BigPoint(1, 0))
-    val v3 = Vertex("V3", BigPoint(0, 1))
+    val v1 = Vertex(V1, BigPoint(0, 0))
+    val v2 = Vertex(V2, BigPoint(1, 0))
+    val v3 = Vertex(V3, BigPoint(0, 1))
     
     val start = v1
     val adjacency = Map(

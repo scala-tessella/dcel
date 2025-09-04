@@ -112,7 +112,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
     originalBoundaryBefore shouldEqual copyBoundaryBefore
 
     // Modify the copy by adding a polygon
-    val modifiedCopy = copy.maybeAddRegularPolygonToBoundary("V1", 3)
+    val modifiedCopy = copy.maybeAddRegularPolygonToBoundary(V1, 3)
     modifiedCopy shouldBe a[Right[?, ?]]
 
     // Original should remain unchanged
@@ -135,7 +135,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
     val copyBoundaryBefore = copy.boundaryUnsafe
 
     // Modify the original by adding a polygon
-    val modifiedOriginal = original.maybeAddRegularPolygonToBoundary("V1", 4)
+    val modifiedOriginal = original.maybeAddRegularPolygonToBoundary(V1, 4)
     modifiedOriginal shouldBe a[Right[?, ?]]
 
     // Copy should remain unchanged
@@ -202,8 +202,8 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
     original.hasConnectedFaces shouldEqual copy.hasConnectedFaces
 
     // Add polygons to both and check they remain connected
-    val expandedOriginal = original.maybeAddRegularPolygonToBoundary("V1", 3).value
-    val expandedCopy = copy.maybeAddRegularPolygonToBoundary("V1", 3).value
+    val expandedOriginal = original.maybeAddRegularPolygonToBoundary(V1, 3).value
+    val expandedCopy = copy.maybeAddRegularPolygonToBoundary(V1, 3).value
 
     expandedOriginal.hasConnectedFaces shouldBe true
     expandedCopy.hasConnectedFaces shouldBe true
@@ -211,8 +211,8 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
 
   it should "work correctly for complex multi-polygon tilings" in {
     val original = triangle
-      .maybeAddRegularPolygonToBoundary("V1", 4).value
-      .maybeAddRegularPolygonToBoundary("V5", 3).value
+      .maybeAddRegularPolygonToBoundary(V1, 4).value
+      .maybeAddRegularPolygonToBoundary(V5, 3).value
 
     val copy = original.deepCopy
 
@@ -225,8 +225,8 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
     TilingDCEL.validate(copy) shouldBe Right(())
 
     // Verify independence by modifying each
-    val modifiedOriginal = original.maybeAddRegularPolygonToBoundary("V2", 6)
-    val modifiedCopy = copy.maybeAddRegularPolygonToBoundary("V3", 5)
+    val modifiedOriginal = original.maybeAddRegularPolygonToBoundary(V2, 6)
+    val modifiedCopy = copy.maybeAddRegularPolygonToBoundary(V3, 5)
 
     modifiedOriginal shouldBe a[Right[?, ?]]
     modifiedCopy shouldBe a[Right[?, ?]]
@@ -259,21 +259,21 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
 
   it should "return false for tilings with different face signatures" in {
     // Both have 2 faces, 7 vertices, 16 half-edges
-    val tiling1 = square.maybeAddRegularPolygonToBoundary("V1", 3).value
+    val tiling1 = square.maybeAddRegularPolygonToBoundary(V1, 3).value
     // Both have 2 faces, 8 vertices, 18 half-edges
-    val tiling2 = square.maybeAddRegularPolygonToBoundary("V1", 4).value
+    val tiling2 = square.maybeAddRegularPolygonToBoundary(V1, 4).value
     tiling1.isTopologicallyEquivalentTo(tiling2) shouldBe false
   }
 
   it should "return true for two complex tilings built differently but structurally identical" in {
     // Tiling A: Add a triangle to V1, then another to V4
     val tilingA = triangle
-      .maybeAddRegularPolygonToBoundary("V1", 3).value
-      .maybeAddRegularPolygonToBoundary("V4", 3).value
+      .maybeAddRegularPolygonToBoundary(V1, 3).value
+      .maybeAddRegularPolygonToBoundary(V4, 3).value
     // Tiling B: Add a triangle to V2, then another to V4
     val tilingB = triangle
-      .maybeAddRegularPolygonToBoundary("V2", 3).value
-      .maybeAddRegularPolygonToBoundary("V4", 3).value
+      .maybeAddRegularPolygonToBoundary(V2, 3).value
+      .maybeAddRegularPolygonToBoundary(V4, 3).value
 
     tilingA.isTopologicallyEquivalentTo(tilingB) shouldBe true
   }
@@ -302,9 +302,9 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
 
   /** <img src="file:../../resources/shapeL.svg"/> */
   def shapeL: TilingDCEL = square
-    .maybeAddRegularPolygonToBoundary("V3", 4).value
-    .maybeAddRegularPolygonToBoundary("V4", 4).value
-    .maybeAddRegularPolygonToBoundary("V7", 4).value
+    .maybeAddRegularPolygonToBoundary(V3, 4).value
+    .maybeAddRegularPolygonToBoundary(V4, 4).value
+    .maybeAddRegularPolygonToBoundary(VertexId("V7"), 4).value
 
   /** <img src="file:../../resources/shapeΓ.svg"/> */
   def shapeΓ: TilingDCEL =
@@ -312,8 +312,8 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
 
   /** <img src="file:../../resources/shapeL2.svg"/> */
   def shapeL2: TilingDCEL = square
-    .maybeAddRegularPolygonToBoundary("V2", 4).value
-    .maybeAddRegularPolygonToBoundary("V2", 3).value
+    .maybeAddRegularPolygonToBoundary(V2, 4).value
+    .maybeAddRegularPolygonToBoundary(V2, 3).value
 
   /** <img src="file:../../resources/shapeΓ2.svg"/> */
   def shapeΓ2: TilingDCEL =
@@ -329,10 +329,10 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
   def net: TilingDCEL = TilingBuilder.createRhombusNet(3, 6)
 
   /** <img src="file:../../resources/holeInNet1.svg"/> */
-  def holeInNet1: TilingDCEL = net.deleteEdge("V18", "V19").value
+  def holeInNet1: TilingDCEL = net.deleteEdge(VertexId("V18"), VertexId("V19")).value
 
   /** <img src="file:../../resources/holeInNet2.svg"/> */
-  def holeInNet2: TilingDCEL = net.deleteEdge("V14", "V15").value
+  def holeInNet2: TilingDCEL = net.deleteEdge(VertexId("V14"), VertexId("V15")).value
 
   it should "fail for two similar but different tiling" in {
     holeInNet1.isTopologicallyEquivalentTo(holeInNet2) shouldBe false

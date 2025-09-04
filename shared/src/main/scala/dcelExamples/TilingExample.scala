@@ -1,7 +1,7 @@
 package dcelExamples
 
 import dcel.BigDecimalGeometry.{AngleDegree, BigPoint}
-import dcel.{Face, FaceId, HalfEdge, TilingDCEL, Vertex}
+import dcel.{Face, FaceId, HalfEdge, TilingDCEL, Vertex, VertexId}
 
 object TilingExample:
 
@@ -32,10 +32,10 @@ object TilingExample:
    */
   def createTwoTrianglesTiling(): TilingDCEL =
     // 1. Define vertices
-    val vA = Vertex("V1", BigPoint(0.0, 0.0))
-    val vB = Vertex("V2", BigPoint(1.0, 0.0))
-    val vC = Vertex("V3", BigPoint(0.5, 0.866))
-    val vD = Vertex("V4", BigPoint(-0.5, 0.866))
+    val vA = Vertex(VertexId("V1"), BigPoint(0.0, 0.0))
+    val vB = Vertex(VertexId("V2"), BigPoint(1.0, 0.0))
+    val vC = Vertex(VertexId("V3"), BigPoint(0.5, 0.866))
+    val vD = Vertex(VertexId("V4"), BigPoint(-0.5, 0.866))
 
     // 2. Define faces
     val fABC = Face(FaceId("F1"))
@@ -93,13 +93,13 @@ object TilingExample:
    */
   def createSixTrianglesTiling(): TilingDCEL =
     // 1. Define vertices
-    val vA = Vertex("V1", BigPoint(0.0, 0.0))
-    val vB = Vertex("V2", BigPoint(1.0, 0.0))
-    val vC = Vertex("V3", BigPoint(0.5, 0.866))
-    val vD = Vertex("V4", BigPoint(-0.5, 0.866))
-    val vE = Vertex("V5", BigPoint(-1.0, 0.0))
-    val vF = Vertex("V6", BigPoint(-0.5, -0.866))
-    val vG = Vertex("V7", BigPoint(0.5, -0.866))
+    val vA = Vertex(VertexId("V1"), BigPoint(0.0, 0.0))
+    val vB = Vertex(VertexId("V2"), BigPoint(1.0, 0.0))
+    val vC = Vertex(VertexId("V3"), BigPoint(0.5, 0.866))
+    val vD = Vertex(VertexId("V4"), BigPoint(-0.5, 0.866))
+    val vE = Vertex(VertexId("V5"), BigPoint(-1.0, 0.0))
+    val vF = Vertex(VertexId("V6"), BigPoint(-0.5, -0.866))
+    val vG = Vertex(VertexId("V7"), BigPoint(0.5, -0.866))
 
     // 2. Define faces
     val fABC = Face(FaceId("F1"))

@@ -26,11 +26,11 @@ case class TilingDCEL private(
   def faces: List[Face] =
     outerFace :: innerFaces
 
-  def findVertexUnsafe(vertexId: String): Option[Vertex] =
+  def findVertexUnsafe(vertexId: VertexId): Option[Vertex] =
     vertices.find(_.id == vertexId)
 
-  def findVertex(vertexId: String): Either[TilingError, Vertex] =
-    findVertexUnsafe(vertexId).toRight(NotFoundError("Vertex", vertexId))
+  def findVertex(vertexId: VertexId): Either[TilingError, Vertex] =
+    findVertexUnsafe(vertexId).toRight(NotFoundError("Vertex", vertexId.value))
 
   def findFace(faceId: FaceId): Either[TilingError, Face] =
     faces.find(_.id == faceId).toRight(NotFoundError("Face", faceId.value))
@@ -44,7 +44,7 @@ case class TilingDCEL private(
   def findEdgeBetween(v1: Vertex, v2: Vertex): Option[HalfEdge] =
     v1.incidentEdgesUnsafe.find(_.destination.contains(v2))
 
-  def findVerticesAndEdgeBetween(vertexId1: String, vertexId2: String): Either[TilingError, (Vertex, Vertex, HalfEdge)] =
+  def findVerticesAndEdgeBetween(vertexId1: VertexId, vertexId2: VertexId): Either[TilingError, (Vertex, Vertex, HalfEdge)] =
     for
       v1 <- findVertex(vertexId1)
       v2 <- findVertex(vertexId2)
@@ -52,12 +52,12 @@ case class TilingDCEL private(
     yield
       (v1, v2, edge)
 
-  def getAnglesAtVertexUnsafe(vertexId: String): List[AngleDegree] =
+  def getAnglesAtVertexUnsafe(vertexId: VertexId): List[AngleDegree] =
     val vertex = findVertexUnsafe(vertexId).get
     val edges = vertex.incidentEdgesUnsafe
     edges.map(_.angle.get)
 
-  def getAnglesAtVertex(vertexId: String): Either[TilingError, List[AngleDegree]] =
+  def getAnglesAtVertex(vertexId: VertexId): Either[TilingError, List[AngleDegree]] =
     for
       vertex <- findVertex(vertexId)
       edges <- vertex.incidentEdges
@@ -68,12 +68,12 @@ case class TilingDCEL private(
         Right(maybeAngles.flatten)
     yield angles
 
-  def getInnerAnglesAtVertexUnsafe(vertexId: String): List[AngleDegree] =
+  def getInnerAnglesAtVertexUnsafe(vertexId: VertexId): List[AngleDegree] =
     val vertex = findVertexUnsafe(vertexId).get
     val edges = vertex.incidentEdgesUnsafe
     edges.filterNot(isBoundaryEdge).map(_.angle.get)
 
-  def getInnerAnglesAtVertex(vertexId: String): Either[TilingError, List[AngleDegree]] =
+  def getInnerAnglesAtVertex(vertexId: VertexId): Either[TilingError, List[AngleDegree]] =
     for
       vertex <- findVertex(vertexId)
       edges <- vertex.incidentEdges
@@ -129,10 +129,10 @@ case class TilingDCEL private(
    * @param vertexId The ID of the origin vertex.
    * @return An Option containing the HalfEdge if found, otherwise None.
    */
-  private def findBoundaryEdge(vertexId: String): Option[HalfEdge] =
+  private def findBoundaryEdge(vertexId: VertexId): Option[HalfEdge] =
     getBoundaryEdges.toOption.flatMap(_.find(_.origin.id == vertexId))
 
-  def maybeAddRegularPolygonToBoundary(onEdgeStartingWithVertexId: String, sides: Int): Either[TilingError, TilingDCEL] =
+  def maybeAddRegularPolygonToBoundary(onEdgeStartingWithVertexId: VertexId, sides: Int): Either[TilingError, TilingDCEL] =
     this.addRegularPolygonToBoundary(onEdgeStartingWithVertexId, sides)
     
   def maybeDeleteFace(faceId: FaceId): Either[TilingError, TilingDCEL] =

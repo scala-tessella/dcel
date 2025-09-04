@@ -69,7 +69,7 @@ object TilingBuilder:
     val n = points.length
 
     // Create vertices from the calculated points
-    val vertices = points.zipWithIndex.map { case (p, i) => Vertex(s"V${i + 1}", p) }
+    val vertices = points.zipWithIndex.map { case (p, i) => Vertex(VertexId(s"V${i + 1}"), p) }
 
     // Create the two faces: one for the polygon, one for the outside
     val polygonFace = Face(FaceId.firstInnerId)
@@ -165,7 +165,7 @@ object TilingBuilder:
 
     val vertices = Array.tabulate(height + 1, width + 1) { (j, i) =>
       val vertexId = j * (width + 1) + i + 1
-      Vertex(s"V$vertexId", points(j)(i))
+      Vertex(VertexId(s"V$vertexId"), points(j)(i))
     }
     (points, vertices)
 
@@ -427,7 +427,7 @@ object TilingBuilder:
     def getOrCreateVertexByTriple(key: (Int, Int, Int)): Vertex =
       vertexByTriple.getOrElseUpdate(key, {
         val (n0, n1, n2) = key
-        val v = Vertex(s"V$vertexCounter", tripleToPoint(n0, n1, n2))
+        val v = Vertex(VertexId(s"V$vertexCounter"), tripleToPoint(n0, n1, n2))
         vertexCounter += 1
         v
       })

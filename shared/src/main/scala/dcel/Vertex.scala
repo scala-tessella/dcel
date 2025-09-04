@@ -11,16 +11,16 @@ import dcel.Topology.breadthFirstSearch
  * @param leaving An optional reference to one of the half-edges originating from this vertex.
  */
 case class Vertex(
-  id: String,
+  id: VertexId,
   coords: BigPoint,
   var leaving: Option[HalfEdge] = None
 ):
   override def equals(obj: Any): Boolean =
     obj match
-      case that: Vertex => this.id == that.id
+      case that: Vertex => this.id.value == that.id.value
       case _ => false
 
-  override def hashCode(): Int = id.hashCode
+  override def hashCode(): Int = id.value.hashCode
 
   override def toString: String =
     s"Vertex $id at coords (${coords.x.format}, ${coords.y.format})${validate().swap.map(error => s" [${error.message}]").getOrElse("")}"

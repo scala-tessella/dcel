@@ -2,21 +2,21 @@ package dcel
 
 import dcel.BigDecimalGeometry.BigPoint
 import dcel.Topology.breadthFirstSearch
-import org.scalatest.EitherValues
+
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
+class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   // Helper method to create a simple vertex
-  private def createVertex(id: String, x: Double, y: Double): Vertex =
+  private def createVertex(id: VertexId, x: Double, y: Double): Vertex =
     Vertex(id, BigPoint(x, y))
 
   // Helper method to create a simple triangular face with proper edge linking
   private def createTriangleFace(faceId: FaceId): (Face, List[HalfEdge], List[Vertex]) =
-    val v1 = createVertex("V1", 0, 0)
-    val v2 = createVertex("V2", 1, 0)
-    val v3 = createVertex("V3", 0.5, 0.866)
+    val v1 = createVertex(V1, 0, 0)
+    val v2 = createVertex(VertexId("V2"), 1, 0)
+    val v3 = createVertex(VertexId("V3"), 0.5, 0.866)
     
     val face = Face(faceId)
     val he1 = HalfEdge(v1, incidentFace = Some(face))
@@ -38,10 +38,10 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   // Helper method to create a square face
   private def createSquareFace(faceId: FaceId): (Face, List[HalfEdge], List[Vertex]) =
-    val v1 = createVertex("V1", 0, 0)
-    val v2 = createVertex("V2", 1, 0)
-    val v3 = createVertex("V3", 1, 1)
-    val v4 = createVertex("V4", 0, 1)
+    val v1 = createVertex(V1, 0, 0)
+    val v2 = createVertex(VertexId("V2"), 1, 0)
+    val v3 = createVertex(VertexId("V3"), 1, 1)
+    val v4 = createVertex(V4, 0, 1)
     
     val face = Face(faceId)
     val he1 = HalfEdge(v1, incidentFace = Some(face))
@@ -74,9 +74,9 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "create a face with outer component" in {
-    val vertex = createVertex("V1", 0, 0)
+    val vertex = createVertex(V1, 0, 0)
     val edge = HalfEdge(vertex)
-    val face = Face(FaceId("F1"), Some(edge))
+    val face = Face(F1, Some(edge))
     
     face.id.value shouldBe "F1"
     face.outerComponent shouldBe Some(edge)
@@ -84,11 +84,11 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "create a face with inner components" in {
-    val vertex = createVertex("V1", 0, 0)
+    val vertex = createVertex(V1, 0, 0)
     val edge1 = HalfEdge(vertex)
     val edge2 = HalfEdge(vertex)
     val innerComponents = List(Some(edge1), Some(edge2))
-    val face = Face(FaceId("F1"), None, innerComponents)
+    val face = Face(F1, None, innerComponents)
     
     face.id.value shouldBe "F1"
     face.outerComponent shouldBe None
@@ -98,10 +98,10 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
   behavior of "Face equality"
 
   it should "be equal to another face with the same ID" in {
-    val vertex = createVertex("V1", 0, 0)
+    val vertex = createVertex(V1, 0, 0)
     val edge = HalfEdge(vertex)
     val face1 = Face(FaceId("F1"))
-    val face2 = Face(FaceId("F1"), Some(edge)) // Different components
+    val face2 = Face(F1, Some(edge)) // Different components
     
     face1 shouldEqual face2
   }
@@ -138,18 +138,18 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
   behavior of "Face.validate"
 
   it should "return Right(()) when face is complete" in {
-    val vertex = createVertex("V1", 0, 0)
+    val vertex = createVertex(V1, 0, 0)
     val edge1 = HalfEdge(vertex)
     val edge2 = HalfEdge(vertex)
-    val face = Face(FaceId("F1"), Some(edge1), List(Some(edge2)))
+    val face = Face(F1, Some(edge1), List(Some(edge2)))
     
     face.validate() shouldBe Right(())
   }
 
   it should "return Left with missing outer component error" in {
-    val vertex = createVertex("V1", 0, 0)
+    val vertex = createVertex(V1, 0, 0)
     val edge = HalfEdge(vertex)
-    val face = Face(FaceId("F1"), None, List(Some(edge)))
+    val face = Face(F1, None, List(Some(edge)))
     
     val result = face.validate()
     result.isLeft shouldBe true
@@ -157,9 +157,9 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "return Left with missing inner components error" in {
-    val vertex = createVertex("V1", 0, 0)
+    val vertex = createVertex(V1, 0, 0)
     val edge = HalfEdge(vertex)
-    val face = Face(FaceId("F1"), Some(edge))
+    val face = Face(F1, Some(edge))
     
     val result = face.validate()
     result.isLeft shouldBe true
@@ -184,7 +184,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "return single vertex for self-loop edge" in {
-    val vertex = createVertex("V1", 0, 0)
+    val vertex = createVertex(V1, 0, 0)
     val face = Face(FaceId("F1"))
     val edge = HalfEdge(vertex, incidentFace = Some(face))
     edge.next = Some(edge) // Self-loop
@@ -210,8 +210,8 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "handle broken edge chain NOT gracefully" in {
-    val v1 = createVertex("V1", 0, 0)
-    val v2 = createVertex("V2", 1, 0)
+    val v1 = createVertex(V1, 0, 0)
+    val v2 = createVertex(VertexId("V2"), 1, 0)
     val face = Face(FaceId("F1"))
     val he1 = HalfEdge(v1, incidentFace = Some(face))
     val he2 = HalfEdge(v2, incidentFace = Some(face))
@@ -232,7 +232,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "return Right with single edge for self-loop" in {
-    val vertex = createVertex("V1", 0, 0)
+    val vertex = createVertex(V1, 0, 0)
     val face = Face(FaceId("F1"))
     val edge = HalfEdge(vertex, incidentFace = Some(face))
     edge.next = Some(edge)
@@ -258,8 +258,8 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "return Left when edge chain is broken" in {
-    val v1 = createVertex("V1", 0, 0)
-    val v2 = createVertex("V2", 1, 0)
+    val v1 = createVertex(V1, 0, 0)
+    val v2 = createVertex(VertexId("V2"), 1, 0)
     val face = Face(FaceId("F_broken"))
     val he1 = HalfEdge(v1, incidentFace = Some(face))
     val he2 = HalfEdge(v2, incidentFace = Some(face))
@@ -274,9 +274,9 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "return Left when cycle is detected" in {
-    val v1 = createVertex("V1", 0, 0)
-    val v2 = createVertex("V2", 1, 0)
-    val v3 = createVertex("V3", 0.5, 0.866)
+    val v1 = createVertex(V1, 0, 0)
+    val v2 = createVertex(VertexId("V2"), 1, 0)
+    val v3 = createVertex(VertexId("V3"), 0.5, 0.866)
     val face = Face(FaceId("F_cycle"))
     val he1 = HalfEdge(v1, incidentFace = Some(face))
     val he2 = HalfEdge(v2, incidentFace = Some(face))
@@ -295,7 +295,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
   behavior of "Face.halfEdgesSafe"
 
   it should "return empty list when halfEdges returns error" in {
-    val v1 = createVertex("V1", 0, 0)
+    val v1 = createVertex(V1, 0, 0)
     val face = Face(FaceId("F_broken"))
     val he1 = HalfEdge(v1, incidentFace = Some(face))
     // he1.next is None - broken chain
@@ -318,8 +318,8 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "return 0 for face with less than 3 vertices" in {
-    val v1 = createVertex("V1", 0, 0)
-    val v2 = createVertex("V2", 1, 0)
+    val v1 = createVertex(V1, 0, 0)
+    val v2 = createVertex(VertexId("V2"), 1, 0)
     val face = Face(FaceId("F_line"))
     val he1 = HalfEdge(v1, incidentFace = Some(face))
     val he2 = HalfEdge(v2, incidentFace = Some(face))
@@ -349,10 +349,10 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "calculate area using shoelace formula correctly" in {
     // Create a rectangular face with known area
-    val v1 = createVertex("V1", 0, 0)
-    val v2 = createVertex("V2", 2, 0)
-    val v3 = createVertex("V3", 2, 3)
-    val v4 = createVertex("V4", 0, 3)
+    val v1 = createVertex(V1, 0, 0)
+    val v2 = createVertex(VertexId("V2"), 2, 0)
+    val v3 = createVertex(VertexId("V3"), 2, 3)
+    val v4 = createVertex(V4, 0, 3)
     
     val face = Face(FaceId("F_rectangle"))
     val he1 = HalfEdge(v1, incidentFace = Some(face))
@@ -375,7 +375,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "allow modification of outer component" in {
     val face = Face(FaceId("F1"))
-    val vertex = createVertex("V1", 0, 0)
+    val vertex = createVertex(V1, 0, 0)
     val edge1 = HalfEdge(vertex)
     val edge2 = HalfEdge(vertex)
     
@@ -393,7 +393,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "allow modification of inner components" in {
     val face = Face(FaceId("F1"))
-    val vertex = createVertex("V1", 0, 0)
+    val vertex = createVertex(V1, 0, 0)
     val edge1 = HalfEdge(vertex)
     val edge2 = HalfEdge(vertex)
     
@@ -427,10 +427,10 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "return correct adjacency for connected faces" in {
     // Create two adjacent triangular faces
-    val v1 = createVertex("V1", 0, 0)
-    val v2 = createVertex("V2", 1, 0)
-    val v3 = createVertex("V3", 0.5, 0.866)
-    val v4 = createVertex("V4", 0.5, -0.866)
+    val v1 = createVertex(V1, 0, 0)
+    val v2 = createVertex(V2, 1, 0)
+    val v3 = createVertex(V3, 0.5, 0.866)
+    val v4 = createVertex(V4, 0.5, -0.866)
 
     val face1 = Face(FaceId("F1"))
     val face2 = Face(FaceId("F2"))

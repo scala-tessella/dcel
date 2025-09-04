@@ -17,7 +17,7 @@ object TilingAddition:
 
   private def createVertices(points: List[BigPoint], startingIndex: Int): List[Vertex] =
     points.zipWithIndex.map { (point, index) =>
-      Vertex(s"V${startingIndex + index}", point)
+      Vertex(VertexId(s"V${startingIndex + index}"), point)
     }
 
   // Extract polygon angle calculation
@@ -127,7 +127,7 @@ object TilingAddition:
       FaceId("F" + (tiling.innerFaces.map(_.id.value.tail.toInt).max + 1).toString)
 
     private def nextVertexIndex: Int =
-      tiling.vertices.map(_.id.tail.toInt).max + 1
+      tiling.vertices.map(_.id.value.tail.toInt).max + 1
 
     private def growthWithHoleCheck(
       startVertex: Vertex,
@@ -182,7 +182,7 @@ object TilingAddition:
      * @param v_match the existing vertex closing the hole
      * @param v_new   the new vertex closing the hole
      */
-    private def holeAnglesWithDirection(v_match: Vertex, v_new: Vertex, containerFace: Face): (List[AngleDegree], String, String) =
+    private def holeAnglesWithDirection(v_match: Vertex, v_new: Vertex, containerFace: Face): (List[AngleDegree], VertexId, VertexId) =
       val boundaryEdges = containerFace.halfEdgesUnsafe
 
       // 1. Determine the shorter path (the "hole") on the boundary between the two vertices.
@@ -203,7 +203,7 @@ object TilingAddition:
         val lastEdge = holePath.last
         (polygonAngles.rotateRight(1), lastEdge.origin.id, lastEdge.destination.get.id)
 
-    private def validateBoundaryEdge(startingWithVertexId: String): Either[TilingError, (HalfEdge, Vertex, Vertex, List[HalfEdge])] = {
+    private def validateBoundaryEdge(startingWithVertexId: VertexId): Either[TilingError, (HalfEdge, Vertex, Vertex, List[HalfEdge])] = {
       val boundaryEdges = tiling.getBoundaryEdgesUnsafe
       for
         edgeToBuildOn <- boundaryEdges
@@ -214,7 +214,7 @@ object TilingAddition:
       yield (edgeToBuildOn, startVertex, endVertex, boundaryEdges)
     }
 
-    def addSimplePolygonToBoundary(onEdgeStartingWithVertexId: String, angles: List[AngleDegree]): Either[TilingError, TilingDCEL] =
+    def addSimplePolygonToBoundary(onEdgeStartingWithVertexId: VertexId, angles: List[AngleDegree]): Either[TilingError, TilingDCEL] =
       for
         _ <- validateSides(angles.length, "simple")
         (edgeToBuildOn, startVertex, endVertex, boundaryEdges) <- validateBoundaryEdge(onEdgeStartingWithVertexId)
@@ -222,10 +222,10 @@ object TilingAddition:
       yield
         result
 
-    def addSimplePolygonToBoundary(onEdgeStartingWithVertexId: String, degrees: Int *): Either[TilingError, TilingDCEL] =
+    def addSimplePolygonToBoundary(onEdgeStartingWithVertexId: VertexId, degrees: Int *): Either[TilingError, TilingDCEL] =
       addSimplePolygonToBoundary(onEdgeStartingWithVertexId, degrees.map(AngleDegree(_)).toList)
 
-    def addRegularPolygonToBoundary(onEdgeStartingWithVertexId: String, sides: Int): Either[TilingError, TilingDCEL] =
+    def addRegularPolygonToBoundary(onEdgeStartingWithVertexId: VertexId, sides: Int): Either[TilingError, TilingDCEL] =
       for
         _ <- validateSides(sides, "regular")
         (_, startVertex, endVertex, _) <- validateBoundaryEdge(onEdgeStartingWithVertexId)
@@ -241,7 +241,7 @@ object TilingAddition:
       )
 
     @tailrec
-    def addSimplePolygon(startVertexId: String, endVertexId: String, angles: List[AngleDegree]): Either[TilingError, TilingDCEL] =
+    def addSimplePolygon(startVertexId: VertexId, endVertexId: VertexId, angles: List[AngleDegree]): Either[TilingError, TilingDCEL] =
       val either: Either[TilingError, (TilingDCEL, TilingDCEL, Face, Option[(Vertex, Vertex)])] =
         for
           (startVertex, endVertex, edgeToBuildOn) <- tiling.findVerticesAndEdgeBetween(startVertexId, endVertexId)
@@ -263,10 +263,10 @@ object TilingAddition:
             case None => Right(revisedTiling)
             case Some(holeFilled) => holeFilled.addSimplePolygon(startVertexId, endVertexId, angles)
 
-    def addSimplePolygon(startVertexId: String, endVertexId: String, degrees: Int *): Either[TilingError, TilingDCEL] =
+    def addSimplePolygon(startVertexId: VertexId, endVertexId: VertexId, degrees: Int *): Either[TilingError, TilingDCEL] =
       addSimplePolygon(startVertexId, endVertexId, degrees.map(AngleDegree(_)).toList)
 
-    private def addSimplePolygonWithoutGuards(startVertexId: String, endVertexId: String, angles: List[AngleDegree]): Option[TilingDCEL] =
+    private def addSimplePolygonWithoutGuards(startVertexId: VertexId, endVertexId: VertexId, angles: List[AngleDegree]): Option[TilingDCEL] =
       for
         (startVertex, endVertex, edgeToBuildOn) <- tiling.findVerticesAndEdgeBetween(startVertexId, endVertexId).toOption
         points = calculateVertexPoints(angles, startVertex.coords, endVertex.coords)
@@ -288,7 +288,7 @@ object TilingAddition:
         )
 
     @tailrec
-    def addRegularPolygon(startVertexId: String, endVertexId: String, sides: Int): Either[TilingError, TilingDCEL] =
+    def addRegularPolygon(startVertexId: VertexId, endVertexId: VertexId, sides: Int): Either[TilingError, TilingDCEL] =
       val either: Either[TilingError, (TilingDCEL, TilingDCEL, Face, Option[(Vertex, Vertex)])] =
         for
           (startVertex, endVertex, edgeToBuildOn) <- tiling.findVerticesAndEdgeBetween(startVertexId, endVertexId)
