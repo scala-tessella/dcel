@@ -349,7 +349,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     result.isLeft shouldBe true
     val error = result.left.value.message
     // Check that at least one of the expected errors is present, as iteration order is not guaranteed
-    val faceError = "Face F1: ValidationError(The sum of interior angles is incorrect"
+    val faceError = "Face F1: GeometryError(The sum of interior angles is incorrect"
     val boundaryError = "Boundary: The sum of interior angles is incorrect"
     (error.contains(faceError) || error.contains(boundaryError)) shouldBe true
   }

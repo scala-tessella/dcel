@@ -237,7 +237,7 @@ object TilingDCEL:
     if tiling.innerFaces.exists(_.hasHoles) then
       errors += "Face with inner holes"
 
-    if errors.isEmpty then Right(()) else Left(TilingError.combineValidationErrors(errors.toList))
+    if errors.isEmpty then Right(()) else Left(TilingError.combineErrors(errors.toList, TilingError.topology))
 
   def validateGeometrically(tiling: TilingDCEL): Either[TilingError, Unit] =
     val errors = mutable.ListBuffer[String]()
@@ -297,7 +297,7 @@ object TilingDCEL:
           errors += s"Could not validate angles for interior vertex ${vertex.id} due to: $error"
     }
 
-    if errors.isEmpty then Right(()) else Left(TilingError.combineValidationErrors(errors.toList))
+    if errors.isEmpty then Right(()) else Left(TilingError.combineErrors(errors.toList, TilingError.geometry))
 
   def validateSpatially(tiling: TilingDCEL): Either[TilingError, Unit] =
     val errors = mutable.ListBuffer[String]()
@@ -307,14 +307,13 @@ object TilingDCEL:
         if boundaryVertices.length >= 3 then
           if !boundaryVertices.map(_.coords).toList.hasNoAlmostEqualPoints() then
             errors += "Coordinates: boundary with vertices in the same position"
-      case Left(error) =>
-        errors += s"Could not validate boundary angles due to: $error"
+      case Left(error) => // NOTE: topological error, handled in validateTopologically
 
-    if errors.isEmpty then Right(()) else Left(TilingError.combineValidationErrors(errors.toList))
+    if errors.isEmpty then Right(()) else Left(TilingError.combineErrors(errors.toList, TilingError.spatial))
 
   def validate(tiling: TilingDCEL): Either[TilingError, Unit] =
     val topoErrors = validateTopologically(tiling).left.toOption.map(_.message)
     val geoErrors = validateGeometrically(tiling).left.toOption.map(_.message)
     val spaceErrors = validateSpatially(tiling).left.toOption.map(_.message)
     val allErrors = topoErrors.toList ++ geoErrors.toList ++ spaceErrors.toList
-    if allErrors.isEmpty then Right(()) else Left(TilingError.combineValidationErrors(allErrors))
+    if allErrors.isEmpty then Right(()) else Left(TilingError.combineErrors(allErrors, TilingError.validation))

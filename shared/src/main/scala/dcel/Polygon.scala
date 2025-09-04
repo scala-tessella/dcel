@@ -20,12 +20,12 @@ object Polygon:
     def validatePolygonAngles(angles: List[AngleDegree]): Either[TilingError, Unit] =
       val n = angles.length
       if angles.exists(_.isFullCircle) then
-        Left(ValidationError("The polygon cannot have full circles as interior angles."))
+        Left(GeometryError("The polygon cannot have full circles as interior angles."))
       else
         val angleSum = angles.map(_.normalised).sum2
         val expectedAngleSum = alphaSum(n)
         if (angleSum - expectedAngleSum).toRational.abs > ACCURACY then
-          Left(ValidationError(f"The sum of interior angles is incorrect for a polygon with $n sides. Expected ${expectedAngleSum.toRational.toDouble}%.2f, but got ${angleSum.toRational.toDouble}%.2f."))
+          Left(GeometryError(f"The sum of interior angles is incorrect for a polygon with $n sides. Expected ${expectedAngleSum.toRational.toDouble}%.2f, but got ${angleSum.toRational.toDouble}%.2f."))
         else
           Right(())
 
