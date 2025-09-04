@@ -1,6 +1,7 @@
-package dcel
+package dcelExamples
 
 import dcel.BigDecimalGeometry.{AngleDegree, BigPoint}
+import dcel.{Face, HalfEdge, TilingDCEL, Vertex}
 
 object TilingExample:
 
@@ -76,17 +77,14 @@ object TilingExample:
     hAD.angle = Some(AngleDegree(240))
 
     // 5. Populate and return the Tiling container
-    val result = TilingDCEL(
+    val result = TilingDCEL.fromUntrusted(
       vertices = List(vA, vB, vC, vD),
       halfEdges = halfEdges,
       innerFaces = List(fABC, fACD),
       outerFace = fOuter
     )
 
-    println(TilingDCEL.validate(result))
-//    println(result.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
-
-    result
+    result.toOption.get
 
   /**
    * Creates a sample TilingDCEL with six triangles sharing a vertex.
@@ -173,14 +171,11 @@ object TilingExample:
     linkPolygon(List(hCB, hBG, hGF, hFE, hED, hDC), fOuter, AngleDegree(240))
 
     // 5. Populate and return the Tiling container
-    val result = TilingDCEL(
+    val result = TilingDCEL.fromUntrusted(
       vertices = List(vA, vB, vC, vD, vE, vF, vG),
       halfEdges = halfEdges,
       innerFaces = List(fABC, fACD, fADE, fAEF, fAFG, fAGB),
       outerFace = fOuter
     )
 
-    println(TilingDCEL.validate(result))
-//    println(result.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
-
-    result
+    result.toOption.get
