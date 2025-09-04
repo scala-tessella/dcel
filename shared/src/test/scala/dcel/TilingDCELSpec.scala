@@ -239,7 +239,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val triangle = createTriangleTiling()
     val result = triangle.getAnglesAtVertex("V999")
     result.isLeft shouldBe true
-    result.left.value shouldEqual "Vertex with ID V999 not found."
+    result.left.value.message shouldEqual "Vertex with ID 'V999' not found."
   }
 
   it should "return an error if an inner incident edge has no angle" in {
@@ -247,7 +247,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     square.innerFaces.head.halfEdges.toOption.get.head.angle = None
     val result = square.getAnglesAtVertex("V1")
     result.isLeft shouldBe true
-    result.left.value shouldEqual "Vertex with ID V1 has at least one edge with no angle."
+    result.left.value.message shouldEqual "Vertex with ID V1 has at least one edge with no angle."
   }
 
   it should "fail if the incident edge loop is broken" in {
@@ -303,7 +303,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     edge.next.get.prev = None // Break the link
     val result = TilingDCEL.validate(square)
     result.isLeft shouldBe true
-    result.left.value.message should startWith("Next/prev relationship broken")
+    result.left.value.message should include("Next/prev relationship broken")
   }
 
   it should "fail if an inner face has an incorrect sum of angles" in {
@@ -350,7 +350,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     result.isLeft shouldBe true
     val error = result.left.value.message
     // Check that at least one of the expected errors is present, as iteration order is not guaranteed
-    val faceError = "Face F1: The sum of interior angles is incorrect"
+    val faceError = "Face F1: ValidationError(The sum of interior angles is incorrect"
     val boundaryError = "Boundary: The sum of interior angles is incorrect"
     (error.contains(faceError) || error.contains(boundaryError)) shouldBe true
   }
