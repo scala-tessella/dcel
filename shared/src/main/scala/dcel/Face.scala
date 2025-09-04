@@ -12,7 +12,7 @@ import io.github.scala_tessella.ring_seq.RingSeq.slidingO
  * @param innerComponents A list of optional references to half-edges, one for each inner boundary (hole).
  */
 case class Face(
-  id: String,
+  id: FaceId,
   var outerComponent: Option[HalfEdge] = None,
   var innerComponents: List[Option[HalfEdge]] = Nil
 ):
@@ -74,11 +74,8 @@ case class Face(
 
 object Face:
 
-  val outerId = "F0"
 
-  val firstInnerId = "F1"
-
-  def outer: Face = Face(outerId)
+  def outer: Face = Face(FaceId.outerId)
   
   def adjacencyMap(faces: List[Face]): Map[Face, List[Face]] =
     faces.map { face =>

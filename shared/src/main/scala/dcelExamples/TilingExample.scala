@@ -1,7 +1,7 @@
 package dcelExamples
 
 import dcel.BigDecimalGeometry.{AngleDegree, BigPoint}
-import dcel.{Face, HalfEdge, TilingDCEL, Vertex}
+import dcel.{Face, FaceId, HalfEdge, TilingDCEL, Vertex}
 
 object TilingExample:
 
@@ -38,8 +38,8 @@ object TilingExample:
     val vD = Vertex("V4", BigPoint(-0.5, 0.866))
 
     // 2. Define faces
-    val fABC = Face("F1")
-    val fACD = Face("F2")
+    val fABC = Face(FaceId("F1"))
+    val fACD = Face(FaceId("F2"))
     val fOuter = Face.outer
 
     // 3. Create half-edges
@@ -102,12 +102,12 @@ object TilingExample:
     val vG = Vertex("V7", BigPoint(0.5, -0.866))
 
     // 2. Define faces
-    val fABC = Face("F1")
-    val fACD = Face("F2")
-    val fADE = Face("F3")
-    val fAEF = Face("F4")
-    val fAFG = Face("F5")
-    val fAGB = Face("F6")
+    val fABC = Face(FaceId("F1"))
+    val fACD = Face(FaceId("F2"))
+    val fADE = Face(FaceId("F3"))
+    val fAEF = Face(FaceId("F4"))
+    val fAFG = Face(FaceId("F5"))
+    val fAGB = Face(FaceId("F6"))
     val fOuter = Face.outer
 
     // 3. Create half-edges

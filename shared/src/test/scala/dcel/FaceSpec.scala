@@ -13,7 +13,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
     Vertex(id, BigPoint(x, y))
 
   // Helper method to create a simple triangular face with proper edge linking
-  private def createTriangleFace(faceId: String): (Face, List[HalfEdge], List[Vertex]) =
+  private def createTriangleFace(faceId: FaceId): (Face, List[HalfEdge], List[Vertex]) =
     val v1 = createVertex("V1", 0, 0)
     val v2 = createVertex("V2", 1, 0)
     val v3 = createVertex("V3", 0.5, 0.866)
@@ -37,7 +37,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
     (face, List(he1, he2, he3), List(v1, v2, v3))
 
   // Helper method to create a square face
-  private def createSquareFace(faceId: String): (Face, List[HalfEdge], List[Vertex]) =
+  private def createSquareFace(faceId: FaceId): (Face, List[HalfEdge], List[Vertex]) =
     val v1 = createVertex("V1", 0, 0)
     val v2 = createVertex("V2", 1, 0)
     val v3 = createVertex("V3", 1, 1)
@@ -67,8 +67,8 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
   behavior of "Face construction"
 
   it should "create a face with just an ID" in {
-    val face = Face("F1")
-    face.id shouldBe "F1"
+    val face = Face(FaceId("F1"))
+    face.id.value shouldBe "F1"
     face.outerComponent shouldBe None
     face.innerComponents shouldBe Nil
   }
@@ -76,9 +76,9 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
   it should "create a face with outer component" in {
     val vertex = createVertex("V1", 0, 0)
     val edge = HalfEdge(vertex)
-    val face = Face("F1", Some(edge))
+    val face = Face(FaceId("F1"), Some(edge))
     
-    face.id shouldBe "F1"
+    face.id.value shouldBe "F1"
     face.outerComponent shouldBe Some(edge)
     face.innerComponents shouldBe Nil
   }
@@ -88,9 +88,9 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
     val edge1 = HalfEdge(vertex)
     val edge2 = HalfEdge(vertex)
     val innerComponents = List(Some(edge1), Some(edge2))
-    val face = Face("F1", None, innerComponents)
+    val face = Face(FaceId("F1"), None, innerComponents)
     
-    face.id shouldBe "F1"
+    face.id.value shouldBe "F1"
     face.outerComponent shouldBe None
     face.innerComponents shouldBe innerComponents
   }
@@ -100,21 +100,21 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
   it should "be equal to another face with the same ID" in {
     val vertex = createVertex("V1", 0, 0)
     val edge = HalfEdge(vertex)
-    val face1 = Face("F1")
-    val face2 = Face("F1", Some(edge)) // Different components
+    val face1 = Face(FaceId("F1"))
+    val face2 = Face(FaceId("F1"), Some(edge)) // Different components
     
     face1 shouldEqual face2
   }
 
   it should "not be equal to another face with a different ID" in {
-    val face1 = Face("F1")
-    val face2 = Face("F2")
+    val face1 = Face(FaceId("F1"))
+    val face2 = Face(FaceId("F2"))
     
     face1 shouldNot equal(face2)
   }
 
   it should "not be equal to objects of other types" in {
-    val face = Face("F1")
+    val face = Face(FaceId("F1"))
     
     face shouldNot equal("F1")
     face shouldNot equal(1)
@@ -122,15 +122,15 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "have the same hashCode as another face with the same ID" in {
-    val face1 = Face("F1")
-    val face2 = Face("F1")
+    val face1 = Face(FaceId("F1"))
+    val face2 = Face(FaceId("F1"))
     
     face1.hashCode() shouldEqual face2.hashCode()
   }
 
   it should "have different hashCodes for faces with different IDs" in {
-    val face1 = Face("F1")
-    val face2 = Face("F2")
+    val face1 = Face(FaceId("F1"))
+    val face2 = Face(FaceId("F2"))
     
     face1.hashCode() shouldNot equal(face2.hashCode())
   }
@@ -141,7 +141,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
     val vertex = createVertex("V1", 0, 0)
     val edge1 = HalfEdge(vertex)
     val edge2 = HalfEdge(vertex)
-    val face = Face("F1", Some(edge1), List(Some(edge2)))
+    val face = Face(FaceId("F1"), Some(edge1), List(Some(edge2)))
     
     face.validate() shouldBe Right(())
   }
@@ -149,7 +149,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
   it should "return Left with missing outer component error" in {
     val vertex = createVertex("V1", 0, 0)
     val edge = HalfEdge(vertex)
-    val face = Face("F1", None, List(Some(edge)))
+    val face = Face(FaceId("F1"), None, List(Some(edge)))
     
     val result = face.validate()
     result.isLeft shouldBe true
@@ -159,7 +159,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
   it should "return Left with missing inner components error" in {
     val vertex = createVertex("V1", 0, 0)
     val edge = HalfEdge(vertex)
-    val face = Face("F1", Some(edge))
+    val face = Face(FaceId("F1"), Some(edge))
     
     val result = face.validate()
     result.isLeft shouldBe true
@@ -167,7 +167,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "return Left with both errors when both are missing" in {
-    val face = Face("F1")
+    val face = Face(FaceId("F1"))
     
     val result = face.validate()
     result.isLeft shouldBe true
@@ -179,13 +179,13 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
   behavior of "Face.getVertices"
 
   it should "return empty list when outer component is None" in {
-    val face = Face("F1")
+    val face = Face(FaceId("F1"))
     face.getVertices.toOption.get shouldBe List.empty
   }
 
   it should "return single vertex for self-loop edge" in {
     val vertex = createVertex("V1", 0, 0)
-    val face = Face("F1")
+    val face = Face(FaceId("F1"))
     val edge = HalfEdge(vertex, incidentFace = Some(face))
     edge.next = Some(edge) // Self-loop
     face.outerComponent = Some(edge)
@@ -194,7 +194,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "return vertices in order for triangle face" in {
-    val (face, _, vertices) = createTriangleFace("F_triangle")
+    val (face, _, vertices) = createTriangleFace(FaceId("F_triangle"))
     
     val result = face.getVertices.getOrElse(List.empty)
     result should have length 3
@@ -202,7 +202,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "return vertices in order for square face" in {
-    val (face, _, vertices) = createSquareFace("F_square")
+    val (face, _, vertices) = createSquareFace(FaceId("F_square"))
     
     val result = face.getVertices.getOrElse(List.empty)
     result should have length 4
@@ -212,7 +212,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
   it should "handle broken edge chain NOT gracefully" in {
     val v1 = createVertex("V1", 0, 0)
     val v2 = createVertex("V2", 1, 0)
-    val face = Face("F1")
+    val face = Face(FaceId("F1"))
     val he1 = HalfEdge(v1, incidentFace = Some(face))
     val he2 = HalfEdge(v2, incidentFace = Some(face))
     
@@ -227,13 +227,13 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
   behavior of "Face.halfEdges"
 
   it should "return Right(List.empty) when outer component is None" in {
-    val face = Face("F1")
+    val face = Face(FaceId("F1"))
     face.halfEdges shouldBe Right(List.empty)
   }
 
   it should "return Right with single edge for self-loop" in {
     val vertex = createVertex("V1", 0, 0)
-    val face = Face("F1")
+    val face = Face(FaceId("F1"))
     val edge = HalfEdge(vertex, incidentFace = Some(face))
     edge.next = Some(edge)
     face.outerComponent = Some(edge)
@@ -242,7 +242,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "return Right with edges in order for triangle face" in {
-    val (face, edges, _) = createTriangleFace("F_triangle")
+    val (face, edges, _) = createTriangleFace(FaceId("F_triangle"))
     
     val result = face.halfEdges
     result.isRight shouldBe true
@@ -250,7 +250,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "return Right with edges in order for square face" in {
-    val (face, edges, _) = createSquareFace("F_square")
+    val (face, edges, _) = createSquareFace(FaceId("F_square"))
     
     val result = face.halfEdges
     result.isRight shouldBe true
@@ -260,7 +260,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
   it should "return Left when edge chain is broken" in {
     val v1 = createVertex("V1", 0, 0)
     val v2 = createVertex("V2", 1, 0)
-    val face = Face("F_broken")
+    val face = Face(FaceId("F_broken"))
     val he1 = HalfEdge(v1, incidentFace = Some(face))
     val he2 = HalfEdge(v2, incidentFace = Some(face))
     
@@ -277,7 +277,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
     val v1 = createVertex("V1", 0, 0)
     val v2 = createVertex("V2", 1, 0)
     val v3 = createVertex("V3", 0.5, 0.866)
-    val face = Face("F_cycle")
+    val face = Face(FaceId("F_cycle"))
     val he1 = HalfEdge(v1, incidentFace = Some(face))
     val he2 = HalfEdge(v2, incidentFace = Some(face))
     val he3 = HalfEdge(v3, incidentFace = Some(face))
@@ -296,7 +296,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
 
   it should "return empty list when halfEdges returns error" in {
     val v1 = createVertex("V1", 0, 0)
-    val face = Face("F_broken")
+    val face = Face(FaceId("F_broken"))
     val he1 = HalfEdge(v1, incidentFace = Some(face))
     // he1.next is None - broken chain
     face.outerComponent = Some(he1)
@@ -305,7 +305,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "return edges when halfEdges succeeds" in {
-    val (face, edges, _) = createTriangleFace("F_triangle")
+    val (face, edges, _) = createTriangleFace(FaceId("F_triangle"))
     
     face.halfEdgesUnsafe should contain theSameElementsInOrderAs edges
   }
@@ -313,14 +313,14 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
   behavior of "Face.area"
 
   it should "return 0 for face with no vertices" in {
-    val face = Face("F_empty")
+    val face = Face(FaceId("F_empty"))
     face.area shouldBe BigDecimal(0)
   }
 
   it should "return 0 for face with less than 3 vertices" in {
     val v1 = createVertex("V1", 0, 0)
     val v2 = createVertex("V2", 1, 0)
-    val face = Face("F_line")
+    val face = Face(FaceId("F_line"))
     val he1 = HalfEdge(v1, incidentFace = Some(face))
     val he2 = HalfEdge(v2, incidentFace = Some(face))
     
@@ -332,7 +332,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "calculate correct area for triangle" in {
-    val (face, _, _) = createTriangleFace("F_triangle")
+    val (face, _, _) = createTriangleFace(FaceId("F_triangle"))
     
     // Triangle with vertices at (0,0), (1,0), (0.5, 0.866) should have area ≈ 0.433
     val area = face.area
@@ -341,7 +341,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "calculate correct area for unit square" in {
-    val (face, _, _) = createSquareFace("F_square")
+    val (face, _, _) = createSquareFace(FaceId("F_square"))
     
     // Unit square should have area = 1
     face.area shouldBe BigDecimal(1)
@@ -354,7 +354,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
     val v3 = createVertex("V3", 2, 3)
     val v4 = createVertex("V4", 0, 3)
     
-    val face = Face("F_rectangle")
+    val face = Face(FaceId("F_rectangle"))
     val he1 = HalfEdge(v1, incidentFace = Some(face))
     val he2 = HalfEdge(v2, incidentFace = Some(face))
     val he3 = HalfEdge(v3, incidentFace = Some(face))
@@ -374,7 +374,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
   behavior of "Face mutable state"
 
   it should "allow modification of outer component" in {
-    val face = Face("F1")
+    val face = Face(FaceId("F1"))
     val vertex = createVertex("V1", 0, 0)
     val edge1 = HalfEdge(vertex)
     val edge2 = HalfEdge(vertex)
@@ -392,7 +392,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "allow modification of inner components" in {
-    val face = Face("F1")
+    val face = Face(FaceId("F1"))
     val vertex = createVertex("V1", 0, 0)
     val edge1 = HalfEdge(vertex)
     val edge2 = HalfEdge(vertex)
@@ -415,8 +415,8 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
   behavior of "Face companion object - adjacencyMap"
 
   it should "return empty adjacencies for faces with no edges" in {
-    val face1 = Face("F1")
-    val face2 = Face("F2")
+    val face1 = Face(FaceId("F1"))
+    val face2 = Face(FaceId("F2"))
     val faces = List(face1, face2)
     
     val adjacencyMap = Face.adjacencyMap(faces)
@@ -432,8 +432,8 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
     val v3 = createVertex("V3", 0.5, 0.866)
     val v4 = createVertex("V4", 0.5, -0.866)
 
-    val face1 = Face("F1")
-    val face2 = Face("F2")
+    val face1 = Face(FaceId("F1"))
+    val face2 = Face(FaceId("F2"))
 
     // Face 1: triangle v1-v2-v3
     val he1_12 = HalfEdge(v1, incidentFace = Some(face1))
@@ -461,10 +461,10 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
 
     // Set twins for all other edges to dummy edges to avoid None.get errors
     // In a real DCEL, all edges would have twins
-    val dummyTwin1_23 = HalfEdge(v3, incidentFace = Some(Face("dummy1")))
-    val dummyTwin1_31 = HalfEdge(v1, incidentFace = Some(Face("dummy2")))
-    val dummyTwin2_14 = HalfEdge(v4, incidentFace = Some(Face("dummy3")))
-    val dummyTwin2_42 = HalfEdge(v2, incidentFace = Some(Face("dummy4")))
+    val dummyTwin1_23 = HalfEdge(v3, incidentFace = Some(Face(FaceId("dummy1"))))
+    val dummyTwin1_31 = HalfEdge(v1, incidentFace = Some(Face(FaceId("dummy2"))))
+    val dummyTwin2_14 = HalfEdge(v4, incidentFace = Some(Face(FaceId("dummy3"))))
+    val dummyTwin2_42 = HalfEdge(v2, incidentFace = Some(Face(FaceId("dummy4"))))
 
     he1_23.twin = Some(dummyTwin1_23)
     dummyTwin1_23.twin = Some(he1_23)
@@ -486,7 +486,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "handle faces with missing twin information gracefully" in {
-    val (face1, _, _) = createTriangleFace("F1")
+    val (face1, _, _) = createTriangleFace(FaceId("F1"))
     val faces = List(face1)
 
     // This should not crash even though edges don't have twins properly set
@@ -497,7 +497,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
   behavior of "Face companion object - breadthFirstSearch"
 
   it should "return single face when no adjacencies exist" in {
-    val face1 = Face("F1")
+    val face1 = Face(FaceId("F1"))
     val adjacency = Map(face1 -> List.empty[Face])
     
     val result = breadthFirstSearch(face1, adjacency)
@@ -505,9 +505,9 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "return all connected faces" in {
-    val face1 = Face("F1")
-    val face2 = Face("F2")
-    val face3 = Face("F3")
+    val face1 = Face(FaceId("F1"))
+    val face2 = Face(FaceId("F2"))
+    val face3 = Face(FaceId("F3"))
     
     val adjacency = Map(
       face1 -> List(face2),
@@ -520,10 +520,10 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "return only reachable faces in disconnected graph" in {
-    val face1 = Face("F1")
-    val face2 = Face("F2")
-    val face3 = Face("F3")
-    val face4 = Face("F4")
+    val face1 = Face(FaceId("F1"))
+    val face2 = Face(FaceId("F2"))
+    val face3 = Face(FaceId("F3"))
+    val face4 = Face(FaceId("F4"))
     
     val adjacency = Map(
       face1 -> List(face2),
@@ -537,8 +537,8 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "handle cycles in the adjacency graph" in {
-    val face1 = Face("F1")
-    val face2 = Face("F2")
+    val face1 = Face(FaceId("F1"))
+    val face2 = Face(FaceId("F2"))
     
     val adjacency = Map(
       face1 -> List(face2, face1), // Self-loop and connection to face2
@@ -550,8 +550,8 @@ class FaceSpec extends AnyFlatSpec with Matchers with EitherValues:
   }
 
   it should "handle missing entries in adjacency map" in {
-    val face1 = Face("F1")
-    val face2 = Face("F2")
+    val face1 = Face(FaceId("F1"))
+    val face2 = Face(FaceId("F2"))
     
     val adjacency = Map(
       face1 -> List(face2)

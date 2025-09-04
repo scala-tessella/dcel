@@ -72,7 +72,7 @@ object TilingBuilder:
     val vertices = points.zipWithIndex.map { case (p, i) => Vertex(s"V${i + 1}", p) }
 
     // Create the two faces: one for the polygon, one for the outside
-    val polygonFace = Face(Face.firstInnerId)
+    val polygonFace = Face(FaceId.firstInnerId)
     val outerFace = Face.outer
 
     // Create all inner and outer half-edges, indexed by their origin vertex
@@ -212,7 +212,7 @@ object TilingBuilder:
       outerEdge.angle = Some(innerAnglesSum.conjugate)
 
   private def netFaces(height: Int, width: Int): Array[Array[Face]] =
-    Array.tabulate(height, width) { (j, i) => Face(s"F${j * width + i + 1}") }
+    Array.tabulate(height, width) { (j, i) => Face(FaceId(s"F${j * width + i + 1}")) }
 
   // Link outer face boundary
   private def linkOuterFace(
@@ -269,7 +269,7 @@ object TilingBuilder:
 
     // Two triangular faces per rhombus cell
     val faces = Array.tabulate(height, width, 2) { (j, i, k) =>
-      Face(s"F${(j * width + i) * 2 + k + 1}")
+      Face(FaceId(s"F${(j * width + i) * 2 + k + 1}"))
     }
     val fOuter = Face.outer
 

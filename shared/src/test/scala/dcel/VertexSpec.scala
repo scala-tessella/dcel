@@ -338,8 +338,8 @@ class VertexSpec extends AnyFlatSpec with Matchers with EitherValues:
     val v2 = Vertex("V2", BigPoint(1, 0))
     val v3 = Vertex("V3", BigPoint(0.5, 0.866))
     
-    val innerFace = Face("Inner")
-    val outerFace = Face("Outer")
+    val innerFace = Face(FaceId("Inner"))
+    val outerFace = Face(FaceId("Outer"))
     
     val e12 = HalfEdge(v1, incidentFace = Some(innerFace))
     val e21 = HalfEdge(v2, incidentFace = Some(outerFace))

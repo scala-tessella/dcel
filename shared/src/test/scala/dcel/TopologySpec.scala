@@ -239,9 +239,9 @@ class TopologySpec extends AnyFlatSpec with Matchers:
   }
 
   it should "work with faces from DCEL" in {
-    val f1 = Face("F1")
-    val f2 = Face("F2")
-    val f3 = Face("F3")
+    val f1 = Face(FaceId("F1"))
+    val f2 = Face(FaceId("F2"))
+    val f3 = Face(FaceId("F3"))
     
     val start = f1
     val adjacency = Map(

@@ -26,7 +26,7 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with EitherValues:
     val vertex = Vertex("V1", BigPoint(1.0, 2.0))
     val twinVertex = Vertex("V2", BigPoint(2.0, 3.0))
     val twin = HalfEdge(twinVertex)
-    val face = Face("F1")
+    val face = Face(FaceId("F1"))
     val nextEdge = HalfEdge(vertex)
     val prevEdge = HalfEdge(vertex)
     val angle = AngleDegree(90.0)
@@ -126,7 +126,7 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with EitherValues:
     val vertex = Vertex("V1", BigPoint(0, 0))
     val edge = HalfEdge(vertex)
     val twin = HalfEdge(vertex)
-    val face = Face("F1")
+    val face = Face(FaceId("F1"))
     
     edge.twin = Some(twin)
     edge.incidentFace = Some(face)
@@ -139,7 +139,7 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with EitherValues:
     val vertex = Vertex("V1", BigPoint(0, 0))
     val edge = HalfEdge(vertex)
     val twin = HalfEdge(vertex)
-    val face = Face("F1")
+    val face = Face(FaceId("F1"))
     val nextEdge = HalfEdge(vertex)
     val prevEdge = HalfEdge(vertex)
     val angle = AngleDegree(90.0)
@@ -159,7 +159,7 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with EitherValues:
     val vertex = Vertex("V1", BigPoint(0, 0))
     val edge = HalfEdge(vertex)
     val twin = HalfEdge(vertex)
-    val face = Face("F1")
+    val face = Face(FaceId("F1"))
     val nextEdge = HalfEdge(vertex)
     val prevEdge = HalfEdge(vertex)
     val angle = AngleDegree(90.0)
@@ -192,7 +192,7 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with EitherValues:
     val vertex = Vertex("V1", BigPoint(0, 0))
     val edge = HalfEdge(vertex)
     val twin = HalfEdge(vertex)
-    val face = Face("F1")
+    val face = Face(FaceId("F1"))
     
     edge.twin = Some(twin)
     edge.incidentFace = Some(face)
@@ -236,8 +236,8 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with EitherValues:
   it should "allow modification of incident face" in {
     val vertex = Vertex("V1", BigPoint(0, 0))
     val edge = HalfEdge(vertex)
-    val face1 = Face("F1")
-    val face2 = Face("F2")
+    val face1 = Face(FaceId("F1"))
+    val face2 = Face(FaceId("F2"))
     
     edge.incidentFace shouldBe None
     
@@ -487,7 +487,7 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with EitherValues:
     val v1 = Vertex("V1", BigPoint(0, 0))
     val v2 = Vertex("V2", BigPoint(1, 0))
     val v3 = Vertex("V3", BigPoint(0.5, 0.866))
-    val face = Face("Triangle")
+    val face = Face(FaceId("Triangle"))
     
     val (e12, e21) = HalfEdge.createTwinPair(v1, v2)
     val (e23, e32) = HalfEdge.createTwinPair(v2, v3)
@@ -560,7 +560,7 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with EitherValues:
     
     // Modify all mutable fields
     edge.twin = Some(HalfEdge(vertex))
-    edge.incidentFace = Some(Face("F1"))
+    edge.incidentFace = Some(Face(FaceId("F1")))
     edge.next = Some(HalfEdge(vertex))
     edge.prev = Some(HalfEdge(vertex))
     edge.angle = Some(AngleDegree(45.0))
@@ -579,8 +579,8 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with EitherValues:
     val vRight = Vertex("Right", BigPoint(1, 0))
     val vBottom = Vertex("Bottom", BigPoint(0, -1))
     
-    val leftFace = Face("LeftTriangle")
-    val rightFace = Face("RightTriangle")
+    val leftFace = Face(FaceId("LeftTriangle"))
+    val rightFace = Face(FaceId("RightTriangle"))
     
     // Create twin pairs for all edges
     val (eTopLeft, eLeftTop) = HalfEdge.createTwinPair(vTop, vLeft)
@@ -642,7 +642,7 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with EitherValues:
     
     // Set all required fields with extreme angle
     edge.twin = Some(HalfEdge(vertex))
-    edge.incidentFace = Some(Face("F1"))
+    edge.incidentFace = Some(Face(FaceId("F1")))
     edge.next = Some(HalfEdge(vertex))
     edge.prev = Some(HalfEdge(vertex))
     edge.angle = Some(AngleDegree(Double.MaxValue))

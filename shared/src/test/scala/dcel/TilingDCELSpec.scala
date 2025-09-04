@@ -54,14 +54,14 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "find an existing face by id" in {
     val triangle = createTriangleTiling()
-    triangle.findFace(Face.outerId).toOption shouldBe defined
-    triangle.findFace(Face.firstInnerId).toOption shouldBe defined
+    triangle.findFace(FaceId.outerId).toOption shouldBe defined
+    triangle.findFace(FaceId.firstInnerId).toOption shouldBe defined
   }
 
   it should "return None for non-existent face id" in {
     val triangle = createTriangleTiling()
-    triangle.findFace("F999").toOption shouldBe None
-    triangle.findFace("NonExistent").toOption shouldBe None
+    triangle.findFace(FaceId("F999")).toOption shouldBe None
+    triangle.findFace(FaceId("NonExistent")).toOption shouldBe None
   }
 
   behavior of "TilingDCEL.findEdgeBetween"
@@ -265,7 +265,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     emptyTiling.vertices shouldBe empty
     emptyTiling.halfEdges shouldBe empty
     emptyTiling.innerFaces shouldBe empty
-    emptyTiling.outerFace.id shouldBe Face.outerId
+    emptyTiling.outerFace.id shouldBe FaceId.outerId
   }
 
   behavior of "TilingDCEL.validate"
@@ -340,7 +340,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val twoSquares = createSquareTiling().maybeAddRegularPolygonToBoundary("V1", 4).value
     // V2 is on the boundary. The inner edge from V2 belongs to the first square.
     val v2 = twoSquares.findVertexUnsafe("V2").get
-    val innerEdgeFromV2 = v2.incidentEdgesUnsafe.find(_.incidentFace.exists(_.id == Face.firstInnerId)).get
+    val innerEdgeFromV2 = v2.incidentEdgesUnsafe.find(_.incidentFace.exists(_.id == FaceId.firstInnerId)).get
 
     // Distort the angle, which affects both the face and boundary angle sums
     innerEdgeFromV2.angle = Some(AngleDegree(80))

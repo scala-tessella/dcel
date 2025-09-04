@@ -19,7 +19,7 @@ object TilingDeletion:
 
   extension (tiling: TilingDCEL)
 
-    def deleteFace(faceId: String): Either[TilingError, TilingDCEL] =
+    def deleteFace(faceId: FaceId): Either[TilingError, TilingDCEL] =
       for
         faceToDelete <- tiling.findInnerFace(faceId)
         edgeClassification <- classifyFaceEdges(faceToDelete)

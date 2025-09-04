@@ -32,11 +32,11 @@ case class TilingDCEL private(
   def findVertex(vertexId: String): Either[TilingError, Vertex] =
     findVertexUnsafe(vertexId).toRight(NotFoundError("Vertex", vertexId))
 
-  def findFace(faceId: String): Either[TilingError, Face] =
-    faces.find(_.id == faceId).toRight(NotFoundError("Face", faceId))
+  def findFace(faceId: FaceId): Either[TilingError, Face] =
+    faces.find(_.id == faceId).toRight(NotFoundError("Face", faceId.value))
 
-  def findInnerFace(faceId: String): Either[TilingError, Face] =
-    innerFaces.find(_.id == faceId).toRight(NotFoundError("Inner face", faceId))
+  def findInnerFace(faceId: FaceId): Either[TilingError, Face] =
+    innerFaces.find(_.id == faceId).toRight(NotFoundError("Inner face", faceId.value))
 
   def isBoundaryEdge(halfEdge: HalfEdge): Boolean =
     halfEdge.hasIncidentFace(outerFace)
@@ -135,7 +135,7 @@ case class TilingDCEL private(
   def maybeAddRegularPolygonToBoundary(onEdgeStartingWithVertexId: String, sides: Int): Either[TilingError, TilingDCEL] =
     this.addRegularPolygonToBoundary(onEdgeStartingWithVertexId, sides)
     
-  def maybeDeleteFace(faceId: String): Either[TilingError, TilingDCEL] =
+  def maybeDeleteFace(faceId: FaceId): Either[TilingError, TilingDCEL] =
     this.deleteFace(faceId)
 
   /**

@@ -123,8 +123,8 @@ object TilingAddition:
 
   extension (tiling: TilingDCEL)
 
-    private def nextFaceId: String =
-      "F" + (tiling.innerFaces.map(_.id.tail.toInt).max + 1).toString
+    private def nextFaceId: FaceId =
+      FaceId("F" + (tiling.innerFaces.map(_.id.value.tail.toInt).max + 1).toString)
 
     private def nextVertexIndex: Int =
       tiling.vertices.map(_.id.tail.toInt).max + 1
@@ -400,7 +400,7 @@ object TilingAddition:
   private def additionalElements(
     edgeToBuildOn: HalfEdge,
     angles: List[AngleDegree],
-    newFaceId: String,
+    newFaceId: FaceId,
     newVertices: List[Vertex],
     edgesResult: SharedEdgesResult,
     boundaryAngles: BoundaryAngles
