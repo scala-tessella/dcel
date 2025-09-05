@@ -29,7 +29,7 @@ object TilingBuilder:
    *
    * @param angles A list of interior angles in degrees. The angles are ordered for a
    *               counter-clockwise traversal of the polygon boundary.
-   * @return       Either a String explaining the validation error, or the successfully created TilingDCEL.
+   * @return       Either a TilingError explaining the validation error, or the successfully created TilingDCEL.
    */
   def createSimplePolygon(angles: List[AngleDegree]): Either[TilingError, TilingDCEL] =
     for
@@ -48,7 +48,7 @@ object TilingBuilder:
    * Creates a TilingDCEL for a single regular polygon with unit-length sides.
    *
    * @param sides The number of sides for the regular polygon.
-   * @return      Either a String explaining the validation error, or the successfully created TilingDCEL.
+   * @return      Either a TilingError explaining the validation error, or the successfully created TilingDCEL.
    */
   def createRegularPolygon(sides: Int): Either[TilingError, TilingDCEL] =
     for
