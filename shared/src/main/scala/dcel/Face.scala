@@ -41,10 +41,12 @@ case class Face(
     innerComponents.nonEmpty
 
   def validate(): Either[ValidationError, Unit] =
-    val errors = List(
-      Option.when(outerComponent.isEmpty)("Missing outer component edge"),
-      Option.when(innerComponents.isEmpty)("Missing inner components edges"),
-    ).flatten
+    val errors =
+      List(
+        Option.when(outerComponent.isEmpty)("Missing outer component edge")
+      ).flatten ++
+        (if innerComponents.exists(_.isEmpty) then List("One or more inner component edge references are missing")
+        else Nil)
 
     if errors.isEmpty then Right(())
     else Left(ValidationError(errors.mkString(", ")))

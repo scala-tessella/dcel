@@ -156,14 +156,13 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     result.left.value.message should include("Missing outer component edge")
   }
 
-  it should "return Left with missing inner components error" in {
+  it should "return Right(()) with missing inner components error" in {
     val vertex = createVertex(V1, 0, 0)
     val edge = HalfEdge(vertex)
     val face = Face(F1, Some(edge))
     
     val result = face.validate()
-    result.isLeft shouldBe true
-    result.left.value.message should include("Missing inner components edges")
+    result.isRight shouldBe true
   }
 
   it should "return Left with both errors when both are missing" in {
@@ -173,7 +172,6 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     result.isLeft shouldBe true
     val errorMessage = result.left.value.message
     errorMessage should include("Missing outer component edge")
-    errorMessage should include("Missing inner components edges")
   }
 
   behavior of "Face.getVertices"
