@@ -24,15 +24,17 @@ object TilingDeletion:
         faceToDelete <- tiling.findInnerFace(faceId)
         edgeClassification <- classifyFaceEdges(faceToDelete)
         _ <- validateDeletionWontPartition(faceToDelete, edgeClassification.innerTwins)
+        result <-
+          if tiling.innerFaces.length == 1 then Right(TilingDCEL.empty)
+          else if edgeClassification.boundaryTwins.nonEmpty then
+            Right(performFaceDeletion(faceToDelete, edgeClassification))
+          else
+            val vertices = faceToDelete.getVerticesUnsafe
+            vertices.foldLeft(Right(tiling): Either[TilingError, TilingDCEL]) {
+              (either, vertex) => either.flatMap(_.deleteVertex(vertex.id))
+            }
       yield
-        if tiling.innerFaces.length == 1 then TilingDCEL.empty
-        else if edgeClassification.boundaryTwins.nonEmpty then
-          performFaceDeletion(faceToDelete, edgeClassification)
-        else
-          val vertices = faceToDelete.getVerticesUnsafe
-          vertices.foldLeft(Right(tiling): Either[TilingError, TilingDCEL]) {
-            (either, vertex) => either.flatMap(_.deleteVertex(vertex.id))
-          }.toOption.get
+        result
 
     private def classifyFaceEdges(face: Face): Either[TilingError, EdgeClassification] =
       val faceEdges = face.halfEdgesUnsafe
