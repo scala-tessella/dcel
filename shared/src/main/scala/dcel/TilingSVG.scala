@@ -21,8 +21,28 @@ object TilingSVG:
     val formatted: String = s"${minX.format} ${minY.format} ${width.format} ${height.format}"
     val dimensions: (Int, Int) = (width.toInt, height.toInt)
 
+  // Public options for callers (ergonomic API)
+  case class SvgOptions(
+    strokeWidth: Double = 1.0,
+    padding: Double = 20.0,
+    scale: Double = 50.0,
+    showHalfEdgeTraversal: Boolean = false,
+    leavingEdgeMarkers: Boolean = false,
+    faceIdsOnEdges: Boolean = false
+  )
+
   private case class SvgConfig(strokeWidth: Double, padding: Double, scale: Double,
     showHalfEdgeTraversal: Boolean, leavingEdgeMarkers: Boolean, faceIdsOnEdges: Boolean)
+
+  private def toConfig(opts: SvgOptions): SvgConfig =
+    SvgConfig(
+      strokeWidth = opts.strokeWidth,
+      padding = opts.padding,
+      scale = opts.scale,
+      showHalfEdgeTraversal = opts.showHalfEdgeTraversal,
+      leavingEdgeMarkers = opts.leavingEdgeMarkers,
+      faceIdsOnEdges = opts.faceIdsOnEdges
+    )
 
   private def createArrow(origin: BigPoint, destination: BigPoint, scale: Double, arrowSize: Double): Option[Arrow] =
     val distance = origin.distanceTo(destination)
@@ -101,7 +121,7 @@ object TilingSVG:
       }
     }
 
-    val outerAngleLabels = tilingDCEL.getBoundaryEdges.getOrElse(Nil).map { halfEdge =>
+    val outerAngleLabels = tilingDCEL.boundaryEdges.getOrElse(Nil).map { halfEdge =>
       val centroid = tilingDCEL.innerFaces.headOption
         .map(_.getVerticesUnsafe)
         .filter(_.nonEmpty)
@@ -115,7 +135,7 @@ object TilingSVG:
     (innerAngleLabels, outerAngleLabels)
 
   private def createBoundaryElements(tilingDCEL: TilingDCEL, config: SvgConfig): Option[Elem] =
-    tilingDCEL.boundaryUnsafe match
+    tilingDCEL.boundaryVerticesUnsafe match
       case vertices if vertices.nonEmpty =>
         val points = vertices.map { v =>
           val (x, y) = v.coords.toSvgCoords(config.scale)
@@ -241,7 +261,7 @@ object TilingSVG:
       // Generate all elements
       val edgeLines = createEdgeLines(tiling, scale)
       val innerFaceArrows = createHalfEdgeArrows(tiling.innerFaces.flatMap(_.halfEdgesUnsafe), config)
-      val outerFaceArrows = createHalfEdgeArrows(tiling.getBoundaryEdges.getOrElse(Nil), config)
+      val outerFaceArrows = createHalfEdgeArrows(tiling.boundaryEdges.getOrElse(Nil), config)
       val (innerAngleLabels, outerAngleLabels) = createAngleLabels(tiling, config)
       val boundaryPolygon = createBoundaryElements(tiling, config)
       val (vertexCircles, vertexLabels) = createVertexElements(tiling, config)
@@ -278,3 +298,17 @@ object TilingSVG:
         </svg>
 
       new PrettyPrinter(120, 2).format(svg)
+
+    // New ergonomic overload using options
+    def toScalableVectorGraphics(options: SvgOptions): String =
+      val config = toConfig(options)
+      // Delegate to the existing implementation for consistency
+      toScalableVectorGraphics(
+        strokeWidth = config.strokeWidth,
+        padding = config.padding,
+        scale = config.scale,
+        showHalfEdgeTraversal = config.showHalfEdgeTraversal,
+        leavingEdgeMarkers = config.leavingEdgeMarkers,
+        faceIdsOnEdges = config.faceIdsOnEdges
+      )
+  

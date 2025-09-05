@@ -204,7 +204,7 @@ object TilingAddition:
         (polygonAngles.rotateRight(1), lastEdge.origin.id, lastEdge.destination.get.id)
 
     private def validateBoundaryEdge(startingWithVertexId: VertexId): Either[TilingError, (HalfEdge, Vertex, Vertex, List[HalfEdge])] = {
-      val boundaryEdges = tiling.getBoundaryEdgesUnsafe
+      val boundaryEdges = tiling.boundaryEdgesUnsafe
       for
         edgeToBuildOn <- boundaryEdges
           .find(_.origin.id == startingWithVertexId)

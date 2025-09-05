@@ -55,6 +55,10 @@ case class Vertex(
   def adjacentVerticesUnsafe: List[Vertex] =
     incidentEdgesUnsafe.flatMap(_.destination)
 
+  // Safe helper returning all distinct adjacent vertices
+  def adjacentVertices: Either[TilingError, List[Vertex]] =
+    incidentEdges.map(_.flatMap(_.destination).distinct)
+
   def incidentFacesUnsafe: List[Face] =
     incidentEdgesUnsafe.flatMap(_.incidentFace)
 

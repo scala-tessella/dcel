@@ -324,11 +324,11 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
 //    println(withPentagon.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
 
     // Check that boundary is still traversable
-    val boundary = withPentagon.boundaryUnsafe
+    val boundary = withPentagon.boundaryVerticesUnsafe
     boundary should not be empty
 
     // Verify boundary forms a closed loop
-    val boundaryEdges = withPentagon.getBoundaryEdges.value
+    val boundaryEdges = withPentagon.boundaryEdges.value
     boundaryEdges.foreach { edge =>
       edge.next should be(defined)
       edge.prev should be(defined)
@@ -356,7 +356,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val tiling = result.value
 
     // V0 is shared between two squares, so boundary angle should be 360 - 90 - 90 = 180
-    val v0BoundaryEdge = tiling.getBoundaryEdges.value.find(_.origin.id == V1).get
+    val v0BoundaryEdge = tiling.boundaryEdges.value.find(_.origin.id == V1).get
     v0BoundaryEdge.angle.get shouldBe AngleDegree(180)
   }
 
@@ -367,7 +367,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     verifyValidTiling(withTriangle3)
 
     // V0 now has 3 triangles, so boundary angle should be 360 - 3*60 = 180
-    val v0BoundaryEdge = withTriangle3.getBoundaryEdges.value.find(_.origin.id == V1).get
+    val v0BoundaryEdge = withTriangle3.boundaryEdges.value.find(_.origin.id == V1).get
     v0BoundaryEdge.angle.get shouldBe AngleDegree(180)
   }
 
@@ -411,7 +411,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val tiling = result.value
 
     // Check that boundary is still a single connected component
-    val boundaryEdges = tiling.getBoundaryEdges.value
+    val boundaryEdges = tiling.boundaryEdges.value
     boundaryEdges should not be empty
 
     // Verify each edge has proper next/prev links

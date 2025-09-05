@@ -28,7 +28,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     newTiling.innerFaces shouldBe empty
     newTiling.vertices.length shouldBe 0
     newTiling.halfEdges.length shouldBe 0 // After deleting inner face, only outer edges remain
-    newTiling.boundaryUnsafe.map(_.id).length shouldBe 0
+    newTiling.boundaryVerticesUnsafe.map(_.id).length shouldBe 0
   }
 
   it should "fail to delete a face touching the boundary in different points" in {
@@ -102,7 +102,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     newTiling.innerFaces.length shouldBe 1
     newTiling.innerFaces.head.id shouldBe FaceId.firstInnerId
     newTiling.vertices.length shouldBe 4
-    newTiling.boundaryUnsafe.length shouldBe 4
+    newTiling.boundaryVerticesUnsafe.length shouldBe 4
   }
 
   it should "successfully delete the other boundary face" in {
@@ -118,7 +118,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     newTiling.innerFaces.length shouldBe 1
     newTiling.innerFaces.head.id.value shouldBe "F2"
     newTiling.vertices.length shouldBe 4
-    newTiling.boundaryUnsafe.length shouldBe 4
+    newTiling.boundaryVerticesUnsafe.length shouldBe 4
   }
 
   /** <img src="file:../../resources/irregularFaces.svg"/> */
@@ -180,7 +180,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     newTiling.innerFaces.length shouldBe 1
     newTiling.innerFaces.head.id.value shouldBe "F2" // F1 is deleted
     newTiling.vertices.length shouldBe 4
-    newTiling.boundaryUnsafe.length shouldBe 4
+    newTiling.boundaryVerticesUnsafe.length shouldBe 4
   }
 
   it should "successfully delete a boundary edge" in {
@@ -197,7 +197,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     newTiling.innerFaces.length shouldBe 1
     newTiling.innerFaces.head.id.value shouldBe "F2" // F1 is deleted
     newTiling.vertices.length shouldBe 4
-    newTiling.boundaryUnsafe.length shouldBe 4
+    newTiling.boundaryVerticesUnsafe.length shouldBe 4
   }
 
   it should "successfully delete a single inner edge, merging two faces" in {
@@ -217,7 +217,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     newTiling.innerFaces.length shouldBe 1
     newTiling.vertices.length shouldBe 6
     newTiling.halfEdges.length shouldBe 12 // A hexagon has 6*2=12 half-edges
-    newTiling.boundaryUnsafe.length shouldBe 6
+    newTiling.boundaryVerticesUnsafe.length shouldBe 6
   }
 
   it should "successfully delete multiple single inner edges" in {

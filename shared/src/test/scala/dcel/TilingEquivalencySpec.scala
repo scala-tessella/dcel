@@ -106,8 +106,8 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
     val copy = original.deepCopy
 
     // Get the original boundary before modification
-    val originalBoundaryBefore = original.boundaryUnsafe
-    val copyBoundaryBefore = copy.boundaryUnsafe
+    val originalBoundaryBefore = original.boundaryVerticesUnsafe
+    val copyBoundaryBefore = copy.boundaryVerticesUnsafe
 
     originalBoundaryBefore shouldEqual copyBoundaryBefore
 
@@ -116,7 +116,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
     modifiedCopy shouldBe a[Right[?, ?]]
 
     // Original should remain unchanged
-    val originalBoundaryAfter = original.boundaryUnsafe
+    val originalBoundaryAfter = original.boundaryVerticesUnsafe
     originalBoundaryBefore shouldEqual originalBoundaryAfter
 
     // The original structure should still be valid
@@ -132,14 +132,14 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
     val copy = original.deepCopy
 
     // Get copy boundary before modification
-    val copyBoundaryBefore = copy.boundaryUnsafe
+    val copyBoundaryBefore = copy.boundaryVerticesUnsafe
 
     // Modify the original by adding a polygon
     val modifiedOriginal = original.maybeAddRegularPolygonToBoundary(V1, 4)
     modifiedOriginal shouldBe a[Right[?, ?]]
 
     // Copy should remain unchanged
-    val copyBoundaryAfter = copy.boundaryUnsafe
+    val copyBoundaryAfter = copy.boundaryVerticesUnsafe
     copyBoundaryBefore shouldEqual copyBoundaryAfter
 
     // Copy structure should still be valid
@@ -166,11 +166,11 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
     val copy = original.deepCopy
 
     // Boundary traversal should work the same way
-    original.boundaryUnsafe shouldEqual copy.boundaryUnsafe
-    original.boundary shouldEqual copy.boundary
+    original.boundaryVerticesUnsafe shouldEqual copy.boundaryVerticesUnsafe
+    original.boundaryVertices shouldEqual copy.boundaryVertices
 
     // The actual vertex instances should be different but have the same properties
-    original.boundaryUnsafe.zip(copy.boundaryUnsafe).foreach { case (origV, copyV) =>
+    original.boundaryVerticesUnsafe.zip(copy.boundaryVerticesUnsafe).foreach { case (origV, copyV) =>
       origV should not be theSameInstanceAs(copyV)
       origV.id shouldEqual copyV.id
       origV.coords shouldEqual copyV.coords

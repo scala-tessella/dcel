@@ -116,26 +116,26 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   behavior of "TilingDCEL.boundary"
 
   it should "return empty vector for empty tiling" in {
-    emptyTiling.boundaryUnsafe shouldBe Vector.empty
+    emptyTiling.boundaryVerticesUnsafe shouldBe Vector.empty
   }
 
   it should "return correct boundary vertices for triangle in clockwise order" in {
     val triangle = createTriangleTiling()
-    val boundary = triangle.boundaryUnsafe
+    val boundary = triangle.boundaryVerticesUnsafe
     boundary should have length 3
     boundary.map(_.id) should contain theSameElementsInOrderAs Vector(V1, V3, V2)
   }
 
   it should "return correct boundary vertices for square in clockwise order" in {
     val square = createSquareTiling()
-    val boundary = square.boundaryUnsafe
+    val boundary = square.boundaryVerticesUnsafe
     boundary should have length 4
     boundary.map(_.id) should contain theSameElementsInOrderAs Vector(V1, V4, V3, V2)
   }
 
   it should "return correct boundary vertices for hexagon" in {
     val hexagon = createHexagonTiling()
-    val boundary = hexagon.boundaryUnsafe
+    val boundary = hexagon.boundaryVerticesUnsafe
     boundary should have length 6
     boundary.map(_.id) should contain theSameElementsInOrderAs Vector(V1, "V6", "V5", V4, V3, V2)
   }
@@ -144,19 +144,19 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "return same result as boundary for well-formed tilings" in {
     val triangle = createTriangleTiling()
-    triangle.boundary.value shouldEqual triangle.boundaryUnsafe
+    triangle.boundaryVertices.value shouldEqual triangle.boundaryVerticesUnsafe
 
     val square = createSquareTiling()
-    square.boundary.value shouldEqual square.boundaryUnsafe
+    square.boundaryVertices.value shouldEqual square.boundaryVerticesUnsafe
   }
 
   it should "return empty vector for empty tiling" in {
-    emptyTiling.boundary shouldBe Right(Vector.empty)
+    emptyTiling.boundaryVertices shouldBe Right(Vector.empty)
   }
 
   it should "fail for malformed boundary loop" in {
     val triangle = createTriangleTiling()
-    val boundaryEdges = triangle.getBoundaryEdges.value
+    val boundaryEdges = triangle.boundaryEdges.value
     if (boundaryEdges.length >= 2) {
       val firstEdge = boundaryEdges.head // This is the startEdge
       val secondEdge = boundaryEdges(1)
@@ -165,31 +165,31 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       firstEdge.next = Some(secondEdge)
       secondEdge.next = Some(secondEdge) // Make second edge point to itself
 
-      triangle.boundary.isLeft shouldBe true
+      triangle.boundaryVertices.isLeft shouldBe true
     }
   }
 
   it should "fail for open chain in boundary" in {
     val triangle = createTriangleTiling()
-    val boundaryEdges = triangle.getBoundaryEdges.value
+    val boundaryEdges = triangle.boundaryEdges.value
     if (boundaryEdges.nonEmpty) {
       val firstEdge = boundaryEdges.head
       // Break the chain by setting next to None
       firstEdge.next = None
 
-      triangle.boundary.isLeft shouldBe true
+      triangle.boundaryVertices.isLeft shouldBe true
     }
   }
 
   behavior of "TilingDCEL.getBoundaryEdges"
 
   it should "return empty list for empty tiling" in {
-    emptyTiling.getBoundaryEdges shouldBe Right(List.empty)
+    emptyTiling.boundaryEdges shouldBe Right(List.empty)
   }
 
   it should "return boundary edges in correct order" in {
     val triangle = createTriangleTiling()
-    val boundaryEdges = triangle.getBoundaryEdges.value
+    val boundaryEdges = triangle.boundaryEdges.value
     boundaryEdges should have length 3
 
     // Check that edges form a closed loop
@@ -199,7 +199,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "fail for malformed boundary with visited edge" in {
     val triangle = createTriangleTiling()
-    val boundaryEdges = triangle.getBoundaryEdges.value
+    val boundaryEdges = triangle.boundaryEdges.value
     if (boundaryEdges.length >= 3) {
       val firstEdge = boundaryEdges.head // e0 (start)
       val secondEdge = boundaryEdges(1) // e1
@@ -210,17 +210,17 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       secondEdge.next = Some(thirdEdge)
       thirdEdge.next = Some(secondEdge) // This creates the problematic cycle
 
-      triangle.getBoundaryEdges.isLeft shouldBe true
+      triangle.boundaryEdges.isLeft shouldBe true
     }
   }
 
   it should "fail for unclosed boundary loop" in {
     val triangle = createTriangleTiling()
-    val boundaryEdges = triangle.getBoundaryEdges.value
+    val boundaryEdges = triangle.boundaryEdges.value
     if (boundaryEdges.nonEmpty) {
       // Break the loop by making the last edge not point back to the first
       boundaryEdges.last.next = None
-      triangle.getBoundaryEdges.isLeft shouldBe true
+      triangle.boundaryEdges.isLeft shouldBe true
     }
   }
 
@@ -356,7 +356,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "fail if a boundary angle is undefined" in {
     val tiling = createSquareTiling()
-    tiling.getBoundaryEdges.value.head.angle = None
+    tiling.boundaryEdges.value.head.angle = None
     val result = TilingDCEL.validate(tiling)
     result.isLeft shouldBe true
     result.left.value.message should include("Tiling has at least one half-edge with no angle defined")
@@ -364,7 +364,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "fail if a boundary angle is a full circle (360 degrees)" in {
     val tiling = createSquareTiling()
-    tiling.getBoundaryEdges.value.head.angle = Some(AngleDegree(360))
+    tiling.boundaryEdges.value.head.angle = Some(AngleDegree(360))
     val result = TilingDCEL.validate(tiling)
     result.isLeft shouldBe true
     result.left.value.message should include("Full circle boundary angles")
@@ -372,7 +372,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "fail if a boundary angle is a full circle (0 degrees)" in {
     val tiling = createSquareTiling()
-    tiling.getBoundaryEdges.value.head.angle = Some(AngleDegree(0))
+    tiling.boundaryEdges.value.head.angle = Some(AngleDegree(0))
     val result = TilingDCEL.validate(tiling)
     result.isLeft shouldBe true
     result.left.value.message should include("Full circle boundary angles")
