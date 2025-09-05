@@ -1,5 +1,3 @@
-import org.scalajs.linker.interface.ModuleSplitStyle
-
 ThisBuild / version := "0.1.0-SNAPSHOT"
 ThisBuild / scalaVersion := "3.7.2"
 
@@ -25,15 +23,14 @@ lazy val jsSettings = Seq(
   libraryDependencies ++= Seq(
     "org.scala-lang.modules" %%% "scala-xml" % "2.4.0"
   ),
-  scalaJSUseMainModuleInitializer := true,
+  // Use Node.js for testing
+  jsEnv := new org.scalajs.jsenv.nodejs.NodeJSEnv(),
+  // Use a stable default for library usage; set to true only if you expose a JS main
+  scalaJSUseMainModuleInitializer := false,
   // Change module kind to CommonJS for Node.js compatibility
   scalaJSLinkerConfig ~= {
     _.withModuleKind(ModuleKind.CommonJSModule)
-  },
-  // Use Node.js for testing
-  jsEnv := new org.scalajs.jsenv.nodejs.NodeJSEnv(),
-  // Optional: if you want to use main module initializer
-  scalaJSUseMainModuleInitializer := false
+  }
 )
 
 // Cross-platform project definition
