@@ -214,6 +214,25 @@ object TilingAddition:
       yield (edgeToBuildOn, startVertex, endVertex, boundaryEdges)
     }
 
+    /**
+     * Adds a simple polygon to the outer boundary, defined by the supplied interior angles.
+     *
+     * Preconditions:
+     * - onEdgeStartingWithVertexId identifies a half-edge that belongs to the current outer boundary.
+     * - angles describes a valid simple polygon: angles.length >= 3 and passes angle-sum validation.
+     * - The polygon’s unit-length sides are implied by the internal geometry builder; the polygon must close without degeneracy.
+     * - The growth must not cause the boundary to self-intersect.
+     *
+     * Postconditions on success:
+     * - A new inner face is created and inserted, possibly reusing some boundary segments when angles allow.
+     * - The outer boundary is updated by replacing the consumed segment with the new exterior edges of the polygon.
+     * - Vertex leaving edges are updated so each involved vertex points to a valid boundary edge.
+     * - DCEL invariants are preserved.
+     *
+     * Failure cases:
+     * - Returns a TilingError if the target edge is not on the boundary, angles are invalid, the polygon wouldn’t close
+     *   with unit-length edges, or topology/geometry/spatial validation fails (including boundary intersection).
+     */
     def addSimplePolygonToBoundary(onEdgeStartingWithVertexId: VertexId, angles: List[AngleDegree]): Either[TilingError, TilingDCEL] =
       for
         _ <- validateSides(angles.length, "simple")
@@ -222,9 +241,31 @@ object TilingAddition:
       yield
         result
 
+    /**
+     * Convenience overload for addSimplePolygonToBoundary using degrees.
+     *
+     * See addSimplePolygonToBoundary(List[AngleDegree]) for full preconditions and postconditions.
+     */
     def addSimplePolygonToBoundary(onEdgeStartingWithVertexId: VertexId, degrees: Int *): Either[TilingError, TilingDCEL] =
       addSimplePolygonToBoundary(onEdgeStartingWithVertexId, degrees.map(AngleDegree(_)).toList)
 
+    /**
+     * Adds a regular polygon to the outer boundary along the specified boundary edge.
+     *
+     * Preconditions:
+     * - onEdgeStartingWithVertexId identifies a half-edge that belongs to the current outer boundary.
+     * - sides >= 3.
+     * - The growth must not cause boundary self-intersections.
+     *
+     * Postconditions on success:
+     * - A new inner face with the given number of sides is added.
+     * - Boundary edges are rewired to include the new outer portion and exclude the consumed portion.
+     * - DCEL invariants remain valid; vertex leaving edges point to boundary edges.
+     *
+     * Failure cases:
+     * - Returns a TilingError if the edge is not on the boundary, sides is invalid, or the operation would violate
+     *   topology/geometry/spatial constraints (including boundary intersection).
+     */
     def addRegularPolygonToBoundary(onEdgeStartingWithVertexId: VertexId, sides: Int): Either[TilingError, TilingDCEL] =
       for
         _ <- validateSides(sides, "regular")
@@ -233,15 +274,47 @@ object TilingAddition:
       yield
         result
 
+    /**
+     * Internal helper that attempts to fill a newly detected boundary hole with a polygon.
+     *
+     * Preconditions:
+     * - clone is a deep-copied snapshot of the tiling before the latest growth (only required when a closure is detected).
+     * - maybeHoleClosure contains the vertex pair defining the closure if a hole was formed; otherwise None.
+     *
+     * Postconditions on success:
+     * - Returns Some(updatedTiling) where the hole has been filled by adding the appropriate polygon face.
+     * - Returns None when no hole closure is needed.
+     *
+     * Failure cases:
+     * - This method is best-effort and may assume previous validations; it returns None if not applicable.
+     */
     private def maybeFilled(clone: TilingDCEL, containerFace: Face, maybeHoleClosure: Option[(Vertex, Vertex)]): Option[TilingDCEL] =
       maybeHoleClosure.map((v_match, v_new) =>
         val (holeAngles, startingVertexId, endingVertexId) =
         tiling.holeAnglesWithDirection(v_match, v_new, containerFace)
-        clone.addSimplePolygonWithoutGuards(startingVertexId, endingVertexId, holeAngles).get
+        clone.addSimplePolygonUnsafe(startingVertexId, endingVertexId, holeAngles).get
       )
 
-    @tailrec
-    def addSimplePolygon(startVertexId: VertexId, endVertexId: VertexId, angles: List[AngleDegree]): Either[TilingError, TilingDCEL] =
+    /**
+     * Adds a simple polygon between two boundary vertices.
+     *
+     * Preconditions:
+     * - startVertexId and endVertexId denote consecutive vertices along the selected boundary direction
+     * that define the edge to grow from.
+     * - angles is a valid simple polygon specification (length >= 3 and valid angle sum).
+     * - Polygon reconstruction from unit-length sides closes without degeneracy.
+     * - No boundary self-intersections are created by this growth.
+     *
+     * Postconditions on success:
+     * - A new inner face is inserted; any overlapping boundary segments are reused where possible.
+     * - Boundary edges and vertex leaving edges are updated accordingly.
+     * - DCEL invariants hold (twins, next/prev, incidentFace, angles).
+     *
+     * Failure cases:
+     * - Returns a TilingError upon invalid inputs, failed geometry checks, or topology/spatial violations.
+     * - If the growth creates a hole, the method may recursively attempt to fill it before returning.
+     */
+    @tailrec def addSimplePolygon(startVertexId: VertexId, endVertexId: VertexId, angles: List[AngleDegree]): Either[TilingError, TilingDCEL] =
       val either: Either[TilingError, (TilingDCEL, TilingDCEL, Face, Option[(Vertex, Vertex)])] =
         for
           (startVertex, endVertex, edgeToBuildOn) <- tiling.findVerticesAndEdgeBetween(startVertexId, endVertexId)
@@ -263,10 +336,30 @@ object TilingAddition:
             case None => Right(revisedTiling)
             case Some(holeFilled) => holeFilled.addSimplePolygon(startVertexId, endVertexId, angles)
 
+    /**
+     * Convenience overload for addSimplePolygon using degrees.
+     *
+     * See addSimplePolygon(List[AngleDegree]) for full preconditions and postconditions.
+     */
     def addSimplePolygon(startVertexId: VertexId, endVertexId: VertexId, degrees: Int *): Either[TilingError, TilingDCEL] =
       addSimplePolygon(startVertexId, endVertexId, degrees.map(AngleDegree(_)).toList)
 
-    private def addSimplePolygonWithoutGuards(startVertexId: VertexId, endVertexId: VertexId, angles: List[AngleDegree]): Option[TilingDCEL] =
+    /**
+     * Internal helper that adds a simple polygon without performing guard validations.
+     *
+     * Preconditions:
+     * - Caller ensures angles produce valid points and that the insertion is topologically safe.
+     * - startVertexId and endVertexId identify a valid boundary edge to grow from.
+     *
+     * Postconditions:
+     * - Returns Some(updatedTiling) with the new face and boundary in place when construction succeeds.
+     * - Returns None if the initial vertex/edge lookup fails.
+     *
+     * Failure cases:
+     * - May throw if underlying invariants (e.g., required edge links) are not satisfied due to misuse.
+     * Intended for internal use after prior guards have passed.
+     */
+    private def addSimplePolygonUnsafe(startVertexId: VertexId, endVertexId: VertexId, angles: List[AngleDegree]): Option[TilingDCEL] =
       for
         (startVertex, endVertex, edgeToBuildOn) <- tiling.findVerticesAndEdgeBetween(startVertexId, endVertexId).toOption
         points = calculateVertexPoints(angles, startVertex.coords, endVertex.coords)
@@ -287,8 +380,24 @@ object TilingAddition:
           outerFace = tiling.outerFace
         )
 
-    @tailrec
-    def addRegularPolygon(startVertexId: VertexId, endVertexId: VertexId, sides: Int): Either[TilingError, TilingDCEL] =
+    /**
+     * Adds a regular polygon between two boundary vertices.
+     *
+     * Preconditions:
+     * - startVertexId and endVertexId denote the boundary edge to grow from.
+     * - sides >= 3.
+     * - No boundary self-intersections are introduced by this growth.
+     *
+     * Postconditions on success:
+     * - A new inner face with the given number of sides is inserted.
+     * - Boundary edges are rewired; vertex leaving edges updated to boundary edges.
+     * - DCEL invariants hold.
+     *
+     * Failure cases:
+     * - Returns a TilingError when the input is invalid or the operation would violate topology/geometry/spatial constraints.
+     * - If the growth creates a hole, the method may recursively fill it before returning.
+     */
+    @tailrec def addRegularPolygon(startVertexId: VertexId, endVertexId: VertexId, sides: Int): Either[TilingError, TilingDCEL] =
       val either: Either[TilingError, (TilingDCEL, TilingDCEL, Face, Option[(Vertex, Vertex)])] =
         for
           (startVertex, endVertex, edgeToBuildOn) <- tiling.findVerticesAndEdgeBetween(startVertexId, endVertexId)

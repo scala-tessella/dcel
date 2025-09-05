@@ -19,6 +19,27 @@ object TilingDeletion:
 
   extension (tiling: TilingDCEL)
 
+    /**
+     * Deletes an inner face and updates the boundary and incidence structure accordingly.
+     *
+     * Preconditions:
+     * - faceId references an existing bounded face of the tiling.
+     * - Removing the face will not partition the tiling into multiple disconnected components
+     *   except for the intended boundary change; specifically, a viable interior path among the
+     *   remaining faces must exist and no single-vertex bottlenecks should be introduced.
+     *
+     * Postconditions on success:
+     * - The specified face is removed from innerFaces.
+     * - If the deleted face shared edges with the outer boundary, a new boundary cycle is formed by
+     *   creating or relinking corresponding boundary half-edges; otherwise, vertices belonging only
+     *   to the removed face may be deleted if they become isolated.
+     * - DCEL invariants are preserved: twin, next/prev, incidentFace, and vertex leaving edges are consistent.
+     * - Returns a new TilingDCEL reflecting the deletion; if it was the only inner face, the result is an empty tiling.
+     *
+     * Failure cases:
+     * - Returns a TilingError if the face does not exist, or if removing it would invalidate connectivity,
+     *   or if the operation cannot maintain DCEL consistency.
+     */
     def deleteFace(faceId: FaceId): Either[TilingError, TilingDCEL] =
       for
         faceToDelete <- tiling.findInnerFace(faceId)

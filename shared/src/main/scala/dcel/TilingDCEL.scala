@@ -139,9 +139,42 @@ case class TilingDCEL private(
   private def findBoundaryEdge(vertexId: VertexId): Option[HalfEdge] =
     boundaryEdges.toOption.flatMap(_.find(_.origin.id == vertexId))
 
+  /**
+   * Adds a regular polygon to the tiling along the outer boundary.
+   *
+   * Preconditions:
+   * - onEdgeStartingWithVertexId identifies a half-edge that belongs to the current outer boundary.
+   * - sides >= 3.
+   * - The operation must not introduce self-intersections on the boundary.
+   *
+   * Postconditions on success:
+   * - A new inner face representing the regular polygon is added.
+   * - The outer boundary is updated to exclude any edges consumed by the new face and include the new outer edges.
+   * - All DCEL invariants are preserved: every inserted half-edge has a twin, coherent next/prev links, correct incident faces, and updated vertex leaving edges.
+   * - The returned TilingDCEL is a new instance reflecting the mutation.
+   *
+   * Failure cases:
+   * - Returns a TilingError when the edge is not on the boundary, sides is invalid, or the growth would cause boundary intersections or violate topology/geometry constraints.
+   */
   def maybeAddRegularPolygonToBoundary(onEdgeStartingWithVertexId: VertexId, sides: Int): Either[TilingError, TilingDCEL] =
     this.addRegularPolygonToBoundary(onEdgeStartingWithVertexId, sides)
-    
+
+  /**
+   * Deletes an inner face from the tiling.
+   *
+   * Preconditions:
+   * - faceId references an existing inner (bounded) face.
+   * - Deleting the face does not partition the tiling into disconnected components except for the intended boundary change.
+   *
+   * Postconditions on success:
+   * - The face and its incident half-edges that are not shared with other faces are removed or repurposed.
+   * - If the deleted face touches the outer boundary, the boundary expands accordingly by relinking or creating appropriate boundary half-edges.
+   * - All DCEL invariants remain satisfied (twin, next/prev, incidentFace, vertex leaving edges).
+   * - The returned TilingDCEL is a new instance reflecting the mutation. If the deleted face was the only inner face, the result may be an empty tiling.
+   *
+   * Failure cases:
+   * - Returns a TilingError when the face does not exist, when the removal would split the tiling in an invalid way, or when integrity checks fail.
+   */
   def maybeDeleteFace(faceId: FaceId): Either[TilingError, TilingDCEL] =
     this.deleteFace(faceId)
 
