@@ -6,7 +6,6 @@ Please explain and add scalafmt + scalafix, and optionally wartremover or more m
 
 _By ChatGPT 5 on Sep 6, 2025_
 
-
 Below is a short intro that explains what each tool does and why to use it, followed by the minimal, safe setup you can copy-paste. I’ve also included “how to run” and “how to disable per-file/per-warn” notes.
 
 What these tools are and why they help
@@ -216,5 +215,3 @@ Notes and tips
     - Most IDEs support scalafmt-on-save; with the sbt plugin enabled, IntelliJ will pick it up automatically. For Scalafix, there are IntelliJ integrations, but running scalafixAll via sbt is typically enough for team workflows.
 
 If you’d like, I can also add a GitHub Actions workflow that runs scalafmtCheckAll/scalafixAll/test for both JVM and JS in matrix builds.
-
-Name: AI Assistant
