@@ -12,21 +12,23 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   it should "create a half-edge with just an origin vertex" in {
     val vertex = Vertex(V1, BigPoint(1.0, 2.0))
     val edge = HalfEdge(vertex)
-    
-    edge.origin shouldBe vertex
-    edge.twin shouldBe None
-    edge.incidentFace shouldBe None
-    edge.next shouldBe None
-    edge.prev shouldBe None
-    edge.angle shouldBe None
-    edge.toString shouldBe "HalfEdge V1 -> ? [Missing twin edge, Missing incident face, Missing next edge, Missing previous edge, Missing angle]"
+
+    allAssert(
+      edge.origin shouldBe vertex,
+      edge.twin shouldBe None,
+      edge.incidentFace shouldBe None,
+      edge.next shouldBe None,
+      edge.prev shouldBe None,
+      edge.angle shouldBe None,
+      edge.toString shouldBe "HalfEdge V1 -> ? [Missing twin edge, Missing incident face, Missing next edge, Missing previous edge, Missing angle]"
+    )
   }
 
   it should "create a half-edge with all optional parameters" in {
     val vertex = Vertex(V1, BigPoint(1.0, 2.0))
     val twinVertex = Vertex(V2, BigPoint(2.0, 3.0))
     val twin = HalfEdge(twinVertex)
-    val face = Face(FaceId("F1"))
+    val face = Face(F1)
     val nextEdge = HalfEdge(vertex)
     val prevEdge = HalfEdge(vertex)
     val angle = AngleDegree(90.0)
@@ -40,13 +42,15 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       angle = Some(angle)
     )
 
-    edge.origin shouldBe vertex
-    edge.twin shouldBe Some(twin)
-    edge.incidentFace shouldBe Some(face)
-    edge.next shouldBe Some(nextEdge)
-    edge.prev shouldBe Some(prevEdge)
-    edge.angle shouldBe Some(angle)
-    edge.toString shouldBe "HalfEdge V1 -> V2"
+    allAssert(
+      edge.origin shouldBe vertex,
+      edge.twin shouldBe Some(twin),
+      edge.incidentFace shouldBe Some(face),
+      edge.next shouldBe Some(nextEdge),
+      edge.prev shouldBe Some(prevEdge),
+      edge.angle shouldBe Some(angle),
+      edge.toString shouldBe "HalfEdge V1 -> V2"
+    )
   }
 
   behavior of "HalfEdge equality"
@@ -55,29 +59,32 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val vertex = Vertex(V1, BigPoint(0, 0))
     val edge1 = HalfEdge(vertex)
     val edge2 = HalfEdge(vertex) // Same origin, but different instance
-    
-    edge1 shouldNot equal(edge2)
-    edge1 shouldEqual edge1
+    allAssert(
+      edge1 shouldNot equal(edge2),
+      edge1 shouldEqual edge1
+    )
   }
 
   it should "not be equal to objects of other types" in {
     val vertex = Vertex(V1, BigPoint(0, 0))
     val edge = HalfEdge(vertex)
-    
-    edge shouldNot equal(vertex)
-    edge shouldNot equal("edge")
-    edge shouldNot equal(None)
-    edge shouldNot equal(42)
+    allAssert(
+      edge shouldNot equal(vertex),
+      edge shouldNot equal("edge"),
+      edge shouldNot equal(None),
+      edge shouldNot equal(42)
+    )
   }
 
   it should "have a hashCode based on its identity" in {
     val vertex = Vertex(V1, BigPoint(0, 0))
     val edge1 = HalfEdge(vertex)
     val edge2 = HalfEdge(vertex)
-    
-    edge1.hashCode() shouldNot equal(edge2.hashCode())
-    edge1.hashCode() shouldEqual System.identityHashCode(edge1)
-    edge2.hashCode() shouldEqual System.identityHashCode(edge2)
+    allAssert(
+      edge1.hashCode() shouldNot equal(edge2.hashCode()),
+      edge1.hashCode() shouldEqual System.identityHashCode(edge1),
+      edge2.hashCode() shouldEqual System.identityHashCode(edge2)
+    )
   }
 
   behavior of "HalfEdge.destination"
@@ -108,9 +115,10 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     
     edge1.twin = Some(edge2)
     edge2.twin = Some(edge1)
-    
-    edge1.destination shouldBe Some(v2)
-    edge2.destination shouldBe Some(v1)
+    allAssert(
+      edge1.destination shouldBe Some(v2),
+      edge2.destination shouldBe Some(v1)
+    )
   }
 
   behavior of "HalfEdge.isComplete"
@@ -126,7 +134,7 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val vertex = Vertex(V1, BigPoint(0, 0))
     val edge = HalfEdge(vertex)
     val twin = HalfEdge(vertex)
-    val face = Face(FaceId("F1"))
+    val face = Face(F1)
     
     edge.twin = Some(twin)
     edge.incidentFace = Some(face)
@@ -139,7 +147,7 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val vertex = Vertex(V1, BigPoint(0, 0))
     val edge = HalfEdge(vertex)
     val twin = HalfEdge(vertex)
-    val face = Face(FaceId("F1"))
+    val face = Face(F1)
     val nextEdge = HalfEdge(vertex)
     val prevEdge = HalfEdge(vertex)
     val angle = AngleDegree(90.0)
@@ -159,7 +167,7 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val vertex = Vertex(V1, BigPoint(0, 0))
     val edge = HalfEdge(vertex)
     val twin = HalfEdge(vertex)
-    val face = Face(FaceId("F1"))
+    val face = Face(F1)
     val nextEdge = HalfEdge(vertex)
     val prevEdge = HalfEdge(vertex)
     val angle = AngleDegree(90.0)
@@ -178,35 +186,37 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val edge = HalfEdge(vertex)
     
     val result = edge.validate()
-    result.isLeft shouldBe true
-    
     val errorMessage = result.left.value.message
-    errorMessage should include("Missing twin edge")
-    errorMessage should include("Missing incident face")
-    errorMessage should include("Missing next edge")
-    errorMessage should include("Missing previous edge")
-    errorMessage should include("Missing angle")
+    allAssert(
+      result.isLeft shouldBe true,
+      errorMessage should include("Missing twin edge"),
+      errorMessage should include("Missing incident face"),
+      errorMessage should include("Missing next edge"),
+      errorMessage should include("Missing previous edge"),
+      errorMessage should include("Missing angle")
+    )
   }
 
   it should "return Left with only missing field errors" in {
     val vertex = Vertex(V1, BigPoint(0, 0))
     val edge = HalfEdge(vertex)
     val twin = HalfEdge(vertex)
-    val face = Face(FaceId("F1"))
+    val face = Face(F1)
     
     edge.twin = Some(twin)
     edge.incidentFace = Some(face)
     // Missing next, prev, angle
     
     val result = edge.validate()
-    result.isLeft shouldBe true
-    
     val errorMessage = result.left.value.message
-    errorMessage should not include "Missing twin edge"
-    errorMessage should not include "Missing incident face"
-    errorMessage should include("Missing next edge")
-    errorMessage should include("Missing previous edge")
-    errorMessage should include("Missing angle")
+    allAssert(
+      result.isLeft shouldBe true,
+      errorMessage should not include "Missing twin edge",
+      errorMessage should not include "Missing incident face",
+      errorMessage should include("Missing next edge"),
+      errorMessage should include("Missing previous edge"),
+      errorMessage should include("Missing angle")
+    )
   }
 
   behavior of "HalfEdge mutable state"
@@ -217,38 +227,48 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val edge1 = HalfEdge(v1)
     val edge2 = HalfEdge(v2)
     val edge3 = HalfEdge(v1)
-    
-    edge1.twin shouldBe None
-    
-    edge1.twin = Some(edge2)
-    edge1.twin shouldBe Some(edge2)
-    edge1.destination shouldBe Some(v2)
-    
-    edge1.twin = Some(edge3)
-    edge1.twin shouldBe Some(edge3)
-    edge1.destination shouldBe Some(v1)
-    
-    edge1.twin = None
-    edge1.twin shouldBe None
-    edge1.destination shouldBe None
+
+    allAssert(
+      edge1.twin shouldBe None,
+      {
+        edge1.twin = Some(edge2)
+        edge1.twin shouldBe Some(edge2)
+      },
+      edge1.destination shouldBe Some(v2),
+      {
+        edge1.twin = Some(edge3)
+        edge1.twin shouldBe Some(edge3)
+      },
+      edge1.destination shouldBe Some(v1),
+      {
+        edge1.twin = None
+        edge1.twin shouldBe None
+      },
+      edge1.destination shouldBe None
+    )
   }
 
   it should "allow modification of incident face" in {
     val vertex = Vertex(V1, BigPoint(0, 0))
     val edge = HalfEdge(vertex)
-    val face1 = Face(FaceId("F1"))
-    val face2 = Face(FaceId("F2"))
-    
-    edge.incidentFace shouldBe None
-    
-    edge.incidentFace = Some(face1)
-    edge.incidentFace shouldBe Some(face1)
-    
-    edge.incidentFace = Some(face2)
-    edge.incidentFace shouldBe Some(face2)
-    
-    edge.incidentFace = None
-    edge.incidentFace shouldBe None
+    val face1 = Face(F1)
+    val face2 = Face(F2)
+
+    allAssert(
+      edge.incidentFace shouldBe None,
+      {
+        edge.incidentFace = Some(face1)
+        edge.incidentFace shouldBe Some(face1)
+      },
+      {
+        edge.incidentFace = Some(face2)
+        edge.incidentFace shouldBe Some(face2)
+      },
+      {
+        edge.incidentFace = None
+        edge.incidentFace shouldBe None
+      }
+    )
   }
 
   it should "allow modification of next and prev" in {
@@ -256,21 +276,23 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val edge1 = HalfEdge(vertex)
     val edge2 = HalfEdge(vertex)
     val edge3 = HalfEdge(vertex)
-    
-    edge1.next shouldBe None
-    edge1.prev shouldBe None
-    
-    edge1.next = Some(edge2)
-    edge1.prev = Some(edge3)
-    
-    edge1.next shouldBe Some(edge2)
-    edge1.prev shouldBe Some(edge3)
-    
-    edge1.next = None
-    edge1.prev = None
-    
-    edge1.next shouldBe None
-    edge1.prev shouldBe None
+
+    allAssert(
+      edge1.next shouldBe None,
+      edge1.prev shouldBe None,
+      {
+        edge1.next = Some(edge2)
+        edge1.prev = Some(edge3)
+        edge1.next shouldBe Some(edge2)
+      },
+      edge1.prev shouldBe Some(edge3),
+      {
+        edge1.next = None
+        edge1.prev = None
+        edge1.next shouldBe None
+      },
+      edge1.prev shouldBe None
+    )
   }
 
   it should "allow modification of angle" in {
@@ -278,17 +300,22 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val edge = HalfEdge(vertex)
     val angle1 = AngleDegree(90.0)
     val angle2 = AngleDegree(180.0)
-    
-    edge.angle shouldBe None
-    
-    edge.angle = Some(angle1)
-    edge.angle shouldBe Some(angle1)
-    
-    edge.angle = Some(angle2)
-    edge.angle shouldBe Some(angle2)
-    
-    edge.angle = None
-    edge.angle shouldBe None
+
+    allAssert(
+      edge.angle shouldBe None,
+      {
+        edge.angle = Some(angle1)
+        edge.angle shouldBe Some(angle1)
+      },
+      {
+        edge.angle = Some(angle2)
+        edge.angle shouldBe Some(angle2)
+      },
+      {
+        edge.angle = None
+        edge.angle shouldBe None
+      }
+    )
   }
 
   behavior of "HalfEdge companion object - createTwinPair"
@@ -298,26 +325,30 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val v2 = Vertex(V2, BigPoint(1, 0))
     
     val (edge1, edge2) = HalfEdge.createTwinPair(v1, v2)
-    
-    edge1.origin shouldBe v1
-    edge2.origin shouldBe v2
-    edge1.twin shouldBe Some(edge2)
-    edge2.twin shouldBe Some(edge1)
-    edge1.destination shouldBe Some(v2)
-    edge2.destination shouldBe Some(v1)
+
+    allAssert(
+      edge1.origin shouldBe v1,
+      edge2.origin shouldBe v2,
+      edge1.twin shouldBe Some(edge2),
+      edge2.twin shouldBe Some(edge1),
+      edge1.destination shouldBe Some(v2),
+      edge2.destination shouldBe Some(v1)
+    )
   }
 
   it should "create properly linked twins with same vertex (self-loop)" in {
     val vertex = Vertex(V1, BigPoint(0, 0))
     
     val (edge1, edge2) = HalfEdge.createTwinPair(vertex, vertex)
-    
-    edge1.origin shouldBe vertex
-    edge2.origin shouldBe vertex
-    edge1.twin shouldBe Some(edge2)
-    edge2.twin shouldBe Some(edge1)
-    edge1.destination shouldBe Some(vertex)
-    edge2.destination shouldBe Some(vertex)
+
+    allAssert(
+      edge1.origin shouldBe vertex,
+      edge2.origin shouldBe vertex,
+      edge1.twin shouldBe Some(edge2),
+      edge2.twin shouldBe Some(edge1),
+      edge1.destination shouldBe Some(vertex),
+      edge2.destination shouldBe Some(vertex)
+    )
   }
 
   behavior of "HalfEdge companion object - linkEdges"
@@ -326,14 +357,16 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val vertex = Vertex(V1, BigPoint(0, 0))
     val edge1 = HalfEdge(vertex)
     val edge2 = HalfEdge(vertex)
-    
-    edge1.next shouldBe None
-    edge2.prev shouldBe None
-    
-    edge1.linkWith(edge2)
-    
-    edge1.next shouldBe Some(edge2)
-    edge2.prev shouldBe Some(edge1)
+
+    allAssert(
+      edge1.next shouldBe None,
+      edge2.prev shouldBe None,
+      {
+        edge1.linkWith(edge2)
+        edge1.next shouldBe Some(edge2)
+      },
+      edge2.prev shouldBe Some(edge1)
+    )
   }
 
   it should "overwrite existing links" in {
@@ -349,9 +382,11 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     
     // Link edge1 -> edge2
     edge1.linkWith(edge4)
-    
-    edge1.next shouldBe Some(edge4)
-    edge4.prev shouldBe Some(edge1)
+
+    allAssert(
+      edge1.next shouldBe Some(edge4),
+      edge4.prev shouldBe Some(edge1)
+    )
   }
 
   it should "allow self-linking (edge pointing to itself)" in {
@@ -359,9 +394,11 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val edge = HalfEdge(vertex)
     
     edge.linkWith(edge)
-    
-    edge.next shouldBe Some(edge)
-    edge.prev shouldBe Some(edge)
+
+    allAssert(
+      edge.next shouldBe Some(edge),
+      edge.prev shouldBe Some(edge)
+    )
   }
 
   behavior of "HalfEdge companion object - linkChain"
@@ -376,12 +413,14 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     edges.linkInCycle()
     
     // Should form a cycle: edge1 -> edge2 -> edge3 -> edge1
-    edge1.next shouldBe Some(edge2)
-    edge2.prev shouldBe Some(edge1)
-    edge2.next shouldBe Some(edge3)
-    edge3.prev shouldBe Some(edge2)
-    edge3.next shouldBe Some(edge1)
-    edge1.prev shouldBe Some(edge3)
+    allAssert(
+      edge1.next shouldBe Some(edge2),
+      edge2.prev shouldBe Some(edge1),
+      edge2.next shouldBe Some(edge3),
+      edge3.prev shouldBe Some(edge2),
+      edge3.next shouldBe Some(edge1),
+      edge1.prev shouldBe Some(edge3)
+    )
   }
 
   it should "handle single edge chain (self-loop)" in {
@@ -389,9 +428,11 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val edge = HalfEdge(vertex)
     
     List(edge).linkInCycle()
-    
-    edge.next shouldBe Some(edge)
-    edge.prev shouldBe Some(edge)
+
+    allAssert(
+      edge.next shouldBe Some(edge),
+      edge.prev shouldBe Some(edge)
+    )
   }
 
   it should "handle two-edge chain" in {
@@ -400,11 +441,13 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val edge2 = HalfEdge(vertex)
     
     List(edge1, edge2).linkInCycle()
-    
-    edge1.next shouldBe Some(edge2)
-    edge2.prev shouldBe Some(edge1)
-    edge2.next shouldBe Some(edge1)
-    edge1.prev shouldBe Some(edge2)
+
+    allAssert(
+      edge1.next shouldBe Some(edge2),
+      edge2.prev shouldBe Some(edge1),
+      edge2.next shouldBe Some(edge1),
+      edge1.prev shouldBe Some(edge2)
+    )
   }
 
   it should "handle empty list gracefully" in {
@@ -423,9 +466,11 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     edges.zipWithIndex.foreach { case (edge, i) =>
       val nextIndex = (i + 1) % edges.length
       val prevIndex = if (i == 0) edges.length - 1 else i - 1
-      
-      edge.next shouldBe Some(edges(nextIndex))
-      edge.prev shouldBe Some(edges(prevIndex))
+
+      allAssert(
+        edge.next shouldBe Some(edges(nextIndex)),
+        edge.prev shouldBe Some(edges(prevIndex))
+      )
     }
   }
 
@@ -438,11 +483,13 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val segmentEdge = HalfEdge(vertex)
     
     HalfEdge.insertBoundarySegment(prevEdge, nextEdge, List(segmentEdge))
-    
-    prevEdge.next shouldBe Some(segmentEdge)
-    segmentEdge.prev shouldBe Some(prevEdge)
-    segmentEdge.next shouldBe Some(nextEdge)
-    nextEdge.prev shouldBe Some(segmentEdge)
+
+    allAssert(
+      prevEdge.next shouldBe Some(segmentEdge),
+      segmentEdge.prev shouldBe Some(prevEdge),
+      segmentEdge.next shouldBe Some(nextEdge),
+      nextEdge.prev shouldBe Some(segmentEdge)
+    )
   }
 
   it should "insert a multi-edge segment between two edges" in {
@@ -455,18 +502,20 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     
     val segment = List(seg1, seg2, seg3)
     HalfEdge.insertBoundarySegment(prevEdge, nextEdge, segment)
-    
-    // Check connections to boundary
-    prevEdge.next shouldBe Some(seg1)
-    seg1.prev shouldBe Some(prevEdge)
-    seg3.next shouldBe Some(nextEdge)
-    nextEdge.prev shouldBe Some(seg3)
-    
-    // Check internal segment connections
-    seg1.next shouldBe Some(seg2)
-    seg2.prev shouldBe Some(seg1)
-    seg2.next shouldBe Some(seg3)
-    seg3.prev shouldBe Some(seg2)
+
+    allAssert(
+      // Check connections to boundary
+      prevEdge.next shouldBe Some(seg1),
+      seg1.prev shouldBe Some(prevEdge),
+      seg3.next shouldBe Some(nextEdge),
+      nextEdge.prev shouldBe Some(seg3),
+
+      // Check internal segment connections
+      seg1.next shouldBe Some(seg2),
+      seg2.prev shouldBe Some(seg1),
+      seg2.next shouldBe Some(seg3),
+      seg3.prev shouldBe Some(seg2)
+    )
   }
 
   it should "handle empty segment gracefully" in {
@@ -501,24 +550,30 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       edge.incidentFace = Some(face)
       edge.angle = Some(AngleDegree(60.0))
     }
-    
+
+    allAssert(
     // Verify triangle structure
-    e12.next shouldBe Some(e23)
-    e23.next shouldBe Some(e31)
-    e31.next shouldBe Some(e12)
+    e12.next shouldBe Some(e23),
+    e23.next shouldBe Some(e31),
+    e31.next shouldBe Some(e12),
     
-    e12.prev shouldBe Some(e31)
-    e23.prev shouldBe Some(e12)
-    e31.prev shouldBe Some(e23)
+    e12.prev shouldBe Some(e31),
+    e23.prev shouldBe Some(e12),
+    e31.prev shouldBe Some(e23),
     
     // Verify destinations
-    e12.destination shouldBe Some(v2)
-    e23.destination shouldBe Some(v3)
-    e31.destination shouldBe Some(v1)
-    
+    e12.destination shouldBe Some(v2),
+    e23.destination shouldBe Some(v3),
+    e31.destination shouldBe Some(v1),
+
     // Verify all edges are complete
-    List(e12, e23, e31).foreach(_.isComplete shouldBe true)
-    List(e12, e23, e31).foreach(_.validate() shouldBe Right(()))
+      e12.isComplete shouldBe true,
+      e23.isComplete shouldBe true,
+      e31.isComplete shouldBe true,
+      e12.validate() shouldBe Right(()),
+      e23.validate() shouldBe Right(()),
+      e31.validate() shouldBe Right(())
+    )
   }
 
   behavior of "HalfEdge edge cases"
@@ -560,14 +615,16 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     
     // Modify all mutable fields
     edge.twin = Some(HalfEdge(vertex))
-    edge.incidentFace = Some(Face(FaceId("F1")))
+    edge.incidentFace = Some(Face(F1))
     edge.next = Some(HalfEdge(vertex))
     edge.prev = Some(HalfEdge(vertex))
     edge.angle = Some(AngleDegree(45.0))
     
     // Should still be the same reference
-    edge shouldBe theSameInstanceAs(originalEdge)
-    edge shouldEqual originalEdge
+    allAssert(
+      edge shouldBe theSameInstanceAs(originalEdge),
+      edge shouldEqual originalEdge
+    )
   }
 
   behavior of "HalfEdge complex scenarios"
@@ -600,16 +657,18 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     List(eTopRight, eRightBottom, eBottomTop.twin.get).foreach(_.incidentFace = Some(rightFace))
     
     // Verify structure
-    eTopLeft.destination shouldBe Some(vLeft)
-    eLeftBottom.destination shouldBe Some(vBottom)
-    eBottomTop.destination shouldBe Some(vTop)
-    
-    eTopRight.destination shouldBe Some(vRight)
-    eRightBottom.destination shouldBe Some(vBottom)
-    
-    // Verify faces
-    eTopLeft.incidentFace shouldBe Some(leftFace)
-    eTopRight.incidentFace shouldBe Some(rightFace)
+    allAssert(
+      eTopLeft.destination shouldBe Some(vLeft),
+      eLeftBottom.destination shouldBe Some(vBottom),
+      eBottomTop.destination shouldBe Some(vTop),
+
+      eTopRight.destination shouldBe Some(vRight),
+      eRightBottom.destination shouldBe Some(vBottom),
+
+      // Verify faces
+      eTopLeft.incidentFace shouldBe Some(leftFace),
+      eTopRight.incidentFace shouldBe Some(rightFace)
+    )
   }
 
   it should "maintain consistency in complex linking operations" in {
@@ -622,16 +681,18 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     
     // Insert one chain into the other
     HalfEdge.insertBoundarySegment(edges(0), edges(1), edges.drop(3))
-    
-    // Verify the final structure
-    edges(0).next shouldBe Some(edges(3))
-    edges(3).prev shouldBe Some(edges(0))
-    edges(5).next shouldBe Some(edges(1))
-    edges(1).prev shouldBe Some(edges(5))
-    
-    // Internal segment should be preserved
-    edges(3).next shouldBe Some(edges(4))
-    edges(4).next shouldBe Some(edges(5))
+
+    allAssert(
+      // Verify the final structure
+      edges(0).next shouldBe Some(edges(3)),
+      edges(3).prev shouldBe Some(edges(0)),
+      edges(5).next shouldBe Some(edges(1)),
+      edges(1).prev shouldBe Some(edges(5)),
+
+      // Internal segment should be preserved
+      edges(3).next shouldBe Some(edges(4)),
+      edges(4).next shouldBe Some(edges(5))
+    )
   }
 
   behavior of "HalfEdge validation edge cases"
@@ -642,13 +703,15 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     
     // Set all required fields with extreme angle
     edge.twin = Some(HalfEdge(vertex))
-    edge.incidentFace = Some(Face(FaceId("F1")))
+    edge.incidentFace = Some(Face(F1))
     edge.next = Some(HalfEdge(vertex))
     edge.prev = Some(HalfEdge(vertex))
     edge.angle = Some(AngleDegree(Double.MaxValue))
-    
-    edge.validate() shouldBe Right(())
-    edge.isComplete shouldBe true
+
+    allAssert(
+      edge.validate() shouldBe Right(()),
+      edge.isComplete shouldBe true
+    )
   }
 
   it should "handle fractional angles correctly" in {

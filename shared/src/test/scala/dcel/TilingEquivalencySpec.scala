@@ -14,82 +14,104 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
     val original = triangle
     val copy = original.deepCopy
 
-    // Basic structural properties should match
-    copy.vertices should have length original.vertices.length
-    copy.halfEdges should have length original.halfEdges.length
-    copy.innerFaces should have length original.innerFaces.length
-    copy.faces should have length original.faces.length
-
-    // Vertex IDs and coordinates should match
-    copy.vertices.map(_.id) should contain theSameElementsAs original.vertices.map(_.id)
-    copy.vertices.zip(original.vertices).foreach { case (copyV, origV) =>
-      copyV.id shouldEqual origV.id
-      copyV.coords shouldEqual origV.coords
-    }
-
-    // Face IDs should match
-    copy.faces.map(_.id) should contain theSameElementsAs original.faces.map(_.id)
+    allAssert(
+      // Basic structural properties should match
+      copy.vertices should have length original.vertices.length,
+      copy.halfEdges should have length original.halfEdges.length,
+      copy.innerFaces should have length original.innerFaces.length,
+      copy.faces should have length original.faces.length,
+      // Vertex IDs and coordinates should match
+      copy.vertices.map(_.id) should contain theSameElementsAs original.vertices.map(_.id),
+      allAssert(
+        copy.vertices.zip(original.vertices).map { case (copyV, origV) =>
+          allAssert(
+            copyV.id shouldEqual origV.id,
+            copyV.coords shouldEqual origV.coords
+          )
+        } *
+      ),
+      // Face IDs should match
+      copy.faces.map(_.id) should contain theSameElementsAs original.faces.map(_.id)
+    )
   }
 
   it should "create completely independent objects" in {
     val original = square
     val copy = original.deepCopy
 
-    // Verify that all objects are different instances
-    original.vertices.zip(copy.vertices).foreach { case (origV, copyV) =>
-      origV should not be theSameInstanceAs(copyV)
-    }
-
-    original.halfEdges.zip(copy.halfEdges).foreach { case (origE, copyE) =>
-      origE should not be theSameInstanceAs(copyE)
-    }
-
-    original.faces.zip(copy.faces).foreach { case (origF, copyF) =>
-      origF should not be theSameInstanceAs(copyF)
-    }
+    allAssert(
+      allAssert(
+        // Verify that all objects are different instances
+        original.vertices.zip(copy.vertices).map { case (origV, copyV) =>
+          origV should not be theSameInstanceAs(copyV)
+        } *
+      ),
+      allAssert(
+        original.halfEdges.zip(copy.halfEdges).map { case (origE, copyE) =>
+          origE should not be theSameInstanceAs(copyE)
+        } *
+      ),
+      allAssert(
+        original.faces.zip(copy.faces).map { case (origF, copyF) =>
+          origF should not be theSameInstanceAs(copyF)
+        } *
+      )
+    )
   }
 
   it should "preserve all cross-references correctly" in {
     val original = hexagon
     val copy = original.deepCopy
 
+    allAssert(
     // Check vertex leaving edges
-    copy.vertices.foreach { vertex =>
-      vertex.leaving shouldBe defined
-      vertex.leaving.get.origin should be theSameInstanceAs vertex
-    }
-
+      allAssert(
+    copy.vertices.map { vertex =>
+      allAssert(
+        vertex.leaving shouldBe defined,
+        vertex.leaving.get.origin should be theSameInstanceAs vertex
+      )
+    } *
+      ),
+    allAssert(
     // Check half-edge relationships
-    copy.halfEdges.foreach { edge =>
-      // Twin relationships
-      edge.twin shouldBe defined
-      edge.twin.get.twin should contain(edge)
+    copy.halfEdges.map { edge =>
+      allAssert(
+        // Twin relationships
+        edge.twin shouldBe defined,
+        edge.twin.get.twin should contain(edge),
 
-      // Next/prev relationships
-      edge.next shouldBe defined
-      edge.prev shouldBe defined
-      edge.next.get.prev should contain(edge)
-      edge.prev.get.next should contain(edge)
+        // Next/prev relationships
+        edge.next shouldBe defined,
+        edge.prev shouldBe defined,
+        edge.next.get.prev should contain(edge),
+        edge.prev.get.next should contain(edge),
 
-      // Origin relationships - check that the edge is among the vertex's incident edges
-      edge.origin.incidentEdgesUnsafe should contain(edge)
+        // Origin relationships - check that the edge is among the vertex's incident edges
+        edge.origin.incidentEdgesUnsafe should contain(edge),
 
-      // Incident face relationships
-      edge.incidentFace shouldBe defined
-    }
-
-    // Check face outer components
-    copy.faces.foreach { face =>
-      if face.outerComponent.isDefined then
-        face.outerComponent.get.incidentFace should contain(face)
-    }
-
-    // Additional check: verify that leaving edges are actually incident to their vertices
-    copy.vertices.foreach { vertex =>
-      vertex.leaving.foreach { leavingEdge =>
-        vertex.incidentEdgesUnsafe should contain(leavingEdge)
-      }
-    }
+        // Incident face relationships
+        edge.incidentFace shouldBe defined
+      )
+    } *
+    ),
+      allAssert(
+        // Check face outer components
+        copy.faces.map { face =>
+          if face.outerComponent.isDefined then
+            face.outerComponent.get.incidentFace should contain(face)
+          else fail()
+        } *
+      ),
+      allAssert(
+        // Additional check: verify that leaving edges are actually incident to their vertices
+        copy.vertices.flatMap { vertex =>
+          vertex.leaving.map { leavingEdge =>
+            vertex.incidentEdgesUnsafe should contain(leavingEdge)
+          }
+        } *
+      )
+    )
   }
 
   it should "maintain DCEL validation after copying" in {
@@ -97,8 +119,10 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
     val copy = original.deepCopy
 
     // Both original and copy should validate successfully
-    TilingDCEL.validate(original) shouldBe Right(())
-    TilingDCEL.validate(copy) shouldBe Right(())
+    allAssert(
+      TilingDCEL.validate(original) shouldBe Right(()),
+      TilingDCEL.validate(copy) shouldBe Right(())
+    )
   }
 
   it should "not affect original when copy is modified" in {
@@ -109,22 +133,24 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
     val originalBoundaryBefore = original.boundaryVerticesUnsafe
     val copyBoundaryBefore = copy.boundaryVerticesUnsafe
 
-    originalBoundaryBefore shouldEqual copyBoundaryBefore
-
-    // Modify the copy by adding a polygon
-    val modifiedCopy = copy.maybeAddRegularPolygonToBoundary(V1, 3)
-    modifiedCopy shouldBe a[Right[?, ?]]
-
-    // Original should remain unchanged
-    val originalBoundaryAfter = original.boundaryVerticesUnsafe
-    originalBoundaryBefore shouldEqual originalBoundaryAfter
-
-    // The original structure should still be valid
-    TilingDCEL.validate(original) shouldBe Right(())
-
-    // Original should have the same number of components as before
-    original.vertices should have length 4
-    original.innerFaces should have length 1
+    allAssert(
+      originalBoundaryBefore shouldEqual copyBoundaryBefore,
+      {
+        // Modify the copy by adding a polygon
+        val modifiedCopy = copy.maybeAddRegularPolygonToBoundary(V1, 3)
+        modifiedCopy shouldBe a[Right[?, ?]]
+      },
+      {
+        // Original should remain unchanged
+        val originalBoundaryAfter = original.boundaryVerticesUnsafe
+        originalBoundaryBefore shouldEqual originalBoundaryAfter
+      },
+      // The original structure should still be valid
+      TilingDCEL.validate(original) shouldBe Right(()),
+      // Original should have the same number of components as before
+      original.vertices should have length 4,
+      original.innerFaces should have length 1
+    )
   }
 
   it should "not affect copy when original is modified" in {
@@ -136,29 +162,33 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
 
     // Modify the original by adding a polygon
     val modifiedOriginal = original.maybeAddRegularPolygonToBoundary(V1, 4)
-    modifiedOriginal shouldBe a[Right[?, ?]]
-
-    // Copy should remain unchanged
-    val copyBoundaryAfter = copy.boundaryVerticesUnsafe
-    copyBoundaryBefore shouldEqual copyBoundaryAfter
-
-    // Copy structure should still be valid
-    TilingDCEL.validate(copy) shouldBe Right(())
-
-    // Copy should have the same number of components as before
-    copy.vertices should have length 3
-    copy.innerFaces should have length 1
+    allAssert(
+      modifiedOriginal shouldBe a[Right[?, ?]],
+      {
+        // Copy should remain unchanged
+        val copyBoundaryAfter = copy.boundaryVerticesUnsafe
+        copyBoundaryBefore shouldEqual copyBoundaryAfter
+      },
+      // Copy structure should still be valid
+      TilingDCEL.validate(copy) shouldBe Right(()),
+  
+      // Copy should have the same number of components as before
+      copy.vertices should have length 3,
+      copy.innerFaces should have length 1
+    )
   }
 
   it should "work correctly with empty tiling" in {
     val original = emptyTiling
     val copy = original.deepCopy
 
-    copy.vertices shouldBe empty
-    copy.halfEdges shouldBe empty
-    copy.innerFaces shouldBe empty
-    copy.outerFace should not be theSameInstanceAs(original.outerFace)
-    copy.outerFace.id shouldEqual original.outerFace.id
+    allAssert(
+      copy.vertices shouldBe empty,
+      copy.halfEdges shouldBe empty,
+      copy.innerFaces shouldBe empty,
+      copy.outerFace should not be theSameInstanceAs(original.outerFace),
+      copy.outerFace.id shouldEqual original.outerFace.id
+    )
   }
 
   it should "preserve boundary traversal functionality" in {
@@ -166,47 +196,61 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
     val copy = original.deepCopy
 
     // Boundary traversal should work the same way
-    original.boundaryVerticesUnsafe shouldEqual copy.boundaryVerticesUnsafe
-    original.boundaryVertices shouldEqual copy.boundaryVertices
+    allAssert(
+      original.boundaryVerticesUnsafe shouldEqual copy.boundaryVerticesUnsafe,
+      original.boundaryVertices shouldEqual copy.boundaryVertices,
 
-    // The actual vertex instances should be different but have the same properties
-    original.boundaryVerticesUnsafe.zip(copy.boundaryVerticesUnsafe).foreach { case (origV, copyV) =>
-      origV should not be theSameInstanceAs(copyV)
-      origV.id shouldEqual copyV.id
-      origV.coords shouldEqual copyV.coords
-    }
+      // The actual vertex instances should be different but have the same properties
+      allAssert(
+        original.boundaryVerticesUnsafe.zip(copy.boundaryVerticesUnsafe).map { case (origV, copyV) =>
+          allAssert(
+            origV should not be theSameInstanceAs(copyV),
+            origV.id shouldEqual copyV.id,
+            origV.coords shouldEqual copyV.coords
+          )
+        } *
+      )
+    )
   }
 
   it should "preserve angle information correctly" in {
     val original = triangle
     val copy = original.deepCopy
 
-    // Check that angles are preserved
-    original.vertices.zip(copy.vertices).foreach { case (origV, copyV) =>
-      val origAngles = original.getAnglesAtVertex(origV.id)
-      val copyAngles = copy.getAnglesAtVertex(copyV.id)
+    allAssert(
+      // Check that angles are preserved
+      allAssert(
+        original.vertices.zip(copy.vertices).map { case (origV, copyV) =>
+          val origAngles = original.getAnglesAtVertex(origV.id)
+          val copyAngles = copy.getAnglesAtVertex(copyV.id)
 
-      origAngles shouldEqual copyAngles
-    }
-
-    // Check half-edge angles
-    original.halfEdges.zip(copy.halfEdges).foreach { case (origE, copyE) =>
-      origE.angle shouldEqual copyE.angle
-    }
+          origAngles shouldEqual copyAngles
+        } *
+      ),
+      // Check half-edge angles
+      allAssert(
+        original.halfEdges.zip(copy.halfEdges).map { case (origE, copyE) =>
+          origE.angle shouldEqual copyE.angle
+        } *
+      )
+    )
   }
 
   it should "maintain connectedness property" in {
     val original = square
     val copy = original.deepCopy
-
-    original.hasConnectedFaces shouldEqual copy.hasConnectedFaces
-
-    // Add polygons to both and check they remain connected
-    val expandedOriginal = original.maybeAddRegularPolygonToBoundary(V1, 3).value
-    val expandedCopy = copy.maybeAddRegularPolygonToBoundary(V1, 3).value
-
-    expandedOriginal.hasConnectedFaces shouldBe true
-    expandedCopy.hasConnectedFaces shouldBe true
+    allAssert(
+      original.hasConnectedFaces shouldEqual copy.hasConnectedFaces,
+      {
+        // Add polygons to both and check they remain connected
+        val expandedOriginal = original.maybeAddRegularPolygonToBoundary(V1, 3).value
+        val expandedCopy = copy.maybeAddRegularPolygonToBoundary(V1, 3).value
+        allAssert(
+          expandedOriginal.hasConnectedFaces shouldBe true,
+          expandedCopy.hasConnectedFaces shouldBe true
+        )
+      }
+    )
   }
 
   it should "work correctly for complex multi-polygon tilings" in {
@@ -216,24 +260,28 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
 
     val copy = original.deepCopy
 
-    // Verify the structure is preserved
-    copy.vertices should have length original.vertices.length
-    copy.innerFaces should have length original.innerFaces.length
+    allAssert(
+      // Verify the structure is preserved
+      copy.vertices should have length original.vertices.length,
+      copy.innerFaces should have length original.innerFaces.length,
 
-    // Verify both validate correctly
-    TilingDCEL.validate(original) shouldBe Right(())
-    TilingDCEL.validate(copy) shouldBe Right(())
+      // Verify both validate correctly
+      TilingDCEL.validate(original) shouldBe Right(()),
+      TilingDCEL.validate(copy) shouldBe Right(()),
+      {
+        // Verify independence by modifying each
+        val modifiedOriginal = original.maybeAddRegularPolygonToBoundary(V2, 6)
+        val modifiedCopy = copy.maybeAddRegularPolygonToBoundary(V3, 5)
+        allAssert(
+          modifiedOriginal shouldBe a[Right[?, ?]],
+          modifiedCopy shouldBe a[Right[?, ?]],
 
-    // Verify independence by modifying each
-    val modifiedOriginal = original.maybeAddRegularPolygonToBoundary(V2, 6)
-    val modifiedCopy = copy.maybeAddRegularPolygonToBoundary(V3, 5)
-
-    modifiedOriginal shouldBe a[Right[?, ?]]
-    modifiedCopy shouldBe a[Right[?, ?]]
-
-    // They should have different numbers of faces now
-    modifiedOriginal.value.innerFaces should have length (original.innerFaces.length + 1)
-    modifiedCopy.value.innerFaces should have length (copy.innerFaces.length + 1)
+          // They should have different numbers of faces now
+          modifiedOriginal.value.innerFaces should have length (original.innerFaces.length + 1),
+          modifiedCopy.value.innerFaces should have length (copy.innerFaces.length + 1)
+        )
+      }
+    )
   }
 
   behavior of "TilingDCEL.isTopologicallyEquivalentTo"
@@ -287,8 +335,10 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
 
     // Both have 4 square faces, but the arrangement of vertices is different.
     // Grid has a central vertex of degree 4, line does not.
-    gridTiling.innerFaces.map(_.halfEdgesUnsafe.size) should contain theSameElementsAs lineTiling.innerFaces.map(_.halfEdgesUnsafe.size)
-    gridTiling.isTopologicallyEquivalentTo(lineTiling) shouldBe false
+    allAssert(
+      gridTiling.innerFaces.map(_.halfEdgesUnsafe.size) should contain theSameElementsAs lineTiling.innerFaces.map(_.halfEdgesUnsafe.size),
+      gridTiling.isTopologicallyEquivalentTo(lineTiling) shouldBe false
+    )
   }
 
   it should "return false for an empty tiling vs a non-empty one" in {
@@ -296,8 +346,10 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
   }
 
   it should "return false for two different rhombuses" in {
-    square.isTopologicallyEquivalentTo(rhombus) shouldBe true
-    square.isEquivalentTo(rhombus) shouldBe false
+    allAssert(
+      square.isTopologicallyEquivalentTo(rhombus) shouldBe true,
+      square.isEquivalentTo(rhombus) shouldBe false
+    )
   }
 
   /** <img src="file:../../resources/shapeL.svg"/> */
@@ -320,10 +372,12 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
     shapeL2.verticallyReflectedCopy
 
   it should "return true for two reflected shapes" in {
-    shapeL.isTopologicallyEquivalentTo(shapeΓ) shouldBe true
-    shapeL.isEquivalentTo(shapeΓ) shouldBe true
-    shapeL2.isTopologicallyEquivalentTo(shapeΓ2) shouldBe true
-    shapeL2.isEquivalentTo(shapeΓ2) shouldBe true
+    allAssert(
+      shapeL.isTopologicallyEquivalentTo(shapeΓ) shouldBe true,
+      shapeL.isEquivalentTo(shapeΓ) shouldBe true,
+      shapeL2.isTopologicallyEquivalentTo(shapeΓ2) shouldBe true,
+      shapeL2.isEquivalentTo(shapeΓ2) shouldBe true
+    )
   }
 
   def net: TilingDCEL = TilingBuilder.createRhombusNet(3, 6)
@@ -350,17 +404,21 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
   behavior of "TilingDCEL.isReflectionOf"
 
   it should "return true when comparing two reflected shapes" in {
-    shapeL.isReflectionOf(shapeΓ) shouldBe true
-    shapeΓ.isReflectionOf(shapeL) shouldBe true
-    shapeL2.isReflectionOf(shapeΓ2) shouldBe true
-    shapeΓ2.isReflectionOf(shapeL2) shouldBe true
+    allAssert(
+      shapeL.isReflectionOf(shapeΓ) shouldBe true,
+      shapeΓ.isReflectionOf(shapeL) shouldBe true,
+      shapeL2.isReflectionOf(shapeΓ2) shouldBe true,
+      shapeΓ2.isReflectionOf(shapeL2) shouldBe true
+    )
   }
 
   behavior of "TilingDCEL.isRotationOf"
 
   it should "return false when comparing two reflected shapes" in {
-    shapeL.isRotationOf(shapeΓ) shouldBe false
-    shapeΓ.isRotationOf(shapeL) shouldBe false
-    shapeL2.isRotationOf(shapeΓ2) shouldBe false
-    shapeΓ2.isRotationOf(shapeL2) shouldBe false
+    allAssert(
+      shapeL.isRotationOf(shapeΓ) shouldBe false,
+      shapeΓ.isRotationOf(shapeL) shouldBe false,
+      shapeL2.isRotationOf(shapeΓ2) shouldBe false,
+      shapeΓ2.isRotationOf(shapeL2) shouldBe false
+    )
   }

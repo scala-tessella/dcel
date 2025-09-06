@@ -1,10 +1,15 @@
 package dcel
 
+import org.scalatest.Assertion
+import org.scalatest.Assertions.succeed
 import org.scalatest.EitherValues
 
 /** A trait for test classes with helper methods to create tiling fixtures. */
 trait TilingTestHelpers extends EitherValues:
   
+  object allAssert:
+    def apply(assertions: Assertion*): Assertion = succeed
+
   def emptyTiling: TilingDCEL =
     TilingDCEL.empty
 
@@ -40,3 +45,5 @@ trait TilingTestHelpers extends EitherValues:
   val V6: VertexId = VertexId("V6")
   
   val F1: FaceId = FaceId("F1")
+  val F2: FaceId = FaceId("F2")
+  val F3: FaceId = FaceId("F3")

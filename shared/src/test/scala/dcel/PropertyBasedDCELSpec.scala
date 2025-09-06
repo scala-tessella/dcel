@@ -4,18 +4,18 @@ import dcel.BigDecimalGeometry.AngleDegree
 import dcel.Polygon.SimplePolygon
 
 import org.scalacheck.Gen
-import org.scalatest.EitherValues
+import org.scalatest.Assertion
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
+import scala.collection.mutable.ListBuffer
 import scala.util.Random
 
 class PropertyBasedDCELSpec
     extends AnyFlatSpec
     with Matchers
     with ScalaCheckPropertyChecks
-    with EitherValues
     with TilingTestHelpers:
 
   // Generators and helpers
@@ -30,15 +30,17 @@ class PropertyBasedDCELSpec
     // Guard against ScalaCheck shrinking producing invalid values (e.g., 0)
     TilingBuilder.createRegularPolygon(math.max(3, s)).value
 
-  private def validateAll(tiling: TilingDCEL): Unit =
-    // Topology
-    TilingDCEL.validateTopologically(tiling).isRight shouldBe true
-    // Geometry
-    TilingDCEL.validateGeometrically(tiling).isRight shouldBe true
-    // Space
-    TilingDCEL.validateSpatially(tiling).isRight shouldBe true
+  private def validateAll(tiling: TilingDCEL): Assertion =
+    allAssert(
+      // Topology
+      TilingDCEL.validateTopologically(tiling).isRight shouldBe true,
+      // Geometry
+      TilingDCEL.validateGeometrically(tiling).isRight shouldBe true,
+      // Space
+      TilingDCEL.validateSpatially(tiling).isRight shouldBe true,
+    )
 
-  private def validateTopology(tiling: TilingDCEL): Unit =
+  private def validateTopology(tiling: TilingDCEL): Assertion =
     TilingDCEL.validateTopologically(tiling).isRight shouldBe true
 
   private def interiorVertices(tiling: TilingDCEL): List[Vertex] =
@@ -126,24 +128,32 @@ class PropertyBasedDCELSpec
   it should "sum to a full circle for interior vertices across random growth sequences" in {
     forAll(genInitialSides, genSteps) { (initialSides, steps) =>
       var t = createRegular(initialSides)
-      validateTopology(t)
-
-      var i = 0
-      while i < steps do
-        val (grown, performed) = tryRandomAddition(t)
-        t = grown
-        if performed then validateTopology(t)
-        i += 1
-
-      val interior = interiorVertices(t)
-
-      interior.foreach { v =>
-        val angles = t.getAnglesAtVertex(v.id).value
-        if angles.nonEmpty then
-          withClue(s"Interior vertex ${v.id}: angles=$angles") {
-            angleSumIsFullCircle(angles) shouldBe true
-          }
-      }
+      allAssert(
+        validateTopology(t),
+        {
+          var i = 0
+          val assertions = ListBuffer[Assertion]()
+          while i < steps do
+            val (grown, performed) = tryRandomAddition(t)
+            t = grown
+            if performed then assertions += validateTopology(t)
+            i += 1
+          allAssert(assertions.toList *)
+        },
+        {
+          val interior = interiorVertices(t)
+          allAssert(
+            interior.map { v =>
+              val angles = t.getAnglesAtVertex(v.id).value
+              if angles.nonEmpty then
+                withClue(s"Interior vertex ${v.id}: angles=$angles") {
+                  angleSumIsFullCircle(angles) shouldBe true
+                }
+              else succeed
+            } *
+          )
+        }
+      )
     }
   }
 
@@ -162,10 +172,12 @@ class PropertyBasedDCELSpec
       t.innerFaces.foreach { f =>
         val edges = f.halfEdges.value
         val angles = edges.flatMap(_.angle)
-        withClue(s"Face ${f.id}: edges=${edges.length}, angles=${angles.length}") {
-          angles.length shouldEqual edges.length
-        }
-        SimplePolygon.validatePolygonAngles(angles).isRight shouldBe true
+        allAssert(
+          withClue(s"Face ${f.id}: edges=${edges.length}, angles=${angles.length}") {
+            angles.length shouldEqual edges.length
+          },
+          SimplePolygon.validatePolygonAngles(angles).isRight shouldBe true
+        )
       }
     }
   }
@@ -175,24 +187,32 @@ class PropertyBasedDCELSpec
   it should "preserve twin/next/prev cycles under random additions and deletions" in {
     forAll(genInitialSides, genSteps) { (initialSides, steps) =>
       var t = createRegular(initialSides)
-
-      // Random growth
-      var i = 0
-      while i < steps do
-        val (grown, performedAdd) = tryRandomAddition(t)
-        t = grown
-        if performedAdd then
-          validateTopology(t)
-        i += 1
-
-      // Random deletions (up to the same count), validate after each successful deletion
-      var j = 0
-      while j < steps && t.innerFaces.nonEmpty do
-        val (shrunk, performedDel) = tryRandomDeletion(t)
-        t = shrunk
-        if performedDel then
-          validateTopology(t)
-        j += 1
+      allAssert(
+        {
+          // Random growth
+          var i = 0
+          val assertions = ListBuffer[Assertion]()
+          while i < steps do
+            val (grown, performedAdd) = tryRandomAddition(t)
+            t = grown
+            if performedAdd then
+              assertions += validateTopology(t)
+            i += 1
+          allAssert(assertions.toList *)
+        },
+        {
+          // Random deletions (up to the same count), validate after each successful deletion
+          var j = 0
+          val assertions = ListBuffer[Assertion]()
+          while j < steps && t.innerFaces.nonEmpty do
+            val (shrunk, performedDel) = tryRandomDeletion(t)
+            t = shrunk
+            if performedDel then
+              assertions += validateTopology(t)
+            j += 1
+          allAssert(assertions.toList *)
+        }
+      )
     }
   }
 
@@ -201,12 +221,14 @@ class PropertyBasedDCELSpec
   it should "validate after each step of random boundary growth" in {
     forAll(genInitialSides, genSteps) { (initialSides, steps) =>
       var t = createRegular(initialSides)
-      validateTopology(t)
+      val assertions = ListBuffer[Assertion]()
+      assertions += validateTopology(t)
       var i = 0
       while i < steps do
         val (grown, performed) = tryRandomAddition(t)
         t = grown
-        if performed then validateTopology(t)
+        if performed then assertions += validateTopology(t)
         i += 1
+      allAssert(assertions.toList *)
     }
   }

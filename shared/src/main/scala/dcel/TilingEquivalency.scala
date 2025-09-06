@@ -5,6 +5,7 @@ import dcel.BigDecimalGeometry.{AngleDegree, BigPoint}
 import io.github.scala_tessella.ring_seq.RingSeq.rotationsAndReflections
 
 import scala.collection.mutable
+import scala.Ordering.Implicits.*
 
 object TilingEquivalency:
 

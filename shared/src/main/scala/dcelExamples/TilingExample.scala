@@ -6,9 +6,9 @@ import dcel.{Face, FaceId, HalfEdge, TilingDCEL, Vertex, VertexId}
 object TilingExample:
 
   def main(args: Array[String]): Unit =
-    createTwoTrianglesTiling()
+    val twoTriangles = createTwoTrianglesTiling()
+    val sixTriangles = createSixTrianglesTiling()
     println("This is an example object. Run tests to see the TilingBuilder in action.")
-    createSixTrianglesTiling()
 
   // The test code previously here has been moved to TilingBuilderSpec.scala
 

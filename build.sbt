@@ -11,6 +11,15 @@ lazy val commonSettings = Seq(
     // ScalaCheck + ScalaTest integration for property-based tests (JVM & JS)
     "org.scalacheck" %%% "scalacheck" % "1.18.1" % Test,
     "org.scalatestplus" %%% "scalacheck-1-18" % "3.2.19.0" % Test
+  ),
+  // Compiler hygiene: turn on key warnings and make them fail the build
+  scalacOptions ++= Seq(
+    "-Xfatal-warnings",     // fail on warnings
+    "-deprecation",         // warn on deprecated APIs
+    "-feature",             // warn on feature imports/usages
+    "-unchecked",           // extra checks for pattern matches, etc.
+    "-Wvalue-discard",      // warn when non-Unit value is ignored
+    "-Wnonunit-statement"   // warn on statements that return non-Unit
   )
 )
 

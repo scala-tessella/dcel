@@ -67,20 +67,23 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   behavior of "Face construction"
 
   it should "create a face with just an ID" in {
-    val face = Face(FaceId("F1"))
-    face.id.value shouldBe "F1"
-    face.outerComponent shouldBe None
-    face.innerComponents shouldBe Nil
+    val face = Face(F1)
+    allAssert(
+      face.id.value shouldBe "F1",
+      face.outerComponent shouldBe None,
+      face.innerComponents shouldBe Nil
+    )
   }
 
   it should "create a face with outer component" in {
     val vertex = createVertex(V1, 0, 0)
     val edge = HalfEdge(vertex)
     val face = Face(F1, Some(edge))
-    
-    face.id.value shouldBe "F1"
-    face.outerComponent shouldBe Some(edge)
-    face.innerComponents shouldBe Nil
+    allAssert(
+      face.id.value shouldBe "F1",
+      face.outerComponent shouldBe Some(edge),
+      face.innerComponents shouldBe Nil
+    )
   }
 
   it should "create a face with inner components" in {
@@ -89,10 +92,11 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val edge2 = HalfEdge(vertex)
     val innerComponents = List(Some(edge1), Some(edge2))
     val face = Face(F1, None, innerComponents)
-    
-    face.id.value shouldBe "F1"
-    face.outerComponent shouldBe None
-    face.innerComponents shouldBe innerComponents
+    allAssert(
+      face.id.value shouldBe "F1",
+      face.outerComponent shouldBe None,
+      face.innerComponents shouldBe innerComponents
+    )
   }
 
   behavior of "Face equality"
@@ -100,37 +104,38 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   it should "be equal to another face with the same ID" in {
     val vertex = createVertex(V1, 0, 0)
     val edge = HalfEdge(vertex)
-    val face1 = Face(FaceId("F1"))
+    val face1 = Face(F1)
     val face2 = Face(F1, Some(edge)) // Different components
     
     face1 shouldEqual face2
   }
 
   it should "not be equal to another face with a different ID" in {
-    val face1 = Face(FaceId("F1"))
-    val face2 = Face(FaceId("F2"))
+    val face1 = Face(F1)
+    val face2 = Face(F2)
     
     face1 shouldNot equal(face2)
   }
 
   it should "not be equal to objects of other types" in {
-    val face = Face(FaceId("F1"))
-    
-    face shouldNot equal("F1")
-    face shouldNot equal(1)
-    face shouldNot equal(None)
+    val face = Face(F1)
+    allAssert(
+      face shouldNot equal("F1"),
+      face shouldNot equal(1),
+      face shouldNot equal(None)
+    )
   }
 
   it should "have the same hashCode as another face with the same ID" in {
-    val face1 = Face(FaceId("F1"))
-    val face2 = Face(FaceId("F1"))
+    val face1 = Face(F1)
+    val face2 = Face(F1)
     
     face1.hashCode() shouldEqual face2.hashCode()
   }
 
   it should "have different hashCodes for faces with different IDs" in {
-    val face1 = Face(FaceId("F1"))
-    val face2 = Face(FaceId("F2"))
+    val face1 = Face(F1)
+    val face2 = Face(F2)
     
     face1.hashCode() shouldNot equal(face2.hashCode())
   }
@@ -152,8 +157,10 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val face = Face(F1, None, List(Some(edge)))
     
     val result = face.validate()
-    result.isLeft shouldBe true
-    result.left.value.message should include("Missing outer component edge")
+    allAssert(
+      result.isLeft shouldBe true,
+      result.left.value.message should include("Missing outer component edge")
+    )
   }
 
   it should "return Right(()) with missing inner components error" in {
@@ -166,24 +173,25 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   }
 
   it should "return Left with both errors when both are missing" in {
-    val face = Face(FaceId("F1"))
-    
+    val face = Face(F1)
     val result = face.validate()
-    result.isLeft shouldBe true
     val errorMessage = result.left.value.message
-    errorMessage should include("Missing outer component edge")
+    allAssert(
+      result.isLeft shouldBe true,
+      errorMessage should include("Missing outer component edge")
+    )
   }
 
   behavior of "Face.getVertices"
 
   it should "return empty list when outer component is None" in {
-    val face = Face(FaceId("F1"))
+    val face = Face(F1)
     face.getVertices.toOption.get shouldBe List.empty
   }
 
   it should "return single vertex for self-loop edge" in {
     val vertex = createVertex(V1, 0, 0)
-    val face = Face(FaceId("F1"))
+    val face = Face(F1)
     val edge = HalfEdge(vertex, incidentFace = Some(face))
     edge.next = Some(edge) // Self-loop
     face.outerComponent = Some(edge)
@@ -195,22 +203,26 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val (face, _, vertices) = createTriangleFace(FaceId("F_triangle"))
     
     val result = face.getVertices.getOrElse(List.empty)
-    result should have length 3
-    result shouldBe vertices
+    allAssert(
+      result should have length 3,
+      result shouldBe vertices
+    )
   }
 
   it should "return vertices in order for square face" in {
     val (face, _, vertices) = createSquareFace(FaceId("F_square"))
     
     val result = face.getVertices.getOrElse(List.empty)
-    result should have length 4
-    result shouldBe vertices
+    allAssert(
+      result should have length 4,
+      result shouldBe vertices
+    )
   }
 
   it should "handle broken edge chain NOT gracefully" in {
     val v1 = createVertex(V1, 0, 0)
     val v2 = createVertex(VertexId("V2"), 1, 0)
-    val face = Face(FaceId("F1"))
+    val face = Face(F1)
     val he1 = HalfEdge(v1, incidentFace = Some(face))
     val he2 = HalfEdge(v2, incidentFace = Some(face))
     
@@ -225,13 +237,13 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   behavior of "Face.halfEdges"
 
   it should "return Right(List.empty) when outer component is None" in {
-    val face = Face(FaceId("F1"))
+    val face = Face(F1)
     face.halfEdges shouldBe Right(List.empty)
   }
 
   it should "return Right with single edge for self-loop" in {
     val vertex = createVertex(V1, 0, 0)
-    val face = Face(FaceId("F1"))
+    val face = Face(F1)
     val edge = HalfEdge(vertex, incidentFace = Some(face))
     edge.next = Some(edge)
     face.outerComponent = Some(edge)
@@ -243,16 +255,20 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val (face, edges, _) = createTriangleFace(FaceId("F_triangle"))
     
     val result = face.halfEdges
-    result.isRight shouldBe true
-    result.value should contain theSameElementsInOrderAs edges
+    allAssert(
+      result.isRight shouldBe true,
+      result.value should contain theSameElementsInOrderAs edges
+    )
   }
 
   it should "return Right with edges in order for square face" in {
     val (face, edges, _) = createSquareFace(FaceId("F_square"))
     
     val result = face.halfEdges
-    result.isRight shouldBe true
-    result.value should contain theSameElementsInOrderAs edges
+    allAssert(
+      result.isRight shouldBe true,
+      result.value should contain theSameElementsInOrderAs edges
+    )
   }
 
   it should "return Left when edge chain is broken" in {
@@ -267,8 +283,10 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     face.outerComponent = Some(he1)
     
     val result = face.halfEdges
-    result.isLeft shouldBe true
-    result.left.value.message should startWith("Broken edge chain")
+    allAssert(
+      result.isLeft shouldBe true,
+      result.left.value.message should startWith("Broken edge chain")
+    )
   }
 
   it should "return Left when cycle is detected" in {
@@ -286,8 +304,10 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     face.outerComponent = Some(he1)
     
     val result = face.halfEdges
-    result.isLeft shouldBe true
-    result.left.value.message should startWith("Cycle detected")
+    allAssert(
+      result.isLeft shouldBe true,
+      result.left.value.message should startWith("Cycle detected")
+    )
   }
 
   behavior of "Face.halfEdgesSafe"
@@ -334,8 +354,10 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     
     // Triangle with vertices at (0,0), (1,0), (0.5, 0.866) should have area ≈ 0.433
     val area = face.area
-    area should be > BigDecimal(0.4)
-    area should be < BigDecimal(0.5)
+    allAssert(
+      area should be > BigDecimal(0.4),
+      area should be < BigDecimal(0.5)
+    )
   }
 
   it should "calculate correct area for unit square" in {
@@ -372,55 +394,67 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   behavior of "Face mutable state"
 
   it should "allow modification of outer component" in {
-    val face = Face(FaceId("F1"))
+    val face = Face(F1)
     val vertex = createVertex(V1, 0, 0)
     val edge1 = HalfEdge(vertex)
     val edge2 = HalfEdge(vertex)
-    
-    face.outerComponent shouldBe None
-    
-    face.outerComponent = Some(edge1)
-    face.outerComponent shouldBe Some(edge1)
-    
-    face.outerComponent = Some(edge2)
-    face.outerComponent shouldBe Some(edge2)
-    
-    face.outerComponent = None
-    face.outerComponent shouldBe None
+
+    allAssert(
+      face.outerComponent shouldBe None,
+      {
+        face.outerComponent = Some(edge1)
+        face.outerComponent shouldBe Some(edge1)
+      },
+      {
+        face.outerComponent = Some(edge2)
+        face.outerComponent shouldBe Some(edge2)
+      },
+      {
+        face.outerComponent = None
+        face.outerComponent shouldBe None
+      }
+    )
   }
 
   it should "allow modification of inner components" in {
-    val face = Face(FaceId("F1"))
+    val face = Face(F1)
     val vertex = createVertex(V1, 0, 0)
     val edge1 = HalfEdge(vertex)
     val edge2 = HalfEdge(vertex)
-    
-    face.innerComponents shouldBe Nil
-    
-    face.innerComponents = List(Some(edge1))
-    face.innerComponents shouldBe List(Some(edge1))
-    
-    face.innerComponents = List(Some(edge1), Some(edge2))
-    face.innerComponents shouldBe List(Some(edge1), Some(edge2))
-    
-    face.innerComponents = List(None, Some(edge1))
-    face.innerComponents shouldBe List(None, Some(edge1))
-    
-    face.innerComponents = Nil
-    face.innerComponents shouldBe Nil
+
+    allAssert(
+    face.innerComponents shouldBe Nil,
+      {
+        face.innerComponents = List(Some(edge1))
+        face.innerComponents shouldBe List(Some(edge1))
+      },
+      {
+        face.innerComponents = List(Some(edge1), Some(edge2))
+        face.innerComponents shouldBe List(Some(edge1), Some(edge2))
+      },
+      {
+        face.innerComponents = List(None, Some(edge1))
+        face.innerComponents shouldBe List(None, Some(edge1))
+      },
+      {
+        face.innerComponents = Nil
+        face.innerComponents shouldBe Nil
+      }
+    )
   }
 
   behavior of "Face companion object - adjacencyMap"
 
   it should "return empty adjacencies for faces with no edges" in {
-    val face1 = Face(FaceId("F1"))
-    val face2 = Face(FaceId("F2"))
+    val face1 = Face(F1)
+    val face2 = Face(F2)
     val faces = List(face1, face2)
     
     val adjacencyMap = Face.adjacencyMap(faces)
-    
-    adjacencyMap(face1) shouldBe List.empty
-    adjacencyMap(face2) shouldBe List.empty
+    allAssert(
+      adjacencyMap(face1) shouldBe List.empty,
+      adjacencyMap(face2) shouldBe List.empty
+    )
   }
 
   it should "return correct adjacency for connected faces" in {
@@ -430,8 +464,8 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val v3 = createVertex(V3, 0.5, 0.866)
     val v4 = createVertex(V4, 0.5, -0.866)
 
-    val face1 = Face(FaceId("F1"))
-    val face2 = Face(FaceId("F2"))
+    val face1 = Face(F1)
+    val face2 = Face(F2)
 
     // Face 1: triangle v1-v2-v3
     val he1_12 = HalfEdge(v1, incidentFace = Some(face1))
@@ -479,12 +513,14 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val faces = List(face1, face2)
     val adjacencyMap = Face.adjacencyMap(faces)
 
-    adjacencyMap(face1) should contain(face2)
-    adjacencyMap(face2) should contain(face1)
+    allAssert(
+      adjacencyMap(face1) should contain(face2),
+      adjacencyMap(face2) should contain(face1)
+    )
   }
 
   it should "handle faces with missing twin information gracefully" in {
-    val (face1, _, _) = createTriangleFace(FaceId("F1"))
+    val (face1, _, _) = createTriangleFace(F1)
     val faces = List(face1)
 
     // This should not crash even though edges don't have twins properly set
@@ -495,7 +531,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   behavior of "Face companion object - breadthFirstSearch"
 
   it should "return single face when no adjacencies exist" in {
-    val face1 = Face(FaceId("F1"))
+    val face1 = Face(F1)
     val adjacency = Map(face1 -> List.empty[Face])
     
     val result = breadthFirstSearch(face1, adjacency)
@@ -503,9 +539,9 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   }
 
   it should "return all connected faces" in {
-    val face1 = Face(FaceId("F1"))
-    val face2 = Face(FaceId("F2"))
-    val face3 = Face(FaceId("F3"))
+    val face1 = Face(F1)
+    val face2 = Face(F2)
+    val face3 = Face(F3)
     
     val adjacency = Map(
       face1 -> List(face2),
@@ -518,9 +554,9 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   }
 
   it should "return only reachable faces in disconnected graph" in {
-    val face1 = Face(FaceId("F1"))
-    val face2 = Face(FaceId("F2"))
-    val face3 = Face(FaceId("F3"))
+    val face1 = Face(F1)
+    val face2 = Face(F2)
+    val face3 = Face(F3)
     val face4 = Face(FaceId("F4"))
     
     val adjacency = Map(
@@ -535,8 +571,8 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   }
 
   it should "handle cycles in the adjacency graph" in {
-    val face1 = Face(FaceId("F1"))
-    val face2 = Face(FaceId("F2"))
+    val face1 = Face(F1)
+    val face2 = Face(F2)
     
     val adjacency = Map(
       face1 -> List(face2, face1), // Self-loop and connection to face2
@@ -548,8 +584,8 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   }
 
   it should "handle missing entries in adjacency map" in {
-    val face1 = Face(FaceId("F1"))
-    val face2 = Face(FaceId("F2"))
+    val face1 = Face(F1)
+    val face2 = Face(F2)
     
     val adjacency = Map(
       face1 -> List(face2)
