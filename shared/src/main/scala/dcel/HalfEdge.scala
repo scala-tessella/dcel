@@ -22,8 +22,8 @@ import scala.collection.mutable
   * @param angle
   *   The angle of the corner at the origin vertex, inside the incident face.
   */
-case class HalfEdge(
-    origin: Vertex,
+final class HalfEdge(
+    val origin: Vertex,
     private[dcel] var twin: Option[HalfEdge] = None,
     private[dcel] var incidentFace: Option[Face] = None,
     private[dcel] var next: Option[HalfEdge] = None,
@@ -123,6 +123,15 @@ case class HalfEdge(
     incidentFace.contains(face)
 
 object HalfEdge:
+
+  def apply(
+      origin: Vertex,
+      twin: Option[HalfEdge] = None,
+      incidentFace: Option[Face] = None,
+      next: Option[HalfEdge] = None,
+      prev: Option[HalfEdge] = None,
+      angle: Option[AngleDegree] = None
+  ): HalfEdge = new HalfEdge(origin, twin, incidentFace, next, prev, angle)
 
   private[dcel] def createTwinPair(v1: Vertex, v2: Vertex): (HalfEdge, HalfEdge) =
     val edge1 = HalfEdge(v1)

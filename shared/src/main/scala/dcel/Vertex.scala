@@ -12,9 +12,9 @@ import dcel.Topology.breadthFirstSearch
   * @param leaving
   *   An optional reference to one of the half-edges originating from this vertex.
   */
-case class Vertex(
-    id: VertexId,
-    coords: BigPoint,
+final class Vertex(
+    val id: VertexId,
+    val coords: BigPoint,
     private[dcel] var leaving: Option[HalfEdge] = None
 ):
   override def equals(obj: Any): Boolean =
@@ -67,6 +67,12 @@ case class Vertex(
     incidentEdgesUnsafe.flatMap(_.incidentFace)
 
 object Vertex:
+
+  def apply(
+      id: VertexId,
+      coords: BigPoint,
+      leaving: Option[HalfEdge] = None
+  ): Vertex = new Vertex(id, coords, leaving)
 
   /** Builds an adjacency map for vertices that are connected through boundary edges. Only includes vertices
     * that are in the sharedVertices set.
