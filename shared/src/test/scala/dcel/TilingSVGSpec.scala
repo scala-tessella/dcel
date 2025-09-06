@@ -31,7 +31,7 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "generate valid SVG for a triangle with default parameters" in {
     val triangleTiling = createTriangleTiling()
-    val svg = triangleTiling.toScalableVectorGraphics()
+    val svg            = triangleTiling.toScalableVectorGraphics()
 
     allAssert(
       svg should include("<svg"),
@@ -48,7 +48,7 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "generate valid SVG for a square with default parameters" in {
     val squareTiling = createSquareTiling()
-    val svg = squareTiling.toScalableVectorGraphics()
+    val svg          = squareTiling.toScalableVectorGraphics()
 
     allAssert(
       svg should include("<svg"),
@@ -65,13 +65,13 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "automatically calculate width and height based on content" in {
     val triangleTiling = createTriangleTiling()
-    val svg = triangleTiling.toScalableVectorGraphics(scale = 100.0, padding = 20.0)
+    val svg            = triangleTiling.toScalableVectorGraphics(scale = 100.0, padding = 20.0)
 
     // Extract width and height values
-    val widthRegex = """width="(\d+)"""".r
+    val widthRegex  = """width="(\d+)"""".r
     val heightRegex = """height="(\d+)"""".r
 
-    val widthMatch = widthRegex.findFirstMatchIn(svg)
+    val widthMatch  = widthRegex.findFirstMatchIn(svg)
     val heightMatch = heightRegex.findFirstMatchIn(svg)
 
     allAssert(
@@ -90,25 +90,24 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "calculate width and height that match viewBox dimensions" in {
     val triangleTiling = createTriangleTiling()
-    val svg = triangleTiling.toScalableVectorGraphics(scale = 50.0, padding = 10.0)
+    val svg            = triangleTiling.toScalableVectorGraphics(scale = 50.0, padding = 10.0)
 
     // Extract width, height, and viewBox values
-    val widthRegex = """width="(\d+)"""".r
-    val heightRegex = """height="(\d+)"""".r
+    val widthRegex   = """width="(\d+)"""".r
+    val heightRegex  = """height="(\d+)"""".r
     val viewBoxRegex = """viewBox="([^"]+)"""".r
 
-    val widthMatch = widthRegex.findFirstMatchIn(svg)
-    val heightMatch = heightRegex.findFirstMatchIn(svg)
+    val widthMatch   = widthRegex.findFirstMatchIn(svg)
+    val heightMatch  = heightRegex.findFirstMatchIn(svg)
     val viewBoxMatch = viewBoxRegex.findFirstMatchIn(svg)
 
     allAssert(
       widthMatch shouldBe defined,
       heightMatch shouldBe defined,
-      viewBoxMatch shouldBe defined,
-      {
-        val width = widthMatch.get.group(1).toInt
-        val height = heightMatch.get.group(1).toInt
-        val viewBoxValues = viewBoxMatch.get.group(1).split(" ").map(_.toDouble)
+      viewBoxMatch shouldBe defined, {
+        val width                                    = widthMatch.get.group(1).toInt
+        val height                                   = heightMatch.get.group(1).toInt
+        val viewBoxValues                            = viewBoxMatch.get.group(1).split(" ").map(_.toDouble)
         val Array(_, _, viewBoxWidth, viewBoxHeight) = viewBoxValues
         allAssert(
           // SVG width and height should match viewBox dimensions (within integer conversion tolerance)
@@ -121,7 +120,7 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "respect custom stroke width parameter" in {
     val triangleTiling = createTriangleTiling()
-    val svg = triangleTiling.toScalableVectorGraphics(strokeWidth = 2.5)
+    val svg            = triangleTiling.toScalableVectorGraphics(strokeWidth = 2.5)
 
     allAssert(
       svg should include("stroke-width=\"2.5\""),
@@ -134,29 +133,27 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "respect custom padding parameter" in {
     val triangleTiling = createTriangleTiling()
-    val svgDefault = triangleTiling.toScalableVectorGraphics(padding = 20.0)
-    val svgCustom = triangleTiling.toScalableVectorGraphics(padding = 50.0)
+    val svgDefault     = triangleTiling.toScalableVectorGraphics(padding = 20.0)
+    val svgCustom      = triangleTiling.toScalableVectorGraphics(padding = 50.0)
 
     allAssert(
       // Different padding should result in different viewBox values and dimensions
-      svgDefault should not equal svgCustom,
-      {
+      svgDefault should not equal svgCustom, {
         // Extract viewBox values to verify padding is applied
-        val viewBoxRegex = """viewBox="([^"]+)"""".r
+        val viewBoxRegex   = """viewBox="([^"]+)"""".r
         val defaultViewBox = viewBoxRegex.findFirstMatchIn(svgDefault).map(_.group(1))
-        val customViewBox = viewBoxRegex.findFirstMatchIn(svgCustom).map(_.group(1))
+        val customViewBox  = viewBoxRegex.findFirstMatchIn(svgCustom).map(_.group(1))
         defaultViewBox should not equal customViewBox
 
-      },
-      {
+      }, {
         // Extract width and height values
-        val widthRegex = """width="(\d+)"""".r
+        val widthRegex  = """width="(\d+)"""".r
         val heightRegex = """height="(\d+)"""".r
 
-        val defaultWidth = widthRegex.findFirstMatchIn(svgDefault).map(_.group(1).toInt)
-        val customWidth = widthRegex.findFirstMatchIn(svgCustom).map(_.group(1).toInt)
+        val defaultWidth  = widthRegex.findFirstMatchIn(svgDefault).map(_.group(1).toInt)
+        val customWidth   = widthRegex.findFirstMatchIn(svgCustom).map(_.group(1).toInt)
         val defaultHeight = heightRegex.findFirstMatchIn(svgDefault).map(_.group(1).toInt)
-        val customHeight = heightRegex.findFirstMatchIn(svgCustom).map(_.group(1).toInt)
+        val customHeight  = heightRegex.findFirstMatchIn(svgCustom).map(_.group(1).toInt)
 
         // Larger padding should result in larger dimensions
         allAssert(
@@ -169,21 +166,20 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "respect custom scale parameter" in {
     val triangleTiling = createTriangleTiling()
-    val svgDefault = triangleTiling.toScalableVectorGraphics(scale = 50.0)
-    val svgCustom = triangleTiling.toScalableVectorGraphics(scale = 100.0)
+    val svgDefault     = triangleTiling.toScalableVectorGraphics(scale = 50.0)
+    val svgCustom      = triangleTiling.toScalableVectorGraphics(scale = 100.0)
 
     allAssert(
       // Different scale should result in different coordinate values and dimensions
-      svgDefault should not equal svgCustom,
-      {
+      svgDefault should not equal svgCustom, {
         // Extract width and height values
-        val widthRegex = """width="(\d+)"""".r
+        val widthRegex  = """width="(\d+)"""".r
         val heightRegex = """height="(\d+)"""".r
 
-        val defaultWidth = widthRegex.findFirstMatchIn(svgDefault).map(_.group(1).toInt)
-        val customWidth = widthRegex.findFirstMatchIn(svgCustom).map(_.group(1).toInt)
+        val defaultWidth  = widthRegex.findFirstMatchIn(svgDefault).map(_.group(1).toInt)
+        val customWidth   = widthRegex.findFirstMatchIn(svgCustom).map(_.group(1).toInt)
         val defaultHeight = heightRegex.findFirstMatchIn(svgDefault).map(_.group(1).toInt)
-        val customHeight = heightRegex.findFirstMatchIn(svgCustom).map(_.group(1).toInt)
+        val customHeight  = heightRegex.findFirstMatchIn(svgCustom).map(_.group(1).toInt)
 
         // Larger scale should result in larger dimensions
         allAssert(
@@ -196,7 +192,7 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "include proper SVG structure and elements" in {
     val triangleTiling = createTriangleTiling()
-    val svg = triangleTiling.toScalableVectorGraphics()
+    val svg            = triangleTiling.toScalableVectorGraphics()
 
     allAssert(
       // Check SVG structure
@@ -217,7 +213,7 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "generate lines for each edge only once" in {
     val triangleTiling = createTriangleTiling()
-    val svg = triangleTiling.toScalableVectorGraphics()
+    val svg            = triangleTiling.toScalableVectorGraphics()
 
     // Count the number of line elements
     val lineCount = "<line".r.findAllIn(svg).size
@@ -228,7 +224,7 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "generate circles for each vertex" in {
     val triangleTiling = createTriangleTiling()
-    val svg = triangleTiling.toScalableVectorGraphics()
+    val svg            = triangleTiling.toScalableVectorGraphics()
 
     // Count the number of circle elements
     val circleCount = "<circle".r.findAllIn(svg).size
@@ -239,7 +235,7 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "generate labels for each vertex" in {
     val triangleTiling = createTriangleTiling()
-    val svg = triangleTiling.toScalableVectorGraphics()
+    val svg            = triangleTiling.toScalableVectorGraphics()
 
     // Count the number of text elements
     val textCount = "<text".r.findAllIn(svg).size
@@ -250,7 +246,7 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "include vertex IDs in labels" in {
     val triangleTiling = createTriangleTiling()
-    val svg = triangleTiling.toScalableVectorGraphics()
+    val svg            = triangleTiling.toScalableVectorGraphics()
 
     // Triangle vertices should be labeled V1, V2, v3
     allAssert(
@@ -263,7 +259,7 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   it should "handle negative coordinates correctly" in {
     // Create a tiling with vertices that might have negative coordinates
     val squareTiling = createSquareTiling()
-    val svg = squareTiling.toScalableVectorGraphics()
+    val svg          = squareTiling.toScalableVectorGraphics()
 
     // SVG should be generated without errors and contain proper elements
     allAssert(
@@ -276,19 +272,17 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "generate proper viewBox dimensions" in {
     val triangleTiling = createTriangleTiling()
-    val svg = triangleTiling.toScalableVectorGraphics(padding = 10.0, scale = 100.0)
+    val svg            = triangleTiling.toScalableVectorGraphics(padding = 10.0, scale = 100.0)
 
     // Extract viewBox values
     val viewBoxRegex = """viewBox="([^"]+)"""".r
     val viewBoxMatch = viewBoxRegex.findFirstMatchIn(svg)
 
     allAssert(
-      viewBoxMatch shouldBe defined,
-      {
+      viewBoxMatch shouldBe defined, {
         val viewBoxValues = viewBoxMatch.get.group(1).split(" ").map(_.toDouble)
         allAssert(
-          viewBoxValues should have length 4,
-          {
+          viewBoxValues should have length 4, {
             // ViewBox should have proper format: minX minY width height
             val Array(_, _, width, height) = viewBoxValues
             allAssert(
@@ -303,7 +297,7 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "flip Y coordinates correctly" in {
     val triangleTiling = createTriangleTiling()
-    val svg = triangleTiling.toScalableVectorGraphics()
+    val svg            = triangleTiling.toScalableVectorGraphics()
 
     // Y coordinates in the SVG should be negated compared to the original
     // This is indicated by the minus sign in front of y coordinates in the implementation
@@ -317,7 +311,7 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "handle empty half-edges list gracefully" in {
     // Create a tiling with vertices but no half-edges
-    val vertex = Vertex(VertexId("V0"), BigPoint(BigDecimal(0), BigDecimal(0)))
+    val vertex                 = Vertex(VertexId("V0"), BigPoint(BigDecimal(0), BigDecimal(0)))
     val tilingWithVerticesOnly = TilingDCEL(
       vertices = List(vertex),
       halfEdges = List.empty,
@@ -341,16 +335,16 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "delegate to toScalableVectorGraphics with same parameters" in {
     val triangleTiling = createTriangleTiling()
-    val svg1 = triangleTiling.toSVG(strokeWidth = 1.5, padding = 30.0, scale = 75.0)
-    val svg2 = triangleTiling.toScalableVectorGraphics(strokeWidth = 1.5, padding = 30.0, scale = 75.0)
+    val svg1           = triangleTiling.toSVG(strokeWidth = 1.5, padding = 30.0, scale = 75.0)
+    val svg2           = triangleTiling.toScalableVectorGraphics(strokeWidth = 1.5, padding = 30.0, scale = 75.0)
 
     svg1 shouldEqual svg2
   }
 
   it should "use default parameters when called without arguments" in {
     val triangleTiling = createTriangleTiling()
-    val svg1 = triangleTiling.toSVG()
-    val svg2 = triangleTiling.toScalableVectorGraphics()
+    val svg1           = triangleTiling.toSVG()
+    val svg2           = triangleTiling.toScalableVectorGraphics()
 
     svg1 shouldEqual svg2
   }
@@ -359,15 +353,14 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "generate well-formed XML" in {
     val triangleTiling = createTriangleTiling()
-    val svg = triangleTiling.toScalableVectorGraphics()
+    val svg            = triangleTiling.toScalableVectorGraphics()
 
     allAssert(
       // Basic XML well-formedness checks
       svg should startWith("<svg"),
-      svg should endWith("</svg>"),
-      {
+      svg should endWith("</svg>"), {
         // Check that all opened tags are closed
-        val openTags = """<(\w+)(?:\s|>)""".r.findAllMatchIn(svg).map(_.group(1)).toList
+        val openTags  = """<(\w+)(?:\s|>)""".r.findAllMatchIn(svg).map(_.group(1)).toList
         val closeTags = """</(\w+)>""".r.findAllMatchIn(svg).map(_.group(1)).toList
 
         // Every non-self-closing tag should have a corresponding closing tag
@@ -381,7 +374,7 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "use proper SVG attributes" in {
     val triangleTiling = createTriangleTiling()
-    val svg = triangleTiling.toScalableVectorGraphics()
+    val svg            = triangleTiling.toScalableVectorGraphics()
 
     allAssert(
       // Check for required SVG attributes
@@ -409,8 +402,8 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "generate consistent output for the same input" in {
     val triangleTiling = createTriangleTiling()
-    val svg1 = triangleTiling.toScalableVectorGraphics()
-    val svg2 = triangleTiling.toScalableVectorGraphics()
+    val svg1           = triangleTiling.toScalableVectorGraphics()
+    val svg2           = triangleTiling.toScalableVectorGraphics()
 
     svg1 shouldEqual svg2
   }
@@ -419,15 +412,15 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "produce different sizes for different scales" in {
     val triangleTiling = createTriangleTiling()
-    val svg50 = triangleTiling.toScalableVectorGraphics(scale = 50.0)
-    val svg100 = triangleTiling.toScalableVectorGraphics(scale = 100.0)
+    val svg50          = triangleTiling.toScalableVectorGraphics(scale = 50.0)
+    val svg100         = triangleTiling.toScalableVectorGraphics(scale = 100.0)
 
-    val widthRegex = """width="(\d+)"""".r
+    val widthRegex  = """width="(\d+)"""".r
     val heightRegex = """height="(\d+)"""".r
 
-    val width50 = widthRegex.findFirstMatchIn(svg50).map(_.group(1).toInt).get
-    val width100 = widthRegex.findFirstMatchIn(svg100).map(_.group(1).toInt).get
-    val height50 = heightRegex.findFirstMatchIn(svg50).map(_.group(1).toInt).get
+    val width50   = widthRegex.findFirstMatchIn(svg50).map(_.group(1).toInt).get
+    val width100  = widthRegex.findFirstMatchIn(svg100).map(_.group(1).toInt).get
+    val height50  = heightRegex.findFirstMatchIn(svg50).map(_.group(1).toInt).get
     val height100 = heightRegex.findFirstMatchIn(svg100).map(_.group(1).toInt).get
 
     // Double scale should roughly double the dimensions
@@ -439,16 +432,16 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "produce reasonable dimensions for typical tilings" in {
     val triangleTiling = createTriangleTiling()
-    val squareTiling = createSquareTiling()
+    val squareTiling   = createSquareTiling()
 
     val triangleSvg = triangleTiling.toScalableVectorGraphics()
-    val squareSvg = squareTiling.toScalableVectorGraphics()
+    val squareSvg   = squareTiling.toScalableVectorGraphics()
 
-    val widthRegex = """width="(\d+)"""".r
+    val widthRegex  = """width="(\d+)"""".r
     val heightRegex = """height="(\d+)"""".r
 
     List(triangleSvg, squareSvg).foreach { svg =>
-      val width = widthRegex.findFirstMatchIn(svg).map(_.group(1).toInt).get
+      val width  = widthRegex.findFirstMatchIn(svg).map(_.group(1).toInt).get
       val height = heightRegex.findFirstMatchIn(svg).map(_.group(1).toInt).get
 
       // Dimensions should be reasonable (not too small, not too large)
@@ -465,12 +458,11 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "create arrows for edges with sufficient distance" in {
     val triangleTiling = createTriangleTiling()
-    val svg = triangleTiling.toScalableVectorGraphics()
+    val svg            = triangleTiling.toScalableVectorGraphics()
 
     allAssert(
-    // Should contain arrow polygons for both inner and outer face half-edges
-      svg should include("<polygon points="),
-      {
+      // Should contain arrow polygons for both inner and outer face half-edges
+      svg should include("<polygon points="), {
         val polygonCount = "<polygon".r.findAllIn(svg).size
         // Each boundary vertex creates an arrow, plus inner face arrows
         polygonCount should be > 0
@@ -481,7 +473,7 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   it should "not create arrows for very short edges" in {
     // Create a tiling with very close vertices that would result in distance <= ACCURACY
     val v1 = Vertex(VertexId("V1"), BigPoint(BigDecimal(0), BigDecimal(0)))
-    val v2 = Vertex(VertexId("V2"), BigPoint(BigDecimal(1E-15), BigDecimal(1E-15))) // Very close
+    val v2 = Vertex(VertexId("V2"), BigPoint(BigDecimal(1e-15), BigDecimal(1e-15))) // Very close
 
     val tilingWithCloseVertices = TilingDCEL(
       vertices = List(v1, v2),
@@ -501,8 +493,8 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "generate different arrow sizes based on stroke width" in {
     val triangleTiling = createTriangleTiling()
-    val svg1 = triangleTiling.toScalableVectorGraphics(strokeWidth = 1.0)
-    val svg2 = triangleTiling.toScalableVectorGraphics(strokeWidth = 2.0)
+    val svg1           = triangleTiling.toScalableVectorGraphics(strokeWidth = 1.0)
+    val svg2           = triangleTiling.toScalableVectorGraphics(strokeWidth = 2.0)
 
     allAssert(
       // Different stroke widths should generate different arrow coordinates
@@ -518,11 +510,11 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "use BigDecimalGeometry methods for coordinate calculations" in {
     val triangleTiling = createTriangleTiling()
-    val svg = triangleTiling.toScalableVectorGraphics()
+    val svg            = triangleTiling.toScalableVectorGraphics()
 
     // Verify that coordinates are properly formatted (no excessive decimal places)
     val coordinatePattern = """\d+\.\d+""".r
-    val coordinates = coordinatePattern.findAllIn(svg).toList
+    val coordinates       = coordinatePattern.findAllIn(svg).toList
 
     coordinates.foreach { coord =>
       // Should not have more than 6 decimal places after formatting
@@ -533,15 +525,14 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "handle BigPoint coordinate transformations correctly" in {
     val triangleTiling = createTriangleTiling()
-    val svg = triangleTiling.toScalableVectorGraphics(scale = 100.0)
+    val svg            = triangleTiling.toScalableVectorGraphics(scale = 100.0)
 
     // Extract some coordinates to verify they are scaled properly
     val linePattern = """x1="([^"]+)" y1="([^"]+)" x2="([^"]+)" y2="([^"]+)"""".r
-    val matches = linePattern.findAllMatchIn(svg).take(1).toList
+    val matches     = linePattern.findAllMatchIn(svg).take(1).toList
 
     allAssert(
-      matches should not be emptyTiling,
-      {
+      matches should not be emptyTiling, {
         val firstMatch = matches.head
 
         val x1 = firstMatch.group(1).toDouble
@@ -551,7 +542,7 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
         // At least one coordinate per line should be reasonably scaled
         // (since triangle has vertex at origin, some coordinates may be 0)
-        val coords = List(math.abs(x1), math.abs(y1), math.abs(x2), math.abs(y2))
+        val coords         = List(math.abs(x1), math.abs(y1), math.abs(x2), math.abs(y2))
         val originalCoords = List(0.0, 1.0, 0.5)
         allAssert(
           coords.max should be > 10.0,
@@ -567,17 +558,16 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "format coordinates with appropriate precision" in {
     val triangleTiling = createTriangleTiling()
-    val svg = triangleTiling.toScalableVectorGraphics()
+    val svg            = triangleTiling.toScalableVectorGraphics()
 
     allAssert(
       // Check that coordinates don't have trailing zeros
       svg should not include ".000000",
       svg should not include ".00000",
-      svg should not include ".0000",
-      {
+      svg should not include ".0000", {
         // But should still include necessary precision
         val coordinatePattern = """\d+(\.\d+)?""".r
-        val coordinates = coordinatePattern.findAllIn(svg).toList
+        val coordinates       = coordinatePattern.findAllIn(svg).toList
         coordinates should not be emptyTiling
       }
     )
@@ -587,7 +577,7 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "generate different arrow sections for inner and outer faces" in {
     val triangleTiling = createTriangleTiling()
-    val svg = triangleTiling.toScalableVectorGraphics()
+    val svg            = triangleTiling.toScalableVectorGraphics()
 
     allAssert(
       // Should contain both inner and outer face arrow sections
@@ -603,7 +593,7 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "include all expected SVG sections when content exists" in {
     val triangleTiling = createTriangleTiling()
-    val svg = triangleTiling.toScalableVectorGraphics()
+    val svg            = triangleTiling.toScalableVectorGraphics()
 
     val expectedSections = List(
       "<!-- Edges -->",
@@ -615,13 +605,14 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     )
 
     expectedSections.foreach { section =>
+
       svg should include(section)
     }
   }
 
   it should "generate SVG with half-edge traversal arrows when requested" in {
     val squareTiling = createSquareTiling()
-    val svg = squareTiling.toScalableVectorGraphics(showHalfEdgeTraversal = true)
+    val svg          = squareTiling.toScalableVectorGraphics(showHalfEdgeTraversal = true)
 
     allAssert(
       svg should include("<!-- Half-Edge Face Traversal -->"),
@@ -672,13 +663,12 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       svg should include("<svg"),
       svg should include("width="),
       svg should include("height="),
-      svg should include("</svg>"),
-      {
+      svg should include("</svg>"), {
         // Width and height should be positive
-        val widthRegex = """width="(\d+)"""".r
+        val widthRegex  = """width="(\d+)"""".r
         val heightRegex = """height="(\d+)"""".r
-        val width = widthRegex.findFirstMatchIn(svg).map(_.group(1).toInt).get
-        val height = heightRegex.findFirstMatchIn(svg).map(_.group(1).toInt).get
+        val width       = widthRegex.findFirstMatchIn(svg).map(_.group(1).toInt).get
+        val height      = heightRegex.findFirstMatchIn(svg).map(_.group(1).toInt).get
         allAssert(
           width should be > 0,
           height should be > 0

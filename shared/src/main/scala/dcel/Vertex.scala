@@ -3,27 +3,31 @@ package dcel
 import dcel.BigDecimalGeometry.{AngleDegree, BigPoint, format}
 import dcel.Topology.breadthFirstSearch
 
-/**
- * Represents a single vertex in the DCEL.
- *
- * @param id      A unique identifier for the vertex.
- * @param coords  The coordinates of the vertex.
- * @param leaving An optional reference to one of the half-edges originating from this vertex.
- */
+/** Represents a single vertex in the DCEL.
+  *
+  * @param id
+  *   A unique identifier for the vertex.
+  * @param coords
+  *   The coordinates of the vertex.
+  * @param leaving
+  *   An optional reference to one of the half-edges originating from this vertex.
+  */
 case class Vertex(
-  id: VertexId,
-  coords: BigPoint,
-  var leaving: Option[HalfEdge] = None
+    id: VertexId,
+    coords: BigPoint,
+    var leaving: Option[HalfEdge] = None
 ):
   override def equals(obj: Any): Boolean =
     obj match
       case that: Vertex => this.id.value == that.id.value
-      case _ => false
+      case _            => false
 
   override def hashCode(): Int = id.value.hashCode
 
   override def toString: String =
-    s"Vertex $id at coords (${coords.x.format}, ${coords.y.format})${validate().swap.map(error => s" [${error.message}]").getOrElse("")}"
+    s"Vertex $id at coords (${coords.x.format}, ${coords.y.format})${validate().swap.map(error =>
+        s" [${error.message}]"
+      ).getOrElse("")}"
 
   def isComplete: Boolean =
     leaving.isDefined
@@ -34,12 +38,12 @@ case class Vertex(
 
   def incidentEdgesUnsafe: List[HalfEdge] =
     leaving match
-      case None => List.empty
+      case None            => List.empty
       case Some(startEdge) => startEdge.vertexTraversalUnsafe()
 
   def incidentEdges: Either[TilingError, List[HalfEdge]] =
     leaving match
-      case None => Right(List.empty)
+      case None            => Right(List.empty)
       case Some(startEdge) => startEdge.vertexTraversal()
 
   def currentInteriorAngleSumUnsafe(outerFace: Face): AngleDegree =
@@ -64,16 +68,19 @@ case class Vertex(
 
 object Vertex:
 
-  /**
-   * Builds an adjacency map for vertices that are connected through boundary edges.
-   * Only includes vertices that are in the sharedVertices set.
-   */
-  def buildBoundaryVertexAdjacency(boundaryEdges: List[HalfEdge], sharedVertices: Set[Vertex]): Map[Vertex, List[Vertex]] =
+  /** Builds an adjacency map for vertices that are connected through boundary edges. Only includes vertices
+    * that are in the sharedVertices set.
+    */
+  def buildBoundaryVertexAdjacency(
+      boundaryEdges: List[HalfEdge],
+      sharedVertices: Set[Vertex]
+  ): Map[Vertex, List[Vertex]] =
     boundaryEdges
       .filter(edge => sharedVertices.contains(edge.origin))
       .groupBy(_.origin)
       .view
       .mapValues { edges =>
+
         edges.flatMap { edge =>
           val destination = edge.twin.get.origin
           Option.when(sharedVertices.contains(destination))(destination)
@@ -81,17 +88,23 @@ object Vertex:
       }
       .toMap
 
-  /**
-   * Performs a traversal to check if all target vertices are reachable from the start vertex
-   * through the boundary path.
-   */
-  def checkConnectivity(start: Vertex, targetVertices: Set[Vertex], adjacency: Map[Vertex, List[Vertex]]): Option[Unit] =
+  /** Performs a traversal to check if all target vertices are reachable from the start vertex through the
+    * boundary path.
+    */
+  def checkConnectivity(
+      start: Vertex,
+      targetVertices: Set[Vertex],
+      adjacency: Map[Vertex, List[Vertex]]
+  ): Option[Unit] =
     val visited = breadthFirstSearch(start, adjacency)
     Option.when(visited == targetVertices)(())
 
   extension (vertices: List[Vertex])
 
-    def sameCoords(others: List[Vertex], accuracy: Double = BigDecimalGeometry.ACCURACY): List[(Vertex, Vertex)] =
+    def sameCoords(
+        others: List[Vertex],
+        accuracy: Double = BigDecimalGeometry.ACCURACY
+    ): List[(Vertex, Vertex)] =
       for
         v1 <- vertices
         v2 <- others

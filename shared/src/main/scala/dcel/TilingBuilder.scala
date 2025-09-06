@@ -17,63 +17,71 @@ object TilingBuilder:
     // Check if the final edge, from V(n-1) back to V0, has the correct length and angles
     val lastEdgeLength = points.head.distanceTo(points.last)
     if spire.math.abs(lastEdgeLength - 1.0) > ACCURACY then
-      return Left(TopologyError(f"The polygon does not close. The final edge has length $lastEdgeLength%.4f instead of 1.0."))
+      return Left(TopologyError(
+        f"The polygon does not close. The final edge has length $lastEdgeLength%.4f instead of 1.0."
+      ))
 
     if !points.hasNoAlmostEqualPoints() then
-      return Left(TopologyError("The polygon is not simple (it has vertices that are equal, which is not allowed)."))
+      return Left(
+        TopologyError("The polygon is not simple (it has vertices that are equal, which is not allowed).")
+      )
 
     Right(())
 
-  /**
-   * Creates a TilingDCEL for a single simple polygon with unit-length sides.
-   *
-   * @param angles A list of interior angles in degrees. The angles are ordered for a
-   *               counter-clockwise traversal of the polygon boundary.
-   * @return       Either a TilingError explaining the validation error, or the successfully created TilingDCEL.
-   */
+  /** Creates a TilingDCEL for a single simple polygon with unit-length sides.
+    *
+    * @param angles
+    *   A list of interior angles in degrees. The angles are ordered for a counter-clockwise traversal of the
+    *   polygon boundary.
+    * @return
+    *   Either a TilingError explaining the validation error, or the successfully created TilingDCEL.
+    */
   def createSimplePolygon(angles: List[AngleDegree]): Either[TilingError, TilingDCEL] =
     for
       _      <- validateSides(angles.length, "simple")
       _      <- SimplePolygon.validatePolygonAngles(angles)
-      points = calculateVertexPoints(angles)
+      points  = calculateVertexPoints(angles)
       _      <- validatePoints(points)
       result <- buildDCELFromPoints(points, angles)
-    yield
-      result
+    yield result
 
-  def createSimplePolygon(degrees: Int *): Either[TilingError, TilingDCEL] =
+  def createSimplePolygon(degrees: Int*): Either[TilingError, TilingDCEL] =
     createSimplePolygon(degrees.map(AngleDegree(_)).toList)
-    
-  /**
-   * Creates a TilingDCEL for a single regular polygon with unit-length sides.
-   *
-   * @param sides The number of sides for the regular polygon.
-   * @return      Either a TilingError explaining the validation error, or the successfully created TilingDCEL.
-   */
+
+  /** Creates a TilingDCEL for a single regular polygon with unit-length sides.
+    *
+    * @param sides
+    *   The number of sides for the regular polygon.
+    * @return
+    *   Either a TilingError explaining the validation error, or the successfully created TilingDCEL.
+    */
   def createRegularPolygon(sides: Int): Either[TilingError, TilingDCEL] =
     for
       _      <- validateSides(sides, "regular")
-      angle = RegularPolygon(sides).alpha
-      angles = List.fill(sides)(angle)
+      angle   = RegularPolygon(sides).alpha
+      angles  = List.fill(sides)(angle)
       // Regular polygons are always simple, so we can skip the self-intersection check.
       // The angle sum is also correct by definition.
-      points = calculateVertexPoints(angles)
+      points  = calculateVertexPoints(angles)
       result <- buildDCELFromPoints(points, angles)
-    yield
-      result
+    yield result
 
-  /**
-   * Given validated points and angles, builds the TilingDCEL structure.
-   */
-  private def buildDCELFromPoints(points: List[BigPoint], angles: List[AngleDegree]): Either[TilingError, TilingDCEL] =
+  /** Given validated points and angles, builds the TilingDCEL structure.
+    */
+  private def buildDCELFromPoints(
+      points: List[BigPoint],
+      angles: List[AngleDegree]
+  ): Either[TilingError, TilingDCEL] =
     val n = points.length
 
     // Create vertices from the calculated points
-    val vertices = points.zipWithIndex.map { case (p, i) => Vertex(VertexId(s"V${i + 1}"), p) }
+    val vertices = points.zipWithIndex.map { case (p, i) =>
+      Vertex(VertexId(s"V${i + 1}"), p)
+    }
 
     // Create the two faces: one for the polygon, one for the outside
     val polygonFace = Face(FaceId.firstInnerId)
-    val outerFace = Face.outer
+    val outerFace   = Face.outer
 
     // Create all inner and outer half-edges, indexed by their origin vertex
     val innerEdges = vertices.map(HalfEdge.apply(_))
@@ -81,14 +89,14 @@ object TilingBuilder:
 
     // Link all components together
     for (i <- vertices.indices)
-      val nextIndex = (i + 1) % n
+      val nextIndex = (i + 1)     % n
       val prevIndex = (i + n - 1) % n
 
       val currentInnerEdge = innerEdges(i)
-      val nextInnerEdge = innerEdges(nextIndex)
+      val nextInnerEdge    = innerEdges(nextIndex)
       val currentOuterEdge = outerEdges(i)
-      val nextOuterEdge = outerEdges(nextIndex)
-      val prevOuterEdge = outerEdges(prevIndex)
+      val nextOuterEdge    = outerEdges(nextIndex)
+      val prevOuterEdge    = outerEdges(prevIndex)
 
       // Set vertex leaving edge
       vertices(i).leaving = Some(currentInnerEdge)
@@ -119,47 +127,49 @@ object TilingBuilder:
       outerFace = outerFace
     ))
 
-  /**
-   * Calculates the coordinates of a polygon's vertices and validates that it's a closed polygon
-   * with the correct side lengths and angles.
-   */
+  /** Calculates the coordinates of a polygon's vertices and validates that it's a closed polygon with the
+    * correct side lengths and angles.
+    */
   def calculateVertexPoints(
-    angles: List[AngleDegree], 
-    p0: BigPoint = BigPoint(),
-    p1: BigPoint = BigPoint(1, 0)
+      angles: List[AngleDegree],
+      p0: BigPoint = BigPoint(),
+      p1: BigPoint = BigPoint(1, 0)
   ): List[BigPoint] =
-    val n = angles.length
+    val n            = angles.length
     // Start with V0 at the origin and V1
-    val points = mutable.ListBuffer(p0, p1)
+    val points       = mutable.ListBuffer(p0, p1)
     var currentPoint = p1
-    var heading = p0.angleTo(p1)
+    var heading      = p0.angleTo(p1)
     // Calculate the positions of V2 through V(n-1)
     for (i <- 1 until n - 1)
       val interiorAngle = angles(i)
-      val turnAngle = interiorAngle.supplement
+      val turnAngle     = interiorAngle.supplement
       heading += turnAngle.toBigRadian
       currentPoint = currentPoint.plus(BigPoint.fromPolar(1, heading))
       points.append(currentPoint)
 
     points.toList
 
-  /**
-   * Generates a grid of vertices for tessellation patterns.
-   *
-   * @param height The number of rows in the grid
-   * @param width  The number of columns in the grid
-   * @param angle  The angle for vertex positioning
-   */
+  /** Generates a grid of vertices for tessellation patterns.
+    *
+    * @param height
+    *   The number of rows in the grid
+    * @param width
+    *   The number of columns in the grid
+    * @param angle
+    *   The angle for vertex positioning
+    */
   private def pointsVertices(
-    height: Int,
-    width: Int,
-    angle: AngleDegree
+      height: Int,
+      width: Int,
+      angle: AngleDegree
   ): (Array[Array[BigPoint]], Array[Array[Vertex]]) =
-    val rad = angle.toBigRadian.toBigDecimal
+    val rad     = angle.toBigRadian.toBigDecimal
     val v_vec_x = spire.math.cos(rad)
     val v_vec_y = spire.math.sin(rad)
 
     val points = Array.tabulate(height + 1, width + 1) { (j, i) =>
+
       BigPoint(BigDecimal(i) + v_vec_x * j, v_vec_y * j)
     }
 
@@ -176,25 +186,27 @@ object TilingBuilder:
     (e1, e2)
 
   private def horizontalAndVSlope(
-    height: Int,
-    width: Int,
-    vertices: Array[Array[Vertex]]
+      height: Int,
+      width: Int,
+      vertices: Array[Array[Vertex]]
   ): (Array[Array[(HalfEdge, HalfEdge)]], Array[Array[(HalfEdge, HalfEdge)]]) =
     val horizontal = Array.tabulate(height + 1, width) { (j, i) =>
+
       createTwinPair(vertices(j)(i), vertices(j)(i + 1))
     }
     val vSlope = Array.tabulate(height, width + 1) { (j, i) =>
+
       createTwinPair(vertices(j)(i), vertices(j + 1)(i))
     }
     (horizontal, vSlope)
 
   // Set leaving edges for vertices
   private def setLeavingEdges(
-    height: Int,
-    width: Int,
-    vertices: Array[Array[Vertex]],
-    horizontal: Array[Array[(HalfEdge, HalfEdge)]],
-    vSlope: Array[Array[(HalfEdge, HalfEdge)]]
+      height: Int,
+      width: Int,
+      vertices: Array[Array[Vertex]],
+      horizontal: Array[Array[(HalfEdge, HalfEdge)]],
+      vSlope: Array[Array[(HalfEdge, HalfEdge)]]
   ): Unit =
     for j <- 0 to height; i <- 0 to width do
       val v = vertices(j)(i)
@@ -203,24 +215,31 @@ object TilingBuilder:
       else if i > 0 then v.leaving = Some(horizontal(j)(i - 1)._2)
       else if j > 0 then v.leaving = Some(vSlope(j - 1)(i)._2)
 
-  private def setOuterAngles(outerBoundaryCW: List[HalfEdge], allHalfEdges: List[HalfEdge], fOuter: Face): Unit =
+  private def setOuterAngles(
+      outerBoundaryCW: List[HalfEdge],
+      allHalfEdges: List[HalfEdge],
+      fOuter: Face
+  ): Unit =
     // Set outer angles
     for outerEdge <- outerBoundaryCW do
-      val vertex = outerEdge.origin
-      val incident = allHalfEdges.filter(_.origin == vertex)
+      val vertex         = outerEdge.origin
+      val incident       = allHalfEdges.filter(_.origin == vertex)
       val innerAnglesSum = incident.interiorAnglesSum(fOuter)
       outerEdge.angle = Some(innerAnglesSum.conjugate)
 
   private def netFaces(height: Int, width: Int): Array[Array[Face]] =
-    Array.tabulate(height, width) { (j, i) => Face(FaceId(s"F${j * width + i + 1}")) }
+    Array.tabulate(height, width) { (j, i) =>
+
+      Face(FaceId(s"F${j * width + i + 1}"))
+    }
 
   // Link outer face boundary
   private def linkOuterFace(
-    height: Int,
-    width: Int,
-    horizontal: Array[Array[(HalfEdge, HalfEdge)]],
-    vSlope: Array[Array[(HalfEdge, HalfEdge)]],
-    fOuter: Face
+      height: Int,
+      width: Int,
+      horizontal: Array[Array[(HalfEdge, HalfEdge)]],
+      vSlope: Array[Array[(HalfEdge, HalfEdge)]],
+      fOuter: Face
   ): List[HalfEdge] =
     val innerBoundaryEdgesCCW = new mutable.ListBuffer[HalfEdge]()
     // Bottom boundary
@@ -242,23 +261,24 @@ object TilingBuilder:
     pairs.flatMap(row => row.flatMap(p => List(p._1, p._2))).toList
 
   private def netHalfEdges(
-    horizontal: Array[Array[(HalfEdge, HalfEdge)]],
-    vSlope: Array[Array[(HalfEdge, HalfEdge)]],
-    i: Int,
-    j: Int
+      horizontal: Array[Array[(HalfEdge, HalfEdge)]],
+      vSlope: Array[Array[(HalfEdge, HalfEdge)]],
+      i: Int,
+      j: Int
   ): (HalfEdge, HalfEdge, HalfEdge, HalfEdge) =
-    val e1 = horizontal(j)(i)._1 // v_ji -> v_ji1
-    val e2 = vSlope(j)(i + 1)._1 // v_ji1 -> v_j1i1
+    val e1 = horizontal(j)(i)._1     // v_ji -> v_ji1
+    val e2 = vSlope(j)(i + 1)._1     // v_ji1 -> v_j1i1
     val e3 = horizontal(j + 1)(i)._2 // v_j1i1 -> v_j1i
-    val e4 = vSlope(j)(i)._2 // v_j1i -> v_ji
+    val e4 = vSlope(j)(i)._2         // v_j1i -> v_ji
     (e1, e2, e3, e4)
 
-  /**
-   * Create a tiling made of a net of regular triangles
-   *
-   * @param width  number of triangle pairs (rhombi) on each row
-   * @param height number of triangle pairs (rhombi) on each colum
-   */
+  /** Create a tiling made of a net of regular triangles
+    *
+    * @param width
+    *   number of triangle pairs (rhombi) on each row
+    * @param height
+    *   number of triangle pairs (rhombi) on each colum
+    */
   def createTriangleNet(width: Int, height: Int): TilingDCEL =
     if width <= 0 || height <= 0 then
       return TilingDCEL.empty
@@ -269,6 +289,7 @@ object TilingBuilder:
 
     // Two triangular faces per rhombus cell
     val faces = Array.tabulate(height, width, 2) { (j, i, k) =>
+
       Face(FaceId(s"F${(j * width + i) * 2 + k + 1}"))
     }
     val fOuter = Face.outer
@@ -277,6 +298,7 @@ object TilingBuilder:
 
     // These diagonals split each rhombus into two equilateral triangles
     val diagonals = Array.tabulate(height, width) { (j, i) =>
+
       createTwinPair(vertices(j)(i + 1), vertices(j + 1)(i))
     }
 
@@ -289,8 +311,8 @@ object TilingBuilder:
       val face2 = faces(j)(i)(1) // Triangle (v_ji1, v_j1i1, v_j1i)
 
       val (e1, e2, e3, e4) = netHalfEdges(horizontal, vSlope, i, j)
-      val e_diag = diagonals(j)(i)._1 // v_ji1 -> v_j1i
-      val e_diag_rev = diagonals(j)(i)._2 // v_j1i -> v_ji1
+      val e_diag           = diagonals(j)(i)._1 // v_ji1 -> v_j1i
+      val e_diag_rev       = diagonals(j)(i)._2 // v_j1i -> v_ji1
 
       // Link face1
       List(e1, e_diag, e4).linkFace(face1, triangleAngle)
@@ -312,13 +334,15 @@ object TilingBuilder:
       outerFace = fOuter
     )
 
-  /**
-   * Create a tiling made of a net of identical rhombi
-   *
-   * @param width  number of rhombi on each row
-   * @param height number of rhombi on each colum
-   * @param angle  degree of the first interior angle of each rhombus, the default angle creates a square net
-   */
+  /** Create a tiling made of a net of identical rhombi
+    *
+    * @param width
+    *   number of rhombi on each row
+    * @param height
+    *   number of rhombi on each colum
+    * @param angle
+    *   degree of the first interior angle of each rhombus, the default angle creates a square net
+    */
   def createRhombusNet(width: Int, height: Int, angle: AngleDegree = AngleDegree(90)): TilingDCEL =
     if width <= 0 || height <= 0 then
       return TilingDCEL.empty
@@ -328,7 +352,7 @@ object TilingBuilder:
 
     val (points, vertices) = pointsVertices(height, width, angle)
 
-    val faces = netFaces(height, width)
+    val faces  = netFaces(height, width)
     val fOuter = Face.outer
 
     val (horizontal, vSlope) = horizontalAndVSlope(height, width, vertices)
@@ -337,7 +361,7 @@ object TilingBuilder:
 
     // Link inner faces
     for j <- 0 until height; i <- 0 until width do
-      val face = faces(j)(i)
+      val face             = faces(j)(i)
       val (e1, e2, e3, e4) = netHalfEdges(horizontal, vSlope, i, j)
 
       List(e1, e2, e3, e4).linkFace(face, alpha1)
@@ -358,15 +382,17 @@ object TilingBuilder:
       outerFace = fOuter
     )
 
-  /**
-   * Create a tiling made of a net of identical hexagons
-   *
-   * @param width  number of hexagons on each row
-   * @param height number of hexagons on each column
-   * @param angle  interior angle (in degrees) for vertices 0 and 3 of each hexagon.
-   *               The remaining four interior angles are all equal and computed to satisfy the polygon angle sum.
-   *               Constraint: 0 < angle < 180. Default 120 creates the regular honeycomb.
-   */
+  /** Create a tiling made of a net of identical hexagons
+    *
+    * @param width
+    *   number of hexagons on each row
+    * @param height
+    *   number of hexagons on each column
+    * @param angle
+    *   interior angle (in degrees) for vertices 0 and 3 of each hexagon. The remaining four interior angles
+    *   are all equal and computed to satisfy the polygon angle sum. Constraint: 0 < angle < 180. Default 120
+    *   creates the regular honeycomb.
+    */
   def createHexagonNet(width: Int, height: Int, angle: AngleDegree = AngleDegree(120)): TilingDCEL =
     if width <= 0 || height <= 0 then
       return TilingDCEL.empty
@@ -374,7 +400,7 @@ object TilingBuilder:
     if angle.isFullCircle || angle.toRational <= 0 || angle.toRational >= 180 then
       return TilingDCEL.empty
 
-    val alpha = angle
+    val alpha             = angle
     val beta: AngleDegree = (alpha / 2).supplement
 
     // Interior angles per vertex in CCW order: [alpha, beta, beta, alpha, beta, beta]
@@ -406,7 +432,7 @@ object TilingBuilder:
         (1, 1, 0), // k=2
         (1, 1, 1), // k=3
         (0, 1, 1), // k=4
-        (0, 0, 1) // k=5
+        (0, 0, 1)  // k=5
       )
 
     inline def baseTriple(i: Int, j: Int): (Int, Int, Int) =
@@ -417,7 +443,7 @@ object TilingBuilder:
       (a._1 + b._1, a._2 + b._2, a._3 + b._3)
 
     val vertexByTriple = mutable.Map[(Int, Int, Int), Vertex]()
-    var vertexCounter = 1
+    var vertexCounter  = 1
 
     def tripleToPoint(n0: Int, n1: Int, n2: Int): BigPoint =
       val x = BigDecimal(n0) * g0x + BigDecimal(n1) * g1x + BigDecimal(n2) * g2x
@@ -425,35 +451,39 @@ object TilingBuilder:
       BigPoint(x, y)
 
     def getOrCreateVertexByTriple(key: (Int, Int, Int)): Vertex =
-      vertexByTriple.getOrElseUpdate(key, {
-        val (n0, n1, n2) = key
-        val v = Vertex(VertexId(s"V$vertexCounter"), tripleToPoint(n0, n1, n2))
-        vertexCounter += 1
-        v
-      })
+      vertexByTriple.getOrElseUpdate(
+        key, {
+          val (n0, n1, n2) = key
+          val v            = Vertex(VertexId(s"V$vertexCounter"), tripleToPoint(n0, n1, n2))
+          vertexCounter += 1
+          v
+        }
+      )
 
     val halfEdgeByDir = mutable.Map[(Vertex, Vertex), HalfEdge]()
 
     def getOrCreateHalfEdge(v1: Vertex, v2: Vertex): HalfEdge =
-      halfEdgeByDir.getOrElseUpdate((v1, v2), {
-        val e1 = HalfEdge(v1)
-        val e2 = HalfEdge(v2)
-        e1.twinWith(e2)
-        halfEdgeByDir((v2, v1)) = e2
-        e1
-      })
+      halfEdgeByDir.getOrElseUpdate(
+        (v1, v2), {
+          val e1 = HalfEdge(v1)
+          val e2 = HalfEdge(v2)
+          e1.twinWith(e2)
+          halfEdgeByDir((v2, v1)) = e2
+          e1
+        }
+      )
 
-    val faces = netFaces(height, width)
+    val faces  = netFaces(height, width)
     val fOuter = Face.outer
 
-    for 
+    for
       j <- 0 until height
       i <- 0 until width
     do
-      val face = faces(j)(i)
-      val b = baseTriple(i, j)
+      val face       = faces(j)(i)
+      val b          = baseTriple(i, j)
       val cornerKeys = (0 until 6).map(k => addTriples(b, cornerTriples(k))).toList
-      val corners = cornerKeys.map(getOrCreateVertexByTriple)
+      val corners    = cornerKeys.map(getOrCreateVertexByTriple)
 
       val cornerAngles: Array[AngleDegree] =
         Array(alpha, beta, beta, alpha, beta, beta)
@@ -472,10 +502,11 @@ object TilingBuilder:
       }
       face.outerComponent = edgesCCW.headOption
 
-    val allVertices = vertexByTriple.values.toList
+    val allVertices  = vertexByTriple.values.toList
     val allHalfEdges = halfEdgeByDir.values.toList
 
     allVertices.foreach { v =>
+
       v.leaving = allHalfEdges.find(_.origin eq v)
     }
 
@@ -489,8 +520,8 @@ object TilingBuilder:
       fOuter.outerComponent = boundaryOrdered.headOption
 
       boundaryOrdered.foreach { outerEdge =>
-        val v = outerEdge.origin
-        val incidentAtV = allHalfEdges.filter(_.origin eq v)
+        val v              = outerEdge.origin
+        val incidentAtV    = allHalfEdges.filter(_.origin eq v)
         val innerAnglesSum = incidentAtV.interiorAnglesSum(fOuter)
         outerEdge.angle = Some(innerAnglesSum.conjugate)
       }

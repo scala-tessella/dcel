@@ -6,16 +6,14 @@ import org.scalatest.matchers.should.Matchers
 
 class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
-
   behavior of "TilingDCEL.faces"
 
-  it should "return all faces including outer face" in {
+  it should "return all faces including outer face" in
     allAssert(
       triangle.faces should have length 2,
       triangle.faces should contain(triangle.outerFace),
       triangle.faces should contain allElementsOf triangle.innerFaces
     )
-  }
 
   it should "return only outer face when no inner faces exist" in {
     val empty = emptyTiling
@@ -27,20 +25,18 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   behavior of "TilingDCEL.findVertex"
 
-  it should "find an existing vertex by id" in {
+  it should "find an existing vertex by id" in
     allAssert(
       triangle.findVertexUnsafe(V1) shouldBe defined,
       triangle.findVertexUnsafe(V2) shouldBe defined,
       triangle.findVertexUnsafe(V3) shouldBe defined
     )
-  }
 
-  it should "return None for non-existent vertex id" in {
+  it should "return None for non-existent vertex id" in
     allAssert(
       triangle.findVertexUnsafe(VertexId("V999")) shouldBe None,
       triangle.findVertexUnsafe(VertexId("NonExistent")) shouldBe None
     )
-  }
 
   it should "find vertices in empty tiling" in {
     emptyTiling.findVertexUnsafe(VertexId("V0")) shouldBe None
@@ -48,19 +44,17 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   behavior of "TilingDCEL.findFace"
 
-  it should "find an existing face by id" in {
+  it should "find an existing face by id" in
     allAssert(
       triangle.findFace(FaceId.outerId).toOption shouldBe defined,
       triangle.findFace(FaceId.firstInnerId).toOption shouldBe defined
     )
-  }
 
-  it should "return None for non-existent face id" in {
+  it should "return None for non-existent face id" in
     allAssert(
       triangle.findFace(FaceId("F999")).toOption shouldBe None,
       triangle.findFace(FaceId("NonExistent")).toOption shouldBe None
     )
-  }
 
   behavior of "TilingDCEL.findEdgeBetween"
 
@@ -86,7 +80,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "return None when either vertex has no incident edges" in {
     val isolatedVertex = Vertex(VertexId("Isolated"), BigPoint(10, 10))
-    val v0 = triangle.findVertexUnsafe(V1).get
+    val v0             = triangle.findVertexUnsafe(V1).get
 
     triangle.findEdgeBetween(isolatedVertex, v0) shouldBe None
   }
@@ -97,12 +91,11 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     emptyTiling.hasConnectedFaces shouldBe true
   }
 
-  it should "return true for single polygon tiling" in {
+  it should "return true for single polygon tiling" in
     allAssert(
       triangle.hasConnectedFaces shouldBe true,
       square.hasConnectedFaces shouldBe true
     )
-  }
 
   it should "return true for connected multi-polygon tiling" in {
     val twoTriangles = triangle.maybeAddRegularPolygonToBoundary(V1, 3).value
@@ -112,7 +105,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   behavior of "TilingDCEL.boundary"
 
   it should "return empty vector for empty tiling" in {
-    emptyTiling.boundaryVerticesUnsafe shouldBe Vector.empty
+    emptyTiling.boundaryVerticesUnsafe shouldBe Vector.empty[Vertex]
   }
 
   it should "return correct boundary vertices for triangle in clockwise order" in {
@@ -141,22 +134,21 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   behavior of "TilingDCEL.boundarySafe"
 
-  it should "return same result as boundary for well-formed tilings" in {
+  it should "return same result as boundary for well-formed tilings" in
     allAssert(
       triangle.boundaryVertices.value shouldEqual triangle.boundaryVerticesUnsafe,
       square.boundaryVertices.value shouldEqual square.boundaryVerticesUnsafe
     )
-  }
 
   it should "return empty vector for empty tiling" in {
     emptyTiling.boundaryVertices shouldBe Right(Vector.empty)
   }
 
   it should "fail for malformed boundary loop" in {
-    val tiling = triangle
+    val tiling        = triangle
     val boundaryEdges = tiling.boundaryEdges.value
-    val firstEdge = boundaryEdges.head // This is the startEdge
-    val secondEdge = boundaryEdges(1)
+    val firstEdge     = boundaryEdges.head // This is the startEdge
+    val secondEdge    = boundaryEdges(1)
 
     // Create a malformed loop where a non-start edge is repeated
     firstEdge.next = Some(secondEdge)
@@ -166,9 +158,9 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   }
 
   it should "fail for open chain in boundary" in {
-    val tiling = triangle
+    val tiling        = triangle
     val boundaryEdges = tiling.boundaryEdges.value
-    val firstEdge = boundaryEdges.head
+    val firstEdge     = boundaryEdges.head
     // Break the chain by setting next to None
     firstEdge.next = None
 
@@ -184,8 +176,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   it should "return boundary edges in correct order" in {
     val boundaryEdges = triangle.boundaryEdges.value
     allAssert(
-      boundaryEdges should have length 3,
-      {
+      boundaryEdges should have length 3, {
         // Check that edges form a closed loop
         val vertices = boundaryEdges.map(_.origin)
         vertices.map(_.id) should contain theSameElementsInOrderAs Vector(V1, V3, V2)
@@ -194,11 +185,11 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   }
 
   it should "fail for malformed boundary with visited edge" in {
-    val tiling = triangle
+    val tiling        = triangle
     val boundaryEdges = tiling.boundaryEdges.value
-    val firstEdge = boundaryEdges.head // e0 (start)
-    val secondEdge = boundaryEdges(1) // e1
-    val thirdEdge = boundaryEdges(2) // e2
+    val firstEdge     = boundaryEdges.head // e0 (start)
+    val secondEdge    = boundaryEdges(1)   // e1
+    val thirdEdge     = boundaryEdges(2)   // e2
 
     // Modify the structure to create a cycle that doesn't include the start
     // Make e1 -> e2 -> e1 (cycle between e1 and e2)
@@ -209,7 +200,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   }
 
   it should "fail for unclosed boundary loop" in {
-    val tiling = triangle
+    val tiling        = triangle
     val boundaryEdges = tiling.boundaryEdges.value
     // Break the loop by making the last edge not point back to the first
     boundaryEdges.last.next = None
@@ -219,8 +210,10 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   behavior of "TilingDCEL.getAnglesAtVertex"
 
   it should "return the angles for a vertex where all incident edges have an angle" in {
-    val v1 = triangle.findVertexUnsafe(V1).get
-    v1.incidentEdgesUnsafe.filter(_.hasIncidentFace(triangle.outerFace)).foreach(_.angle = Some(AngleDegree(300)))
+    val v1     = triangle.findVertexUnsafe(V1).get
+    v1.incidentEdgesUnsafe.filter(_.hasIncidentFace(triangle.outerFace)).foreach(_.angle =
+      Some(AngleDegree(300))
+    )
     val result = triangle.getAnglesAtVertex(V1)
     result.value should contain theSameElementsAs List(AngleDegree(60), AngleDegree(300))
   }
@@ -244,7 +237,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   }
 
   it should "fail if the incident edge loop is broken" in {
-    val tiling = triangle
+    val tiling    = triangle
     val v1Leaving = tiling.findVertexUnsafe(V1).get.leaving.get
     v1Leaving.twin = None // Break the chain for vertex traversal
     val result = tiling.getAnglesAtVertex(V1)
@@ -299,7 +292,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "fail if an edge's next/prev relationship is broken" in {
     val tiling = square
-    val edge = tiling.halfEdges.head
+    val edge   = tiling.halfEdges.head
     edge.next.get.prev = None // Break the link
     val result = TilingDCEL.validate(tiling)
     allAssert(
@@ -322,7 +315,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   it should "fail if an inner face has a full circle angle" in {
     val tiling = square
     // Tamper with angles to make one a full circle while keeping the sum correct
-    val edges = tiling.innerFaces.head.halfEdges.value
+    val edges  = tiling.innerFaces.head.halfEdges.value
     edges(0).angle = Some(AngleDegree(360))
     edges(1).angle = Some(AngleDegree(0))
     edges(2).angle = Some(AngleDegree(90))
@@ -346,9 +339,9 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   }
 
   it should "fail if the boundary angles do not sum correctly" in {
-    val twoSquares = square.maybeAddRegularPolygonToBoundary(V1, 4).value
+    val twoSquares      = square.maybeAddRegularPolygonToBoundary(V1, 4).value
     // V2 is on the boundary. The inner edge from V2 belongs to the first square.
-    val v2 = twoSquares.findVertexUnsafe(V2).get
+    val v2              = twoSquares.findVertexUnsafe(V2).get
     val innerEdgeFromV2 = v2.incidentEdgesUnsafe.find(_.incidentFace.exists(_.id == FaceId.firstInnerId)).get
 
     // Distort the angle, which affects both the face and boundary angle sums
@@ -356,11 +349,10 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
     val result = TilingDCEL.validate(twoSquares)
     allAssert(
-      result.isLeft shouldBe true,
-      {
-        val error = result.left.value.message
+      result.isLeft shouldBe true, {
+        val error         = result.left.value.message
         // Check that at least one of the expected errors is present, as iteration order is not guaranteed
-        val faceError = "Face F1: GeometryError(The sum of interior angles is incorrect"
+        val faceError     = "Face F1: GeometryError(The sum of interior angles is incorrect"
         val boundaryError = "Boundary: The sum of interior angles is incorrect"
         (error.contains(faceError) || error.contains(boundaryError)) shouldBe true
       }

@@ -1,6 +1,21 @@
 ThisBuild / version := "0.1.0-SNAPSHOT"
 ThisBuild / scalaVersion := "3.7.2"
 
+// Enable semanticdb for Scalafix (Scala 3)
+ThisBuild / semanticdbEnabled := true
+ThisBuild / semanticdbVersion := scalafixSemanticdb.revision
+
+// Make scalafix rules available (e.g., OrganizeImports)
+ThisBuild / scalafixDependencies ++= List(
+  "com.github.liancheng" %% "organize-imports" % "0.6.0"
+)
+
+// Optional: format on compile (can be noisy in PRs; turn off if you prefer manual runs)
+ThisBuild / scalafmtOnCompile := true
+
+// Optional: add a convenient alias to lint/format/test locally
+addCommandAlias("qa", ";scalafmtAll;test:scalafmtAll;scalafixAll;test")
+
 // Common settings for all platforms
 lazy val commonSettings = Seq(
   idePackagePrefix := Some("io.github.scala_tessella"),
@@ -12,14 +27,19 @@ lazy val commonSettings = Seq(
     "org.scalacheck" %%% "scalacheck" % "1.18.1" % Test,
     "org.scalatestplus" %%% "scalacheck-1-18" % "3.2.19.0" % Test
   ),
-  // Compiler hygiene: turn on key warnings and make them fail the build
-  scalacOptions ++= Seq(
-    "-Xfatal-warnings",     // fail on warnings
-    "-deprecation",         // warn on deprecated APIs
-    "-feature",             // warn on feature imports/usages
-    "-unchecked",           // extra checks for pattern matches, etc.
-    "-Wvalue-discard",      // warn when non-Unit value is ignored
-    "-Wnonunit-statement"   // warn on statements that return non-Unit
+  // Optional: wartremover – start with a conservative set for Scala 3
+  wartremoverErrors ++= Seq(
+//    wartremover.Wart.Any,
+//    wartremover.Wart.Null,
+//    wartremover.Wart.Var,
+    wartremover.Wart.AsInstanceOf,
+    wartremover.Wart.IsInstanceOf,
+//    wartremover.Wart.OptionPartial,
+//    wartremover.Wart.Throw
+  ),
+  // You can relax in Test scope (warnings instead of errors)
+  Test / wartremoverWarnings ++= Seq(
+    wartremover.Wart.Any
   )
 )
 

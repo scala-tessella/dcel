@@ -2,11 +2,78 @@
 <project version="4">
   <component name="ScalaCompilerConfiguration">
     <option name="separateProdTestSources" value="true" />
-    <profile name="sbt 1" modules="dcel,dcel-root,dcel-root.dcel.dcelJS,dcel-root.dcel.dcelJVM,dcel-root.dcel.dcelJVM.main,dcel-root.dcel.dcelJVM.test,dcel-root.main,dcel-root.test,dcel.main,dcel.test" />
-    <profile name="sbt 2" modules="dcel-root.dcel.dcelJS.main,dcel-root.dcel.dcelJS.test">
+    <profile name="sbt 1" modules="dcel,dcel-root,dcel-root.dcel.dcelJS,dcel-root.dcel.dcelJVM,dcel.main,dcel.test" />
+    <profile name="sbt 2" modules="dcel-root.test">
+      <parameters>
+        <parameter value="-Xsemanticdb" />
+        <parameter value="-semanticdb-target" />
+        <parameter value="$PROJECT_DIR$/target/scala-3.7.2/test-meta" />
+      </parameters>
+      <plugins>
+        <plugin path="$PROJECT_DIR$/target/scala-3.7.2/compiler_plugins/wartremover_3.7.2-3.4.0.jar" />
+      </plugins>
+    </profile>
+    <profile name="sbt 3" modules="dcel-root.dcel.dcelJVM.main">
+      <parameters>
+        <parameter value="-P:wartremover:traverser:org.wartremover.warts.AsInstanceOf" />
+        <parameter value="-P:wartremover:traverser:org.wartremover.warts.IsInstanceOf" />
+        <parameter value="-Xsemanticdb" />
+        <parameter value="-semanticdb-target" />
+        <parameter value="$PROJECT_DIR$/jvm/target/scala-3.7.2/meta" />
+      </parameters>
+      <plugins>
+        <plugin path="$PROJECT_DIR$/target/scala-3.7.2/compiler_plugins/wartremover_3.7.2-3.4.0.jar" />
+      </plugins>
+    </profile>
+    <profile name="sbt 4" modules="dcel-root.main">
+      <parameters>
+        <parameter value="-Xsemanticdb" />
+        <parameter value="-semanticdb-target" />
+        <parameter value="$PROJECT_DIR$/target/scala-3.7.2/meta" />
+      </parameters>
+      <plugins>
+        <plugin path="$PROJECT_DIR$/target/scala-3.7.2/compiler_plugins/wartremover_3.7.2-3.4.0.jar" />
+      </plugins>
+    </profile>
+    <profile name="sbt 5" modules="dcel-root.dcel.dcelJS.main">
       <parameters>
         <parameter value="-scalajs" />
+        <parameter value="-P:wartremover:traverser:org.wartremover.warts.AsInstanceOf" />
+        <parameter value="-P:wartremover:traverser:org.wartremover.warts.IsInstanceOf" />
+        <parameter value="-Xsemanticdb" />
+        <parameter value="-semanticdb-target" />
+        <parameter value="$PROJECT_DIR$/js/target/scala-3.7.2/meta" />
       </parameters>
+      <plugins>
+        <plugin path="$PROJECT_DIR$/target/scala-3.7.2/compiler_plugins/wartremover_3.7.2-3.4.0.jar" />
+      </plugins>
+    </profile>
+    <profile name="sbt 6" modules="dcel-root.dcel.dcelJS.test">
+      <parameters>
+        <parameter value="-scalajs" />
+        <parameter value="-P:wartremover:traverser:org.wartremover.warts.AsInstanceOf" />
+        <parameter value="-P:wartremover:traverser:org.wartremover.warts.IsInstanceOf" />
+        <parameter value="-Xsemanticdb" />
+        <parameter value="-semanticdb-target" />
+        <parameter value="$PROJECT_DIR$/js/target/scala-3.7.2/test-meta" />
+        <parameter value="-P:wartremover:only-warn-traverser:org.wartremover.warts.Any" />
+      </parameters>
+      <plugins>
+        <plugin path="$PROJECT_DIR$/target/scala-3.7.2/compiler_plugins/wartremover_3.7.2-3.4.0.jar" />
+      </plugins>
+    </profile>
+    <profile name="sbt 7" modules="dcel-root.dcel.dcelJVM.test">
+      <parameters>
+        <parameter value="-P:wartremover:traverser:org.wartremover.warts.AsInstanceOf" />
+        <parameter value="-P:wartremover:traverser:org.wartremover.warts.IsInstanceOf" />
+        <parameter value="-Xsemanticdb" />
+        <parameter value="-semanticdb-target" />
+        <parameter value="$PROJECT_DIR$/jvm/target/scala-3.7.2/test-meta" />
+        <parameter value="-P:wartremover:only-warn-traverser:org.wartremover.warts.Any" />
+      </parameters>
+      <plugins>
+        <plugin path="$PROJECT_DIR$/target/scala-3.7.2/compiler_plugins/wartremover_3.7.2-3.4.0.jar" />
+      </plugins>
     </profile>
   </component>
 </project>

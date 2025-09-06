@@ -29,10 +29,10 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val result = calculateNewVertices(3, p1, p2)
 
     allAssert(
-      result should have length 1,
-      {
+      result should have length 1, {
         // For a triangle, the third vertex should form an equilateral triangle
-        val expectedThirdVertex = BigPoint(BigDecimal("0.5"), BigDecimal("-0.866025403784439")) // approximately sqrt(3)/2
+        val expectedThirdVertex =
+          BigPoint(BigDecimal("0.5"), BigDecimal("-0.866025403784439")) // approximately sqrt(3)/2
         result.head.almostEquals(expectedThirdVertex) shouldBe true
       }
     )
@@ -45,8 +45,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val result = calculateNewVertices(4, p1, p2)
 
     allAssert(
-      result should have length 2,
-      {
+      result should have length 2, {
         // For a square starting from (0,0) to (1,0), the next vertices should be at (1,1) and (0,1)
         val expectedVertex1 = BigPoint(BigDecimal(1), BigDecimal(-1))
         val expectedVertex2 = BigPoint(BigDecimal(0), BigDecimal(-1))
@@ -70,11 +69,14 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       // Each vertex should be positioned using polar coordinates with 72-degree external angles
       allAssert(
         result.map { vertex =>
+
           allAssert(
             vertex.x should not be BigDecimal(0), // Vertices should not be at origin
-            vertex.y should not be BigDecimal(0) // Vertices should have non-zero y coordinates (except possibly the last)
+            vertex.y should not be BigDecimal(
+              0
+            ) // Vertices should have non-zero y coordinates (except possibly the last)
           )
-        } *
+        }*
       )
     )
   }
@@ -91,10 +93,12 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       allAssert(
         result.map { vertex =>
           // All vertices should be at unit distance from the center of the hexagon
-          val distanceFromCenter = math.sqrt((vertex.x - BigDecimal("0.5")).pow(2).toDouble + (vertex.y - BigDecimal("-0.866025403784439")).pow(2).toDouble)
+          val distanceFromCenter = math.sqrt((vertex.x - BigDecimal("0.5")).pow(
+            2
+          ).toDouble + (vertex.y - BigDecimal("-0.866025403784439")).pow(2).toDouble)
           // The distance should be approximately 1 (unit hexagon)
           math.abs(distanceFromCenter - 1.0) should be < 0.1
-        } *
+        }*
       )
     )
   }
@@ -125,14 +129,15 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
           result should have length 2,
           allAssert(
             result.map { vertex =>
+
               allAssert(
                 vertex.x should not be null,
                 vertex.y should not be null
               )
-            } *
+            }*
           )
         )
-      } *
+      }*
     )
   }
 
@@ -141,7 +146,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val p2 = BigPoint(BigDecimal(1), BigDecimal(0))
 
     val result = calculateNewVertices(3, p1, p2)
-    val p3 = result.head
+    val p3     = result.head
 
     // Check that all sides have equal length (equilateral triangle)
     val side1Length = math.sqrt((p2.x - p1.x).pow(2).toDouble + (p2.y - p1.y).pow(2).toDouble)
@@ -166,18 +171,17 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       allAssert(
         // Check that we have the correct total number of vertices
         allVertices should have length sides,
-        {
-          // The last calculated vertex should be positioned to close the polygon back to p1
-          if newVertices.nonEmpty then
-            val lastVertex = newVertices.last
-            // The distance from the last vertex back to p1 should be approximately equal to the side length
-            val closingDistance = math.sqrt((p1.x - lastVertex.x).pow(2).toDouble + (p1.y - lastVertex.y).pow(2).toDouble)
-            val sideLength = math.sqrt((p2.x - p1.x).pow(2).toDouble + (p2.y - p1.y).pow(2).toDouble)
+        // The last calculated vertex should be positioned to close the polygon back to p1
+        if newVertices.nonEmpty then
+          val lastVertex      = newVertices.last
+          // The distance from the last vertex back to p1 should be approximately equal to the side length
+          val closingDistance =
+            math.sqrt((p1.x - lastVertex.x).pow(2).toDouble + (p1.y - lastVertex.y).pow(2).toDouble)
+          val sideLength      = math.sqrt((p2.x - p1.x).pow(2).toDouble + (p2.y - p1.y).pow(2).toDouble)
 
-            math.abs(closingDistance - sideLength) should be < 1e-6
-          else
-            succeed
-        }
+          math.abs(closingDistance - sideLength) should be < 1e-6
+        else
+          succeed
       )
     }
   }
@@ -198,7 +202,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val p2 = BigPoint(BigDecimal(1), BigDecimal(0))
 
     // Test with a square to check orientation
-    val result = calculateNewVertices(4, p1, p2)
+    val result      = calculateNewVertices(4, p1, p2)
     val allVertices = List(p1, p2) ++ result
 
     // Calculate the signed area to determine orientation (should be negative for clockwise)
@@ -215,17 +219,15 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val result = triangle.addRegularPolygonToBoundary(V1, 4)
 
     allAssert(
-      result.isRight shouldBe true,
-      {
+      result.isRight shouldBe true, {
         val tiling = result.value
         //    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true)),
         allAssert(
           verifyValidTiling(tiling),
           tiling.vertices should have size 5,
-          tiling.innerFaces should have size 2,
-          {
+          tiling.innerFaces should have size 2, {
             // Check that the sum of angles around shared vertices is 360°
-            val v0 = tiling.findVertexUnsafe(V1).get
+            val v0             = tiling.findVertexUnsafe(V1).get
             val anglesAroundV0 = v0.incidentEdgesUnsafe.flatMap(_.angle).sum2
             anglesAroundV0.isFullCircle shouldBe true
           }
@@ -241,8 +243,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val result = triangle.addSimplePolygonToBoundary(V1, irregularPentagonAngles)
 
     allAssert(
-      result.isRight shouldBe true,
-      {
+      result.isRight shouldBe true, {
         val tiling = result.value
         //    println(TilingDCEL.validate(tiling))
         //    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
@@ -259,8 +260,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val result = triangle.addSimplePolygonToBoundary(V1, irregularPentagonAngles.rotateRight(1))
 
     allAssert(
-    result.isRight shouldBe true,
-      {
+      result.isRight shouldBe true, {
         val tiling = result.value
         //    println(TilingDCEL.validate(tiling))
         //    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
@@ -287,8 +287,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       .addSimplePolygonToBoundary(V4, irregularPentagonAngles.rotateLeft(2))
 
     allAssert(
-      result.isRight shouldBe true,
-      {
+      result.isRight shouldBe true, {
         val tiling = result.value
         //    println(TilingDCEL.validate(tiling))
         //    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
@@ -305,8 +304,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val result = commonBench
       .addSimplePolygonToBoundary(VertexId("V10"), irregularPentagonAngles.rotateLeft(1))
     allAssert(
-    result.isRight shouldBe true,
-      {
+      result.isRight shouldBe true, {
         val tiling = result.value
         //    println(TilingDCEL.validate(tiling))
         //    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
@@ -324,8 +322,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       .addSimplePolygonToBoundary(V3, irregularPentagonAngles.rotateLeft(3))
 
     allAssert(
-      result.isRight shouldBe true,
-      {
+      result.isRight shouldBe true, {
         val tiling = result.value
         //    println(TilingDCEL.validate(tiling))
         //    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
@@ -342,8 +339,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val result = square.addRegularPolygonToBoundary(V1, 3)
 
     allAssert(
-      result.isRight shouldBe true,
-      {
+      result.isRight shouldBe true, {
         val tiling = result.value
         //    println(tiling.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
         allAssert(
@@ -359,8 +355,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val result = triangle.addRegularPolygonToBoundary(V1, 6)
 
     allAssert(
-      result.isRight shouldBe true,
-      {
+      result.isRight shouldBe true, {
         val tiling = result.value
         //    println(tiling.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
         allAssert(
@@ -377,14 +372,12 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val step1 = triangle.addRegularPolygonToBoundary(V1, 3)
     allAssert(
       step1.isRight shouldBe true,
-      verifyValidTiling(step1.value),
-      {
+      verifyValidTiling(step1.value), {
 
         val step2 = step1.value.addRegularPolygonToBoundary(V2, 3)
         allAssert(
           step2.isRight shouldBe true,
-          verifyValidTiling(step2.value),
-          {
+          verifyValidTiling(step2.value), {
             val finalTiling = step2.value
             //    println(finalTiling.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
             allAssert(
@@ -408,17 +401,17 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
         // Check that boundary is still traversable
         val boundary = withPentagon.boundaryVerticesUnsafe
         boundary should not be empty
-      },
-      {
+      }, {
         // Verify boundary forms a closed loop
         val boundaryEdges = withPentagon.boundaryEdges.value
         allAssert(
           boundaryEdges.map { edge =>
+
             allAssert(
               edge.next should be(defined),
               edge.prev should be(defined)
             )
-          } *
+          }*
         )
       }
     )
@@ -429,8 +422,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val result = triangle.addRegularPolygonToBoundary(V1, 12) // Dodecagon
 
     allAssert(
-    result.isRight shouldBe true,
-      {
+      result.isRight shouldBe true, {
         val tiling = result.value
         allAssert(
           verifyValidTiling(tiling),
@@ -446,9 +438,8 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val result = square.addRegularPolygonToBoundary(V1, 4)
 
     allAssert(
-      result.isRight shouldBe true,
-      {
-        val tiling = result.value
+      result.isRight shouldBe true, {
+        val tiling         = result.value
         // V0 is shared between two squares, so boundary angle should be 360 - 90 - 90 = 180
         val v0BoundaryEdge = tiling.boundaryEdges.value.find(_.origin.id == V1).get
         v0BoundaryEdge.angle.get shouldBe AngleDegree(180)
@@ -461,8 +452,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val withTriangle3 = withTriangle2.addRegularPolygonToBoundary(V1, 3).value
 
     allAssert(
-    verifyValidTiling(withTriangle3),
-      {
+      verifyValidTiling(withTriangle3), {
         // V0 now has 3 triangles, so boundary angle should be 360 - 3*60 = 180
         val v0BoundaryEdge = withTriangle3.boundaryEdges.value.find(_.origin.id == V1).get
         v0BoundaryEdge.angle.get shouldBe AngleDegree(180)
@@ -514,12 +504,11 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   // Boundary integrity tests
   it should "maintain boundary connectivity after addition" in {
     val pentagon = TilingBuilder.createRegularPolygon(5).value
-    val result = pentagon.addRegularPolygonToBoundary(V2, 3)
+    val result   = pentagon.addRegularPolygonToBoundary(V2, 3)
 
     allAssert(
-    result.isRight shouldBe true,
-      {
-        val tiling = result.value
+      result.isRight shouldBe true, {
+        val tiling        = result.value
         // Check that boundary is still a single connected component
         val boundaryEdges = tiling.boundaryEdges.value
         allAssert(
@@ -527,13 +516,14 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
           // Verify each edge has proper next/prev links
           allAssert(
             boundaryEdges.map { edge =>
+
               allAssert(
                 edge.next should be(defined),
                 edge.prev should be(defined),
                 edge.next.get.prev should contain(edge),
                 edge.prev.get.next should contain(edge)
               )
-            } *
+            }*
           )
         )
       }
@@ -545,9 +535,8 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
     val result = hexagon.addRegularPolygonToBoundary(V3, 4)
     allAssert(
-    result.isRight shouldBe true,
-      {
-        val tiling = result.value
+      result.isRight shouldBe true, {
+        val tiling       = result.value
         val newVertexIds = tiling.vertices.map(_.id).toSet
         allAssert(
           // Original vertices should still exist
@@ -564,13 +553,12 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val result = triangle.addRegularPolygonToBoundary(V1, 4)
 
     allAssert(
-      result.isRight shouldBe true,
-      {
-        val tiling = result.value
+      result.isRight shouldBe true, {
+        val tiling  = result.value
         val faceIds = tiling.innerFaces.map(_.id).toSet
         allAssert(
           faceIds should contain(FaceId.firstInnerId), // Original face
-          faceIds should contain("F2"), // New face
+          faceIds should contain("F2"),                // New face
           faceIds should have size 2
         )
       }
@@ -582,13 +570,13 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val result = square.addRegularPolygonToBoundary(V1, 6)
 
     allAssert(
-      result.isRight shouldBe true,
-      {
+      result.isRight shouldBe true, {
         val tiling = result.value
         allAssert(
           tiling.halfEdges.map { edge =>
+
             edge.incidentFace should be(defined)
-          } *
+          }*
         )
       }
     )
@@ -602,8 +590,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     for (i <- 1 to 6)
       val result = currentTiling.addRegularPolygonToBoundary(VertexId(s"V$i"), 3)
       allAssert(
-      result.isRight shouldBe true,
-        {
+        result.isRight shouldBe true, {
           currentTiling = result.value
           verifyValidTiling(currentTiling)
         }
@@ -625,8 +612,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val result = fiveTrianglesInHex
       .maybeAddRegularPolygonToBoundary(V1, 3)
     allAssert(
-      result.isRight shouldBe true,
-      {
+      result.isRight shouldBe true, {
         val newTiling = result.value
         //    println(newTiling.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
         //    println(TilingDCEL.validate(newTiling))
@@ -645,8 +631,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val result = threeHexagons
       .maybeAddRegularPolygonToBoundary(V1, 6)
     allAssert(
-      result.isRight shouldBe true,
-      {
+      result.isRight shouldBe true, {
         val newTiling = result.value
         //    println(newTiling.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
         //    println(TilingDCEL.validate(newTiling))
@@ -659,8 +644,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val result = threeHexagons
       .maybeAddRegularPolygonToBoundary(V2, 6)
     allAssert(
-      result.isRight shouldBe true,
-      {
+      result.isRight shouldBe true, {
         val newTiling = result.value
         //    println(newTiling.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
         //    println(TilingDCEL.validate(newTiling))
@@ -673,8 +657,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val result = threeHexagons
       .maybeAddRegularPolygonToBoundary(VertexId("V7"), 6)
     allAssert(
-      result.isRight shouldBe true,
-      {
+      result.isRight shouldBe true, {
         val newTiling = result.value
         //    println(newTiling.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
         //    println(TilingDCEL.validate(newTiling))
@@ -693,8 +676,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val result = threeSquares
       .maybeAddRegularPolygonToBoundary(V1, 4)
     allAssert(
-      result.isRight shouldBe true,
-      {
+      result.isRight shouldBe true, {
 
         val newTiling = result.value
         //    println(newTiling.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
@@ -708,8 +690,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val result = threeSquares
       .maybeAddRegularPolygonToBoundary(V2, 4)
     allAssert(
-      result.isRight shouldBe true,
-      {
+      result.isRight shouldBe true, {
         val newTiling = result.value
         //    println(newTiling.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
         //    println(TilingDCEL.validate(newTiling))
@@ -722,8 +703,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val result = commonBench
       .maybeAddRegularPolygonToBoundary(V3, 4)
     allAssert(
-      result.isRight shouldBe true,
-      {
+      result.isRight shouldBe true, {
         val newTiling = result.value
         //    println(TilingDCEL.validate(newTiling))
         //    println(newTiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
@@ -751,8 +731,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val result = irregularHoleAlmostJoinedByVertex
       .maybeAddRegularPolygonToBoundary(V2, 3)
     allAssert(
-      result.isRight shouldBe true,
-      {
+      result.isRight shouldBe true, {
         val newTiling = result.value
         //    println(newTiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
         //    println(TilingDCEL.validate(newTiling))
@@ -771,8 +750,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val result = regularHoleAlmostJoinedBySide
       .maybeAddRegularPolygonToBoundary(V3, 4)
     allAssert(
-      result.isRight shouldBe true,
-      {
+      result.isRight shouldBe true, {
         val newTiling = result.value
         //    println(newTiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
         //    println(TilingDCEL.validate(newTiling))
@@ -786,8 +764,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       .maybeAddRegularPolygonToBoundary(V2, 6)
 
     allAssert(
-      result.isRight shouldBe true,
-      {
+      result.isRight shouldBe true, {
         val newTiling = result.value
         //    println(newTiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
         //    println(TilingDCEL.validate(newTiling))
@@ -813,8 +790,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       .maybeAddRegularPolygonToBoundary(V2, 6)
 
     allAssert(
-      result.isRight shouldBe true,
-      {
+      result.isRight shouldBe true, {
         val newTiling = result.value
         //    println(newTiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
         //    println(TilingDCEL.validate(newTiling))
@@ -844,13 +820,11 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   it should "act the same of addRegularPolygonToBoundary when applied to the boundary directed edge" in {
     val result = triangle.addRegularPolygon(V1, V3, 4)
     allAssert(
-      result.isRight shouldBe true,
-      {
+      result.isRight shouldBe true, {
         val tiling = result.value
         //    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
         allAssert(
-          verifyValidTiling(tiling),
-          {
+          verifyValidTiling(tiling), {
             val tiling2 = triangle.addRegularPolygonToBoundary(V1, 4).value
             tiling.isEquivalentTo(tiling2) shouldBe true
           }
@@ -860,7 +834,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   }
 
   it should "fail for widening" in {
-    val bench = TilingBuilder.createRegularPolygon(12).value
+    val bench  = TilingBuilder.createRegularPolygon(12).value
     val result = bench.addRegularPolygon(V1, V2, 13)
 
     allAssert(
@@ -870,7 +844,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   }
 
   it should "fail for being the same as the container" in {
-    val bench = TilingBuilder.createRegularPolygon(12).value
+    val bench  = TilingBuilder.createRegularPolygon(12).value
     val result = bench.addRegularPolygon(V1, V2, 12)
 
     allAssert(
@@ -888,8 +862,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       .addRegularPolygon(V1, V2, 4)
 
     allAssert(
-      result.isRight shouldBe true,
-      {
+      result.isRight shouldBe true, {
         val tiling = result.value
         //    println(TilingDCEL.validate(tiling))
         //    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
@@ -908,8 +881,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       .addRegularPolygon(V2, V3, 4)
 
     allAssert(
-      result.isRight shouldBe true,
-      {
+      result.isRight shouldBe true, {
         val tiling = result.value
         //    println(TilingDCEL.validate(tiling))
         //    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
@@ -945,8 +917,9 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   }
 
   def base: TilingDCEL =
-    val angles = List(120, 180, 180, 180, 120, 120, 180, 120, 60, 180, 300, 180, 180, 300, 180, 60, 120, 180, 120)
-    TilingBuilder.createSimplePolygon(angles *).value
+    val angles =
+      List(120, 180, 180, 180, 120, 120, 180, 120, 60, 180, 300, 180, 180, 300, 180, 60, 120, 180, 120)
+    TilingBuilder.createSimplePolygon(angles*).value
 
   /** <img src="file:../../resources/anotherAlmostJoinedByVertex.svg"/> */
   def anotherAlmostJoinedByVertex: TilingDCEL =
@@ -980,8 +953,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       .addRegularPolygon(V3, V4, 4)
 
     allAssert(
-      result.isRight shouldBe true,
-      {
+      result.isRight shouldBe true, {
         val tiling = result.value
         //    println(TilingDCEL.validate(tiling))
         //    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
@@ -995,8 +967,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       .addRegularPolygon(VertexId("V11"), VertexId("V12"), 4)
 
     allAssert(
-      result.isRight shouldBe true,
-      {
+      result.isRight shouldBe true, {
         val tiling = result.value
         //    println(TilingDCEL.validate(tiling))
         //    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))

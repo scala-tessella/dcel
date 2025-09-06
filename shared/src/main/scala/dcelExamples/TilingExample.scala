@@ -25,11 +25,9 @@ object TilingExample:
         case h1 :: h2 :: Nil => h1.twinWith(h2)
     }
 
-  /**
-   * Creates a sample TilingDCEL with two triangles sharing an edge.
-   * This is a good example of manual DCEL construction.
-   * It is the smallest construction by regular polygons with a shared edge
-   */
+  /** Creates a sample TilingDCEL with two triangles sharing an edge. This is a good example of manual DCEL
+    * construction. It is the smallest construction by regular polygons with a shared edge
+    */
   def createTwoTrianglesTiling(): TilingDCEL =
     // 1. Define vertices
     val vA = Vertex(VertexId("V1"), BigPoint(0.0, 0.0))
@@ -38,8 +36,8 @@ object TilingExample:
     val vD = Vertex(VertexId("V4"), BigPoint(-0.5, 0.866))
 
     // 2. Define faces
-    val fABC = Face(FaceId("F1"))
-    val fACD = Face(FaceId("F2"))
+    val fABC   = Face(FaceId("F1"))
+    val fACD   = Face(FaceId("F2"))
     val fOuter = Face.outer
 
     // 3. Create half-edges
@@ -66,7 +64,7 @@ object TilingExample:
     fOuter.outerComponent = Some(hBA)
 
     // --- Triangle ABC ---
-    linkPolygon(List(hAB, hBC, hCA), fABC,AngleDegree(60))
+    linkPolygon(List(hAB, hBC, hCA), fABC, AngleDegree(60))
 
     // --- Triangle ACD ---
     linkPolygon(List(hAC, hCD, hDA), fACD, AngleDegree(60))
@@ -86,11 +84,10 @@ object TilingExample:
 
     result.toOption.get
 
-  /**
-   * Creates a sample TilingDCEL with six triangles sharing a vertex.
-   * This is a good example of manual DCEL construction.
-   * It is the smallest construction by regular polygons with a shared vertex representing a full circle
-   */
+  /** Creates a sample TilingDCEL with six triangles sharing a vertex. This is a good example of manual DCEL
+    * construction. It is the smallest construction by regular polygons with a shared vertex representing a
+    * full circle
+    */
   def createSixTrianglesTiling(): TilingDCEL =
     // 1. Define vertices
     val vA = Vertex(VertexId("V1"), BigPoint(0.0, 0.0))
@@ -102,12 +99,12 @@ object TilingExample:
     val vG = Vertex(VertexId("V7"), BigPoint(0.5, -0.866))
 
     // 2. Define faces
-    val fABC = Face(FaceId("F1"))
-    val fACD = Face(FaceId("F2"))
-    val fADE = Face(FaceId("F3"))
-    val fAEF = Face(FaceId("F4"))
-    val fAFG = Face(FaceId("F5"))
-    val fAGB = Face(FaceId("F6"))
+    val fABC   = Face(FaceId("F1"))
+    val fACD   = Face(FaceId("F2"))
+    val fADE   = Face(FaceId("F3"))
+    val fAEF   = Face(FaceId("F4"))
+    val fAFG   = Face(FaceId("F5"))
+    val fAGB   = Face(FaceId("F6"))
     val fOuter = Face.outer
 
     // 3. Create half-edges
@@ -125,8 +122,30 @@ object TilingExample:
     val hGB = HalfEdge(vG); val hBG = HalfEdge(vB)
 
     val halfEdges = List(
-      hAB, hBA, hBC, hCB, hCA, hAC, hAD, hDA, hDC, hCD, hAE, hEA,
-      hED, hDE, hAF, hFA, hFE, hEF, hAG, hGA, hGF, hFG, hGB, hBG
+      hAB,
+      hBA,
+      hBC,
+      hCB,
+      hCA,
+      hAC,
+      hAD,
+      hDA,
+      hDC,
+      hCD,
+      hAE,
+      hEA,
+      hED,
+      hDE,
+      hAF,
+      hFA,
+      hFE,
+      hEF,
+      hAG,
+      hGA,
+      hGF,
+      hFG,
+      hGB,
+      hBG
     )
 
     // 4. Link everything together using Option

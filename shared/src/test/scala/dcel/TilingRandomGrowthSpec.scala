@@ -16,7 +16,7 @@ class TilingRandomGrowthSpec
     with TilingTestHelpers:
 
   private val genInitialSides: Gen[Int] = Gen.oneOf(3, 4, 6)
-  private val genSteps: Gen[Int] = Gen.choose(1, 12)
+  private val genSteps: Gen[Int]        = Gen.choose(1, 12)
 
   private def mk(s: Int): TilingDCEL =
     // Guard against ScalaCheck shrinking producing invalid values (e.g., 0)
@@ -29,7 +29,7 @@ class TilingRandomGrowthSpec
       TilingDCEL.validateSpatially(t).isRight shouldBe true
     )
 
-  private val rng = new Random(0xFACEB00C)
+  private val rng = new Random(0xfaceb00c)
 
   private def pickBoundaryStart(t: TilingDCEL): Option[VertexId] =
     val b = t.boundaryEdgesUnsafe
@@ -37,33 +37,32 @@ class TilingRandomGrowthSpec
 
   private val genSides: Gen[Int] = Gen.oneOf(3, 4, 6)
 
-  it should "grow random regular polygons at boundary edges and remain valid after each successful step" in {
+  it should "grow random regular polygons at boundary edges and remain valid after each successful step" in
     forAll(genInitialSides, genSteps) { (initialSides, steps) =>
       var t = mk(initialSides)
       allAssert(
         validateAll(t),
         allAssert(
           {
-            var k = 0
+            var k          = 0
             val assertions = ListBuffer[Assertion]()
             while k < steps do
               val maybeStart = pickBoundaryStart(t)
-              val s = genSides.sample.getOrElse(3)
-              val tried =
+              val s          = genSides.sample.getOrElse(3)
+              val tried      =
                 for
                   start <- maybeStart.toRight("no-boundary")
-                  next <- t.maybeAddRegularPolygonToBoundary(start, s)
+                  next  <- t.maybeAddRegularPolygonToBoundary(start, s)
                 yield next
 
               tried match
                 case Right(updated) =>
                   t = updated
                   assertions += validateAll(t)
-                case Left(_) => // If the random pick is invalid, we simply skip this iteration
+                case Left(_)        => // If the random pick is invalid, we simply skip this iteration
               k += 1
             assertions.toList
-          } *
+          }*
         )
       )
     }
-  }

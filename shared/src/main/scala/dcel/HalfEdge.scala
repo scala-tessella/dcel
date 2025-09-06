@@ -7,32 +7,40 @@ import io.github.scala_tessella.ring_seq.RingSeq.slidingO
 import scala.annotation.tailrec
 import scala.collection.mutable
 
-/**
- * Represents a directed half-edge in the DCEL.
- *
- * @param origin       The vertex from which this half-edge originates.
- * @param twin         An optional reference to the half-edge that is its pair running in the opposite direction.
- * @param incidentFace An optional reference to the face to the left of this edge as you traverse from its origin vertex to its destination vertex.
- * @param next         An optional reference to the next half-edge in the boundary traversal of its incident face.
- * @param prev         An optional reference to the previous half-edge in the boundary traversal.
- * @param angle        The angle of the corner at the origin vertex, inside the incident face.
- */
+/** Represents a directed half-edge in the DCEL.
+  *
+  * @param origin
+  *   The vertex from which this half-edge originates.
+  * @param twin
+  *   An optional reference to the half-edge that is its pair running in the opposite direction.
+  * @param incidentFace
+  *   An optional reference to the face to the left of this edge as you traverse from its origin vertex to its
+  *   destination vertex.
+  * @param next
+  *   An optional reference to the next half-edge in the boundary traversal of its incident face.
+  * @param prev
+  *   An optional reference to the previous half-edge in the boundary traversal.
+  * @param angle
+  *   The angle of the corner at the origin vertex, inside the incident face.
+  */
 case class HalfEdge(
-  origin: Vertex,
-  var twin: Option[HalfEdge] = None,
-  var incidentFace: Option[Face] = None,
-  var next: Option[HalfEdge] = None,
-  var prev: Option[HalfEdge] = None,
-  var angle: Option[AngleDegree] = None
+    origin: Vertex,
+    var twin: Option[HalfEdge] = None,
+    var incidentFace: Option[Face] = None,
+    var next: Option[HalfEdge] = None,
+    var prev: Option[HalfEdge] = None,
+    var angle: Option[AngleDegree] = None
 ):
   override def equals(obj: Any): Boolean = obj match
     case that: HalfEdge => this eq that
-    case _ => false
+    case _              => false
 
   override def hashCode(): Int = System.identityHashCode(this)
 
-  override def toString: String = 
-    s"HalfEdge ${origin.id} -> ${destination.map(_.id).getOrElse("?")}${validate().swap.map(error => s" [${error.message}]").getOrElse("")}"
+  override def toString: String =
+    s"HalfEdge ${origin.id} -> ${destination.map(_.id).getOrElse("?")}${validate().swap.map(error =>
+        s" [${error.message}]"
+      ).getOrElse("")}"
 
   def destination: Option[Vertex] =
     twin.map(_.origin)
@@ -63,7 +71,8 @@ case class HalfEdge(
     if errors.isEmpty then Right(())
     else Left(ValidationError(errors.mkString(", ")))
 
-  private def traverseUnsafe[T](direction: HalfEdge => Option[HalfEdge])(f: HalfEdge => T = identity): List[T] =
+  private def traverseUnsafe[T](direction: HalfEdge => Option[HalfEdge])(f: HalfEdge => T =
+    identity): List[T] =
     val startEdge = this
 
     @tailrec
@@ -71,7 +80,7 @@ case class HalfEdge(
       val updatedAcc = f(current) :: acc
       direction(current) match
         case Some(next) if next ne startEdge => collectEdges(next, updatedAcc)
-        case _ => updatedAcc.reverse
+        case _                               => updatedAcc.reverse
 
     collectEdges(startEdge, Nil)
 
@@ -81,9 +90,10 @@ case class HalfEdge(
   def vertexTraversal[T](f: HalfEdge => T = identity): Either[TilingError, List[T]] =
     traverse[T](_.twin.flatMap(_.next))(f)
 
-  private def traverse[T](direction: HalfEdge => Option[HalfEdge])(f: HalfEdge => T = identity): Either[TilingError, List[T]] =
+  private def traverse[T](direction: HalfEdge => Option[HalfEdge])(f: HalfEdge => T =
+    identity): Either[TilingError, List[T]] =
     val startEdge = this
-    val visited = mutable.Set[HalfEdge]()
+    val visited   = mutable.Set[HalfEdge]()
 
     @tailrec
     def collectEdges(current: HalfEdge, acc: List[T]): Either[TilingError, List[T]] =
@@ -96,10 +106,10 @@ case class HalfEdge(
         direction(current) match
           case Some(next) if next ne startEdge =>
             collectEdges(next, updatedAcc)
-          case Some(_) =>
+          case Some(_)                         =>
             // next == startEdge, we've completed the traversal
             Right(updatedAcc.reverse)
-          case None =>
+          case None                            =>
             Left(TopologyError(s"Broken edge chain: edge from vertex ${current.origin.id} has no next"))
 
     collectEdges(startEdge, Nil)
@@ -122,15 +132,21 @@ object HalfEdge:
     (edge1, edge2)
 
   def createTwinHalfEdges(
-    origin: Vertex,
-    destination: Vertex,
-    boundaryFace: Face,
-    innerFace: Face,
-    boundaryAngle: AngleDegree,
-    innerAngle: AngleDegree
+      origin: Vertex,
+      destination: Vertex,
+      boundaryFace: Face,
+      innerFace: Face,
+      boundaryAngle: AngleDegree,
+      innerAngle: AngleDegree
   ): (HalfEdge, HalfEdge) =
-    val boundaryEdge = HalfEdge(origin = origin, incidentFace = Some(boundaryFace), angle = Some(boundaryAngle))
-    val innerEdge = HalfEdge(origin = destination, twin = Some(boundaryEdge), incidentFace = Some(innerFace), angle = Some(innerAngle))
+    val boundaryEdge =
+      HalfEdge(origin = origin, incidentFace = Some(boundaryFace), angle = Some(boundaryAngle))
+    val innerEdge    = HalfEdge(
+      origin = destination,
+      twin = Some(boundaryEdge),
+      incidentFace = Some(innerFace),
+      angle = Some(innerAngle)
+    )
     boundaryEdge.twinWith(innerEdge)
     (boundaryEdge, innerEdge)
 
@@ -144,7 +160,7 @@ object HalfEdge:
     private def linkIn(f: List[HalfEdge] => Iterator[List[HalfEdge]]): Unit =
       f(halfEdges).foreach {
         case e1 :: e2 :: Nil => e1.linkWith(e2)
-        case _ => ()
+        case _               => ()
       }
 
     // Helper function to link edges in a cycle
@@ -181,7 +197,7 @@ object HalfEdge:
       startEdgeOpt match
         case Some(startEdge) =>
           val holeEdgesList = mutable.ListBuffer[HalfEdge]()
-          var currentEdge = startEdge
+          var currentEdge   = startEdge
 
           while (currentEdge.destination.get != to && !holeEdgesList.contains(currentEdge))
             holeEdgesList += currentEdge
@@ -191,22 +207,24 @@ object HalfEdge:
             holeEdgesList += currentEdge
 
           holeEdgesList.toList
-        case None => List.empty
+        case None            => List.empty
 
     /** Returns the path from the origin vertex to the destination vertex if it exists.
-     * 
-     * @return
-     */
+      *
+      * @return
+      */
     def maybePath: Option[List[HalfEdge]] =
       if halfEdges.isEmpty then return Some(Nil)
       if halfEdges.exists(_.destination.isEmpty) then return None
 
       val outDegrees = halfEdges.groupBy(_.origin).view.mapValues(_.size)
-      val inDegrees = halfEdges.groupMap(_.destination.get)(_ => 1).view.mapValues(_.sum)
-      val vertices = (outDegrees.keySet ++ inDegrees.keySet).toList
+      val inDegrees  = halfEdges.groupMap(_.destination.get)(_ => 1).view.mapValues(_.sum)
+      val vertices   = (outDegrees.keySet ++ inDegrees.keySet).toList
 
-      val startNodeCandidates = vertices.filter(v => outDegrees.getOrElse(v, 0) - inDegrees.getOrElse(v, 0) == 1)
-      val endNodeCandidates = vertices.filter(v => inDegrees.getOrElse(v, 0) - outDegrees.getOrElse(v, 0) == 1)
+      val startNodeCandidates =
+        vertices.filter(v => outDegrees.getOrElse(v, 0) - inDegrees.getOrElse(v, 0) == 1)
+      val endNodeCandidates   =
+        vertices.filter(v => inDegrees.getOrElse(v, 0) - outDegrees.getOrElse(v, 0) == 1)
 
       val startVertexOpt =
         if startNodeCandidates.size == 1 && endNodeCandidates.size == 1 then
@@ -222,7 +240,7 @@ object HalfEdge:
 
       startVertexOpt.flatMap { startVertex =>
         val edgesByOrigin = mutable.Map.from(halfEdges.groupBy(_.origin).view.mapValues(mutable.Queue.from))
-        val path = mutable.ListBuffer.empty[HalfEdge]
+        val path          = mutable.ListBuffer.empty[HalfEdge]
 
         def findPath(u: Vertex): Unit =
           while (edgesByOrigin.get(u).exists(_.nonEmpty))
@@ -239,8 +257,8 @@ object HalfEdge:
     def orderBoundary: List[HalfEdge] =
       if halfEdges.isEmpty then return Nil
       val remaining = mutable.HashSet.from(halfEdges)
-      val ordered = mutable.ListBuffer[HalfEdge]()
-      var current = halfEdges.head
+      val ordered   = mutable.ListBuffer[HalfEdge]()
+      var current   = halfEdges.head
       ordered += current
       remaining -= current
       while remaining.nonEmpty do
@@ -250,6 +268,6 @@ object HalfEdge:
             ordered += next
             remaining -= next
             current = next
-          case None =>
+          case None       =>
             return ordered.toList
       ordered.toList

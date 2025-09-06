@@ -4,26 +4,29 @@ import Topology.breadthFirstSearch
 
 import io.github.scala_tessella.ring_seq.RingSeq.slidingO
 
-/**
- * Represents a single face in the DCEL.
- *
- * @param id             A unique identifier for the face.
- * @param outerComponent An optional reference to one of the half-edges on the face's outer boundary.
- * @param innerComponents A list of optional references to half-edges, one for each inner boundary (hole).
- */
+/** Represents a single face in the DCEL.
+  *
+  * @param id
+  *   A unique identifier for the face.
+  * @param outerComponent
+  *   An optional reference to one of the half-edges on the face's outer boundary.
+  * @param innerComponents
+  *   A list of optional references to half-edges, one for each inner boundary (hole).
+  */
 case class Face(
-  id: FaceId,
-  var outerComponent: Option[HalfEdge] = None,
-  var innerComponents: List[Option[HalfEdge]] = Nil
+    id: FaceId,
+    var outerComponent: Option[HalfEdge] = None,
+    var innerComponents: List[Option[HalfEdge]] = Nil
 ):
   override def equals(obj: Any): Boolean =
     obj match
       case that: Face => this.id.value == that.id.value
-      case _ => false
+      case _          => false
 
   override def hashCode(): Int = id.value.hashCode
 
-  override def toString: String = s"Face $id${validate().swap.map(error => s" [${error.message}]").getOrElse("")}"
+  override def toString: String =
+    s"Face $id${validate().swap.map(error => s" [${error.message}]").getOrElse("")}"
 
   // Area calculation
   def area: BigDecimal =
@@ -31,9 +34,10 @@ case class Face(
     if vertices.length < 3 then BigDecimal(0)
     else
       // Shoelace formula
-      val sum = vertices.slidingO(2).map { (_: @unchecked) match
-        case v1 :: v2 :: Nil =>
-          v1.coords.x * v2.coords.y - v2.coords.x * v1.coords.y
+      val sum = vertices.slidingO(2).map {
+        (_: @unchecked) match
+          case v1 :: v2 :: Nil =>
+            v1.coords.x * v2.coords.y - v2.coords.x * v1.coords.y
       }.sum
       sum.abs / 2
 
@@ -45,8 +49,9 @@ case class Face(
       List(
         Option.when(outerComponent.isEmpty)("Missing outer component edge")
       ).flatten ++
-        (if innerComponents.exists(_.isEmpty) then List("One or more inner component edge references are missing")
-        else Nil)
+        (if innerComponents.exists(_.isEmpty) then
+           List("One or more inner component edge references are missing")
+         else Nil)
 
     if errors.isEmpty then Right(())
     else Left(ValidationError(errors.mkString(", ")))
@@ -54,37 +59,35 @@ case class Face(
   def getVerticesUnsafe: List[Vertex] =
     outerComponent.get.faceTraversalUnsafe(_.origin)
 
-  /**
-   * Get all vertices that form the boundary of a face.
-   * Returns vertices in the order they appear around the face boundary.
-   */
+  /** Get all vertices that form the boundary of a face. Returns vertices in the order they appear around the
+    * face boundary.
+    */
   def getVertices: Either[TilingError, List[Vertex]] =
     outerComponent match
-      case None => Right(List.empty)
+      case None            => Right(List.empty)
       case Some(startEdge) => startEdge.faceTraversal(_.origin)
 
   def halfEdgesUnsafe: List[HalfEdge] =
     outerComponent.get.faceTraversalUnsafe()
 
-  /**
-   * Get all half-edges forming a face loop.
-   */
+  /** Get all half-edges forming a face loop.
+    */
   def halfEdges: Either[TilingError, List[HalfEdge]] =
     outerComponent match
-      case None => Right(List.empty)
+      case None        => Right(List.empty)
       case Some(start) => start.faceTraversal()
 
 object Face:
 
-
   def outer: Face = Face(FaceId.outerId)
-  
+
   def adjacencyMap(faces: List[Face]): Map[Face, List[Face]] =
     faces.map { face =>
+
       face -> face.halfEdges.getOrElse(List.empty)
         .flatMap(edge =>
           for
-            twin <- edge.twin
+            twin         <- edge.twin
             incidentFace <- twin.incidentFace
             if faces.contains(incidentFace)
           yield incidentFace
@@ -92,7 +95,7 @@ object Face:
     }.toMap
 
   extension (faces: List[Face])
-    
+
     def isConnected: Boolean =
 
       if faces.isEmpty then true

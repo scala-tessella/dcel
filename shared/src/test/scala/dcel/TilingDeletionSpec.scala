@@ -27,8 +27,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   it should "successfully delete a single square, leaving an empty tiling" in {
     val result = square.deleteFace(FaceId.firstInnerId)
     allAssert(
-      result.isRight shouldBe true,
-      {
+      result.isRight shouldBe true, {
         val newTiling = result.value
         allAssert(
           newTiling.innerFaces shouldBe empty,
@@ -57,8 +56,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val tiling = TilingBuilder.createRhombusNet(3, 3)
     val result = tiling.deleteFace(FaceId("F5"))
     allAssert(
-      result.isRight shouldBe true,
-      {
+      result.isRight shouldBe true, {
         val newTiling = result.value
         newTiling.innerFaces.length shouldBe 1
       }
@@ -75,7 +73,9 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val result = partitioningBoundaryFace.deleteFace(F2)
     allAssert(
       result.isLeft shouldBe true,
-      result.left.value.message should include("would partition the tiling in two or more parts connected by just a vertex")
+      result.left.value.message should include(
+        "would partition the tiling in two or more parts connected by just a vertex"
+      )
     )
   }
 
@@ -94,15 +94,15 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   }
 
   it should "delete a face that would NOT partition the tiling in two parts" in {
-    val s1s2 = square.addRegularPolygonToBoundary(V2, 4).value
-    val s1s2s3 = s1s2.addRegularPolygonToBoundary(V2, 4).value
+    val s1s2     = square.addRegularPolygonToBoundary(V2, 4).value
+    val s1s2s3   = s1s2.addRegularPolygonToBoundary(V2, 4).value
     val s1s2s3s4 = s1s2s3.addRegularPolygonToBoundary(V2, 4).value
-    val result = s1s2s3s4.deleteFace(F2)
+    val result   = s1s2s3s4.deleteFace(F2)
     result.isRight shouldBe true
   }
 
   it should "delete another face that would NOT partition the tiling in two parts" in {
-    val s1s2 = hexagon.addRegularPolygonToBoundary(V2, 6).value
+    val s1s2   = hexagon.addRegularPolygonToBoundary(V2, 6).value
     val s1s2s3 = s1s2.addRegularPolygonToBoundary(V2, 6).value
     val result = s1s2s3.deleteFace(F2)
     result.isRight shouldBe true
@@ -112,12 +112,10 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val tiling = square
       .addRegularPolygonToBoundary(V2, 4).value
     allAssert(
-      tiling.innerFaces.length shouldBe 2,
-      {
+      tiling.innerFaces.length shouldBe 2, {
         val result = tiling.deleteFace(F2)
         allAssert(
-          result.isRight shouldBe true,
-          {
+          result.isRight shouldBe true, {
             val newTiling = result.value
             allAssert(
               verifyValidTiling(newTiling),
@@ -136,16 +134,13 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val tiling = square
       .addRegularPolygonToBoundary(V2, 4).value
     allAssert(
-      tiling.innerFaces.length shouldBe 2,
-      {
+      tiling.innerFaces.length shouldBe 2, {
         val result = tiling.deleteFace(FaceId.firstInnerId)
         allAssert(
-          result.isRight shouldBe true,
-          {
+          result.isRight shouldBe true, {
             val newTiling = result.value
             allAssert(
               verifyValidTiling(newTiling),
-
               newTiling.innerFaces.length shouldBe 1,
               newTiling.innerFaces.head.id.value shouldBe "F2",
               newTiling.vertices.length shouldBe 4,
@@ -169,8 +164,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   it should "delete an irregular polygon" in {
     val result = irregularFaces.deleteFace(F2)
     allAssert(
-      result.isRight shouldBe true,
-      {
+      result.isRight shouldBe true, {
         val tiling = result.value
         //    println(tiling.toSVG())
         //    println(validate(tiling))
@@ -199,10 +193,10 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
   it should "fail to delete an edge if it has no incident face" in {
     val tiling = square
-    val v1 = tiling.findVertexUnsafe(V1).get
-    val v2 = tiling.findVertexUnsafe(V2).get
+    val v1     = tiling.findVertexUnsafe(V1).get
+    val v2     = tiling.findVertexUnsafe(V2).get
     // Manually corrupt the DCEL for testing purposes
-    val edge = tiling.findEdgeBetween(v1, v2).get
+    val edge   = tiling.findEdgeBetween(v1, v2).get
     edge.incidentFace = None
 
     val result = tiling.deleteEdge(V1, V2)
@@ -216,13 +210,11 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val tiling = square
       .addRegularPolygonToBoundary(V2, 4).value // Two squares
     allAssert(
-      tiling.innerFaces.length shouldBe 2,
-      {
+      tiling.innerFaces.length shouldBe 2, {
         // Deleting a boundary edge, e.g., (V1, V2) from the first square
         val result = tiling.deleteEdge(V3, V4)
         allAssert(
-          result.isRight shouldBe true,
-          {
+          result.isRight shouldBe true, {
             val newTiling = result.value
             allAssert(
               verifyValidTiling(newTiling),
@@ -241,13 +233,11 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val tiling = square
       .addRegularPolygonToBoundary(V2, 4).value // Two squares
     allAssert(
-      tiling.innerFaces.length shouldBe 2,
-      {
+      tiling.innerFaces.length shouldBe 2, {
         // Deleting a boundary edge, e.g., (V1, V2) from the first square
         val result = tiling.deleteEdge(V4, V3)
         allAssert(
-          result.isRight shouldBe true,
-          {
+          result.isRight shouldBe true, {
             val newTiling = result.value
             allAssert(
               verifyValidTiling(newTiling),
@@ -267,13 +257,11 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       .addRegularPolygonToBoundary(V2, 4).value // Two squares sharing edge (V2, V3)
     allAssert(
       tiling.innerFaces.length shouldBe 2,
-      tiling.vertices.length shouldBe 6,
-      {
+      tiling.vertices.length shouldBe 6, {
         // Deleting the inner edge (V1, V2)
         val result = tiling.deleteEdge(V1, V2)
         allAssert(
-          result.isRight shouldBe true,
-          {
+          result.isRight shouldBe true, {
             val newTiling = result.value
             //    println(newTiling.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
             //    println(TilingDCEL.validate(newTiling))
@@ -305,8 +293,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       .deleteEdge(V1, VertexId("V5")).value
       .deleteEdge(V1, VertexId("V6"))
     allAssert(
-      result.isRight shouldBe true,
-      {
+      result.isRight shouldBe true, {
         val newTiling = result.value
         //    println(newTiling.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
         //    println(TilingDCEL.validate(newTiling))
@@ -316,18 +303,16 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   }
 
   /** <img src="file:../../resources/deletableNonBoundaryPath.svg"/> */
-  def deletableNonBoundaryPath: TilingDCEL = {
+  def deletableNonBoundaryPath: TilingDCEL =
     TilingBuilder.createRhombusNet(2, 2)
       .deleteEdge(V4, VertexId("V5")).value
       .deleteEdge(V5, VertexId("V6")).value
-  }
 
   it should "successfully delete a path of inner edges" in {
     val result = deletableNonBoundaryPath
       .deleteEdge(V2, VertexId("V5"))
     allAssert(
-      result.isRight shouldBe true,
-      {
+      result.isRight shouldBe true, {
         val newTiling = result.value
         newTiling.innerFaces should have size 1
       }
@@ -356,8 +341,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val result = TilingBuilder.createRhombusNet(2, 2)
       .deleteVertex(VertexId("V5"))
     allAssert(
-      result.isRight shouldBe true,
-      {
+      result.isRight shouldBe true, {
         val newTiling = result.value
         newTiling.innerFaces should have size 1
       }
@@ -368,8 +352,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val result = irregularFaces
       .deleteVertex(V2)
     allAssert(
-      result.isRight shouldBe true,
-      {
+      result.isRight shouldBe true, {
         val newTiling = result.value
         newTiling.innerFaces should have size 1
       }
@@ -380,8 +363,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val result = TilingBuilder.createTriangleNet(3, 3)
       .deleteVertex(V1)
     allAssert(
-      result.isRight shouldBe true,
-      {
+      result.isRight shouldBe true, {
         val newTiling = result.value
         newTiling.innerFaces.length shouldBe 17
       }
@@ -392,8 +374,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val result = TilingBuilder.createTriangleNet(3, 3)
       .deleteVertex(V2)
     allAssert(
-      result.isRight shouldBe true,
-      {
+      result.isRight shouldBe true, {
         val newTiling = result.value
         newTiling.innerFaces.length shouldBe 15
       }
@@ -404,8 +385,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val result = TilingBuilder.createTriangleNet(3, 3)
       .deleteVertex(V3)
     allAssert(
-      result.isRight shouldBe true,
-      {
+      result.isRight shouldBe true, {
         val newTiling = result.value
         newTiling.innerFaces.length shouldBe 15
       }
@@ -416,8 +396,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val result = TilingBuilder.createTriangleNet(3, 3)
       .deleteVertex(V4)
     allAssert(
-      result.isRight shouldBe true,
-      {
+      result.isRight shouldBe true, {
         val newTiling = result.value
         newTiling.innerFaces.length shouldBe 16
       }

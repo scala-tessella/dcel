@@ -14,34 +14,42 @@ object TilingEquivalency:
 
   extension (tiling: TilingDCEL)
 
-    private def createMaps(coordsTransformer: BigPoint => BigPoint): (Map[Vertex, Vertex], Map[HalfEdge, HalfEdge], Map[Face, Face]) =
-      val vertexMap = tiling.vertices.map(v => v -> Vertex(v.id, coordsTransformer(v.coords))).toMap
+    private def createMaps(coordsTransformer: BigPoint => BigPoint)
+        : (Map[Vertex, Vertex], Map[HalfEdge, HalfEdge], Map[Face, Face]) =
+      val vertexMap   = tiling.vertices.map(v => v -> Vertex(v.id, coordsTransformer(v.coords))).toMap
       val halfEdgeMap = tiling.halfEdges.map(he => he -> HalfEdge(vertexMap(he.origin))).toMap
-      val faceMap = tiling.faces.map(f => f -> Face(f.id)).toMap
+      val faceMap     = tiling.faces.map(f => f -> Face(f.id)).toMap
       (vertexMap, halfEdgeMap, faceMap)
 
-    private def copyHalfEdgeRelationships(halfEdgeMap: Map[HalfEdge, HalfEdge], faceMap: Map[Face, Face]): Unit =
+    private def copyHalfEdgeRelationships(
+        halfEdgeMap: Map[HalfEdge, HalfEdge],
+        faceMap: Map[Face, Face]
+    ): Unit =
       // Copy all relationships for half-edges
       tiling.halfEdges.foreach { oldEdge =>
         val newEdge = halfEdgeMap(oldEdge)
 
         // Copy twin relationship
         oldEdge.twin.foreach { oldTwin =>
+
           newEdge.twin = Some(halfEdgeMap(oldTwin))
         }
 
         // Copy incident face
         oldEdge.incidentFace.foreach { oldFace =>
+
           newEdge.incidentFace = Some(faceMap(oldFace))
         }
 
         // Copy next relationship
         oldEdge.next.foreach { oldNext =>
+
           newEdge.next = Some(halfEdgeMap(oldNext))
         }
 
         // Copy prev relationship
         oldEdge.prev.foreach { oldPrev =>
+
           newEdge.prev = Some(halfEdgeMap(oldPrev))
         }
 
@@ -53,31 +61,34 @@ object TilingEquivalency:
       tiling.faces.foreach { oldFace =>
         val newFace = faceMap(oldFace)
         oldFace.outerComponent.foreach { oldOuterComponent =>
+
           newFace.outerComponent = Some(halfEdgeMap(oldOuterComponent))
         }
 
         // Copy inner components
         newFace.innerComponents = oldFace.innerComponents.map { optionalInnerComponent =>
+
           optionalInnerComponent.map(halfEdgeMap)
         }
       }
 
     private def copyVertexRelationships(
-      vertexLeavingTransformer: (Vertex, HalfEdge, Map[HalfEdge, HalfEdge]) => Unit,
-      vertexMap: Map[Vertex, Vertex],
-      halfEdgeMap: Map[HalfEdge, HalfEdge]
+        vertexLeavingTransformer: (Vertex, HalfEdge, Map[HalfEdge, HalfEdge]) => Unit,
+        vertexMap: Map[Vertex, Vertex],
+        halfEdgeMap: Map[HalfEdge, HalfEdge]
     ): Unit =
       // Copy vertex-leaving edge relationships
       tiling.vertices.foreach { oldVertex =>
         val newVertex = vertexMap(oldVertex)
         oldVertex.leaving.foreach { oldLeavingEdge =>
+
           vertexLeavingTransformer(newVertex, oldLeavingEdge, halfEdgeMap)
         }
       }
 
     private def rawCopy(
-      coordsTransformer: BigPoint => BigPoint,
-      vertexLeavingTransformer: (Vertex, HalfEdge, Map[HalfEdge, HalfEdge]) => Unit
+        coordsTransformer: BigPoint => BigPoint,
+        vertexLeavingTransformer: (Vertex, HalfEdge, Map[HalfEdge, HalfEdge]) => Unit
     ): TilingDCEL =
       // Create mapping from old to new components
       val (vertexMap, halfEdgeMap, faceMap) = createMaps(coordsTransformer)
@@ -99,12 +110,12 @@ object TilingEquivalency:
         outerFace = faceMap(tiling.outerFace)
       )
 
-    /**
-     * Creates a deep copy of this TilingDCEL that is completely independent.
-     * Changes to the original will not affect the copy and vice versa.
-     *
-     * @return A new TilingDCEL instance with all components copied and properly linked.
-     */
+    /** Creates a deep copy of this TilingDCEL that is completely independent. Changes to the original will
+      * not affect the copy and vice versa.
+      *
+      * @return
+      *   A new TilingDCEL instance with all components copied and properly linked.
+      */
     def deepCopy: TilingDCEL =
       rawCopy(
         coordsTransformer = identity,
@@ -113,18 +124,18 @@ object TilingEquivalency:
             newVertex.leaving = Some(halfEdgeMap(oldLeavingEdge))
       )
 
-    /** Creates a geometric reflection of the tiling across the vertical axis of its bounding box.
-     * It achieves this by creating a deep copy of the tiling structure,
-     * while re-calculating the x-coordinates of all vertices and reversing the orientation of the half-edge connections
-     */
+    /** Creates a geometric reflection of the tiling across the vertical axis of its bounding box. It achieves
+      * this by creating a deep copy of the tiling structure, while re-calculating the x-coordinates of all
+      * vertices and reversing the orientation of the half-edge connections
+      */
     def verticallyReflectedCopy: TilingDCEL =
       // Get all x-coordinates to find the bounding box
       val yCoords = tiling.vertices.map(_.coords.y)
       // Return a deep copy if there are no vertices to reflect
       if yCoords.isEmpty then return tiling.deepCopy
 
-      val minY = yCoords.min
-      val maxY = yCoords.max
+      val minY            = yCoords.min
+      val maxY            = yCoords.max
       val reflectionAxisY = (minY + maxY) / 2
 
       rawCopy(
@@ -141,9 +152,10 @@ object TilingEquivalency:
 
     private def calculateBoundaryDistances: Map[Vertex, Int] =
       val distances = mutable.Map[Vertex, Int]()
-      val queue = mutable.Queue[(Vertex, Int)]()
+      val queue     = mutable.Queue[(Vertex, Int)]()
 
       tiling.vertices.foreach { v =>
+
         if v.incidentEdgesUnsafe.exists(_.incidentFace.contains(tiling.outerFace)) then
           distances(v) = 0
           queue.enqueue((v, 0))
@@ -152,7 +164,9 @@ object TilingEquivalency:
       while queue.nonEmpty do
         val (current, dist) = queue.dequeue()
         current.incidentEdgesUnsafe.foreach { edge =>
+
           edge.destination.foreach { neighbor =>
+
             if !distances.contains(neighbor) then
               distances(neighbor) = dist + 1
               queue.enqueue((neighbor, dist + 1))
@@ -166,38 +180,39 @@ object TilingEquivalency:
         && tiling.halfEdges.size == other.halfEdges.size
 
     private def isEquivalentRawTo[T, U](
-      other: TilingDCEL,
-      faceSignaturesFrom: List[Face] => Iterable[T],
-      vertexSignaturesFrom: (List[Vertex], Face) => Map[List[U], Int]
+        other: TilingDCEL,
+        faceSignaturesFrom: List[Face] => Iterable[T],
+        vertexSignaturesFrom: (List[Vertex], Face) => Map[List[U], Int]
     ): Boolean =
       if !tiling.hasSameSizesOf(other) then
         return false
 
-      val thisFaceSignatures = faceSignaturesFrom(tiling.innerFaces)
+      val thisFaceSignatures  = faceSignaturesFrom(tiling.innerFaces)
       val otherFaceSignatures = faceSignaturesFrom(other.innerFaces)
 
       if thisFaceSignatures != otherFaceSignatures then
         return false
 
-      val thisVertexSignatures = vertexSignaturesFrom(tiling.vertices, tiling.outerFace)
+      val thisVertexSignatures  = vertexSignaturesFrom(tiling.vertices, tiling.outerFace)
       val otherVertexSignatures = vertexSignaturesFrom(other.vertices, other.outerFace)
 
       thisVertexSignatures == otherVertexSignatures
 
-    /**
-     * Checks if this tiling is topologically equivalent to another.
-     * This comparison ignores spatial coordinates and the specific IDs of vertices and faces,
-     * focusing instead on the combinatorial structure of the tiling.
-     *
-     * Two tilings are considered topologically equivalent if they have:
-     * 1. The same number of vertices, half-edges, and inner faces.
-     * 2. The same multiset of face sizes (number of edges per face).
-     * 3. The same multiset of vertex signatures, where a vertex signature is
-     * a canonical representation of the cycle of face sizes around that vertex.
-     *
-     * @param other The other TilingDCEL to compare with.
-     * @return true if the two tilings are topologically equivalent, false otherwise.
-     */
+    /** Checks if this tiling is topologically equivalent to another. This comparison ignores spatial
+      * coordinates and the specific IDs of vertices and faces, focusing instead on the combinatorial
+      * structure of the tiling.
+      *
+      * Two tilings are considered topologically equivalent if they have:
+      *   1. The same number of vertices, half-edges, and inner faces.
+      *   2. The same multiset of face sizes (number of edges per face).
+      *   3. The same multiset of vertex signatures, where a vertex signature is a canonical representation of
+      *      the cycle of face sizes around that vertex.
+      *
+      * @param other
+      *   The other TilingDCEL to compare with.
+      * @return
+      *   true if the two tilings are topologically equivalent, false otherwise.
+      */
     def isTopologicallyEquivalentRobustTo(other: TilingDCEL): Boolean =
       if !tiling.hasSameSizesOf(other) then
         return false
@@ -205,13 +220,14 @@ object TilingEquivalency:
       def computeCanonicalSignature(t: TilingDCEL): Map[String, Int] =
         // 1. Initial "colors" or labels for each vertex.
         var signatures: Map[Vertex, String] = t.vertices.map { v =>
-          val faceCycle = v.incidentEdgesUnsafe.flatMap(_.incidentFace)
-          val faceSizes = faceCycle.map(face =>
+          val faceCycle        = v.incidentEdgesUnsafe.flatMap(_.incidentFace)
+          val faceSizes        = faceCycle.map(face =>
             if face == t.outerFace then 0
             else face.halfEdgesUnsafe.size
           )
           // The initial signature is a combination of degree and the canonical face size sequence.
-          val initialSignature = s"${v.incidentEdgesUnsafe.size}:${faceSizes.rotationsAndReflections.min.mkString(",")}"
+          val initialSignature =
+            s"${v.incidentEdgesUnsafe.size}:${faceSizes.rotationsAndReflections.min.mkString(",")}"
           v -> initialSignature
         }.toMap
 
@@ -221,7 +237,8 @@ object TilingEquivalency:
         (1 to iterations).foreach { _ =>
           val nextSignatures = t.vertices.map { v =>
             // 3. For each vertex, collect the signatures of its neighbors.
-            val neighborSignatures = v.incidentEdgesUnsafe.flatMap(_.destination).flatMap(signatures.get).sorted
+            val neighborSignatures  =
+              v.incidentEdgesUnsafe.flatMap(_.destination).flatMap(signatures.get).sorted
             // 4. The new signature is a hash/combination of the current signature and the neighbors' signatures.
             val aggregatedSignature = s"${signatures(v)}|${neighborSignatures.mkString(";")}"
             v -> aggregatedSignature
