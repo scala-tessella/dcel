@@ -24,11 +24,11 @@ import scala.collection.mutable
   */
 case class HalfEdge(
     origin: Vertex,
-    var twin: Option[HalfEdge] = None,
-    var incidentFace: Option[Face] = None,
-    var next: Option[HalfEdge] = None,
-    var prev: Option[HalfEdge] = None,
-    var angle: Option[AngleDegree] = None
+    private[dcel] var twin: Option[HalfEdge] = None,
+    private[dcel] var incidentFace: Option[Face] = None,
+    private[dcel] var next: Option[HalfEdge] = None,
+    private[dcel] var prev: Option[HalfEdge] = None,
+    private[dcel] var angle: Option[AngleDegree] = None
 ):
   override def equals(obj: Any): Boolean = obj match
     case that: HalfEdge => this eq that
@@ -47,11 +47,11 @@ case class HalfEdge(
   def endpointsAsVertices: Option[(Vertex, Vertex)] =
     destination.map(dest => (origin, dest))
 
-  def linkWith(that: HalfEdge): Unit =
+  private[dcel] def linkWith(that: HalfEdge): Unit =
     this.next = Some(that)
     that.prev = Some(this)
 
-  def twinWith(that: HalfEdge): Unit =
+  private[dcel] def twinWith(that: HalfEdge): Unit =
     this.twin = Some(that)
     that.twin = Some(this)
 
@@ -124,13 +124,13 @@ case class HalfEdge(
 
 object HalfEdge:
 
-  def createTwinPair(v1: Vertex, v2: Vertex): (HalfEdge, HalfEdge) =
+  private[dcel] def createTwinPair(v1: Vertex, v2: Vertex): (HalfEdge, HalfEdge) =
     val edge1 = HalfEdge(v1)
     val edge2 = HalfEdge(v2)
     edge1.twinWith(edge2)
     (edge1, edge2)
 
-  def createTwinHalfEdges(
+  private[dcel] def createTwinHalfEdges(
       origin: Vertex,
       destination: Vertex,
       boundaryFace: Face,
@@ -149,7 +149,11 @@ object HalfEdge:
     boundaryEdge.twinWith(innerEdge)
     (boundaryEdge, innerEdge)
 
-  def insertBoundarySegment(prevEdge: HalfEdge, nextEdge: HalfEdge, segment: List[HalfEdge]): Unit =
+  private[dcel] def insertBoundarySegment(
+      prevEdge: HalfEdge,
+      nextEdge: HalfEdge,
+      segment: List[HalfEdge]
+  ): Unit =
     prevEdge.linkWith(segment.head)
     segment.last.linkWith(nextEdge)
     segment.linkInSequence()
@@ -163,22 +167,22 @@ object HalfEdge:
       }
 
     // Helper function to link edges in a cycle
-    def linkInCycle(): Unit =
+    private[dcel] def linkInCycle(): Unit =
       linkIn(_.slidingO(2))
 
     // Helper function to link edges in a sequence
-    def linkInSequence(): Unit =
+    private[dcel] def linkInSequence(): Unit =
       linkIn(_.sliding(2))
 
-    def setIncidentFace(face: Face): Unit =
+    private[dcel] def setIncidentFace(face: Face): Unit =
       halfEdges.foreach:
         _.incidentFace = Some(face)
 
-    def setAngle(angle: AngleDegree): Unit =
+    private[dcel] def setAngle(angle: AngleDegree): Unit =
       halfEdges.foreach:
         _.angle = Some(angle)
 
-    def linkFace(face: Face, angle: AngleDegree): Unit =
+    private[dcel] def linkFace(face: Face, angle: AngleDegree): Unit =
       halfEdges.linkInCycle()
       halfEdges.setIncidentFace(face)
       face.outerComponent = halfEdges.headOption

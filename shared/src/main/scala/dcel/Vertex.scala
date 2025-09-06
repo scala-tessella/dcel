@@ -15,7 +15,7 @@ import dcel.Topology.breadthFirstSearch
 case class Vertex(
     id: VertexId,
     coords: BigPoint,
-    var leaving: Option[HalfEdge] = None
+    private[dcel] var leaving: Option[HalfEdge] = None
 ):
   override def equals(obj: Any): Boolean =
     obj match

@@ -14,8 +14,8 @@ import io.github.scala_tessella.ring_seq.RingSeq.slidingO
   */
 case class Face(
     id: FaceId,
-    var outerComponent: Option[HalfEdge] = None,
-    var innerComponents: List[Option[HalfEdge]] = Nil
+    private[dcel] var outerComponent: Option[HalfEdge] = None,
+    private[dcel] var innerComponents: List[Option[HalfEdge]] = Nil
 ):
   override def equals(obj: Any): Boolean =
     obj match

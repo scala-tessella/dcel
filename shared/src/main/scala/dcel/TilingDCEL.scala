@@ -18,7 +18,7 @@ import scala.collection.mutable
   * @param outerFace
   *   The single, unbounded outer face of the tiling.
   */
-case class TilingDCEL private (
+final case class TilingDCEL private (
     vertices: List[Vertex],
     halfEdges: List[HalfEdge],
     innerFaces: List[Face],
