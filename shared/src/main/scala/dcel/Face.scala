@@ -55,7 +55,7 @@ final class Face(
     if errors.isEmpty then Right(())
     else Left(ValidationError(errors.mkString(", ")))
 
-  def getVerticesUnsafe: List[Vertex] =
+  private[dcel] def getVerticesUnsafe: List[Vertex] =
     outerComponent.get.faceTraversalUnsafe(_.origin)
 
   /** Get all vertices that form the boundary of a face. Returns vertices in the order they appear around the
@@ -66,7 +66,7 @@ final class Face(
       case None            => Right(List.empty)
       case Some(startEdge) => startEdge.faceTraversal(_.origin)
 
-  def halfEdgesUnsafe: List[HalfEdge] =
+  private[dcel] def halfEdgesUnsafe: List[HalfEdge] =
     outerComponent.get.faceTraversalUnsafe()
 
   /** Get all half-edges forming a face loop.

@@ -36,7 +36,7 @@ final class Vertex(
     if isComplete then Right(())
     else Left(ValidationError("Missing leaving edge"))
 
-  def incidentEdgesUnsafe: List[HalfEdge] =
+  private[dcel] def incidentEdgesUnsafe: List[HalfEdge] =
     leaving match
       case None            => List.empty
       case Some(startEdge) => startEdge.vertexTraversalUnsafe()
@@ -46,7 +46,7 @@ final class Vertex(
       case None            => Right(List.empty)
       case Some(startEdge) => startEdge.vertexTraversal()
 
-  def currentInteriorAngleSumUnsafe(outerFace: Face): AngleDegree =
+  private[dcel] def currentInteriorAngleSumUnsafe(outerFace: Face): AngleDegree =
     incidentEdgesUnsafe.interiorAnglesSum(outerFace)
 
   def currentInteriorAngleSum(outerFace: Face): Either[TilingError, AngleDegree] =
@@ -56,14 +56,14 @@ final class Vertex(
 
   def isThread: Boolean = degree == 2
 
-  def adjacentVerticesUnsafe: List[Vertex] =
+  private[dcel] def adjacentVerticesUnsafe: List[Vertex] =
     incidentEdgesUnsafe.flatMap(_.destination)
 
   // Safe helper returning all distinct adjacent vertices
   def adjacentVertices: Either[TilingError, List[Vertex]] =
     incidentEdges.map(_.flatMap(_.destination).distinct)
 
-  def incidentFacesUnsafe: List[Face] =
+  private[dcel] def incidentFacesUnsafe: List[Face] =
     incidentEdgesUnsafe.flatMap(_.incidentFace)
 
 object Vertex:

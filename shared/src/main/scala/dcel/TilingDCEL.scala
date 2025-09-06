@@ -29,7 +29,7 @@ final case class TilingDCEL private (
   def faces: List[Face] =
     outerFace :: innerFaces
 
-  def findVertexUnsafe(vertexId: VertexId): Option[Vertex] =
+  private[dcel] def findVertexUnsafe(vertexId: VertexId): Option[Vertex] =
     vertices.find(_.id == vertexId)
 
   def findVertex(vertexId: VertexId): Either[TilingError, Vertex] =
@@ -57,7 +57,7 @@ final case class TilingDCEL private (
       edge <- findEdgeBetween(v1, v2).toRight(NotFoundError("Edge", s"between $vertexId1 and $vertexId2"))
     yield (v1, v2, edge)
 
-  def getAnglesAtVertexUnsafe(vertexId: VertexId): List[AngleDegree] =
+  private[dcel] def getAnglesAtVertexUnsafe(vertexId: VertexId): List[AngleDegree] =
     val vertex = findVertexUnsafe(vertexId).get
     val edges  = vertex.incidentEdgesUnsafe
     edges.map(_.angle.get)
@@ -74,7 +74,7 @@ final case class TilingDCEL private (
           Right(maybeAngles.flatten)
     yield angles
 
-  def getInnerAnglesAtVertexUnsafe(vertexId: VertexId): List[AngleDegree] =
+  private[dcel] def getInnerAnglesAtVertexUnsafe(vertexId: VertexId): List[AngleDegree] =
     val vertex = findVertexUnsafe(vertexId).get
     val edges  = vertex.incidentEdgesUnsafe
     edges.filterNot(isBoundaryEdge).map(_.angle.get)
@@ -106,7 +106,7 @@ final case class TilingDCEL private (
     *   A Vector of Vertices forming the perimeter, in clockwise order. Returns an empty Vector if the outer
     *   face has no boundary component.
     */
-  def boundaryVerticesUnsafe: Vector[Vertex] =
+  private[dcel] def boundaryVerticesUnsafe: Vector[Vertex] =
     outerFace.outerComponent match
       case Some(startEdge) => startEdge.faceTraversalUnsafe(_.origin).toVector
       case None            => Vector.empty
@@ -116,7 +116,7 @@ final case class TilingDCEL private (
       case Some(startEdge) => startEdge.faceTraversal(_.origin).map(_.toVector)
       case None            => Right(Vector.empty)
 
-  def boundaryEdgesUnsafe: List[HalfEdge] =
+  private[dcel] def boundaryEdgesUnsafe: List[HalfEdge] =
     outerFace.outerComponent match
       case Some(startEdge) => startEdge.faceTraversalUnsafe()
       case None            => List.empty
@@ -128,7 +128,7 @@ final case class TilingDCEL private (
       case Some(startEdge) => startEdge.faceTraversal()
       case None            => Right(List.empty)
 
-  def boundaryEdgesPathUnsafe(from: Vertex, to: Vertex): List[HalfEdge] =
+  private[dcel] def boundaryEdgesPathUnsafe(from: Vertex, to: Vertex): List[HalfEdge] =
     boundaryEdgesUnsafe.getPath(from, to)
 
   def boundaryEdgesPath(from: VertexId, to: VertexId): Either[TilingError, List[HalfEdge]] =

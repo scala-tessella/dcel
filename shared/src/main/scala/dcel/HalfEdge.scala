@@ -83,7 +83,7 @@ final class HalfEdge(
 
     collectEdges(startEdge, Nil)
 
-  def vertexTraversalUnsafe[T](f: HalfEdge => T = identity): List[T] =
+  private[dcel] def vertexTraversalUnsafe[T](f: HalfEdge => T = identity): List[T] =
     traverseUnsafe[T](_.twin.flatMap(_.next))(f)
 
   def vertexTraversal[T](f: HalfEdge => T = identity): Either[TilingError, List[T]] =
@@ -113,7 +113,7 @@ final class HalfEdge(
 
     collectEdges(startEdge, Nil)
 
-  def faceTraversalUnsafe[T](f: HalfEdge => T = identity): List[T] =
+  private[dcel] def faceTraversalUnsafe[T](f: HalfEdge => T = identity): List[T] =
     traverseUnsafe[T](_.next)(f)
 
   def faceTraversal[T](f: HalfEdge => T = identity): Either[TilingError, List[T]] =
