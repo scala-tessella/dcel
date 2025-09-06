@@ -14,12 +14,19 @@
       </plugins>
     </profile>
     <profile name="sbt 3" modules="dcel-root.dcel.dcelJVM.main">
+      <option name="deprecationWarnings" value="true" />
+      <option name="uncheckedWarnings" value="true" />
+      <option name="featureWarnings" value="true" />
       <parameters>
         <parameter value="-P:wartremover:traverser:org.wartremover.warts.AsInstanceOf" />
         <parameter value="-P:wartremover:traverser:org.wartremover.warts.IsInstanceOf" />
+        <parameter value="-Wvalue-discard" />
+        <parameter value="-Wnonunit-statement" />
+        <parameter value="-Wunused:imports" />
         <parameter value="-Xsemanticdb" />
         <parameter value="-semanticdb-target" />
         <parameter value="$PROJECT_DIR$/jvm/target/scala-3.7.2/meta" />
+        <parameter value="-Xfatal-warnings" />
       </parameters>
       <plugins>
         <plugin path="$PROJECT_DIR$/target/scala-3.7.2/compiler_plugins/wartremover_3.7.2-3.4.0.jar" />
@@ -36,23 +43,36 @@
       </plugins>
     </profile>
     <profile name="sbt 5" modules="dcel-root.dcel.dcelJS.main">
+      <option name="deprecationWarnings" value="true" />
+      <option name="uncheckedWarnings" value="true" />
+      <option name="featureWarnings" value="true" />
       <parameters>
         <parameter value="-scalajs" />
         <parameter value="-P:wartremover:traverser:org.wartremover.warts.AsInstanceOf" />
         <parameter value="-P:wartremover:traverser:org.wartremover.warts.IsInstanceOf" />
+        <parameter value="-Wvalue-discard" />
+        <parameter value="-Wnonunit-statement" />
+        <parameter value="-Wunused:imports" />
         <parameter value="-Xsemanticdb" />
         <parameter value="-semanticdb-target" />
         <parameter value="$PROJECT_DIR$/js/target/scala-3.7.2/meta" />
+        <parameter value="-Xfatal-warnings" />
       </parameters>
       <plugins>
         <plugin path="$PROJECT_DIR$/target/scala-3.7.2/compiler_plugins/wartremover_3.7.2-3.4.0.jar" />
       </plugins>
     </profile>
     <profile name="sbt 6" modules="dcel-root.dcel.dcelJS.test">
+      <option name="deprecationWarnings" value="true" />
+      <option name="uncheckedWarnings" value="true" />
+      <option name="featureWarnings" value="true" />
       <parameters>
         <parameter value="-scalajs" />
         <parameter value="-P:wartremover:traverser:org.wartremover.warts.AsInstanceOf" />
         <parameter value="-P:wartremover:traverser:org.wartremover.warts.IsInstanceOf" />
+        <parameter value="-Wvalue-discard" />
+        <parameter value="-Wnonunit-statement" />
+        <parameter value="-Wunused:imports" />
         <parameter value="-Xsemanticdb" />
         <parameter value="-semanticdb-target" />
         <parameter value="$PROJECT_DIR$/js/target/scala-3.7.2/test-meta" />
@@ -63,9 +83,15 @@
       </plugins>
     </profile>
     <profile name="sbt 7" modules="dcel-root.dcel.dcelJVM.test">
+      <option name="deprecationWarnings" value="true" />
+      <option name="uncheckedWarnings" value="true" />
+      <option name="featureWarnings" value="true" />
       <parameters>
         <parameter value="-P:wartremover:traverser:org.wartremover.warts.AsInstanceOf" />
         <parameter value="-P:wartremover:traverser:org.wartremover.warts.IsInstanceOf" />
+        <parameter value="-Wvalue-discard" />
+        <parameter value="-Wnonunit-statement" />
+        <parameter value="-Wunused:imports" />
         <parameter value="-Xsemanticdb" />
         <parameter value="-semanticdb-target" />
         <parameter value="$PROJECT_DIR$/jvm/target/scala-3.7.2/test-meta" />

@@ -1,12 +1,11 @@
 package dcel
 
-import dcel.BigDecimalGeometry.*
-import dcel.BigDecimalGeometry.BigRadian.*
-
+import dcel.BigDecimalGeometry.BigRadian._
+import dcel.BigDecimalGeometry._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+import spire.implicits._
 import spire.math.Rational
-import spire.implicits.*
 
 class BigDecimalGeometrySpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 

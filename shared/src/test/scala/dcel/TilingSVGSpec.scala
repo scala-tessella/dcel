@@ -1,7 +1,7 @@
 package dcel
 
 import dcel.BigDecimalGeometry.BigPoint
-import dcel.TilingSVG.*
+import dcel.TilingSVG._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -19,14 +19,7 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "generate valid SVG for an empty tiling" in {
     val svg = emptyTiling.toScalableVectorGraphics()
-
-    allAssert(
-      svg should include("<svg"),
-      svg should include("width=\"0\""),
-      svg should include("height=\"0\""),
-      svg should include("</svg>"),
-      svg shouldBe """<svg width="0" height="0"></svg>"""
-    )
+    svg shouldBe """<svg width="0" height="0" viewBox="0 0 0 0" xmlns="http://www.w3.org/2000/svg"/>"""
   }
 
   it should "generate valid SVG for a triangle with default parameters" in {

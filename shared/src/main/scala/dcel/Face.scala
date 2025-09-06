@@ -1,7 +1,6 @@
 package dcel
 
-import Topology.breadthFirstSearch
-
+import dcel.Topology.breadthFirstSearch
 import io.github.scala_tessella.ring_seq.RingSeq.slidingO
 
 /** Represents a single face in the DCEL.

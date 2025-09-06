@@ -2,7 +2,6 @@ package dcel
 
 import dcel.BigDecimalGeometry.AngleDegree
 import dcel.Polygon.SimplePolygon
-
 import org.scalacheck.Gen
 import org.scalatest.Assertion
 import org.scalatest.flatspec.AnyFlatSpec

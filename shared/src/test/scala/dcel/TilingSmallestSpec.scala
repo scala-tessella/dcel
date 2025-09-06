@@ -1,6 +1,6 @@
 package dcel
 
-import dcel.TilingAddition.*
+import dcel.TilingAddition._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

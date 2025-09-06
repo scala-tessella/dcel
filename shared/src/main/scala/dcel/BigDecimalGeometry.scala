@@ -1,8 +1,8 @@
 package dcel
 
-import spire.implicits.*
-import spire.math.Rational
 import spire.compat.numeric
+import spire.implicits._
+import spire.math.Rational
 
 import scala.annotation.targetName
 import scala.collection.mutable

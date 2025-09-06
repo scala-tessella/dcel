@@ -5,11 +5,6 @@ ThisBuild / scalaVersion := "3.7.2"
 ThisBuild / semanticdbEnabled := true
 ThisBuild / semanticdbVersion := scalafixSemanticdb.revision
 
-// Make scalafix rules available (e.g., OrganizeImports)
-ThisBuild / scalafixDependencies ++= List(
-  "com.github.liancheng" %% "organize-imports" % "0.6.0"
-)
-
 // Optional: format on compile (can be noisy in PRs; turn off if you prefer manual runs)
 ThisBuild / scalafmtOnCompile := true
 
@@ -27,7 +22,26 @@ lazy val commonSettings = Seq(
     "org.scalacheck" %%% "scalacheck" % "1.18.1" % Test,
     "org.scalatestplus" %%% "scalacheck-1-18" % "3.2.19.0" % Test
   ),
-  // Optional: wartremover – start with a conservative set for Scala 3
+  // Compiler hygiene: turn on key warnings and make them fail the build
+  scalacOptions ++= Seq(
+    "-deprecation",         // warn on deprecated APIs
+    "-feature",             // warn on feature imports/usages
+    "-unchecked",           // extra checks for pattern matches, etc.
+    "-Wvalue-discard",      // warn when non-Unit value is ignored
+    "-Wnonunit-statement",  // warn on statements that return non-Unit
+    "-Wunused:imports"      // needed by Scalafix to use OrganizeImports.removeUnused
+  ),
+  // Apply fatal warnings only for main (Compile), not for tests
+  Compile / scalacOptions ++= Seq(
+    "-Xfatal-warnings"
+  ),
+  Test / scalacOptions --= Seq(
+    "-Xfatal-warnings"
+  ),
+  // Optional: keep the REPL (console) friendly by stripping fatal warnings there too
+  Compile / console / scalacOptions --= Seq("-Xfatal-warnings"),
+  Test    / console / scalacOptions --= Seq("-Xfatal-warnings"),
+    // Optional: wartremover – start with a conservative set for Scala 3
   wartremoverErrors ++= Seq(
 //    wartremover.Wart.Any,
 //    wartremover.Wart.Null,

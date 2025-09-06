@@ -1,8 +1,7 @@
 package dcel
 
-import dcel.BigDecimalGeometry.{AngleDegree, BigPoint}
-import dcel.TilingDeletion.*
-import dcel.TilingEquivalency.*
+import dcel.TilingDeletion._
+import dcel.TilingEquivalency._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

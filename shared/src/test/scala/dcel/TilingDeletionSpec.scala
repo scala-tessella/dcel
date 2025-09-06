@@ -1,8 +1,7 @@
 package dcel
 
-import dcel.TilingAddition.*
-import dcel.TilingDeletion.*
-
+import dcel.TilingAddition._
+import dcel.TilingDeletion._
 import org.scalatest.Assertion
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

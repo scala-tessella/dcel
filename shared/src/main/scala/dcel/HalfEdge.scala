@@ -1,7 +1,6 @@
 package dcel
 
 import dcel.BigDecimalGeometry.AngleDegree
-
 import io.github.scala_tessella.ring_seq.RingSeq.slidingO
 
 import scala.annotation.tailrec

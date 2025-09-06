@@ -1,10 +1,9 @@
 package dcel
 
-import dcel.BigDecimalGeometry.*
+import dcel.BigDecimalGeometry._
 import dcel.Polygon.{RegularPolygon, SimplePolygon}
 import dcel.TilingBuilder.{calculateVertexPoints, validatePoints, validateSides}
-import dcel.TilingEquivalency.*
-
+import dcel.TilingEquivalency._
 import io.github.scala_tessella.ring_seq.RingSeq.{rotateRight, slidingO}
 
 import scala.annotation.tailrec

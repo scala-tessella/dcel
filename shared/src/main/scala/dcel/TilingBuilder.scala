@@ -1,9 +1,8 @@
 package dcel
 
-import dcel.BigDecimalGeometry.*
+import dcel.BigDecimalGeometry._
 import dcel.Polygon.{RegularPolygon, SimplePolygon}
-
-import spire.implicits.*
+import spire.implicits._
 
 import scala.collection.mutable
 

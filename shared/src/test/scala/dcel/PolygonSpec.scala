@@ -1,11 +1,10 @@
 package dcel
 
-import dcel.BigDecimalGeometry.{ACCURACY, AngleDegree, BigRadian}
+import dcel.BigDecimalGeometry.{ACCURACY, AngleDegree}
 import dcel.Polygon.{RegularPolygon, SimplePolygon}
-
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import spire.math.*
+import spire.math._
 
 class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 

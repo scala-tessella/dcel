@@ -1,9 +1,9 @@
 package dcel
 
 import dcel.BigDecimalGeometry.{AngleDegree, hasNoAlmostEqualPoints}
-import dcel.TilingAddition.*
-import dcel.TilingDeletion.*
-import dcel.TilingSVG.*
+import dcel.TilingAddition._
+import dcel.TilingDeletion._
+import dcel.TilingSVG._
 
 import scala.collection.mutable
 

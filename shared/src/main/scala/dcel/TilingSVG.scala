@@ -1,11 +1,10 @@
 package dcel
 
-import dcel.BigDecimalGeometry.*
-
-import spire.implicits.*
+import dcel.BigDecimalGeometry._
+import spire.implicits._
 
 import scala.collection.mutable
-import scala.xml.*
+import scala.xml._
 
 object TilingSVG:
 
@@ -93,17 +92,86 @@ object TilingSVG:
   private def calculateDirection(from: BigPoint, to: BigPoint): BigPoint =
     BigPoint.fromPolar(BigDecimal(1.0), from.angleTo(to))
 
+  // Helper to create MetaData more idiomatically
+  private def attrs(tuples: (String, Any)*): MetaData =
+    tuples.foldRight[MetaData](Null) { case ((key, value), acc) =>
+      new UnprefixedAttribute(key, value.toString, acc)
+    }
+
+  // New: a small wrapper to avoid passing `null` at call sites.
+  // prefix = None means “no namespace prefix”
+  private def elem(
+      label: String,
+      attributes: MetaData = Null,
+      scope: NamespaceBinding = TopScope,
+      children: Seq[Node] = Seq.empty,
+      prefix: Option[String] = None,
+      minimizeEmpty: Boolean = true
+  ): Elem =
+    Elem(prefix.orNull, label, attributes, scope, minimizeEmpty, children*)
+
+  // ---------- Elem helpers (null-free call sites) ----------
+
+  private def textAt(x: String, y: String, content: String, more: MetaData = Null): Elem =
+    val atts = new UnprefixedAttribute("x", x, new UnprefixedAttribute("y", y, more))
+    elem("text", atts, children = Seq(Text(content)))
+
+  private def polygonElem(points: String, more: MetaData = Null): Elem =
+    elem("polygon", new UnprefixedAttribute("points", points, more))
+
+  private def lineElem(x1: String, y1: String, x2: String, y2: String, more: MetaData = Null): Elem =
+    val atts =
+      new UnprefixedAttribute(
+        "x1",
+        x1,
+        new UnprefixedAttribute(
+          "y1",
+          y1,
+          new UnprefixedAttribute("x2", x2, new UnprefixedAttribute("y2", y2, more))
+        )
+      )
+    elem("line", atts)
+
+  private def circleElem(cx: String, cy: String, r: String, more: MetaData = Null): Elem =
+    val atts = new UnprefixedAttribute(
+      "cx",
+      cx,
+      new UnprefixedAttribute("cy", cy, new UnprefixedAttribute("r", r, more))
+    )
+    elem("circle", atts)
+
+  private def gElem(children: Seq[Node], attributes: MetaData = Null): Elem =
+    elem("g", attributes, children = children)
+
+  private def svgElem(width: String, height: String, viewBox: String, children: Seq[Node]): Elem =
+    val atts =
+      new UnprefixedAttribute(
+        "width",
+        width,
+        new UnprefixedAttribute(
+          "height",
+          height,
+          new UnprefixedAttribute(
+            "viewBox",
+            viewBox,
+            new UnprefixedAttribute("xmlns", "http://www.w3.org/2000/svg", Null)
+          )
+        )
+      )
+    elem("svg", atts, children = children)
+  // ---------- end helpers ----------
+
   private def createAngleLabel(halfEdge: HalfEdge, direction: BigPoint, config: SvgConfig): Elem =
     val origin        = halfEdge.origin.coords
     val angleText     = f"${halfEdge.angle.get.toRational.toDouble}%.0f°"
     val labelDistance = config.strokeWidth * 8
     val labelX        = (origin.x * config.scale + direction.x * labelDistance).format
     val labelY        = (-origin.y * config.scale - direction.y * labelDistance).format
-    <text x={labelX} y={labelY}>{angleText}</text>
+    textAt(labelX, labelY, angleText)
 
   private def createSvgSection(title: String, content: Seq[Node], attributes: MetaData = Null): NodeSeq =
     if content.isEmpty then NodeSeq.Empty
-    else Seq(Comment(s" $title "), <g>{content}</g> % attributes)
+    else Seq(Comment(s" $title "), gElem(content, attributes))
 
   private def calculateViewBox(vertices: List[BigPoint], scale: Double, padding: Double): ViewBox =
     if vertices.isEmpty then ViewBox(BigDecimal(0), BigDecimal(0), BigDecimal(0), BigDecimal(0))
@@ -120,7 +188,7 @@ object TilingSVG:
       for
         destination <- halfEdge.destination
         arrow       <- createArrow(halfEdge.origin.coords, destination.coords, config.scale, config.strokeWidth * 3)
-      yield <polygon points={arrow.formatted}/>
+      yield polygonElem(arrow.formatted)
     }
 
   private def createEdgeLines(tilingDCEL: TilingDCEL, scale: Double): Seq[Elem] =
@@ -133,7 +201,7 @@ object TilingSVG:
         drawnEdges ++= List(edge, twin)
         val (x1, y1) = edge.origin.coords.toSvgCoords(scale)
         val (x2, y2) = twin.origin.coords.toSvgCoords(scale)
-        Some(<line x1={x1} y1={y1} x2={x2} y2={y2}/>)
+        Some(lineElem(x1, y1, x2, y2))
     }
 
   private def createAngleLabels(tilingDCEL: TilingDCEL, config: SvgConfig): (Seq[Elem], Seq[Elem]) =
@@ -165,20 +233,20 @@ object TilingSVG:
           val (x, y) = v.coords.toSvgCoords(config.scale)
           s"$x,$y"
         }.mkString(" ")
-        Some(<polygon points={points}/>)
+        Some(polygonElem(points))
       case _                             => None
 
   private def createVertexElements(tilingDCEL: TilingDCEL, config: SvgConfig): (Seq[Elem], Seq[Elem]) =
     val circles = tilingDCEL.vertices.map { v =>
       val (cx, cy) = v.coords.toSvgCoords(config.scale)
-      <circle cx={cx} cy={cy} r={(config.strokeWidth * 2).toString}/>
+      circleElem(cx, cy, (config.strokeWidth * 2).toString)
     }
 
     val labels = tilingDCEL.vertices.map { v =>
       val point = v.coords.scaled(config.scale).flippedY
       val x     = (point.x + config.strokeWidth * 2.5).format
       val y     = (point.y - config.strokeWidth * 2.5).format
-      <text x={x} y={y}>{v.id}</text>
+      textAt(x, y, v.id.value)
     }
 
     (circles, labels)
@@ -186,7 +254,7 @@ object TilingSVG:
   private def createFaceLabels(tilingDCEL: TilingDCEL, config: SvgConfig): Seq[Elem] =
     tilingDCEL.innerFaces.map { face =>
       val (x, y) = calculateCentroid(face.getVerticesUnsafe).toSvgCoords(config.scale)
-      <text x={x} y={y}>{face.id}</text>
+      textAt(x, y, face.id.value)
     }
 
   private def createTraversalArrows(tilingDCEL: TilingDCEL, config: SvgConfig): Seq[Elem] =
@@ -205,7 +273,7 @@ object TilingSVG:
                 mid1   = BigLineSegment(he1.origin.coords, dest1.coords).midPoint
                 mid2   = BigLineSegment(he2.origin.coords, dest2.coords).midPoint
                 arrow <- createArrow(mid1, mid2, config.scale, config.strokeWidth * 2.5)
-              yield <polygon points={arrow.formatted}/>
+              yield polygonElem(arrow.formatted)
             case _                 => None
           }
       }
@@ -224,7 +292,7 @@ object TilingSVG:
                      config.scale,
                      config.strokeWidth * 2
                    )
-        yield <polygon points={arrow.formatted}/>
+        yield polygonElem(arrow.formatted)
       }
 
   private def createFaceIdsOnEdges(tilingDCEL: TilingDCEL, config: SvgConfig): Seq[Elem] =
@@ -263,14 +331,8 @@ object TilingSVG:
           val textX = (BigDecimal(midX) - perpX).format
           val textY = (BigDecimal(midY) - perpY).format
 
-          <text x={textX} y={textY}>{face.id}</text>
+          textAt(textX, textY, face.id.value)
       }
-
-  // Helper to create MetaData more idiomatically
-  private def attrs(tuples: (String, Any)*): MetaData =
-    tuples.foldRight[MetaData](Null) { case ((key, value), acc) =>
-      new UnprefixedAttribute(key, value.toString, acc)
-    }
 
   extension (tiling: TilingDCEL)
 
@@ -286,7 +348,8 @@ object TilingSVG:
         faceIdsOnEdges: Boolean = false
     ): String =
       if tiling.vertices.isEmpty then
-        return <svg width="0" height="0"></svg>.toString
+        val emptySvg = svgElem("0", "0", "0 0 0 0", Seq.empty)
+        return new PrettyPrinter(120, 2).format(emptySvg)
 
       val config          =
         SvgConfig(strokeWidth, padding, scale, showHalfEdgeTraversal, leavingEdgeMarkers, faceIdsOnEdges)
@@ -336,7 +399,7 @@ object TilingSVG:
         createSvgSection(
           "Leaving Edge Markers",
           leavingEdgeMarkersSvg,
-          attrs("fill" -> "yellow", "stroke" -> "yellow", "stroke-width" -> strokeWidth * 1.5)
+          attrs("fill" -> "yellow", "stroke" -> "yellow", "stroke-width" -> 1.5 * strokeWidth)
         ),
         createSvgSection(
           "Face Ids On Edges Labels",
@@ -386,14 +449,12 @@ object TilingSVG:
         )
       ).flatten
 
-      val svg =
-        <svg width={width.toString} height={height.toString} viewBox={
-          viewBox.formatted
-        } xmlns="http://www.w3.org/2000/svg">
-          <g>
-            {sections}
-          </g>
-        </svg>
+      val svg = svgElem(
+        width = width.toString,
+        height = height.toString,
+        viewBox = viewBox.formatted,
+        children = Seq(gElem(sections))
+      )
 
       new PrettyPrinter(120, 2).format(svg)
 

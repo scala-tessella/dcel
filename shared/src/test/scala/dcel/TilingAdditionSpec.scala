@@ -1,11 +1,10 @@
 package dcel
 
 import dcel.BigDecimalGeometry.{AngleDegree, BigPoint}
-import dcel.TilingAddition.*
-import dcel.TilingDeletion.*
-import dcel.TilingEquivalency.*
-
-import io.github.scala_tessella.ring_seq.RingSeq.*
+import dcel.TilingAddition._
+import dcel.TilingDeletion._
+import dcel.TilingEquivalency._
+import io.github.scala_tessella.ring_seq.RingSeq._
 import org.scalatest.Assertion
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -125,18 +124,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     allAssert(
       testCases.map { case (p1, p2) =>
         val result = calculateNewVertices(4, p1, p2) // Test with squares
-        allAssert(
-          result should have length 2,
-          allAssert(
-            result.map { vertex =>
-
-              allAssert(
-                vertex.x should not be null,
-                vertex.y should not be null
-              )
-            }*
-          )
-        )
+        result should have length 2
       }*
     )
   }
@@ -191,10 +179,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val p2 = BigPoint(BigDecimal(1), BigDecimal(0))
 
     val result = calculateNewVertices(3, p1, p2) // Minimum valid polygon
-    allAssert(
-      result should have length 1,
-      result.head should not be null
-    )
+    result should have length 1
   }
 
   it should "produce vertices with consistent orientation" in {

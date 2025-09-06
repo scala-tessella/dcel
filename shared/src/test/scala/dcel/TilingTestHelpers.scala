@@ -1,8 +1,7 @@
 package dcel
 
-import org.scalatest.Assertion
 import org.scalatest.Assertions.succeed
-import org.scalatest.EitherValues
+import org.scalatest.{Assertion, EitherValues}
 
 /** A trait for test classes with helper methods to create tiling fixtures. */
 trait TilingTestHelpers extends EitherValues:
