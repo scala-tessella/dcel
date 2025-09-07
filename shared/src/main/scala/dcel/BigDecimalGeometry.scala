@@ -10,8 +10,7 @@ import scala.util.boundary
 
 /** Planar geometry toolbox using Spire for precise calculations.
   *
-  * This object provides an alternative to [[Geometry]], using Spire's numeric types like
-  * [[spire.math.BigDecimal]] to avoid floating-point inaccuracies.
+  * This object uses Spire's numeric types to avoid floating-point inaccuracies.
   */
 object BigDecimalGeometry:
 
@@ -84,7 +83,7 @@ object BigDecimalGeometry:
     def sum2: AngleDegree =
       degrees.map(_.toRational).sum
 
-  /** Standard unit of angular measure, represented by a [[spire.math.BigDecimal]]. */
+  /** Standard unit of angular measure. */
   opaque type BigRadian = BigDecimal
 
   /** Companion object for [[BigRadian]] */
@@ -127,7 +126,7 @@ object BigDecimalGeometry:
     def almostEquals(that: BigRadian, accuracy: Double = ACCURACY): Boolean =
       (r - that).abs < BigDecimal(accuracy)
 
-  /** A point in the plane defined by its 2 Cartesian coordinates x and y using [[spire.math.BigDecimal]]. */
+  /** A point in the plane defined by its 2 Cartesian coordinates x and y. */
   case class BigPoint(x: BigDecimal, y: BigDecimal):
 
     /** Sum of two points */
@@ -413,7 +412,7 @@ object BigDecimalGeometry:
         candidates.exists(candidate => segment.properlyIntersects(candidate))
       }
 
-  /** A line segment in the plane defined by its 2 endpoints using [[spire.math.BigDecimal]]. */
+  /** A line segment in the plane defined by its 2 endpoints. */
   case class BigLineSegment(p1: BigPoint, p2: BigPoint):
     /** The length of the line segment. */
     lazy val length: BigDecimal =
