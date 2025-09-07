@@ -1,5 +1,6 @@
 ThisBuild / version := "0.1.0-SNAPSHOT"
 ThisBuild / scalaVersion := "3.7.2"
+ThisBuild / organization := "io.github.scala-tessella"
 
 // Enable semanticdb for Scalafix (Scala 3)
 ThisBuild / semanticdbEnabled := true
