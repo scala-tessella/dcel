@@ -6,7 +6,7 @@ ThisBuild / organization := "io.github.scala-tessella"
 ThisBuild / semanticdbEnabled := true
 ThisBuild / semanticdbVersion := scalafixSemanticdb.revision
 
-// Optional: format on compile (can be noisy in PRs; turn off if you prefer manual runs)
+// Optional: format when compiling (can be noisy in PRs; turn off if you prefer manual runs)
 ThisBuild / scalafmtOnCompile := true
 
 // Optional: add a convenient alias to lint/format/test locally
@@ -28,7 +28,7 @@ lazy val commonSettings = Seq(
     "-deprecation",         // warn on deprecated APIs
     "-feature",             // warn on feature imports/usages
     "-unchecked",           // extra checks for pattern matches, etc.
-    "-Wvalue-discard",      // warn when non-Unit value is ignored
+    "-Wvalue-discard",      // warn when a non-Unit value is ignored
     "-Wnonunit-statement",  // warn on statements that return non-Unit
     "-Wunused:imports"      // needed by Scalafix to use OrganizeImports.removeUnused
   ),
