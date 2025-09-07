@@ -11,7 +11,7 @@ object TilingDeletion:
     * @param boundaryTwins
     *   Twin edges that are on the outer boundary
     * @param innerTwins
-    *   Twin edges that are interior to the tiling
+    *   Twin edges that are internal to the tiling
     */
   private case class EdgeClassification(
       faceEdges: List[HalfEdge],
@@ -26,18 +26,18 @@ object TilingDeletion:
       * Preconditions:
       *   - faceId references an existing bounded face of the tiling.
       *   - Removing the face will not partition the tiling into multiple disconnected components except for
-      *     the intended boundary change; specifically, a viable interior path among the remaining faces must
-      *     exist and no single-vertex bottlenecks should be introduced.
+      *     the intended boundary change; specifically: a viable interior path among the remaining faces must
+      *     exist, and no single-vertex bottlenecks should be introduced.
       *
       * Postconditions on success:
       *   - The specified face is removed from innerFaces.
       *   - If the deleted face shared edges with the outer boundary, a new boundary cycle is formed by
       *     creating or relinking corresponding boundary half-edges; otherwise, vertices belonging only to the
       *     removed face may be deleted if they become isolated.
-      *   - DCEL invariants are preserved: twin, next/prev, incidentFace, and vertex leaving edges are
+      *   - DCEL invariants are preserved: twin, next/prev, incidentFace, and vertex-leaving edges are
       *     consistent.
       *   - Returns a new TilingDCEL reflecting the deletion; if it was the only inner face, the result is an
-      *     empty tiling.
+      *     empty tessellation.
       *
       * Failure cases:
       *   - Returns a TilingError if the face does not exist, or if removing it would invalidate connectivity,
@@ -72,7 +72,7 @@ object TilingDeletion:
       * @param face
       *   The face to be deleted
       * @param innerTwins
-      *   The twin edges of the face that are interior (not on boundary)
+      *   The twin edges of the face that are internal (not on boundary)
       * @return
       *   Either an error message if deletion would partition the tiling, or Unit if safe
       */

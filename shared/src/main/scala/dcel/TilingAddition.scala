@@ -315,7 +315,7 @@ object TilingAddition:
       *   - DCEL invariants remain valid; vertex leaving edges point to boundary edges.
       *
       * Failure cases:
-      *   - Returns a TilingError if the edge is not on the boundary, sides is invalid, or the operation would
+      *   - Returns a TilingError if the edge is not on the boundary, sides are invalid, or the operation would
       *     violate topology/geometry/spatial constraints (including boundary intersection).
       */
     def addRegularPolygonToBoundary(
@@ -365,7 +365,7 @@ object TilingAddition:
       *
       * Postconditions on success:
       *   - A new inner face is inserted; any overlapping boundary segments are reused where possible.
-      *   - Boundary edges and vertex leaving edges are updated accordingly.
+      *   - Boundary edges and vertex-leaving edges are updated accordingly.
       *   - DCEL invariants hold (twins, next/prev, incidentFace, angles).
       *
       * Failure cases:

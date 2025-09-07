@@ -9,7 +9,7 @@ final class TilingEditor private[dcel] (private var working: TilingDCEL):
   def this() =
     this(TilingDCEL.empty)
 
-  // Example editing operation: add a regular polygon at boundary.
+  // Example editing operation: add a regular polygon at the boundary.
   // It updates the editor state if successful and keeps all errors as Either.
   def addRegularPolygonToBoundary(
       onEdgeStartingWithVertexId: VertexId,

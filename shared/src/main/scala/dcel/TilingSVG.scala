@@ -113,14 +113,14 @@ object TilingSVG:
   // ---------- Elem helpers (null-free call sites) ----------
 
   private def textAt(x: String, y: String, content: String, more: MetaData = Null): Elem =
-    val atts = new UnprefixedAttribute("x", x, new UnprefixedAttribute("y", y, more))
-    elem("text", atts, children = Seq(Text(content)))
+    val attributes = new UnprefixedAttribute("x", x, new UnprefixedAttribute("y", y, more))
+    elem("text", attributes, children = Seq(Text(content)))
 
   private def polygonElem(points: String, more: MetaData = Null): Elem =
     elem("polygon", new UnprefixedAttribute("points", points, more))
 
   private def lineElem(x1: String, y1: String, x2: String, y2: String, more: MetaData = Null): Elem =
-    val atts =
+    val attributes =
       new UnprefixedAttribute(
         "x1",
         x1,
@@ -130,21 +130,21 @@ object TilingSVG:
           new UnprefixedAttribute("x2", x2, new UnprefixedAttribute("y2", y2, more))
         )
       )
-    elem("line", atts)
+    elem("line", attributes)
 
   private def circleElem(cx: String, cy: String, r: String, more: MetaData = Null): Elem =
-    val atts = new UnprefixedAttribute(
+    val attributes = new UnprefixedAttribute(
       "cx",
       cx,
       new UnprefixedAttribute("cy", cy, new UnprefixedAttribute("r", r, more))
     )
-    elem("circle", atts)
+    elem("circle", attributes)
 
   private def gElem(children: Seq[Node], attributes: MetaData = Null): Elem =
     elem("g", attributes, children = children)
 
   private def svgElem(width: String, height: String, viewBox: String, children: Seq[Node]): Elem =
-    val atts =
+    val attributes =
       new UnprefixedAttribute(
         "width",
         width,
@@ -158,7 +158,7 @@ object TilingSVG:
           )
         )
       )
-    elem("svg", atts, children = children)
+    elem("svg", attributes, children = children)
   // ---------- end helpers ----------
 
   private def createAngleLabel(halfEdge: HalfEdge, direction: BigPoint, config: SvgConfig): Elem =

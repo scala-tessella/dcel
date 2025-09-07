@@ -164,7 +164,7 @@ final case class TilingDCEL private (
     *   - The returned TilingDCEL is a new instance reflecting the mutation.
     *
     * Failure cases:
-    *   - Returns a TilingError when the edge is not on the boundary, sides is invalid, or the growth would
+    *   - Returns a TilingError when the edge is not on the boundary, sides are invalid, or the growth would
     *     cause boundary intersections or violate topology/geometry constraints.
     */
   def maybeAddRegularPolygonToBoundary(
@@ -186,11 +186,11 @@ final case class TilingDCEL private (
     *     creating appropriate boundary half-edges.
     *   - All DCEL invariants remain satisfied (twin, next/prev, incidentFace, vertex leaving edges).
     *   - The returned TilingDCEL is a new instance reflecting the mutation. If the deleted face was the only
-    *     inner face, the result may be an empty tiling.
+    *     inner face, the result may be an empty tessellation.
     *
     * Failure cases:
-    *   - Returns a TilingError when the face does not exist, when the removal would split the tiling in an
-    *     invalid way, or when integrity checks fail.
+    *   - Returns a TilingError when the face does not exist, when the removal would split the tiling invalidly,
+    *     or when integrity checks fail.
     */
   def maybeDeleteFace(faceId: FaceId): Either[TilingError, TilingDCEL] =
     this.deleteFace(faceId)
