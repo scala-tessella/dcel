@@ -1,9 +1,9 @@
 package io.github.scala_tessella.dcel
 
-import BigDecimalGeometry.{AngleDegree, hasNoAlmostEqualPoints}
-import TilingAddition._
-import TilingDeletion._
-import TilingSVG._
+import BigDecimalGeometry.{AngleDegree, BigPoint, hasNoAlmostEqualPoints}
+import TilingAddition.*
+import TilingDeletion.*
+import TilingSVG.*
 
 import scala.collection.mutable
 
@@ -24,6 +24,12 @@ final case class TilingDCEL private (
     innerFaces: List[Face],
     outerFace: Face
 ):
+
+  def isEmpty: Boolean =
+    vertices.isEmpty
+
+  def coordinates: Map[VertexId, BigPoint] =
+    vertices.map(v => v.id -> v.coords).toMap
 
   /** @return a list of all faces, both inner and outer */
   def faces: List[Face] =
