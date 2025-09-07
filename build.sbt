@@ -14,7 +14,7 @@ addCommandAlias("qa", ";scalafmtAll;test:scalafmtAll;scalafixAll;test")
 
 // Common settings for all platforms
 lazy val commonSettings = Seq(
-  idePackagePrefix := Some("io.github.scala_tessella"),
+//  idePackagePrefix := Some("io.github.scala_tessella"),
   libraryDependencies ++= Seq(
     "io.github.scala-tessella" %%% "ring-seq" % "0.6.2",
     "org.typelevel" %%% "spire" % "0.18.0",
