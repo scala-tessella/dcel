@@ -315,8 +315,8 @@ object TilingAddition:
       *   - DCEL invariants remain valid; vertex leaving edges point to boundary edges.
       *
       * Failure cases:
-      *   - Returns a TilingError if the edge is not on the boundary, sides are invalid, or the operation would
-      *     violate topology/geometry/spatial constraints (including boundary intersection).
+      *   - Returns a TilingError if the edge is not on the boundary, sides are invalid, or the operation
+      *     would violate topology/geometry/spatial constraints (including boundary intersection).
       */
     def addRegularPolygonToBoundary(
         onEdgeStartingWithVertexId: VertexId,

@@ -189,8 +189,8 @@ final case class TilingDCEL private (
     *     inner face, the result may be an empty tessellation.
     *
     * Failure cases:
-    *   - Returns a TilingError when the face does not exist, when the removal would split the tiling invalidly,
-    *     or when integrity checks fail.
+    *   - Returns a TilingError when the face does not exist, when the removal would split the tiling
+    *     invalidly, or when integrity checks fail.
     */
   def maybeDeleteFace(faceId: FaceId): Either[TilingError, TilingDCEL] =
     this.deleteFace(faceId)
