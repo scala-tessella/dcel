@@ -173,7 +173,10 @@ object TilingDeletion:
           .foreach(_.angle = Some(angleSum.conjugate))
       }
 
-    private[dcel] def deleteEdge(startVertexId: VertexId, endVertexId: VertexId): Either[TilingError, TilingDCEL] =
+    private[dcel] def deleteEdge(
+        startVertexId: VertexId,
+        endVertexId: VertexId
+    ): Either[TilingError, TilingDCEL] =
       for
         (_, _, edge) <- tiling.findVerticesAndEdgeBetween(startVertexId, endVertexId)
         result       <-
