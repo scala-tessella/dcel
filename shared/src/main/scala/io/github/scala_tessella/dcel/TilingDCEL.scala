@@ -180,6 +180,17 @@ final case class TilingDCEL private (
   ): Either[TilingError, TilingDCEL] =
     this.deepCopy.addRegularPolygonToBoundary(onEdgeStartingWithVertexId, sides)
 
+  def maybeAddRegularPolygon(
+      startVertexId: VertexId,
+      endVertexId: VertexId,
+      sides: Int
+  ): Either[TilingError, TilingDCEL] =
+    this.deepCopy.addRegularPolygon(
+      startVertexId: VertexId,
+      endVertexId: VertexId,
+      sides: Int
+    )
+
   def maybeDeleteVertex(vertexId: VertexId): Either[TilingError, TilingDCEL] =
     this.deepCopy.deleteVertex(vertexId)
 
