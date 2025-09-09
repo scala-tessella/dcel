@@ -2,6 +2,7 @@ package io.github.scala_tessella.dcel
 
 import BigDecimalGeometry.{AngleDegree, BigPoint, hasNoAlmostEqualPoints}
 import TilingAddition.*
+import TilingEquivalency.*
 import TilingDeletion.*
 import TilingSVG.*
 
@@ -177,7 +178,7 @@ final case class TilingDCEL private (
       onEdgeStartingWithVertexId: VertexId,
       sides: Int
   ): Either[TilingError, TilingDCEL] =
-    this.addRegularPolygonToBoundary(onEdgeStartingWithVertexId, sides)
+    this.deepCopy.addRegularPolygonToBoundary(onEdgeStartingWithVertexId, sides)
 
   /** Deletes an inner face from the tiling.
     *
@@ -199,7 +200,7 @@ final case class TilingDCEL private (
     *     invalidly, or when integrity checks fail.
     */
   def maybeDeleteFace(faceId: FaceId): Either[TilingError, TilingDCEL] =
-    this.deleteFace(faceId)
+    this.deepCopy.deleteFace(faceId)
 
   /** Generates an SVG representation of the tiling. The width, height, and viewBox are automatically
     * calculated to fit the tiling at the given scale.

@@ -318,7 +318,7 @@ object TilingAddition:
       *   - Returns a TilingError if the edge is not on the boundary, sides are invalid, or the operation
       *     would violate topology/geometry/spatial constraints (including boundary intersection).
       */
-    def addRegularPolygonToBoundary(
+    private[dcel] def addRegularPolygonToBoundary(
         onEdgeStartingWithVertexId: VertexId,
         sides: Int
     ): Either[TilingError, TilingDCEL] =

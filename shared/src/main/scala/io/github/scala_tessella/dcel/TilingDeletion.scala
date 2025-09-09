@@ -43,7 +43,7 @@ object TilingDeletion:
       *   - Returns a TilingError if the face does not exist, or if removing it would invalidate connectivity,
       *     or if the operation cannot maintain DCEL consistency.
       */
-    def deleteFace(faceId: FaceId): Either[TilingError, TilingDCEL] =
+    private[dcel] def deleteFace(faceId: FaceId): Either[TilingError, TilingDCEL] =
       for
         faceToDelete       <- tiling.findInnerFace(faceId)
         edgeClassification <- classifyFaceEdges(faceToDelete)
