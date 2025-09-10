@@ -348,114 +348,114 @@ object TilingSVG:
         leavingEdgeMarkers: Boolean = false,
         faceIdsOnEdges: Boolean = false
     ): String =
-      if tiling.vertices.isEmpty then
-        val emptySvg = svgElem("0", "0", "0 0 0 0", Seq.empty)
-        return new PrettyPrinter(120, 2).format(emptySvg)
+      val svg: Elem =
+        if tiling.vertices.isEmpty then
+          svgElem("0", "0", "0 0 0 0", Seq.empty)
+        else
+          val config          =
+            SvgConfig(strokeWidth, padding, scale, showHalfEdgeTraversal, leavingEdgeMarkers, faceIdsOnEdges)
+          val vertices        = tiling.vertices.map(_.coords)
+          val viewBox         = calculateViewBox(vertices, scale, padding)
+          val (width, height) = viewBox.dimensions
 
-      val config          =
-        SvgConfig(strokeWidth, padding, scale, showHalfEdgeTraversal, leavingEdgeMarkers, faceIdsOnEdges)
-      val vertices        = tiling.vertices.map(_.coords)
-      val viewBox         = calculateViewBox(vertices, scale, padding)
-      val (width, height) = viewBox.dimensions
+          // Generate all elements
+          val edgeLines                            = createEdgeLines(tiling, scale)
+          val innerFaceArrows                      = createHalfEdgeArrows(tiling.innerFaces.flatMap(_.halfEdgesUnsafe), config)
+          val outerFaceArrows                      = createHalfEdgeArrows(tiling.boundaryEdges.getOrElse(Nil), config)
+          val (innerAngleLabels, outerAngleLabels) = createAngleLabels(tiling, config)
+          val boundaryPolygon                      = createBoundaryElements(tiling, config)
+          val (vertexCircles, vertexLabels)        = createVertexElements(tiling, config)
+          val faceLabels                           = createFaceLabels(tiling, config)
+          val traversalArrows                      = createTraversalArrows(tiling, config)
+          val leavingEdgeMarkersSvg                = createLeavingEdgeMarkers(tiling, config)
+          val faceIdsOnEdgesSvg                    = createFaceIdsOnEdges(tiling, config)
 
-      // Generate all elements
-      val edgeLines                            = createEdgeLines(tiling, scale)
-      val innerFaceArrows                      = createHalfEdgeArrows(tiling.innerFaces.flatMap(_.halfEdgesUnsafe), config)
-      val outerFaceArrows                      = createHalfEdgeArrows(tiling.boundaryEdges.getOrElse(Nil), config)
-      val (innerAngleLabels, outerAngleLabels) = createAngleLabels(tiling, config)
-      val boundaryPolygon                      = createBoundaryElements(tiling, config)
-      val (vertexCircles, vertexLabels)        = createVertexElements(tiling, config)
-      val faceLabels                           = createFaceLabels(tiling, config)
-      val traversalArrows                      = createTraversalArrows(tiling, config)
-      val leavingEdgeMarkersSvg                = createLeavingEdgeMarkers(tiling, config)
-      val faceIdsOnEdgesSvg                    = createFaceIdsOnEdges(tiling, config)
+          // Build sections
+          val boundarySection = boundaryPolygon.map(polygon =>
+            createSvgSection(
+              "Boundary Highlight",
+              Seq(polygon),
+              attrs("stroke" -> "red", "stroke-width" -> strokeWidth * 3, "fill" -> "none")
+            )
+          ).getOrElse(NodeSeq.Empty)
 
-      // Build sections
-      val boundarySection = boundaryPolygon.map(polygon =>
-        createSvgSection(
-          "Boundary Highlight",
-          Seq(polygon),
-          attrs("stroke" -> "red", "stroke-width" -> strokeWidth * 3, "fill" -> "none")
-        )
-      ).getOrElse(NodeSeq.Empty)
+          val sections = List(
+            createSvgSection("Edges", edgeLines, attrs("stroke" -> "black", "stroke-width" -> strokeWidth)),
+            boundarySection,
+            createSvgSection(
+              "Inner Face Half-Edge Direction Arrows",
+              innerFaceArrows,
+              attrs("fill" -> "blue", "stroke" -> "blue", "stroke-width" -> strokeWidth * 0.5)
+            ),
+            createSvgSection(
+              "Outer Face Half-Edge Direction Arrows",
+              outerFaceArrows,
+              attrs("fill" -> "black", "stroke" -> "black", "stroke-width" -> strokeWidth * 0.5)
+            ),
+            createSvgSection(
+              "Half-Edge Face Traversal",
+              traversalArrows,
+              attrs("fill" -> "darkcyan", "stroke" -> "darkcyan", "stroke-width" -> strokeWidth * 0.5)
+            ),
+            createSvgSection(
+              "Leaving Edge Markers",
+              leavingEdgeMarkersSvg,
+              attrs("fill" -> "yellow", "stroke" -> "yellow", "stroke-width" -> 1.5 * strokeWidth)
+            ),
+            createSvgSection(
+              "Face Ids On Edges Labels",
+              faceIdsOnEdgesSvg,
+              attrs(
+                "font-size"          -> (strokeWidth * 4).toInt,
+                "text-anchor"        -> "middle",
+                "alignment-baseline" -> "middle",
+                "fill"               -> "blue"
+              )
+            ),
+            createSvgSection("Vertices", vertexCircles, attrs("fill" -> "red")),
+            createSvgSection(
+              "Vertex Labels",
+              vertexLabels,
+              attrs("font-size" -> (strokeWidth * 8).toInt, "fill" -> "darkblue")
+            ),
+            createSvgSection(
+              "Face Labels",
+              faceLabels,
+              attrs(
+                "font-size"         -> (strokeWidth * 6).toInt,
+                "fill"              -> "green",
+                "text-anchor"       -> "middle",
+                "dominant-baseline" -> "middle"
+              )
+            ),
+            createSvgSection(
+              "Inner Angle Labels",
+              innerAngleLabels,
+              attrs(
+                "font-size"         -> (strokeWidth * 5).toInt,
+                "fill"              -> "purple",
+                "text-anchor"       -> "middle",
+                "dominant-baseline" -> "middle"
+              )
+            ),
+            createSvgSection(
+              "Outer Angle Labels",
+              outerAngleLabels,
+              attrs(
+                "font-size"         -> (strokeWidth * 5).toInt,
+                "fill"              -> "orange",
+                "text-anchor"       -> "middle",
+                "dominant-baseline" -> "middle"
+              )
+            )
+          ).flatten
 
-      val sections = List(
-        createSvgSection("Edges", edgeLines, attrs("stroke" -> "black", "stroke-width" -> strokeWidth)),
-        boundarySection,
-        createSvgSection(
-          "Inner Face Half-Edge Direction Arrows",
-          innerFaceArrows,
-          attrs("fill" -> "blue", "stroke" -> "blue", "stroke-width" -> strokeWidth * 0.5)
-        ),
-        createSvgSection(
-          "Outer Face Half-Edge Direction Arrows",
-          outerFaceArrows,
-          attrs("fill" -> "black", "stroke" -> "black", "stroke-width" -> strokeWidth * 0.5)
-        ),
-        createSvgSection(
-          "Half-Edge Face Traversal",
-          traversalArrows,
-          attrs("fill" -> "darkcyan", "stroke" -> "darkcyan", "stroke-width" -> strokeWidth * 0.5)
-        ),
-        createSvgSection(
-          "Leaving Edge Markers",
-          leavingEdgeMarkersSvg,
-          attrs("fill" -> "yellow", "stroke" -> "yellow", "stroke-width" -> 1.5 * strokeWidth)
-        ),
-        createSvgSection(
-          "Face Ids On Edges Labels",
-          faceIdsOnEdgesSvg,
-          attrs(
-            "font-size"          -> (strokeWidth * 4).toInt,
-            "text-anchor"        -> "middle",
-            "alignment-baseline" -> "middle",
-            "fill"               -> "blue"
+          svgElem(
+            width = width.toString,
+            height = height.toString,
+            viewBox = viewBox.formatted,
+            children = Seq(gElem(sections))
           )
-        ),
-        createSvgSection("Vertices", vertexCircles, attrs("fill" -> "red")),
-        createSvgSection(
-          "Vertex Labels",
-          vertexLabels,
-          attrs("font-size" -> (strokeWidth * 8).toInt, "fill" -> "darkblue")
-        ),
-        createSvgSection(
-          "Face Labels",
-          faceLabels,
-          attrs(
-            "font-size"         -> (strokeWidth * 6).toInt,
-            "fill"              -> "green",
-            "text-anchor"       -> "middle",
-            "dominant-baseline" -> "middle"
-          )
-        ),
-        createSvgSection(
-          "Inner Angle Labels",
-          innerAngleLabels,
-          attrs(
-            "font-size"         -> (strokeWidth * 5).toInt,
-            "fill"              -> "purple",
-            "text-anchor"       -> "middle",
-            "dominant-baseline" -> "middle"
-          )
-        ),
-        createSvgSection(
-          "Outer Angle Labels",
-          outerAngleLabels,
-          attrs(
-            "font-size"         -> (strokeWidth * 5).toInt,
-            "fill"              -> "orange",
-            "text-anchor"       -> "middle",
-            "dominant-baseline" -> "middle"
-          )
-        )
-      ).flatten
-
-      val svg = svgElem(
-        width = width.toString,
-        height = height.toString,
-        viewBox = viewBox.formatted,
-        children = Seq(gElem(sections))
-      )
 
       new PrettyPrinter(120, 2).format(svg)
 
@@ -536,21 +536,21 @@ object TilingSVG:
     import scala.util.Try
     import scala.xml.{Node, XML}
 
-    implicit class SequenceOps[E, A](eithers: List[Either[E, A]]) {
+    extension [E, A](eithers: List[Either[E, A]])
       def sequence: Either[E, List[A]] =
         eithers.foldRight(Right(Nil): Either[E, List[A]]) { (e, acc) =>
 
-          for (es <- acc; x <- e) yield x :: es
+          for
+            xs <- acc
+            x  <- e
+          yield x :: xs
         }
-    }
 
-    implicit class OptionTraverse[A](opt: Option[A]) {
+    extension [A](opt: Option[A])
       def traverse[E, B](f: A => Either[E, B]): Either[E, Option[B]] =
-        opt match {
+        opt match
           case Some(a) => f(a).map(Some(_))
           case None    => Right(None)
-        }
-    }
 
     def getAttr(node: Node, attr: String): Either[ValidationError, String] =
       node.attribute(attr).map(_.text).toRight(ValidationError(s"${node.label} missing '$attr'"))
