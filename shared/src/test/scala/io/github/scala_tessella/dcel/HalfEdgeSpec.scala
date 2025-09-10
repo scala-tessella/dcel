@@ -1,6 +1,6 @@
 package io.github.scala_tessella.dcel
 
-import BigDecimalGeometry.{AngleDegree, BigPoint}
+import io.github.scala_tessella.dcel.BigDecimalGeometry.{AngleDegree, BigPoint}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

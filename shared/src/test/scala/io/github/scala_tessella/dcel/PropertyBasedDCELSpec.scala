@@ -1,7 +1,7 @@
 package io.github.scala_tessella.dcel
 
-import BigDecimalGeometry.AngleDegree
-import Polygon.SimplePolygon
+import io.github.scala_tessella.dcel.BigDecimalGeometry.AngleDegree
+import io.github.scala_tessella.dcel.Polygon.SimplePolygon
 import org.scalacheck.Gen
 import org.scalatest.Assertion
 import org.scalatest.flatspec.AnyFlatSpec

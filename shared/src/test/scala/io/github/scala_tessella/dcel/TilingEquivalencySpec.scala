@@ -1,7 +1,7 @@
 package io.github.scala_tessella.dcel
 
-import TilingDeletion._
-import TilingEquivalency._
+import io.github.scala_tessella.dcel.TilingDeletion._
+import io.github.scala_tessella.dcel.TilingEquivalency._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

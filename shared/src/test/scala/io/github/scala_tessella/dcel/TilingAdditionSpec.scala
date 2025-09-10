@@ -1,9 +1,9 @@
 package io.github.scala_tessella.dcel
 
-import BigDecimalGeometry.{AngleDegree, BigPoint}
-import TilingAddition._
-import TilingDeletion._
-import TilingEquivalency._
+import io.github.scala_tessella.dcel.BigDecimalGeometry.{AngleDegree, BigPoint}
+import io.github.scala_tessella.dcel.TilingAddition._
+import io.github.scala_tessella.dcel.TilingDeletion._
+import io.github.scala_tessella.dcel.TilingEquivalency._
 import io.github.scala_tessella.ring_seq.RingSeq._
 import org.scalatest.Assertion
 import org.scalatest.flatspec.AnyFlatSpec

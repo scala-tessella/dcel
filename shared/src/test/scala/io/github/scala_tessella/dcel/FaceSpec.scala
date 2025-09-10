@@ -1,7 +1,7 @@
 package io.github.scala_tessella.dcel
 
-import BigDecimalGeometry.BigPoint
-import Topology.breadthFirstSearch
+import io.github.scala_tessella.dcel.BigDecimalGeometry.BigPoint
+import io.github.scala_tessella.dcel.Topology.breadthFirstSearch
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

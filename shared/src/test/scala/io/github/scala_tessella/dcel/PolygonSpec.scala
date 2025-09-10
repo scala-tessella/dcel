@@ -1,7 +1,7 @@
 package io.github.scala_tessella.dcel
 
-import BigDecimalGeometry.{ACCURACY, AngleDegree}
-import Polygon.{RegularPolygon, SimplePolygon}
+import io.github.scala_tessella.dcel.BigDecimalGeometry.{ACCURACY, AngleDegree}
+import io.github.scala_tessella.dcel.Polygon.{RegularPolygon, SimplePolygon}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import spire.math._

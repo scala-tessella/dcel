@@ -1,9 +1,8 @@
 package io.github.scala_tessella.dcel
 
-import BigDecimalGeometry.BigPoint
-import TilingSVG.*
-import TilingEquivalency.isEquivalentTo
-
+import io.github.scala_tessella.dcel.BigDecimalGeometry.BigPoint
+import io.github.scala_tessella.dcel.TilingEquivalency.isEquivalentTo
+import io.github.scala_tessella.dcel.TilingSVG._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
