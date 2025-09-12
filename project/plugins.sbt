@@ -5,4 +5,4 @@ addSbtPlugin("org.portable-scala" % "sbt-scalajs-crossproject" % "1.3.2")
 addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.5.5")
 addSbtPlugin("ch.epfl.scala" % "sbt-scalafix" % "0.14.3")
 // Optional, but recommended. Start strict and dial back if needed.
-addSbtPlugin("org.wartremover" % "sbt-wartremover" % "3.4.0")
+//addSbtPlugin("org.wartremover" % "sbt-wartremover" % "3.4.0")

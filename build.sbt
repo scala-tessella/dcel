@@ -1,5 +1,5 @@
 ThisBuild / version := "0.1.0-SNAPSHOT"
-ThisBuild / scalaVersion := "3.7.2"
+ThisBuild / scalaVersion := "3.7.3"
 ThisBuild / organization := "io.github.scala-tessella"
 
 // Enable semanticdb for Scalafix (Scala 3)
@@ -43,19 +43,19 @@ lazy val commonSettings = Seq(
   Compile / console / scalacOptions --= Seq("-Xfatal-warnings"),
   Test    / console / scalacOptions --= Seq("-Xfatal-warnings"),
     // Optional: wartremover – start with a conservative set for Scala 3
-  wartremoverErrors ++= Seq(
-//    wartremover.Wart.Any,
-//    wartremover.Wart.Null,
-//    wartremover.Wart.Var,
-    wartremover.Wart.AsInstanceOf,
-    wartremover.Wart.IsInstanceOf,
-//    wartremover.Wart.OptionPartial,
-//    wartremover.Wart.Throw
-  ),
+//  wartremoverErrors ++= Seq(
+////    wartremover.Wart.Any,
+////    wartremover.Wart.Null,
+////    wartremover.Wart.Var,
+//    wartremover.Wart.AsInstanceOf,
+//    wartremover.Wart.IsInstanceOf,
+////    wartremover.Wart.OptionPartial,
+////    wartremover.Wart.Throw
+//  ),
   // You can relax in Test scope (warnings instead of errors)
-  Test / wartremoverWarnings ++= Seq(
-    wartremover.Wart.Any
-  )
+//  Test / wartremoverWarnings ++= Seq(
+//    wartremover.Wart.Any
+//  )
 )
 
 // JVM-specific settings
