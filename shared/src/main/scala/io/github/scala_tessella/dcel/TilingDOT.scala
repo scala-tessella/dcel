@@ -21,7 +21,7 @@ object TilingDOT:
       // Emit all vertices as nodes
       tiling.vertices.foreach { v =>
 
-        sb.append(s"""  "${vNodeId(v)}" [label="V ${v.id.value}"];\n""")
+        sb.append(s"""  "${vNodeId(v)}" [label="${v.id.value}"];\n""")
       }
       sb.append("\n")
 
