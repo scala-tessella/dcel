@@ -417,11 +417,11 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   }
 
   it should "return false for a face with fewer than 3 edges" in {
-    val v1 = createVertex(V1, 0, 0)
-    val v2 = createVertex(V2, 1, 0)
+    val v1   = createVertex(V1, 0, 0)
+    val v2   = createVertex(V2, 1, 0)
     val face = Face(F1)
-    val he1 = HalfEdge(v1, incidentFace = Some(face), angle = Some(AngleDegree(180)))
-    val he2 = HalfEdge(v2, incidentFace = Some(face), angle = Some(AngleDegree(180)))
+    val he1  = HalfEdge(v1, incidentFace = Some(face), angle = Some(AngleDegree(180)))
+    val he2  = HalfEdge(v2, incidentFace = Some(face), angle = Some(AngleDegree(180)))
     he1.next = Some(he2)
     he2.next = Some(he1)
     face.outerComponent = Some(he1)
@@ -429,11 +429,11 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   }
 
   it should "return false when halfEdges traversal fails" in {
-    val v1 = createVertex(V1, 0, 0)
-    val v2 = createVertex(V2, 1, 0)
+    val v1   = createVertex(V1, 0, 0)
+    val v2   = createVertex(V2, 1, 0)
     val face = Face(F1)
-    val he1 = HalfEdge(v1, incidentFace = Some(face), angle = Some(AngleDegree(90)))
-    val he2 = HalfEdge(v2, incidentFace = Some(face), angle = Some(AngleDegree(90)))
+    val he1  = HalfEdge(v1, incidentFace = Some(face), angle = Some(AngleDegree(90)))
+    val he2  = HalfEdge(v2, incidentFace = Some(face), angle = Some(AngleDegree(90)))
     he1.next = Some(he2)
     // he2.next is None, so halfEdges will fail
     face.outerComponent = Some(he1)
