@@ -251,7 +251,7 @@ final case class TilingDCEL private (
 
   def toSVG(options: SvgOptions): String =
     this.toScalableVectorGraphics(options)
-    
+
   def toDOT: String =
     this.toSimplifiedDOT
 

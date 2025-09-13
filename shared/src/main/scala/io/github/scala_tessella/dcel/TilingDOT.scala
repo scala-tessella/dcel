@@ -4,10 +4,9 @@ object TilingDOT:
 
   extension (tiling: TilingDCEL)
 
-    /** Generates a simplified DOT representation of the topology of the tiling
-     *  with only vertices, and edges between them, undirected if inner edges,
-     *  directed if outer edges.
-     */
+    /** Generates a simplified DOT representation of the topology of the tiling with only vertices, and edges
+      * between them, undirected if inner edges, directed if outer edges.
+      */
     def toSimplifiedDOT: String =
       def vNodeId(v: Vertex): String = s"""v:${v.id.value}"""
 
@@ -21,6 +20,7 @@ object TilingDOT:
 
       // Emit all vertices as nodes
       tiling.vertices.foreach { v =>
+
         sb.append(s"""  "${vNodeId(v)}" [label="V ${v.id.value}"];\n""")
       }
       sb.append("\n")
@@ -28,7 +28,9 @@ object TilingDOT:
       // Boundary (outer-face) edges: directed edges along the boundary half-edges
       val boundaryEdges = tiling.boundaryEdgesUnsafe
       boundaryEdges.foreach { he =>
+
         he.destination.foreach { dst =>
+
           sb.append(s"""  "${vNodeId(he.origin)}" -> "${vNodeId(dst)}";\n""")
         }
       }
@@ -38,12 +40,12 @@ object TilingDOT:
       val innerPairsEmitted = scala.collection.mutable.HashSet.empty[(String, String)]
       tiling.halfEdges.foreach { he =>
         val isBoundary = tiling.isBoundaryEdge(he)
-        val twinOpt = he.twin
-        val dstOpt = he.destination
+        val twinOpt    = he.twin
+        val dstOpt     = he.destination
 
         if !isBoundary && twinOpt.isDefined && dstOpt.isDefined && !tiling.isBoundaryEdge(twinOpt.get) then
-          val vA = vNodeId(he.origin)
-          val vB = vNodeId(dstOpt.get)
+          val vA   = vNodeId(he.origin)
+          val vB   = vNodeId(dstOpt.get)
           // Normalize pair to avoid duplicates (emit once per undirected pair)
           val pair = if vA <= vB then (vA, vB) else (vB, vA)
           if !innerPairsEmitted.contains(pair) then

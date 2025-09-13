@@ -79,7 +79,6 @@ class TilingDOTSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   }
 
   it should "produce consistent output for the same tiling" in {
-    println(TilingBuilder.createHexagonNet(2, 2).toSimplifiedDOT)
     val dot1 = square.toCompleteDOT
     val dot2 = square.toCompleteDOT
     dot1 shouldEqual dot2
