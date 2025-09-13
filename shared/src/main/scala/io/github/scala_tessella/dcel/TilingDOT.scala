@@ -4,6 +4,57 @@ object TilingDOT:
 
   extension (tiling: TilingDCEL)
 
+    /** Generates a simplified DOT representation of the topology of the tiling
+     *  with only vertices, and edges between them, undirected if inner edges,
+     *  directed if outer edges.
+     */
+    def toSimplifiedDOT: String =
+      def vNodeId(v: Vertex): String = s"""v:${v.id.value}"""
+
+      val sb = new StringBuilder
+      sb.append("digraph SimplifiedTiling {\n")
+      sb.append("  rankdir=LR;\n")
+      sb.append("  fontsize=12;\n")
+      sb.append("  labelloc=t;\n")
+      sb.append("  label=\"Simplified Tiling Topology\";\n")
+      sb.append("  node [shape=circle, fontname=\"Helvetica\"];\n\n")
+
+      // Emit all vertices as nodes
+      tiling.vertices.foreach { v =>
+        sb.append(s"""  "${vNodeId(v)}" [label="V ${v.id.value}"];\n""")
+      }
+      sb.append("\n")
+
+      // Boundary (outer-face) edges: directed edges along the boundary half-edges
+      val boundaryEdges = tiling.boundaryEdgesUnsafe
+      boundaryEdges.foreach { he =>
+        he.destination.foreach { dst =>
+          sb.append(s"""  "${vNodeId(he.origin)}" -> "${vNodeId(dst)}" [label="boundary"];\n""")
+        }
+      }
+
+      // Inner edges: add a single undirected-looking edge per twin pair (dir=none)
+      // Exclude any pair that is on the boundary
+      val innerPairsEmitted = scala.collection.mutable.HashSet.empty[(String, String)]
+      tiling.halfEdges.foreach { he =>
+        val isBoundary = tiling.isBoundaryEdge(he)
+        val twinOpt = he.twin
+        val dstOpt = he.destination
+
+        if !isBoundary && twinOpt.isDefined && dstOpt.isDefined && !tiling.isBoundaryEdge(twinOpt.get) then
+          val vA = vNodeId(he.origin)
+          val vB = vNodeId(dstOpt.get)
+          // Normalize pair to avoid duplicates (emit once per undirected pair)
+          val pair = if vA <= vB then (vA, vB) else (vB, vA)
+          if !innerPairsEmitted.contains(pair) then
+            innerPairsEmitted += pair
+            // Use a directed edge with dir=none to appear undirected in GraphViz
+            sb.append(s"""  "${pair._1}" -> "${pair._2}" [dir=none, label="inner"];\n""")
+      }
+
+      sb.append("}\n")
+      sb.toString
+
     /** Generates a DOT representation of the topology of the tiling. */
     def toDOT: String =
       // Helpers to build stable identifiers for DOT nodes
