@@ -6,10 +6,10 @@ import TilingDOT.*
 
 class TilingDOTSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
-  behavior of "TilingDOT.toDOT"
+  behavior of "TilingDOT.toCompleteDOT"
 
   it should "generate a DOT skeleton for an empty tiling" in {
-    val dot = emptyTiling.toDOT
+    val dot = emptyTiling.toCompleteDOT
     allAssert(
       dot should include("digraph TilingDCEL"),
       dot should include("label=\"TilingDCEL Topology\""),
@@ -21,7 +21,7 @@ class TilingDOTSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   }
 
   it should "include all vertices, faces, and half-edges for a triangle" in {
-    val dot          = triangle.toDOT
+    val dot          = triangle.toCompleteDOT
     val numVertices  = triangle.vertices.length
     val numFaces     = triangle.faces.length // includes outer face
     val numHalfEdges = triangle.halfEdges.length
@@ -38,7 +38,7 @@ class TilingDOTSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   }
 
   it should "emit expected relation edges for a triangle" in {
-    val dot          = triangle.toDOT
+    val dot          = triangle.toCompleteDOT
     val numHalfEdges = triangle.halfEdges.length
     val numVertices  = triangle.vertices.length
     val facesCount   = triangle.faces.length
@@ -64,7 +64,7 @@ class TilingDOTSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   }
 
   it should "use stable node prefixes v:, f:, e: and include known vertex ids" in {
-    val dot = triangle.toDOT
+    val dot = triangle.toCompleteDOT
 
     allAssert(
       dot should include(s""""v:${V1.value}""""),
@@ -79,7 +79,8 @@ class TilingDOTSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   }
 
   it should "produce consistent output for the same tiling" in {
-    val dot1 = square.toDOT
-    val dot2 = square.toDOT
+    println(TilingBuilder.createHexagonNet(2, 2).toSimplifiedDOT)
+    val dot1 = square.toCompleteDOT
+    val dot2 = square.toCompleteDOT
     dot1 shouldEqual dot2
   }

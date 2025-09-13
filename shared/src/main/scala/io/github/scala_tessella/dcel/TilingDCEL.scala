@@ -4,6 +4,7 @@ import BigDecimalGeometry.{AngleDegree, BigPoint, hasNoAlmostEqualPoints}
 import TilingAddition.*
 import TilingEquivalency.*
 import TilingDeletion.*
+import TilingDOT.*
 import TilingSVG.*
 
 import scala.collection.mutable
@@ -250,6 +251,9 @@ final case class TilingDCEL private (
 
   def toSVG(options: SvgOptions): String =
     this.toScalableVectorGraphics(options)
+    
+  def toDOT: String =
+    this.toSimplifiedDOT
 
 object TilingDCEL:
 

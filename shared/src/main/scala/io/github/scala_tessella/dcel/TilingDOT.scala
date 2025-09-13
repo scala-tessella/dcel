@@ -29,7 +29,7 @@ object TilingDOT:
       val boundaryEdges = tiling.boundaryEdgesUnsafe
       boundaryEdges.foreach { he =>
         he.destination.foreach { dst =>
-          sb.append(s"""  "${vNodeId(he.origin)}" -> "${vNodeId(dst)}" [label="boundary"];\n""")
+          sb.append(s"""  "${vNodeId(he.origin)}" -> "${vNodeId(dst)}";\n""")
         }
       }
 
@@ -49,14 +49,14 @@ object TilingDOT:
           if !innerPairsEmitted.contains(pair) then
             innerPairsEmitted += pair
             // Use a directed edge with dir=none to appear undirected in GraphViz
-            sb.append(s"""  "${pair._1}" -> "${pair._2}" [dir=none, label="inner"];\n""")
+            sb.append(s"""  "${pair._1}" -> "${pair._2}" [dir=none];\n""")
       }
 
       sb.append("}\n")
       sb.toString
 
     /** Generates a DOT representation of the topology of the tiling. */
-    def toDOT: String =
+    def toCompleteDOT: String =
       // Helpers to build stable identifiers for DOT nodes
       def vNodeId(v: Vertex): String   = s"""v:${v.id.value}"""
       def fNodeId(f: Face): String     = s"""f:${f.id.value}"""
