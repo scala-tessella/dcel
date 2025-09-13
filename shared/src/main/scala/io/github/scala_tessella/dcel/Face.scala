@@ -76,6 +76,21 @@ final class Face(
       case None        => Right(List.empty)
       case Some(start) => start.faceTraversal()
 
+  private[dcel] def hasEqualAnglesUnsafe: Boolean =
+    val angles = halfEdgesUnsafe.map(_.angle.get)
+    angles.toSet.size == 1
+
+  /** Checks if the interior angles of the face are all equal. */
+  def hasEqualAngles: Boolean =
+    halfEdges.fold(
+      _ => false,
+      edges =>
+        if edges.length < 3 then false
+        else
+          val angles = edges.flatMap(_.angle)
+          angles.length == edges.length && angles.toSet.size == 1
+    )
+
 object Face:
 
   def apply(
