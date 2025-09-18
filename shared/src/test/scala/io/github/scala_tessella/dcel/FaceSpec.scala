@@ -395,7 +395,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   it should "return true for a face with all equal angles" in {
     val (face, edges, _) = createSquareFace(F1)
     edges.foreach(_.angle = Some(AngleDegree(90)))
-    face.hasEqualAngles shouldBe true
+    face.hasEqualAngles shouldBe Right(true)
   }
 
   it should "return false for a face with unequal angles" in {
@@ -404,19 +404,19 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     edges(1).angle = Some(AngleDegree(90))
     edges(2).angle = Some(AngleDegree(80))
     edges(3).angle = Some(AngleDegree(100))
-    face.hasEqualAngles shouldBe false
+    face.hasEqualAngles shouldBe Right(false)
   }
 
-  it should "return false if any edge angle is missing" in {
+  it should "return error if any edge angle is missing" in {
     val (face, edges, _) = createSquareFace(F1)
     edges.head.angle = Some(AngleDegree(90))
     edges(1).angle = Some(AngleDegree(90))
     edges(2).angle = Some(AngleDegree(90))
     // edges(3).angle is None
-    face.hasEqualAngles shouldBe false
+    face.hasEqualAngles.isLeft shouldBe true
   }
 
-  it should "return false for a face with fewer than 3 edges" in {
+  it should "return true for a face with fewer than 3 edges" in {
     val v1   = createVertex(V1, 0, 0)
     val v2   = createVertex(V2, 1, 0)
     val face = Face(F1)
@@ -425,10 +425,10 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     he1.next = Some(he2)
     he2.next = Some(he1)
     face.outerComponent = Some(he1)
-    face.hasEqualAngles shouldBe false
+    face.hasEqualAngles shouldBe Right(true)
   }
 
-  it should "return false when halfEdges traversal fails" in {
+  it should "return error when halfEdges traversal fails" in {
     val v1   = createVertex(V1, 0, 0)
     val v2   = createVertex(V2, 1, 0)
     val face = Face(F1)
@@ -437,7 +437,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     he1.next = Some(he2)
     // he2.next is None, so halfEdges will fail
     face.outerComponent = Some(he1)
-    face.hasEqualAngles shouldBe false
+    face.hasEqualAngles.isLeft shouldBe true
   }
 
   behavior of "Face mutable state"

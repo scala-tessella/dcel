@@ -1,6 +1,8 @@
 package io.github.scala_tessella.dcel
 
 import Topology.breadthFirstSearch
+import io.github.scala_tessella.dcel.BigDecimalGeometry.AngleDegree
+import io.github.scala_tessella.dcel.Utils.sequence
 import io.github.scala_tessella.ring_seq.RingSeq.slidingO
 
 /** Represents a single face in the DCEL.
@@ -76,20 +78,18 @@ final class Face(
       case None        => Right(List.empty)
       case Some(start) => start.faceTraversal()
 
+  private[dcel] def anglesUnsafe: List[AngleDegree] =
+    halfEdgesUnsafe.map(_.angle.get)
+
+  def angles: Either[TilingError, List[AngleDegree]] =
+    halfEdges.flatMap(list => list.map(_.angle.toRight(GeometryError("Cannot find interior angle"))).sequence)
+
   private[dcel] def hasEqualAnglesUnsafe: Boolean =
-    val angles = halfEdgesUnsafe.map(_.angle.get)
-    angles.toSet.size == 1
+    anglesUnsafe.toSet.size == 1
 
   /** Checks if the interior angles of the face are all equal. */
-  def hasEqualAngles: Boolean =
-    halfEdges.fold(
-      _ => false,
-      edges =>
-        if edges.length < 3 then false
-        else
-          val angles = edges.flatMap(_.angle)
-          angles.length == edges.length && angles.toSet.size == 1
-    )
+  def hasEqualAngles: Either[TilingError, Boolean] =
+    angles.map(_.toSet.size == 1)
 
 object Face:
 

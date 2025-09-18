@@ -1,27 +1,12 @@
 package io.github.scala_tessella.dcel
 
+import io.github.scala_tessella.dcel.Utils.*
 import spire.math.Rational
 import scala.util.Try
 
 object TilingSVGPlatform:
 
   def fromMetadata(metadata: String): Either[TilingError, TilingDCEL] =
-
-    extension [E, A](eithers: List[Either[E, A]])
-      def sequence: Either[E, List[A]] =
-        eithers.foldRight(Right(Nil): Either[E, List[A]]) { (e, acc) =>
-
-          for
-            xs <- acc
-            x  <- e
-          yield x :: xs
-        }
-
-    extension [A](opt: Option[A])
-      def traverse[E, B](f: A => Either[E, B]): Either[E, Option[B]] =
-        opt match
-          case Some(a) => f(a).map(Some(_))
-          case None    => Right(None)
 
     def openTags(xml: String, tag: String): List[String] =
       val tagRe = s"""<\\s*$tag\\b([^>]*?)(/?)>""".r
