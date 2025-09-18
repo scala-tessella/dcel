@@ -57,7 +57,9 @@ object TilingDeletion:
             vertices.foldLeft(Right(tiling): Either[TilingError, TilingDCEL]) {
               (either, vertex) =>
 
-                either.flatMap(_.deleteVertex(vertex.id))
+                either.flatMap(_.deleteVertex(vertex.id)) match
+                  case Left(error) if error == NotFoundError("Vertex", vertex.id.value) => either
+                  case other                                                            => other
             }
       yield result
 
