@@ -57,3 +57,6 @@ object Polygon:
 
     def alpha: AngleDegree =
       SimplePolygon.alphaSum(sides) / sides
+
+    def angles: Vector[AngleDegree] =
+      Vector.fill(sides)(sides.alpha)
