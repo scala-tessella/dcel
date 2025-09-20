@@ -192,11 +192,14 @@ final case class TilingDCEL private (
       endVertexId: VertexId,
       sides: Int
   ): Either[TilingError, TilingDCEL] =
-    this.deepCopy.addRegularPolygon(
+    this.deepCopy.addRegularPolygon(startVertexId, endVertexId, sides)
+
+  def maybeAddSimplePolygon(
       startVertexId: VertexId,
       endVertexId: VertexId,
-      sides: Int
-    )
+      angles: List[AngleDegree]
+  ): Either[TilingError, TilingDCEL] =
+    this.deepCopy.addSimplePolygon(startVertexId, endVertexId, angles)
 
   def maybeDeleteVertex(vertexId: VertexId): Either[TilingError, TilingDCEL] =
     this.deepCopy.deleteVertex(vertexId)
