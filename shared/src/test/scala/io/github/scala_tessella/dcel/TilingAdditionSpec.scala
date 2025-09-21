@@ -258,7 +258,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     )
   }
 
-  /** <img src="file:../../resources/commonBench.svg"/> */
+  /** <img src="file:../../../../../resources/commonBench.svg"/> */
   def commonBench: TilingDCEL =
     square
       .maybeAddRegularPolygonToBoundary(V1, 3).value
@@ -585,7 +585,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     currentTiling.innerFaces should have size 7 // 1 hexagon + 6 triangles
   }
 
-  /** <img src="file:../../resources/fiveTrianglesInHex.svg"/> */
+  /** <img src="file:../../../../../resources/fiveTrianglesInHex.svg"/> */
   def fiveTrianglesInHex: TilingDCEL =
     triangle
       .maybeAddRegularPolygonToBoundary(V1, 3).value
@@ -606,7 +606,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     )
   }
 
-  /** <img src="file:../../resources/threeHexagons.svg"/> */
+  /** <img src="file:../../../../../resources/threeHexagons.svg"/> */
   def threeHexagons: TilingDCEL =
     hexagon
       .maybeAddRegularPolygonToBoundary(V1, 6).value
@@ -651,7 +651,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     )
   }
 
-  /** <img src="file:../../resources/threeSquares.svg"/> */
+  /** <img src="file:../../../../../resources/threeSquares.svg"/> */
   def threeSquares: TilingDCEL =
     square
       .maybeAddRegularPolygonToBoundary(V1, 4).value
@@ -697,7 +697,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     )
   }
 
-  /** <img src="file:../../resources/irregularHoleAlmostJoinedBySide.svg"/> */
+  /** <img src="file:../../../../../resources/irregularHoleAlmostJoinedBySide.svg"/> */
   def irregularHoleAlmostJoinedBySide: TilingDCEL =
     hexagon
       .maybeAddRegularPolygonToBoundary(V6, 6).value
@@ -707,7 +707,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       .maybeAddRegularPolygonToBoundary(VertexId("V19"), 6).value
       .maybeAddRegularPolygonToBoundary(VertexId("V23"), 6).value
 
-  /** <img src="file:../../resources/irregularHoleAlmostJoinedByVertex.svg"/> */
+  /** <img src="file:../../../../../resources/irregularHoleAlmostJoinedByVertex.svg"/> */
   def irregularHoleAlmostJoinedByVertex: TilingDCEL =
     irregularHoleAlmostJoinedBySide
       .maybeAddRegularPolygonToBoundary(VertexId("V27"), 3).value
@@ -725,7 +725,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     )
   }
 
-  /** <img src="file:../../resources/regularHoleAlmostJoinedBySide.svg"/> */
+  /** <img src="file:../../../../../resources/regularHoleAlmostJoinedBySide.svg"/> */
   def regularHoleAlmostJoinedBySide: TilingDCEL =
     commonBench
       .maybeAddRegularPolygonToBoundary(VertexId("V9"), 3).value
@@ -758,7 +758,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     )
   }
 
-  /** <img src="file:../../resources/regularHolesAlmostJoinedBySide.svg"/> */
+  /** <img src="file:../../../../../resources/regularHolesAlmostJoinedBySide.svg"/> */
   def regularHolesAlmostJoinedBySide: TilingDCEL =
     hexagon
       .maybeAddRegularPolygonToBoundary(V6, 6).value
@@ -790,7 +790,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     result.isLeft shouldBe true
   }
 
-  /** <img src="file:../../resources/irregularShape.svg"/> */
+  /** <img src="file:../../../../../resources/irregularShape.svg"/> */
   def irregularShape: TilingDCEL =
     TilingBuilder.createSimplePolygon(90, 180, 180, 90, 150, 60, 240, 330, 90, 90, 150, 150).value
 
@@ -838,7 +838,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     )
   }
 
-  /** <img src="file:../../resources/doubleSquare.svg"/> */
+  /** <img src="file:../../../../../resources/doubleSquare.svg"/> */
   def doubleSquare: TilingDCEL =
     TilingBuilder.createSimplePolygon(90, 180, 90, 180, 90, 180, 90, 180).value
 
@@ -856,7 +856,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     )
   }
 
-  /** <img src="file:../../resources/concentricSquares.svg"/> */
+  /** <img src="file:../../../../../resources/concentricSquares.svg"/> */
   def concentricSquares: TilingDCEL =
     doubleSquare
       .addRegularPolygon(V1, V2, 4).value
@@ -875,7 +875,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     )
   }
 
-  /** <img src="file:../../resources/parallelogram.svg"/> */
+  /** <img src="file:../../../../../resources/parallelogram.svg"/> */
   def parallelogram: TilingDCEL =
     TilingBuilder.createSimplePolygon(30, 180, 150, 30, 180, 150).value
 
@@ -888,7 +888,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     )
   }
 
-  /** <img src="file:../../resources/parallelogramPlusTriangle.svg"/> */
+  /** <img src="file:../../../../../resources/parallelogramPlusTriangle.svg"/> */
   def parallelogramPlusTriangle: TilingDCEL =
     parallelogram.addRegularPolygonToBoundary(V6, 3).value
 
@@ -906,7 +906,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       List(120, 180, 180, 180, 120, 120, 180, 120, 60, 180, 300, 180, 180, 300, 180, 60, 120, 180, 120)
     TilingBuilder.createSimplePolygon(angles*).value
 
-  /** <img src="file:../../resources/anotherAlmostJoinedByVertex.svg"/> */
+  /** <img src="file:../../../../../resources/anotherAlmostJoinedByVertex.svg"/> */
   def anotherAlmostJoinedByVertex: TilingDCEL =
     base.addRegularPolygonToBoundary(VertexId("V16"), 3).value
 
@@ -917,7 +917,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     result.isRight shouldBe true
   }
 
-  /** <img src="file:../../resources/anotherAlmostJoinedByVertexSpecular.svg"/> */
+  /** <img src="file:../../../../../resources/anotherAlmostJoinedByVertexSpecular.svg"/> */
   def anotherAlmostJoinedByVertexSpecular: TilingDCEL =
     base.addRegularPolygonToBoundary(VertexId("V10"), 3).value
 
@@ -928,7 +928,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     result.isRight shouldBe true
   }
 
-  /** <img src="file:../../resources/dodecagonWithInnerSquare.svg"/> */
+  /** <img src="file:../../../../../resources/dodecagonWithInnerSquare.svg"/> */
   def dodecagonWithInnerSquare: TilingDCEL =
     TilingBuilder.createRegularPolygon(12).value
       .addRegularPolygon(V1, V2, 4).value
@@ -961,7 +961,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     )
   }
 
-  /** <img src="file:../../resources/vertexCrossing.svg"/> */
+  /** <img src="file:../../../../../resources/vertexCrossing.svg"/> */
   def vertexCrossing: TilingDCEL =
     TilingBuilder.createTriangleNet(4, 4)
       .deleteVertex(VertexId("V13")).value
@@ -978,7 +978,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     )
   }
 
-  /** <img src="file:../../resources/vertexCrossingSimplified.svg"/> */
+  /** <img src="file:../../../../../resources/vertexCrossingSimplified.svg"/> */
   def vertexCrossingSimplified: TilingDCEL =
     vertexCrossing
       .deleteVertex(VertexId("V19")).value

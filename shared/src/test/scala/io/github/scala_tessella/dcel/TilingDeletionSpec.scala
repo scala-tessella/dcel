@@ -62,7 +62,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     )
   }
 
-  /** <img src="file:../../resources/partitioningBoundaryFace.svg"/> */
+  /** <img src="file:../../../../../resources/partitioningBoundaryFace.svg"/> */
   def partitioningBoundaryFace: TilingDCEL =
     triangle
       .addRegularPolygonToBoundary(V2, 3).value
@@ -78,7 +78,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     )
   }
 
-  /** <img src="file:../../resources/disconnectingBoundaryFace.svg"/> */
+  /** <img src="file:../../../../../resources/disconnectingBoundaryFace.svg"/> */
   def disconnectingBoundaryFace: TilingDCEL =
     triangle
       .addRegularPolygonToBoundary(V1, 4).value
@@ -151,7 +151,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     )
   }
 
-  /** <img src="file:../../resources/irregularFaces.svg"/> */
+  /** <img src="file:../../../../../resources/irregularFaces.svg"/> */
   def irregularFaces: TilingDCEL =
     triangle
       .addSimplePolygonToBoundary(V2, 15, 165, 15, 165).value
@@ -301,7 +301,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     )
   }
 
-  /** <img src="file:../../resources/deletableNonBoundaryPath.svg"/> */
+  /** <img src="file:../../../../../resources/deletableNonBoundaryPath.svg"/> */
   def deletableNonBoundaryPath: TilingDCEL =
     TilingBuilder.createRhombusNet(2, 2)
       .deleteEdge(V4, VertexId("V5")).value
@@ -318,7 +318,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     )
   }
 
-  /** <img src="file:../../resources/partitioningNonBoundaryFace.svg"/> */
+  /** <img src="file:../../../../../resources/partitioningNonBoundaryFace.svg"/> */
   def partitioningNonBoundaryFace: TilingDCEL =
     TilingBuilder.createRhombusNet(4, 3)
       .deleteEdge(VertexId("V8"), VertexId("V13")).value

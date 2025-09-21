@@ -1,5 +1,6 @@
 package io.github.scala_tessella.dcel
 
+import io.github.scala_tessella.dcel.Polygon.RegularPolygon
 import org.scalatest.Assertions.succeed
 import org.scalatest.{Assertion, EitherValues}
 
@@ -12,25 +13,25 @@ trait TilingTestHelpers extends EitherValues:
   def emptyTiling: TilingDCEL =
     TilingDCEL.empty
 
-  /** A tiling with a single triangle <img src="file:../../resources/triangle.svg"/>
+  /** A tiling with a single triangle <img src="file:../../../../../resources/triangle.svg"/>
     */
   def triangle: TilingDCEL =
     TilingBuilder.createRegularPolygon(3).value
 
-  /** A tiling with a single square <img src="file:../../resources/square.svg"/>
+  /** A tiling with a single square <img src="file:../../../../../resources/square.svg"/>
     */
   def square: TilingDCEL =
     TilingBuilder.createRegularPolygon(4).value
 
-  /** A tiling with a single rhombus <img src="file:../../resources/rhombus.svg"/>
+  /** A tiling with a single rhombus <img src="file:../../../../../resources/rhombus.svg"/>
     */
   def rhombus: TilingDCEL =
     TilingBuilder.createSimplePolygon(60, 120, 60, 120).value
 
-  /** A tiling with a single regular hexagon <img src="file:../../resources/hexagon.svg"/>
+  /** A tiling with a single regular hexagon <img src="file:../../../../../resources/hexagon.svg"/>
     */
   def hexagon: TilingDCEL =
-    TilingBuilder.createRegularPolygon(6).value
+    TilingBuilder.createRegularPolygon(RegularPolygon(6))
 
   val V1: VertexId = VertexId("V1")
   val V2: VertexId = VertexId("V2")

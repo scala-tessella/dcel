@@ -8,7 +8,7 @@ class TilingSmallestSpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
   behavior of "TilingDCEL smallest significant examples"
 
-  /** <img src="file:../../resources/smallestWithNonBoundaryVertex.svg"/> */
+  /** <img src="file:../../../../../resources/smallestWithNonBoundaryVertex.svg"/> */
   def smallestVertex: Either[TilingError, TilingDCEL] =
     square.addRegularPolygon(V1, V2, 3)
 
@@ -16,7 +16,7 @@ class TilingSmallestSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     smallestVertex.isRight shouldBe true
   }
 
-  /** <img src="file:../../resources/smallestWithNonBoundaryEdge.svg"/> */
+  /** <img src="file:../../../../../resources/smallestWithNonBoundaryEdge.svg"/> */
   def smallestEdge: Either[TilingError, TilingDCEL] =
     triangle.addRegularPolygonToBoundary(V2, 3)
 
@@ -54,7 +54,7 @@ class TilingSmallestSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     )
   }
 
-  /** <img src="file:../../resources/smallestWithNonBoundaryFace.svg"/> */
+  /** <img src="file:../../../../../resources/smallestWithNonBoundaryFace.svg"/> */
   def smallestFace: Either[TilingError, TilingDCEL] =
     square
       .addRegularPolygon(V1, V2, 3).value

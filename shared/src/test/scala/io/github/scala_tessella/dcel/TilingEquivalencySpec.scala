@@ -352,22 +352,22 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
       square.isEquivalentTo(rhombus) shouldBe false
     )
 
-  /** <img src="file:../../resources/shapeL.svg"/> */
+  /** <img src="file:../../../../../resources/shapeL.svg"/> */
   def shapeL: TilingDCEL = square
     .maybeAddRegularPolygonToBoundary(V3, 4).value
     .maybeAddRegularPolygonToBoundary(V4, 4).value
     .maybeAddRegularPolygonToBoundary(VertexId("V7"), 4).value
 
-  /** <img src="file:../../resources/shapeΓ.svg"/> */
+  /** <img src="file:../../../../../resources/shapeΓ.svg"/> */
   def shapeΓ: TilingDCEL =
     shapeL.verticallyReflectedCopy
 
-  /** <img src="file:../../resources/shapeL2.svg"/> */
+  /** <img src="file:../../../../../resources/shapeL2.svg"/> */
   def shapeL2: TilingDCEL = square
     .maybeAddRegularPolygonToBoundary(V2, 4).value
     .maybeAddRegularPolygonToBoundary(V2, 3).value
 
-  /** <img src="file:../../resources/shapeΓ2.svg"/> */
+  /** <img src="file:../../../../../resources/shapeΓ2.svg"/> */
   def shapeΓ2: TilingDCEL =
     shapeL2.verticallyReflectedCopy
 
@@ -381,10 +381,10 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
 
   def net: TilingDCEL = TilingBuilder.createRhombusNet(3, 6)
 
-  /** <img src="file:../../resources/holeInNet1.svg"/> */
+  /** <img src="file:../../../../../resources/holeInNet1.svg"/> */
   def holeInNet1: TilingDCEL = net.deleteEdge(VertexId("V18"), VertexId("V19")).value
 
-  /** <img src="file:../../resources/holeInNet2.svg"/> */
+  /** <img src="file:../../../../../resources/holeInNet2.svg"/> */
   def holeInNet2: TilingDCEL = net.deleteEdge(VertexId("V14"), VertexId("V15")).value
 
   it should "fail for two similar but different tiling" in {

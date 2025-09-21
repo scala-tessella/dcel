@@ -226,7 +226,7 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
 
   behavior of "TilingBuilder.createRhombusNet"
 
-  /** <img src="file:../../resources/rhombusNet.svg"/> */
+  /** <img src="file:../../../../../resources/rhombusNet.svg"/> */
   def rhombusNet: TilingDCEL =
     TilingBuilder.createRhombusNet(3, 3, AngleDegree(60))
 
@@ -236,7 +236,7 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
 
   behavior of "TilingBuilder.createTriangleNet"
 
-  /** <img src="file:../../resources/triangleNet.svg"/> */
+  /** <img src="file:../../../../../resources/triangleNet.svg"/> */
   def triangleNet: TilingDCEL =
     TilingBuilder.createTriangleNet(3, 3)
 
@@ -246,7 +246,7 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
 
   behavior of "TilingBuilder.createHexagonNet"
 
-  /** <img src="file:../../resources/hexagonNet.svg"/> */
+  /** <img src="file:../../../../../resources/hexagonNet.svg"/> */
   def hexagonNet: TilingDCEL =
     TilingBuilder.createHexagonNet(3, 3, AngleDegree(90))
 
