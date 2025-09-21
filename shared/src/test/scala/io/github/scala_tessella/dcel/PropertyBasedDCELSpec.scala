@@ -70,7 +70,7 @@ class PropertyBasedDCELSpec
           i = attempts // no boundary to grow
         case Some(startVid) =>
           val s = genSides.sample.getOrElse(3)
-          current.maybeAddRegularPolygonToBoundary(startVid, s) match
+          current.maybeAddRegularPolygonToBoundary(startVid, RegularPolygon(s)) match
             case Right(next) =>
               // Accept only if topology remains valid
               if TilingDCEL.validateTopologically(next).isRight then

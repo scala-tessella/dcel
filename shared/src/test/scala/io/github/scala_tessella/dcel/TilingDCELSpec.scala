@@ -1,6 +1,7 @@
 package io.github.scala_tessella.dcel
 
 import io.github.scala_tessella.dcel.BigDecimalGeometry.AngleDegree
+import io.github.scala_tessella.dcel.Polygon.RegularPolygon
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -69,7 +70,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     )
 
   it should "return true for connected multi-polygon tiling" in {
-    val twoTriangles = triangle.maybeAddRegularPolygonToBoundary(V1, 3).value
+    val twoTriangles = triangle.maybeAddRegularPolygonToBoundary(V1, RegularPolygon(3)).value
     twoTriangles.hasConnectedFaces shouldBe true
   }
 
@@ -216,7 +217,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   }
 
   it should "succeed for a valid multi-polygon tiling" in {
-    val twoSquares = square.maybeAddRegularPolygonToBoundary(V1, 4).value
+    val twoSquares = square.maybeAddRegularPolygonToBoundary(V1, RegularPolygon(4)).value
     TilingDCEL.validate(twoSquares) shouldBe Right(())
   }
 
@@ -289,7 +290,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   }
 
   it should "fail if the boundary angles do not sum correctly" in {
-    val twoSquares      = square.maybeAddRegularPolygonToBoundary(V1, 4).value
+    val twoSquares      = square.maybeAddRegularPolygonToBoundary(V1, RegularPolygon(4)).value
     // V2 is on the boundary. The inner edge from V2 belongs to the first square.
     val v2              = twoSquares.findVertexUnsafe(V2).get
     val innerEdgeFromV2 = v2.incidentEdgesUnsafe.find(_.incidentFace.exists(_.id == FaceId.firstInnerId)).get

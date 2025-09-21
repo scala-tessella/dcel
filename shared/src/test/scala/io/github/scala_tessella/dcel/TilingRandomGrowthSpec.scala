@@ -53,7 +53,7 @@ class TilingRandomGrowthSpec
               val tried      =
                 for
                   start <- maybeStart.toRight("no-boundary")
-                  next  <- t.maybeAddRegularPolygonToBoundary(start, s)
+                  next  <- t.maybeAddRegularPolygonToBoundary(start, RegularPolygon(s))
                 yield next
 
               tried match

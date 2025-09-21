@@ -161,9 +161,9 @@ final case class TilingDCEL private (
     */
   def maybeAddRegularPolygonToBoundary(
       onEdgeStartingWithVertexId: VertexId,
-      sides: Int
+      polygon: RegularPolygon
   ): Either[TilingError, TilingDCEL] =
-    this.deepCopy.addRegularPolygonToBoundary(onEdgeStartingWithVertexId, sides)
+    this.deepCopy.addRegularPolygonToBoundary(onEdgeStartingWithVertexId, polygon)
 
   def maybeAddSimplePolygonToBoundary(
       onEdgeStartingWithVertexId: VertexId,
@@ -174,9 +174,9 @@ final case class TilingDCEL private (
   def maybeAddRegularPolygon(
       startVertexId: VertexId,
       endVertexId: VertexId,
-      sides: Int
+      polygon: RegularPolygon
   ): Either[TilingError, TilingDCEL] =
-    this.deepCopy.addRegularPolygon(startVertexId, endVertexId, sides)
+    this.deepCopy.addRegularPolygon(startVertexId, endVertexId, polygon)
 
   def maybeAddSimplePolygon(
       startVertexId: VertexId,

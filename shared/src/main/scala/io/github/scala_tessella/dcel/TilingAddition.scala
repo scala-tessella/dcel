@@ -20,10 +20,6 @@ object TilingAddition:
       Vertex(VertexId(s"V${startingIndex + index}"), point)
     }
 
-  // Extract polygon angle calculation
-  private def polygonAngle(sides: Int): AngleDegree =
-    RegularPolygon(sides).alpha
-
   // More descriptive boundary angle calculation
   private def boundaryAngleForVertex(
       vertex: Vertex,
@@ -320,12 +316,11 @@ object TilingAddition:
       */
     private[dcel] def addRegularPolygonToBoundary(
         onEdgeStartingWithVertexId: VertexId,
-        sides: Int
+        polygon: RegularPolygon
     ): Either[TilingError, TilingDCEL] =
       for
-        _                              <- validateSides(sides, "regular")
         (_, startVertex, endVertex, _) <- validateBoundaryEdge(onEdgeStartingWithVertexId)
-        result                         <- addRegularPolygon(startVertex.id, endVertex.id, sides)
+        result                         <- addRegularPolygon(startVertex.id, endVertex.id, polygon)
       yield result
 
     /** Internal helper that attempts to fill a newly detected boundary hole with a polygon.
@@ -484,15 +479,13 @@ object TilingAddition:
     @tailrec def addRegularPolygon(
         startVertexId: VertexId,
         endVertexId: VertexId,
-        sides: Int
+        polygon: RegularPolygon
     ): Either[TilingError, TilingDCEL] =
       val either: Either[TilingError, (TilingDCEL, TilingDCEL, Face, Option[(Vertex, Vertex)])] =
         for
           (startVertex, endVertex, edgeToBuildOn) <-
             tiling.findVerticesAndEdgeBetween(startVertexId, endVertexId)
-          _                                       <- validateSides(sides, "regular")
-          polyAngle                                = polygonAngle(sides)
-          angles                                   = List.fill(sides)(polyAngle)
+          angles                                   = polygon.angles.toList
           points                                   = calculateVertexPoints(angles, startVertex.coords, endVertex.coords)
           result                                  <-
             val containerFace          = edgeToBuildOn.incidentFace.get
@@ -505,7 +498,7 @@ object TilingAddition:
         case Right((revisedTiling, clone, containerFace, maybeHoleClosure)) =>
           revisedTiling.maybeFilled(clone, containerFace, maybeHoleClosure) match
             case None             => Right(revisedTiling)
-            case Some(holeFilled) => holeFilled.addRegularPolygon(startVertexId, endVertexId, sides)
+            case Some(holeFilled) => holeFilled.addRegularPolygon(startVertexId, endVertexId, polygon)
 
   // Helper case classes for better structure
   private case class BoundaryAngles(

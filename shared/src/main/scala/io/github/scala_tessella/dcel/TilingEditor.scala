@@ -1,7 +1,8 @@
 package io.github.scala_tessella.dcel
 
-import TilingAddition.* // bring extension methods (e.g., addRegularPolygonToBoundary) into scope
-import TilingEquivalency.* // bring .deepCopy extension into scope
+import TilingAddition.*
+import TilingEquivalency.*
+import io.github.scala_tessella.dcel.Polygon.RegularPolygon // bring .deepCopy extension into scope
 
 final class TilingEditor private[dcel] (private var working: TilingDCEL):
 
@@ -13,9 +14,9 @@ final class TilingEditor private[dcel] (private var working: TilingDCEL):
   // It updates the editor state if successful and keeps all errors as Either.
   def addRegularPolygonToBoundary(
       onEdgeStartingWithVertexId: VertexId,
-      sides: Int
+      polygon: RegularPolygon
   ): Either[TilingError, Unit] =
-    working.addRegularPolygonToBoundary(onEdgeStartingWithVertexId, sides).map { updated =>
+    working.addRegularPolygonToBoundary(onEdgeStartingWithVertexId, polygon).map { updated =>
       // Move the editor state forward
       working = updated
       ()
