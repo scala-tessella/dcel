@@ -52,9 +52,6 @@ final case class TilingDCEL private (
   def isBoundaryEdge(halfEdge: HalfEdge): Boolean =
     halfEdge.hasIncidentFace(outerFace)
 
-  def findEdgeBetween(v1: Vertex, v2: Vertex): Option[HalfEdge] =
-    v1.incidentEdgesUnsafe.find(_.destination.contains(v2))
-
   def findVerticesAndEdgeBetween(
       vertexId1: VertexId,
       vertexId2: VertexId
@@ -62,7 +59,7 @@ final case class TilingDCEL private (
     for
       v1   <- findVertex(vertexId1)
       v2   <- findVertex(vertexId2)
-      edge <- findEdgeBetween(v1, v2).toRight(NotFoundError("Edge", s"between $vertexId1 and $vertexId2"))
+      edge <- v1.findEdgeBetweenUnsafe(v2).toRight(NotFoundError("Edge", s"between $vertexId1 and $vertexId2"))
     yield (v1, v2, edge)
 
   private[dcel] def getAnglesAtVertexUnsafe(vertexId: VertexId): List[AngleDegree] =

@@ -583,3 +583,32 @@ class VertexSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       vertex.hashCode() shouldBe specialId.hashCode()
     )
   }
+
+  behavior of "TilingDCEL.findEdgeBetween"
+
+  it should "find an edge between two connected vertices" in {
+    val v0 = triangle.findVertexUnsafe(V1).get
+    val v1 = triangle.findVertexUnsafe(V2).get
+    val v2 = triangle.findVertexUnsafe(V3).get
+
+    allAssert(
+      v0.findEdgeBetweenUnsafe(v1) shouldBe defined,
+      v1.findEdgeBetweenUnsafe(v2) shouldBe defined,
+      v2.findEdgeBetweenUnsafe(v0) shouldBe defined
+    )
+  }
+
+  it should "return None for vertices that are not connected" in {
+    val v0 = square.findVertexUnsafe(V1).get
+    val v2 = square.findVertexUnsafe(V3).get
+
+    // V0 and V2 are diagonal vertices in a square, not directly connected
+    v0.findEdgeBetweenUnsafe(v2) shouldBe None
+  }
+
+  it should "return None when either vertex has no incident edges" in {
+    val isolatedVertex = Vertex(VertexId("Isolated"), BigPoint(10, 10))
+    val v0 = triangle.findVertexUnsafe(V1).get
+
+    isolatedVertex.findEdgeBetweenUnsafe(v0) shouldBe None
+  }

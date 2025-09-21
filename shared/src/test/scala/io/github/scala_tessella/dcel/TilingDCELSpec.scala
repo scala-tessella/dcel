@@ -56,35 +56,6 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       triangle.findFace(FaceId("NonExistent")).toOption shouldBe None
     )
 
-  behavior of "TilingDCEL.findEdgeBetween"
-
-  it should "find an edge between two connected vertices" in {
-    val v0 = triangle.findVertexUnsafe(V1).get
-    val v1 = triangle.findVertexUnsafe(V2).get
-    val v2 = triangle.findVertexUnsafe(V3).get
-
-    allAssert(
-      triangle.findEdgeBetween(v0, v1) shouldBe defined,
-      triangle.findEdgeBetween(v1, v2) shouldBe defined,
-      triangle.findEdgeBetween(v2, v0) shouldBe defined
-    )
-  }
-
-  it should "return None for vertices that are not connected" in {
-    val v0 = square.findVertexUnsafe(V1).get
-    val v2 = square.findVertexUnsafe(V3).get
-
-    // V0 and V2 are diagonal vertices in a square, not directly connected
-    square.findEdgeBetween(v0, v2) shouldBe None
-  }
-
-  it should "return None when either vertex has no incident edges" in {
-    val isolatedVertex = Vertex(VertexId("Isolated"), BigPoint(10, 10))
-    val v0             = triangle.findVertexUnsafe(V1).get
-
-    triangle.findEdgeBetween(isolatedVertex, v0) shouldBe None
-  }
-
   behavior of "TilingDCEL.hasConnectedFaces"
 
   it should "return true for empty tiling" in {

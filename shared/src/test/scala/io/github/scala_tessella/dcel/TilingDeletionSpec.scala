@@ -195,7 +195,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val v1     = tiling.findVertexUnsafe(V1).get
     val v2     = tiling.findVertexUnsafe(V2).get
     // Manually corrupt the DCEL for testing purposes
-    val edge   = tiling.findEdgeBetween(v1, v2).get
+    val edge   = v1.findEdgeBetweenUnsafe(v2).get
     edge.incidentFace = None
 
     val result = tiling.deleteEdge(V1, V2)

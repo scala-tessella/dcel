@@ -66,6 +66,9 @@ final class Vertex(
   private[dcel] def incidentFacesUnsafe: List[Face] =
     incidentEdgesUnsafe.flatMap(_.incidentFace)
 
+  private[dcel] def findEdgeBetweenUnsafe(other: Vertex): Option[HalfEdge] =
+    incidentEdgesUnsafe.find(_.destination.contains(other))
+
 object Vertex:
 
   def apply(
