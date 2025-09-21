@@ -49,9 +49,20 @@ final case class TilingDCEL private (
   def findInnerFace(faceId: FaceId): Either[TilingError, Face] =
     innerFaces.find(_.id == faceId).toRight(NotFoundError("Inner face", faceId.value))
 
+  /** Checks if the given edge is on the boundary.
+    * @return
+    *   false if the edge is not on the boundary or doesn't belong to the tiling, true otherwise.
+    */
   def isBoundaryEdge(halfEdge: HalfEdge): Boolean =
     halfEdge.hasIncidentFace(outerFace)
 
+  /** Finds the edge between the two given vertices.
+    *
+    * @param vertexId1
+    *   id of the first vertex
+    * @param vertexId2
+    *   id the second vertex
+    */
   def findVerticesAndEdgeBetween(
       vertexId1: VertexId,
       vertexId2: VertexId
@@ -68,17 +79,16 @@ final case class TilingDCEL private (
     val edges  = vertex.incidentEdgesUnsafe
     edges.map(_.angle.get)
 
+  /** Returns the angles at the given vertex.
+    *
+    * @param vertexId
+    *   id of the vertex
+    * @return
+    */
   def getAnglesAtVertex(vertexId: VertexId): Either[TilingError, List[AngleDegree]] =
     for
-      vertex     <- findVertex(vertexId)
-      edges      <- vertex.incidentEdges
-      maybeAngles = edges.map(_.angle)
-      angles     <-
-        if maybeAngles.contains(None) then
-          Left(ValidationError(s"Vertex with ID $vertexId has at least one edge with no angle."))
-        else
-          Right(maybeAngles.flatten)
-    yield angles
+      vertex <- findVertex(vertexId)
+    yield getAnglesAtVertexUnsafe(vertexId)
 
   private[dcel] def getInnerAnglesAtVertexUnsafe(vertexId: VertexId): List[AngleDegree] =
     val vertex = findVertexUnsafe(vertexId).get

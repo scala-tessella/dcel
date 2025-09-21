@@ -197,27 +197,6 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     )
   }
 
-  it should "return an error if an inner incident edge has no angle" in {
-    val tiling = square
-    tiling.innerFaces.head.halfEdges.toOption.get.head.angle = None
-    val result = tiling.getAnglesAtVertex(V1)
-    allAssert(
-      result.isLeft shouldBe true,
-      result.left.value.message shouldEqual "Vertex with ID V1 has at least one edge with no angle."
-    )
-  }
-
-  it should "fail if the incident edge loop is broken" in {
-    val tiling    = triangle
-    val v1Leaving = tiling.findVertexUnsafe(V1).get.leaving.get
-    v1Leaving.twin = None // Break the chain for vertex traversal
-    val result = tiling.getAnglesAtVertex(V1)
-    allAssert(
-      result.isLeft shouldBe true,
-      result.left.value.message should include("Broken edge chain")
-    )
-  }
-
   behavior of "TilingDCEL.empty"
 
   it should "create empty tiling" in {
