@@ -1,7 +1,7 @@
 package io.github.scala_tessella.dcel
 
 import io.github.scala_tessella.dcel.BigDecimalGeometry.{AngleDegree, BigPoint}
-import io.github.scala_tessella.dcel.Polygon.RegularPolygon
+import io.github.scala_tessella.dcel.Polygon.{RegularPolygon, SimplePolygon}
 import io.github.scala_tessella.dcel.TilingAddition.*
 import io.github.scala_tessella.dcel.TilingDeletion.*
 import io.github.scala_tessella.dcel.TilingEquivalency.*
@@ -222,11 +222,11 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     )
   }
 
-  val irregularPentagonAngles: List[AngleDegree] =
-    List(90, 150, 60, 150, 90).map(AngleDegree(_))
+  val irregularPentagonAngles: Vector[AngleDegree] =
+    Vector(90, 150, 60, 150, 90).map(AngleDegree(_))
 
   it should "add an irregular pentagon to a triangle, producing a valid DCEL" in {
-    val result = triangle.addSimplePolygonToBoundary(V1, irregularPentagonAngles)
+    val result = triangle.addSimplePolygonToBoundary(V1, SimplePolygon(irregularPentagonAngles))
 
     allAssert(
       result.isRight shouldBe true, {
@@ -243,7 +243,8 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   }
 
   it should "add the same irregular pentagon with a different orientation to a triangle, producing a valid DCEL" in {
-    val result = triangle.addSimplePolygonToBoundary(V1, irregularPentagonAngles.rotateRight(1))
+    val result =
+      triangle.addSimplePolygonToBoundary(V1, SimplePolygon(irregularPentagonAngles.rotateRight(1)))
 
     allAssert(
       result.isRight shouldBe true, {
@@ -270,7 +271,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
   it should "add an irregular pentagon with shared edges" in {
     val result = commonBench
-      .addSimplePolygonToBoundary(V4, irregularPentagonAngles.rotateLeft(2))
+      .addSimplePolygonToBoundary(V4, SimplePolygon(irregularPentagonAngles.rotateLeft(2)))
 
     allAssert(
       result.isRight shouldBe true, {
@@ -288,7 +289,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
   it should "add an irregular pentagon with shared edges to a different edge" in {
     val result = commonBench
-      .addSimplePolygonToBoundary(VertexId("V10"), irregularPentagonAngles.rotateLeft(1))
+      .addSimplePolygonToBoundary(VertexId("V10"), SimplePolygon(irregularPentagonAngles.rotateLeft(1)))
     allAssert(
       result.isRight shouldBe true, {
         val tiling = result.value
@@ -305,7 +306,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
   it should "add an irregular pentagon with shared edges to a third different edge" in {
     val result = commonBench
-      .addSimplePolygonToBoundary(V3, irregularPentagonAngles.rotateLeft(3))
+      .addSimplePolygonToBoundary(V3, SimplePolygon(irregularPentagonAngles.rotateLeft(3)))
 
     allAssert(
       result.isRight shouldBe true, {

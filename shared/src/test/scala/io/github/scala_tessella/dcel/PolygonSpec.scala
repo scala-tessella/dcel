@@ -13,35 +13,27 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   private def approx(a: BigDecimal, b: BigDecimal): Boolean =
     (a - b).abs < bigDecimalAccuracy
 
-  behavior of "SimplePolygon.validatePolygonAngles"
+  behavior of "SimplePolygon.apply"
 
   it should "validate the angles of a correct simple polygon" in {
-    val squareAngles = List(AngleDegree(90), AngleDegree(90), AngleDegree(90), AngleDegree(90))
-    SimplePolygon.validatePolygonAngles(squareAngles) should be(Right(()))
+    val squareAngles = Vector(AngleDegree(90), AngleDegree(90), AngleDegree(90), AngleDegree(90))
+    SimplePolygon(squareAngles).toAngles.nonEmpty shouldBe true
   }
 
   it should "validate the angles of another correct simple polygon" in {
-    val triangleAngles = List(AngleDegree(60), AngleDegree(60), AngleDegree(60))
-    SimplePolygon.validatePolygonAngles(triangleAngles) should be(Right(()))
+    val triangleAngles = Vector(AngleDegree(60), AngleDegree(60), AngleDegree(60))
+    SimplePolygon(triangleAngles).toAngles.nonEmpty shouldBe true
   }
 
   it should "invalidate angles if their sum is incorrect" in {
     // Sum is too small
-    val wrongAngles = List(AngleDegree(90), AngleDegree(90), AngleDegree(90), AngleDegree(89))
-    val result      = SimplePolygon.validatePolygonAngles(wrongAngles)
-    allAssert(
-      result.isLeft shouldBe true,
-      result.left.value.message should include("The sum of interior angles is incorrect")
-    )
+    val wrongAngles = Vector(AngleDegree(90), AngleDegree(90), AngleDegree(90), AngleDegree(89))
+    an[IllegalArgumentException] should be thrownBy SimplePolygon(wrongAngles)
   }
 
   it should "invalidate angles if any angle is a full circle" in {
-    val anglesWithFullCircle = List(AngleDegree(360), AngleDegree(0), AngleDegree(90), AngleDegree(-90))
-    val result               = SimplePolygon.validatePolygonAngles(anglesWithFullCircle)
-    allAssert(
-      result.isLeft shouldBe true,
-      result.left.value.message should include("cannot have full circles as interior angles")
-    )
+    val anglesWithFullCircle = Vector(AngleDegree(360), AngleDegree(0), AngleDegree(90), AngleDegree(-90))
+    an[IllegalArgumentException] should be thrownBy SimplePolygon(anglesWithFullCircle)
   }
 
   behavior of "RegularPolygon"

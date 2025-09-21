@@ -8,10 +8,6 @@ import scala.collection.mutable
 
 object TilingBuilder:
 
-  def validateSides(sides: Int, polygonType: String): Either[TilingError, Unit] =
-    if sides >= 3 then Right(())
-    else Left(TopologyError(s"A $polygonType polygon must have at least 3 sides, but $sides were specified."))
-
   def validatePoints(points: List[BigPoint]): Either[TilingError, Unit] =
     // Check if the final edge, from V(n-1) back to V0, has the correct length and angles
     val lastEdgeLength = points.head.distanceTo(points.last)
@@ -35,17 +31,15 @@ object TilingBuilder:
     * @return
     *   Either a TilingError explaining the validation error, or the successfully created TilingDCEL.
     */
-  def createSimplePolygon(angles: List[AngleDegree]): Either[TilingError, TilingDCEL] =
+  def createSimplePolygon(simple: SimplePolygon): Either[TilingError, TilingDCEL] =
+    val points = calculateVertexPoints(simple.toAngles)
     for
-      _      <- validateSides(angles.length, "simple")
-      _      <- SimplePolygon.validatePolygonAngles(angles)
-      points  = calculateVertexPoints(angles)
       _      <- validatePoints(points)
-      result <- Right(buildDCELFromPointsUnsafe(points, angles))
+      result <- Right(buildDCELFromPointsUnsafe(points, simple.toAngles.toList))
     yield result
 
   def createSimplePolygon(degrees: Int*): Either[TilingError, TilingDCEL] =
-    createSimplePolygon(degrees.map(AngleDegree(_)).toList)
+    createSimplePolygon(SimplePolygon(degrees.map(AngleDegree(_)).toVector))
 
   /** Creates a TilingDCEL for a single regular polygon with unit-length sides.
     *
@@ -53,9 +47,9 @@ object TilingBuilder:
     *   The [[RegularPolygon]] to create.
     */
   def createRegularPolygon(polygon: RegularPolygon): TilingDCEL =
-    val angles = polygon.angles.toList
+    val angles = polygon.angles
     val points = calculateVertexPoints(angles)
-    buildDCELFromPointsUnsafe(points, angles)
+    buildDCELFromPointsUnsafe(points, angles.toList)
 
   /** Given validated points and angles, builds the TilingDCEL structure.
     */
@@ -121,8 +115,8 @@ object TilingBuilder:
   /** Calculates the coordinates of a polygon's vertices and validates that it's a closed polygon with the
     * correct side lengths and angles.
     */
-  def calculateVertexPoints(
-      angles: List[AngleDegree],
+  private[dcel] def calculateVertexPoints(
+      angles: Vector[AngleDegree],
       p0: BigPoint = BigPoint(),
       p1: BigPoint = BigPoint(1, 0)
   ): List[BigPoint] =

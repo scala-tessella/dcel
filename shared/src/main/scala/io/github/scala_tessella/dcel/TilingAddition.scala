@@ -2,7 +2,7 @@ package io.github.scala_tessella.dcel
 
 import BigDecimalGeometry._
 import Polygon.{RegularPolygon, SimplePolygon}
-import TilingBuilder.{calculateVertexPoints, validatePoints, validateSides}
+import TilingBuilder.{calculateVertexPoints, validatePoints}
 import TilingEquivalency._
 import io.github.scala_tessella.ring_seq.RingSeq.{rotateRight, slidingO}
 
@@ -12,7 +12,7 @@ object TilingAddition:
 
   def calculateNewVertices(sides: Int, p1: BigPoint, p2: BigPoint): List[BigPoint] =
     val angle = RegularPolygon(sides).alpha.conjugate
-    calculateVertexPoints(List.fill(sides)(angle), p1, p2).drop(2)
+    calculateVertexPoints(Vector.fill(sides)(angle), p1, p2).drop(2)
 
   private def createVertices(points: List[BigPoint], startingIndex: Int): List[Vertex] =
     points.zipWithIndex.map { (point, index) =>
@@ -279,13 +279,12 @@ object TilingAddition:
       */
     def addSimplePolygonToBoundary(
         onEdgeStartingWithVertexId: VertexId,
-        angles: List[AngleDegree]
+        simple: SimplePolygon
     ): Either[TilingError, TilingDCEL] =
       for
-        _                                                      <- validateSides(angles.length, "simple")
         (edgeToBuildOn, startVertex, endVertex, boundaryEdges) <-
           validateBoundaryEdge(onEdgeStartingWithVertexId)
-        result                                                 <- addSimplePolygon(startVertex.id, endVertex.id, angles)
+        result                                                 <- addSimplePolygon(startVertex.id, endVertex.id, simple)
       yield result
 
     /** Convenience overload for addSimplePolygonToBoundary using degrees.
@@ -296,7 +295,10 @@ object TilingAddition:
         onEdgeStartingWithVertexId: VertexId,
         degrees: Int*
     ): Either[TilingError, TilingDCEL] =
-      addSimplePolygonToBoundary(onEdgeStartingWithVertexId, degrees.map(AngleDegree(_)).toList)
+      addSimplePolygonToBoundary(
+        onEdgeStartingWithVertexId,
+        SimplePolygon(degrees.map(AngleDegree(_)).toVector)
+      )
 
     /** Adds a regular polygon to the outer boundary along the specified boundary edge.
       *
@@ -346,7 +348,7 @@ object TilingAddition:
       maybeHoleClosure.map((v_match, v_new) =>
         val (holeAngles, startingVertexId, endingVertexId) =
           tiling.holeAnglesWithDirection(v_match, v_new, containerFace)
-        clone.addSimplePolygonUnsafe(startingVertexId, endingVertexId, holeAngles).get
+        clone.addSimplePolygonUnsafe(startingVertexId, endingVertexId, SimplePolygon(holeAngles.toVector)).get
       )
 
     /** Adds a simple polygon between two boundary vertices.
@@ -370,20 +372,25 @@ object TilingAddition:
     @tailrec def addSimplePolygon(
         startVertexId: VertexId,
         endVertexId: VertexId,
-        angles: List[AngleDegree]
+        simple: SimplePolygon
     ): Either[TilingError, TilingDCEL] =
       val either: Either[TilingError, (TilingDCEL, TilingDCEL, Face, Option[(Vertex, Vertex)])] =
         for
           (startVertex, endVertex, edgeToBuildOn) <-
             tiling.findVerticesAndEdgeBetween(startVertexId, endVertexId)
-          _                                       <- validateSides(angles.length, "simple")
-          _                                       <- SimplePolygon.validatePolygonAngles(angles)
-          points                                   = calculateVertexPoints(angles, startVertex.coords, endVertex.coords)
+          points                                   = calculateVertexPoints(simple.toAngles, startVertex.coords, endVertex.coords)
           _                                       <- validatePoints(points)
           result                                  <-
             val containerFace          = edgeToBuildOn.incidentFace.get
             val containerBoundaryEdges = containerFace.halfEdgesUnsafe
-            growthWithHoleCheck(startVertex, endVertex, edgeToBuildOn, angles, points, containerBoundaryEdges)
+            growthWithHoleCheck(
+              startVertex,
+              endVertex,
+              edgeToBuildOn,
+              simple.toAngles.toList,
+              points,
+              containerBoundaryEdges
+            )
         yield result
 
       either match
@@ -391,7 +398,7 @@ object TilingAddition:
         case Right((revisedTiling, clone, containerFace, maybeHoleClosure)) =>
           revisedTiling.maybeFilled(clone, containerFace, maybeHoleClosure) match
             case None             => Right(revisedTiling)
-            case Some(holeFilled) => holeFilled.addSimplePolygon(startVertexId, endVertexId, angles)
+            case Some(holeFilled) => holeFilled.addSimplePolygon(startVertexId, endVertexId, simple)
 
     /** Convenience overload for addSimplePolygon using degrees.
       *
@@ -402,7 +409,7 @@ object TilingAddition:
         endVertexId: VertexId,
         degrees: Int*
     ): Either[TilingError, TilingDCEL] =
-      addSimplePolygon(startVertexId, endVertexId, degrees.map(AngleDegree(_)).toList)
+      addSimplePolygon(startVertexId, endVertexId, SimplePolygon(degrees.map(AngleDegree(_)).toVector))
 
     /** Internal helper that adds a simple polygon without performing guard validations.
       *
@@ -421,12 +428,12 @@ object TilingAddition:
     private def addSimplePolygonUnsafe(
         startVertexId: VertexId,
         endVertexId: VertexId,
-        angles: List[AngleDegree]
+        simple: SimplePolygon
     ): Option[TilingDCEL] =
       for
         (startVertex, endVertex, edgeToBuildOn) <-
           tiling.findVerticesAndEdgeBetween(startVertexId, endVertexId).toOption
-        points                                   = calculateVertexPoints(angles, startVertex.coords, endVertex.coords)
+        points                                   = calculateVertexPoints(simple.toAngles, startVertex.coords, endVertex.coords)
       yield
         val containerFace = edgeToBuildOn.incidentFace.get
 
@@ -435,7 +442,7 @@ object TilingAddition:
             startVertex,
             endVertex,
             edgeToBuildOn,
-            angles,
+            simple.toAngles.toList,
             points,
             tiling.nextVertexIndex,
             containerFace
@@ -444,7 +451,7 @@ object TilingAddition:
         val (newVertices, newHalfEdges, newFace) =
           additionalElements(
             edgeToBuildOn,
-            angles,
+            simple.toAngles.toList,
             tiling.nextFaceId,
             tempVertices,
             edgeResults,
@@ -485,12 +492,19 @@ object TilingAddition:
         for
           (startVertex, endVertex, edgeToBuildOn) <-
             tiling.findVerticesAndEdgeBetween(startVertexId, endVertexId)
-          angles                                   = polygon.angles.toList
+          angles                                   = polygon.angles
           points                                   = calculateVertexPoints(angles, startVertex.coords, endVertex.coords)
           result                                  <-
             val containerFace          = edgeToBuildOn.incidentFace.get
             val containerBoundaryEdges = containerFace.halfEdgesUnsafe
-            growthWithHoleCheck(startVertex, endVertex, edgeToBuildOn, angles, points, containerBoundaryEdges)
+            growthWithHoleCheck(
+              startVertex,
+              endVertex,
+              edgeToBuildOn,
+              angles.toList,
+              points,
+              containerBoundaryEdges
+            )
         yield result
 
       either match

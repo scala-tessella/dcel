@@ -1,7 +1,7 @@
 package io.github.scala_tessella.dcel
 
 import BigDecimalGeometry.AngleDegree
-import io.github.scala_tessella.dcel.Polygon.RegularPolygon
+import io.github.scala_tessella.dcel.Polygon.{RegularPolygon, SimplePolygon}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -12,8 +12,8 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
   // --- Success cases ---
 
   it should "create a valid TilingDCEL for a regular triangle" in {
-    val triangleAngles = List.fill(3)(AngleDegree(60))
-    val result         = TilingBuilder.createSimplePolygon(triangleAngles)
+    val triangleAngles = Vector.fill(3)(AngleDegree(60))
+    val result         = TilingBuilder.createSimplePolygon(SimplePolygon(triangleAngles))
 
     allAssert(
       result.isRight shouldBe true, {
@@ -28,8 +28,8 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
   }
 
   it should "create a valid TilingDCEL for a square" in {
-    val squareAngles = List.fill(4)(AngleDegree(90))
-    val result       = TilingBuilder.createSimplePolygon(squareAngles)
+    val squareAngles = Vector.fill(4)(AngleDegree(90))
+    val result       = TilingBuilder.createSimplePolygon(SimplePolygon(squareAngles))
 
     allAssert(
       result.isRight shouldBe true, {
@@ -44,8 +44,8 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
   }
 
   it should "create a valid TilingDCEL for a regular hexagon" in {
-    val hexagonAngles = List.fill(6)(AngleDegree(120))
-    val result        = TilingBuilder.createSimplePolygon(hexagonAngles)
+    val hexagonAngles = Vector.fill(6)(AngleDegree(120))
+    val result        = TilingBuilder.createSimplePolygon(SimplePolygon(hexagonAngles))
 
     allAssert(
       result.isRight shouldBe true, {
@@ -59,46 +59,12 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
     )
   }
 
-  // --- Failure cases ---
-
-  it should "fail to create a polygon with fewer than 3 sides" in {
-    val twoAngles = List.fill(2)(AngleDegree(90))
-    val result    = TilingBuilder.createSimplePolygon(twoAngles)
-
-    allAssert(
-      result.isLeft shouldBe true,
-      result.left.value.message should include("at least 3 sides")
-    )
-  }
-
-  it should "fail if an interior angle is a full circle" in {
-    // The sum is correct, but the check for full circle angles comes first.
-    val anglesWithFullCircle = List(AngleDegree(180), AngleDegree(0), AngleDegree(0), AngleDegree(180))
-    val result               = TilingBuilder.createSimplePolygon(anglesWithFullCircle)
-
-    allAssert(
-      result.isLeft shouldBe true,
-      result.left.value.message shouldBe "The polygon cannot have full circles as interior angles."
-    )
-  }
-
-  it should "fail if the sum of interior angles is incorrect" in {
-    val wrongSumAngles =
-      List(AngleDegree(60), AngleDegree(60), AngleDegree(70)) // Sum is 190, should be 180 for a triangle
-    val result         = TilingBuilder.createSimplePolygon(wrongSumAngles)
-
-    allAssert(
-      result.isLeft shouldBe true,
-      result.left.value.message should include("The sum of interior angles is incorrect")
-    )
-  }
-
   it should "fail if the polygon is self-intersecting" in {
     // A crossed hexagon ("bow-tie" style)
     // The sum of angles is (6-2)*180=720, but the geometry crosses itself.
     // Note: This polygon fails the final angle validation, but the self-intersection
     // check should catch it first.
-    val intersectingAngles = List(
+    val intersectingAngles = Vector(
       AngleDegree(150),
       AngleDegree(150),
       AngleDegree(30),
@@ -106,7 +72,7 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
       AngleDegree(150),
       AngleDegree(90)
     )
-    val result             = TilingBuilder.createSimplePolygon(intersectingAngles)
+    val result             = TilingBuilder.createSimplePolygon(SimplePolygon(intersectingAngles))
 
     allAssert(
       result.isLeft shouldBe true,
@@ -120,34 +86,12 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
     // These pentagon angles sum to 540 degrees, which is correct for a pentagon ((5-2)*180),
     // but the sequence of angles does not form a closed polygon with unit-length sides.
     val nonClosingAngles =
-      List(AngleDegree(90), AngleDegree(90), AngleDegree(135), AngleDegree(135), AngleDegree(90))
-    val result           = TilingBuilder.createSimplePolygon(nonClosingAngles)
+      Vector(AngleDegree(90), AngleDegree(90), AngleDegree(135), AngleDegree(135), AngleDegree(90))
+    val result           = TilingBuilder.createSimplePolygon(SimplePolygon(nonClosingAngles))
 
     allAssert(
       result.isLeft shouldBe true,
       result.left.value.message should include("The polygon does not close")
-    )
-  }
-
-  it should "fail if the angles are geometrically inconsistent" in {
-    // These angles sum to 350, but a 4-sided polygon's angles must sum to 360.
-    val inconsistentAngles = List(AngleDegree(90), AngleDegree(90), AngleDegree(90), AngleDegree(80))
-    val result             = TilingBuilder.createSimplePolygon(inconsistentAngles)
-
-    allAssert(
-      result.isLeft shouldBe true,
-      result.left.value.message should include("The sum of interior angles is incorrect")
-    )
-  }
-
-  it should "fail for a four-sided polygon with 60-degree angles" in {
-    // These angles sum to 240, but a 4-sided polygon's angles must sum to 360.
-    val invalidAngles = List.fill(4)(AngleDegree(60))
-    val result        = TilingBuilder.createSimplePolygon(invalidAngles)
-
-    allAssert(
-      result.isLeft shouldBe true,
-      result.left.value.message should include("The sum of interior angles is incorrect")
     )
   }
 

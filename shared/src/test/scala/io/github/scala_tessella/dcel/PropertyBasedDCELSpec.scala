@@ -171,7 +171,7 @@ class PropertyBasedDCELSpec
           withClue(s"Face ${f.id}: edges=${edges.length}, angles=${angles.length}") {
             angles.length shouldEqual edges.length
           },
-          SimplePolygon.validatePolygonAngles(angles).isRight shouldBe true
+          SimplePolygon(angles.toVector).toAngles.nonEmpty shouldBe true
         )
       }
     }

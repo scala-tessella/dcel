@@ -6,7 +6,7 @@ import TilingEquivalency.*
 import TilingDeletion.*
 import TilingDOT.*
 import TilingSVG.*
-import io.github.scala_tessella.dcel.Polygon.RegularPolygon
+import io.github.scala_tessella.dcel.Polygon.{RegularPolygon, SimplePolygon}
 
 import scala.collection.mutable
 
@@ -167,9 +167,9 @@ final case class TilingDCEL private (
 
   def maybeAddSimplePolygonToBoundary(
       onEdgeStartingWithVertexId: VertexId,
-      angles: List[AngleDegree]
+      simple: SimplePolygon
   ): Either[TilingError, TilingDCEL] =
-    this.deepCopy.addSimplePolygonToBoundary(onEdgeStartingWithVertexId, angles)
+    this.deepCopy.addSimplePolygonToBoundary(onEdgeStartingWithVertexId, simple)
 
   def maybeAddRegularPolygon(
       startVertexId: VertexId,
@@ -181,9 +181,9 @@ final case class TilingDCEL private (
   def maybeAddSimplePolygon(
       startVertexId: VertexId,
       endVertexId: VertexId,
-      angles: List[AngleDegree]
+      simple: SimplePolygon
   ): Either[TilingError, TilingDCEL] =
-    this.deepCopy.addSimplePolygon(startVertexId, endVertexId, angles)
+    this.deepCopy.addSimplePolygon(startVertexId, endVertexId, simple)
 
   def maybeDeleteVertex(vertexId: VertexId): Either[TilingError, TilingDCEL] =
     this.deepCopy.deleteVertex(vertexId)
@@ -277,8 +277,8 @@ object TilingDCEL:
       outerFace = Face.outer
     )
 
-  def createSimplePolygon(angles: List[AngleDegree]): Either[TilingError, TilingDCEL] =
-    TilingBuilder.createSimplePolygon(angles)
+  def createSimplePolygon(simple: SimplePolygon): Either[TilingError, TilingDCEL] =
+    TilingBuilder.createSimplePolygon(simple)
 
   def createRegularPolygon(polygon: RegularPolygon): TilingDCEL =
     TilingBuilder.createRegularPolygon(polygon)
@@ -347,9 +347,11 @@ object TilingDCEL:
         case Right(edges) =>
           val angles = edges.flatMap(_.angle)
           if angles.length == edges.length && angles.length >= 3 then
-            Polygon.SimplePolygon.validatePolygonAngles(angles).left.foreach(error =>
-              errors += s"Face ${face.id}: $error"
-            )
+            try
+              val simple = SimplePolygon(angles.toVector)
+            catch
+              case e: IllegalArgumentException =>
+                errors += s"Face ${face.id} has an invalid polygon: ${e.getMessage}"
         case Left(_)      => // NOTE: topological error, handled in validateTopologically
     }
 
@@ -362,10 +364,10 @@ object TilingDCEL:
             errors += s"Boundary angles calculation failed: $error"
           )
         else
-          Polygon.SimplePolygon.validatePolygonAngles(boundaryAngles.map(_.toOption.get)).left.foreach(
-            error =>
-              errors += s"Boundary angles sum is incorrect: $error"
-          )
+          try
+            val simple = SimplePolygon(boundaryAngles.map(_.toOption.get).toVector)
+          catch
+            case e: IllegalArgumentException => errors += s"Boundary angles sum is incorrect: ${e.getMessage}"
       case Left(_)                                                 => // NOTE: topological error
       case _                                                       => // Not enough vertices to form a polygon
 
@@ -376,9 +378,10 @@ object TilingDCEL:
         if boundaryAngles.exists(_.isFullCircle) then
           errors += s"Full circle boundary angles are invalid: ${boundaryAngles.mkString("; ")}"
         else
-          Polygon.SimplePolygon.validatePolygonAngles(boundaryAngles.map(_.conjugate)).left.foreach(error =>
-            errors += s"Boundary edge angles sum is incorrect: $error"
-          )
+          try
+            val simple = SimplePolygon(boundaryAngles.map(_.conjugate).toVector)
+          catch
+            case e: IllegalArgumentException => errors += s"Boundary angles sum is incorrect: ${e.getMessage}"
       case Left(_)                                           => // NOTE: topological error
       case _                                                 => // Not enough edges
 
