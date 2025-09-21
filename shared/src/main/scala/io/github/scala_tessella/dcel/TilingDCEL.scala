@@ -139,25 +139,6 @@ final case class TilingDCEL private (
       case Some(startEdge) => startEdge.faceTraversal()
       case None            => Right(List.empty)
 
-  def boundaryEdgesPath(from: Vertex, to: Vertex): List[HalfEdge] =
-    boundaryEdges.getPath(from, to)
-
-  def boundaryEdgesPath(from: VertexId, to: VertexId): Either[TilingError, List[HalfEdge]] =
-    for
-      fromV <- findVertex(from)
-      toV   <- findVertex(to)
-    yield boundaryEdgesPath(fromV, toV)
-
-  /** Finds a boundary half-edge that originates at the vertex with the given ID.
-    *
-    * @param vertexId
-    *   The ID of the origin vertex.
-    * @return
-    *   An Option containing the HalfEdge if found, otherwise None.
-    */
-  private def findBoundaryEdge(vertexId: VertexId): Option[HalfEdge] =
-    boundaryEdgesSafer.toOption.flatMap(_.find(_.origin.id == vertexId))
-
   /** Adds a regular polygon to the tiling along the outer boundary.
     *
     * Preconditions:
