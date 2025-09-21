@@ -139,15 +139,14 @@ final case class TilingDCEL private (
       case Some(startEdge) => startEdge.faceTraversal()
       case None            => Right(List.empty)
 
-  private[dcel] def boundaryEdgesPathUnsafe(from: Vertex, to: Vertex): List[HalfEdge] =
+  def boundaryEdgesPath(from: Vertex, to: Vertex): List[HalfEdge] =
     boundaryEdges.getPath(from, to)
 
   def boundaryEdgesPath(from: VertexId, to: VertexId): Either[TilingError, List[HalfEdge]] =
     for
       fromV <- findVertex(from)
       toV   <- findVertex(to)
-      edges <- boundaryEdgesSafer
-    yield edges.getPath(fromV, toV)
+    yield boundaryEdgesPath(fromV, toV)
 
   /** Finds a boundary half-edge that originates at the vertex with the given ID.
     *
