@@ -26,7 +26,7 @@ object TilingDOT:
       sb.append("\n")
 
       // Boundary (outer-face) edges: directed edges along the boundary half-edges
-      val boundaryEdges = tiling.boundaryEdgesUnsafe
+      val boundaryEdges = tiling.boundaryEdges
       boundaryEdges.foreach { he =>
 
         he.destination.foreach { dst =>

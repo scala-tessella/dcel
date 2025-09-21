@@ -127,26 +127,26 @@ final case class TilingDCEL private (
       case Some(startEdge) => startEdge.faceTraversal(_.origin).map(_.toVector)
       case None            => Right(Vector.empty)
 
-  private[dcel] def boundaryEdgesUnsafe: List[HalfEdge] =
+  /** Finds the ordered half-edges forming the outer boundary of the tiling. */
+  def boundaryEdges: List[HalfEdge] =
     outerFace.outerComponent match
       case Some(startEdge) => startEdge.faceTraversalUnsafe()
       case None            => List.empty
 
-  /** Helper method to get all half-edges forming the outer boundary loop.
-    */
-  def boundaryEdges: Either[TilingError, List[HalfEdge]] =
+  /** For validation purposes only. */
+  private[dcel] def boundaryEdgesSafer: Either[TilingError, List[HalfEdge]] =
     outerFace.outerComponent match
       case Some(startEdge) => startEdge.faceTraversal()
       case None            => Right(List.empty)
 
   private[dcel] def boundaryEdgesPathUnsafe(from: Vertex, to: Vertex): List[HalfEdge] =
-    boundaryEdgesUnsafe.getPath(from, to)
+    boundaryEdges.getPath(from, to)
 
   def boundaryEdgesPath(from: VertexId, to: VertexId): Either[TilingError, List[HalfEdge]] =
     for
       fromV <- findVertex(from)
       toV   <- findVertex(to)
-      edges <- boundaryEdges
+      edges <- boundaryEdgesSafer
     yield edges.getPath(fromV, toV)
 
   /** Finds a boundary half-edge that originates at the vertex with the given ID.
@@ -157,7 +157,7 @@ final case class TilingDCEL private (
     *   An Option containing the HalfEdge if found, otherwise None.
     */
   private def findBoundaryEdge(vertexId: VertexId): Option[HalfEdge] =
-    boundaryEdges.toOption.flatMap(_.find(_.origin.id == vertexId))
+    boundaryEdgesSafer.toOption.flatMap(_.find(_.origin.id == vertexId))
 
   /** Adds a regular polygon to the tiling along the outer boundary.
     *
@@ -389,7 +389,7 @@ object TilingDCEL:
       case _                                                       => // Not enough vertices to form a polygon
 
     // Check angles' sum for the tiling boundary (exterior view)
-    tiling.boundaryEdges match
+    tiling.boundaryEdgesSafer match
       case Right(boundaryEdges) if boundaryEdges.length >= 3 =>
         val boundaryAngles = boundaryEdges.flatMap(_.angle)
         if boundaryAngles.exists(_.isFullCircle) then

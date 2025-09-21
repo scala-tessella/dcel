@@ -247,7 +247,7 @@ object TilingAddition:
 
     private def validateBoundaryEdge(startingWithVertexId: VertexId)
         : Either[TilingError, (HalfEdge, Vertex, Vertex, List[HalfEdge])] = {
-      val boundaryEdges = tiling.boundaryEdgesUnsafe
+      val boundaryEdges = tiling.boundaryEdges
       for
         edgeToBuildOn            <- boundaryEdges
                                       .find(_.origin.id == startingWithVertexId)

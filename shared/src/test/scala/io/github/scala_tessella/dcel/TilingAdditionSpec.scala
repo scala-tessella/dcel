@@ -388,7 +388,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
         boundary should not be empty
       }, {
         // Verify boundary forms a closed loop
-        val boundaryEdges = withPentagon.boundaryEdges.value
+        val boundaryEdges = withPentagon.boundaryEdgesSafer.value
         allAssert(
           boundaryEdges.map { edge =>
 
@@ -426,7 +426,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       result.isRight shouldBe true, {
         val tiling         = result.value
         // V0 is shared between two squares, so boundary angle should be 360 - 90 - 90 = 180
-        val v0BoundaryEdge = tiling.boundaryEdges.value.find(_.origin.id == V1).get
+        val v0BoundaryEdge = tiling.boundaryEdgesSafer.value.find(_.origin.id == V1).get
         v0BoundaryEdge.angle.get shouldBe AngleDegree(180)
       }
     )
@@ -439,7 +439,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     allAssert(
       verifyValidTiling(withTriangle3), {
         // V0 now has 3 triangles, so boundary angle should be 360 - 3*60 = 180
-        val v0BoundaryEdge = withTriangle3.boundaryEdges.value.find(_.origin.id == V1).get
+        val v0BoundaryEdge = withTriangle3.boundaryEdgesSafer.value.find(_.origin.id == V1).get
         v0BoundaryEdge.angle.get shouldBe AngleDegree(180)
       }
     )
@@ -495,7 +495,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       result.isRight shouldBe true, {
         val tiling        = result.value
         // Check that boundary is still a single connected component
-        val boundaryEdges = tiling.boundaryEdges.value
+        val boundaryEdges = tiling.boundaryEdgesSafer.value
         allAssert(
           boundaryEdges should not be empty,
           // Verify each edge has proper next/prev links

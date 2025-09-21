@@ -32,7 +32,7 @@ class TilingRandomGrowthSpec
   private val rng = new Random(0xfaceb00c)
 
   private def pickBoundaryStart(t: TilingDCEL): Option[VertexId] =
-    val b = t.boundaryEdgesUnsafe
+    val b = t.boundaryEdges
     if b.isEmpty then None else Some(b(rng.nextInt(b.length)).origin.id)
 
   private val genSides: Gen[Int] = Gen.oneOf(3, 4, 6)

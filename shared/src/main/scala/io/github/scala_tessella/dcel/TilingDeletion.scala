@@ -294,7 +294,7 @@ object TilingDeletion:
         result       <-
           val boundaryVertices = tiling.boundaryVertices
           if boundaryVertices.contains(vertex) then
-            val boundaryHalfEdges              = tiling.boundaryEdgesUnsafe
+            val boundaryHalfEdges              = tiling.boundaryEdges
             val start: HalfEdge                = boundaryHalfEdges.find(_.origin == vertex).get
             val prev                           = start.prev.get
             val (boundaryEdges, interiorEdges) = adjacentEdges.partition(edge =>

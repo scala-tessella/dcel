@@ -213,7 +213,7 @@ object TilingSVG:
       }
     }
 
-    val outerAngleLabels = tilingDCEL.boundaryEdges.getOrElse(Nil).map { halfEdge =>
+    val outerAngleLabels = tilingDCEL.boundaryEdges.map { halfEdge =>
       val centroid         = tilingDCEL.innerFaces.headOption
         .map(_.getVerticesUnsafe)
         .filter(_.nonEmpty)
@@ -360,7 +360,7 @@ object TilingSVG:
           // Generate all elements
           val edgeLines                            = createEdgeLines(tiling, scale)
           val innerFaceArrows                      = createHalfEdgeArrows(tiling.innerFaces.flatMap(_.halfEdgesUnsafe), config)
-          val outerFaceArrows                      = createHalfEdgeArrows(tiling.boundaryEdges.getOrElse(Nil), config)
+          val outerFaceArrows                      = createHalfEdgeArrows(tiling.boundaryEdges, config)
           val (innerAngleLabels, outerAngleLabels) = createAngleLabels(tiling, config)
           val boundaryPolygon                      = createBoundaryElements(tiling, config)
           val (vertexCircles, vertexLabels)        = createVertexElements(tiling, config)

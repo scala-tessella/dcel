@@ -52,7 +52,7 @@ class PropertyBasedDCELSpec
   private def random: Random = new Random(0xc0ffee) // deterministic seed for reproducibility
 
   private def randomBoundaryEdgeStart(tiling: TilingDCEL): Option[VertexId] =
-    val edges = tiling.boundaryEdgesUnsafe
+    val edges = tiling.boundaryEdges
     if edges.isEmpty then None
     else Some(edges(random.nextInt(edges.length)).origin.id)
 
