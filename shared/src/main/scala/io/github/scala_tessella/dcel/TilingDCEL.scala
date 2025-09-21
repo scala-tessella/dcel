@@ -59,7 +59,8 @@ final case class TilingDCEL private (
     for
       v1   <- findVertex(vertexId1)
       v2   <- findVertex(vertexId2)
-      edge <- v1.findEdgeBetweenUnsafe(v2).toRight(NotFoundError("Edge", s"between $vertexId1 and $vertexId2"))
+      edge <-
+        v1.findEdgeBetweenUnsafe(v2).toRight(NotFoundError("Edge", s"between $vertexId1 and $vertexId2"))
     yield (v1, v2, edge)
 
   private[dcel] def getAnglesAtVertexUnsafe(vertexId: VertexId): List[AngleDegree] =

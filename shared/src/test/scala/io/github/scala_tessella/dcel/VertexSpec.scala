@@ -608,7 +608,7 @@ class VertexSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "return None when either vertex has no incident edges" in {
     val isolatedVertex = Vertex(VertexId("Isolated"), BigPoint(10, 10))
-    val v0 = triangle.findVertexUnsafe(V1).get
+    val v0             = triangle.findVertexUnsafe(V1).get
 
     isolatedVertex.findEdgeBetweenUnsafe(v0) shouldBe None
   }
