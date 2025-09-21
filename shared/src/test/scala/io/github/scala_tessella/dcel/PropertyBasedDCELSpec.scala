@@ -43,7 +43,7 @@ class PropertyBasedDCELSpec
     TilingDCEL.validateTopologically(tiling).isRight shouldBe true
 
   private def interiorVertices(tiling: TilingDCEL): List[Vertex] =
-    val boundary = tiling.boundaryVerticesUnsafe.toSet
+    val boundary = tiling.boundaryVertices.toSet
     tiling.vertices.filterNot(boundary.contains)
 
   private def angleSumIsFullCircle(angles: List[AngleDegree]): Boolean =

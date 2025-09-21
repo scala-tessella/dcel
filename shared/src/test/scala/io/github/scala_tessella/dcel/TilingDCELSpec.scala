@@ -1,6 +1,6 @@
 package io.github.scala_tessella.dcel
 
-import io.github.scala_tessella.dcel.BigDecimalGeometry.{AngleDegree, BigPoint}
+import io.github.scala_tessella.dcel.BigDecimalGeometry.AngleDegree
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -76,11 +76,11 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   behavior of "TilingDCEL.boundary"
 
   it should "return empty vector for empty tiling" in {
-    emptyTiling.boundaryVerticesUnsafe shouldBe Vector.empty[Vertex]
+    emptyTiling.boundaryVertices shouldBe Vector.empty[Vertex]
   }
 
   it should "return correct boundary vertices for triangle in clockwise order" in {
-    val boundary = triangle.boundaryVerticesUnsafe
+    val boundary = triangle.boundaryVertices
     allAssert(
       boundary should have length 3,
       boundary.map(_.id) should contain theSameElementsInOrderAs Vector(V1, V3, V2)
@@ -88,7 +88,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   }
 
   it should "return correct boundary vertices for square in clockwise order" in {
-    val boundary = square.boundaryVerticesUnsafe
+    val boundary = square.boundaryVertices
     allAssert(
       boundary should have length 4,
       boundary.map(_.id) should contain theSameElementsInOrderAs Vector(V1, V4, V3, V2)
@@ -96,7 +96,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   }
 
   it should "return correct boundary vertices for hexagon" in {
-    val boundary = hexagon.boundaryVerticesUnsafe
+    val boundary = hexagon.boundaryVertices
     allAssert(
       boundary should have length 6,
       boundary.map(_.id) should contain theSameElementsInOrderAs Vector(V1, "V6", "V5", V4, V3, V2)
@@ -107,12 +107,12 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "return same result as boundary for well-formed tilings" in
     allAssert(
-      triangle.boundaryVertices.value shouldEqual triangle.boundaryVerticesUnsafe,
-      square.boundaryVertices.value shouldEqual square.boundaryVerticesUnsafe
+      triangle.boundaryVerticesSafer.value shouldEqual triangle.boundaryVertices,
+      square.boundaryVerticesSafer.value shouldEqual square.boundaryVertices
     )
 
   it should "return empty vector for empty tiling" in {
-    emptyTiling.boundaryVertices shouldBe Right(Vector.empty)
+    emptyTiling.boundaryVerticesSafer shouldBe Right(Vector.empty)
   }
 
   it should "fail for malformed boundary loop" in {
@@ -125,7 +125,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     firstEdge.next = Some(secondEdge)
     secondEdge.next = Some(secondEdge) // Make second edge point to itself
 
-    tiling.boundaryVertices.isLeft shouldBe true
+    tiling.boundaryVerticesSafer.isLeft shouldBe true
   }
 
   it should "fail for open chain in boundary" in {
@@ -135,7 +135,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     // Break the chain by setting next to None
     firstEdge.next = None
 
-    tiling.boundaryVertices.isLeft shouldBe true
+    tiling.boundaryVerticesSafer.isLeft shouldBe true
   }
 
   behavior of "TilingDCEL.getBoundaryEdges"

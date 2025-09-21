@@ -116,12 +116,13 @@ final case class TilingDCEL private (
     *   A Vector of Vertices forming the perimeter, in clockwise order. Returns an empty Vector if the outer
     *   face has no boundary component.
     */
-  private[dcel] def boundaryVerticesUnsafe: Vector[Vertex] =
+  def boundaryVertices: Vector[Vertex] =
     outerFace.outerComponent match
       case Some(startEdge) => startEdge.faceTraversalUnsafe(_.origin).toVector
       case None            => Vector.empty
 
-  def boundaryVertices: Either[TilingError, Vector[Vertex]] =
+  /** For validation purposes only. */
+  private[dcel] def boundaryVerticesSafer: Either[TilingError, Vector[Vertex]] =
     outerFace.outerComponent match
       case Some(startEdge) => startEdge.faceTraversal(_.origin).map(_.toVector)
       case None            => Right(Vector.empty)
@@ -372,7 +373,7 @@ object TilingDCEL:
     }
 
     // Check angles' sum for the tiling boundary (interior view)
-    tiling.boundaryVertices match
+    tiling.boundaryVerticesSafer match
       case Right(boundaryVertices) if boundaryVertices.length >= 3 =>
         val boundaryAngles = boundaryVertices.map(_.currentInteriorAngleSum(tiling.outerFace)).toList
         if boundaryAngles.exists(_.isLeft) then
@@ -401,7 +402,7 @@ object TilingDCEL:
       case _                                                 => // Not enough edges
 
     // Check angles' sum for each interior vertex
-    val boundaryVertices = tiling.boundaryVerticesUnsafe.toSet
+    val boundaryVertices = tiling.boundaryVertices.toSet
     val interiorVertices = tiling.vertices.filterNot(boundaryVertices.contains)
     interiorVertices.foreach { vertex =>
 
@@ -419,7 +420,7 @@ object TilingDCEL:
   def validateSpatially(tiling: TilingDCEL): Either[TilingError, Unit] =
     val errors = mutable.ListBuffer[String]()
 
-    tiling.boundaryVertices match
+    tiling.boundaryVerticesSafer match
       case Right(boundaryVertices) =>
         if boundaryVertices.length >= 3 then
           if !boundaryVertices.map(_.coords).toList.hasNoAlmostEqualPoints() then

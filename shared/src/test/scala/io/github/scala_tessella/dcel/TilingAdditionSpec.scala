@@ -384,7 +384,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       //    println(withPentagon.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
       {
         // Check that boundary is still traversable
-        val boundary = withPentagon.boundaryVerticesUnsafe
+        val boundary = withPentagon.boundaryVertices
         boundary should not be empty
       }, {
         // Verify boundary forms a closed loop
