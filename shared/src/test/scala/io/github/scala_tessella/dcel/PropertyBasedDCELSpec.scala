@@ -1,7 +1,7 @@
 package io.github.scala_tessella.dcel
 
 import io.github.scala_tessella.dcel.BigDecimalGeometry.AngleDegree
-import io.github.scala_tessella.dcel.Polygon.SimplePolygon
+import io.github.scala_tessella.dcel.Polygon.{RegularPolygon, SimplePolygon}
 import org.scalacheck.Gen
 import org.scalatest.Assertion
 import org.scalatest.flatspec.AnyFlatSpec
@@ -27,7 +27,7 @@ class PropertyBasedDCELSpec
 
   private def createRegular(s: Int): TilingDCEL =
     // Guard against ScalaCheck shrinking producing invalid values (e.g., 0)
-    TilingBuilder.createRegularPolygon(math.max(3, s)).value
+    TilingBuilder.createRegularPolygon(RegularPolygon(math.max(3, s)))
 
   private def validateAll(tiling: TilingDCEL): Assertion =
     allAssert(

@@ -16,12 +16,12 @@ trait TilingTestHelpers extends EitherValues:
   /** A tiling with a single triangle <img src="file:../../../../../resources/triangle.svg"/>
     */
   def triangle: TilingDCEL =
-    TilingBuilder.createRegularPolygon(3).value
+    TilingBuilder.createRegularPolygon(RegularPolygon(3))
 
   /** A tiling with a single square <img src="file:../../../../../resources/square.svg"/>
     */
   def square: TilingDCEL =
-    TilingBuilder.createRegularPolygon(4).value
+    TilingBuilder.createRegularPolygon(RegularPolygon(4))
 
   /** A tiling with a single rhombus <img src="file:../../../../../resources/rhombus.svg"/>
     */

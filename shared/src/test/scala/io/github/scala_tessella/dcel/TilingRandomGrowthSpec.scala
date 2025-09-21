@@ -1,5 +1,6 @@
 package io.github.scala_tessella.dcel
 
+import io.github.scala_tessella.dcel.Polygon.RegularPolygon
 import org.scalacheck.Gen
 import org.scalatest.Assertion
 import org.scalatest.flatspec.AnyFlatSpec
@@ -20,7 +21,7 @@ class TilingRandomGrowthSpec
 
   private def mk(s: Int): TilingDCEL =
     // Guard against ScalaCheck shrinking producing invalid values (e.g., 0)
-    TilingBuilder.createRegularPolygon(math.max(3, s)).value
+    TilingBuilder.createRegularPolygon(RegularPolygon(math.max(3, s)))
 
   private def validateAll(t: TilingDCEL): Assertion =
     allAssert(

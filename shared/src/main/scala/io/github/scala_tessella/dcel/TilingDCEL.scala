@@ -6,6 +6,7 @@ import TilingEquivalency.*
 import TilingDeletion.*
 import TilingDOT.*
 import TilingSVG.*
+import io.github.scala_tessella.dcel.Polygon.RegularPolygon
 
 import scala.collection.mutable
 
@@ -279,8 +280,8 @@ object TilingDCEL:
   def createSimplePolygon(angles: List[AngleDegree]): Either[TilingError, TilingDCEL] =
     TilingBuilder.createSimplePolygon(angles)
 
-  def createRegularPolygon(sides: Int): Either[TilingError, TilingDCEL] =
-    TilingBuilder.createRegularPolygon(sides)
+  def createRegularPolygon(polygon: RegularPolygon): TilingDCEL =
+    TilingBuilder.createRegularPolygon(polygon)
 
   def validateTopologically(tiling: TilingDCEL): Either[TilingError, Unit] =
     val errors = mutable.ListBuffer[String]()

@@ -41,7 +41,7 @@ object TilingBuilder:
       _      <- SimplePolygon.validatePolygonAngles(angles)
       points  = calculateVertexPoints(angles)
       _      <- validatePoints(points)
-      result <- buildDCELFromPoints(points, angles)
+      result <- Right(buildDCELFromPointsUnsafe(points, angles))
     yield result
 
   def createSimplePolygon(degrees: Int*): Either[TilingError, TilingDCEL] =
@@ -49,28 +49,20 @@ object TilingBuilder:
 
   /** Creates a TilingDCEL for a single regular polygon with unit-length sides.
     *
-    * @param sides
-    *   The number of sides for the regular polygon.
-    * @return
-    *   Either a TilingError explaining the validation error, or the successfully created TilingDCEL.
+    * @param polygon
+    *   The [[RegularPolygon]] to create.
     */
-  def createRegularPolygon(sides: Int): Either[TilingError, TilingDCEL] =
-    for
-      _      <- validateSides(sides, "regular")
-      angle   = RegularPolygon(sides).alpha
-      angles  = List.fill(sides)(angle)
-      // Regular polygons are always simple, so we can skip the self-intersection check.
-      // The angle sum is also correct by definition.
-      points  = calculateVertexPoints(angles)
-      result <- buildDCELFromPoints(points, angles)
-    yield result
+  def createRegularPolygon(polygon: RegularPolygon): TilingDCEL =
+    val angles = polygon.angles.toList
+    val points = calculateVertexPoints(angles)
+    buildDCELFromPointsUnsafe(points, angles)
 
   /** Given validated points and angles, builds the TilingDCEL structure.
     */
-  private def buildDCELFromPoints(
+  private def buildDCELFromPointsUnsafe(
       points: List[BigPoint],
       angles: List[AngleDegree]
-  ): Either[TilingError, TilingDCEL] =
+  ): TilingDCEL =
     val n = points.length
 
     // Create vertices from the calculated points
@@ -119,12 +111,12 @@ object TilingBuilder:
     polygonFace.outerComponent = innerEdges.headOption
     outerFace.outerComponent = outerEdges.headOption
 
-    Right(TilingDCEL(
+    TilingDCEL(
       vertices = vertices,
       halfEdges = innerEdges ++ outerEdges,
       innerFaces = List(polygonFace),
       outerFace = outerFace
-    ))
+    )
 
   /** Calculates the coordinates of a polygon's vertices and validates that it's a closed polygon with the
     * correct side lengths and angles.

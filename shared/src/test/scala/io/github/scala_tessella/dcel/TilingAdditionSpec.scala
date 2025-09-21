@@ -1,10 +1,11 @@
 package io.github.scala_tessella.dcel
 
 import io.github.scala_tessella.dcel.BigDecimalGeometry.{AngleDegree, BigPoint}
-import io.github.scala_tessella.dcel.TilingAddition._
-import io.github.scala_tessella.dcel.TilingDeletion._
-import io.github.scala_tessella.dcel.TilingEquivalency._
-import io.github.scala_tessella.ring_seq.RingSeq._
+import io.github.scala_tessella.dcel.Polygon.RegularPolygon
+import io.github.scala_tessella.dcel.TilingAddition.*
+import io.github.scala_tessella.dcel.TilingDeletion.*
+import io.github.scala_tessella.dcel.TilingEquivalency.*
+import io.github.scala_tessella.ring_seq.RingSeq.*
 import org.scalatest.Assertion
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -488,7 +489,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
   // Boundary integrity tests
   it should "maintain boundary connectivity after addition" in {
-    val pentagon = TilingBuilder.createRegularPolygon(5).value
+    val pentagon = TilingBuilder.createRegularPolygon(RegularPolygon(5))
     val result   = pentagon.addRegularPolygonToBoundary(V2, 3)
 
     allAssert(
@@ -551,7 +552,6 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   }
 
   it should "ensure all half-edges have incident faces assigned" in {
-    val square = TilingBuilder.createRegularPolygon(4).value
     val result = square.addRegularPolygonToBoundary(V1, 6)
 
     allAssert(
@@ -569,7 +569,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
   // Stress tests
   it should "handle adding many small polygons" in {
-    var currentTiling = TilingBuilder.createRegularPolygon(6).value
+    var currentTiling = hexagon
 
     // Add triangles to create a flower pattern
     for (i <- 1 to 6)
@@ -818,9 +818,11 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     )
   }
 
+  def dodecagon: TilingDCEL =
+    TilingBuilder.createRegularPolygon(RegularPolygon(12))
+
   it should "fail for widening" in {
-    val bench  = TilingBuilder.createRegularPolygon(12).value
-    val result = bench.addRegularPolygon(V1, V2, 13)
+    val result = dodecagon.addRegularPolygon(V1, V2, 13)
 
     allAssert(
       result.isLeft shouldBe true,
@@ -829,8 +831,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   }
 
   it should "fail for being the same as the container" in {
-    val bench  = TilingBuilder.createRegularPolygon(12).value
-    val result = bench.addRegularPolygon(V1, V2, 12)
+    val result = dodecagon.addRegularPolygon(V1, V2, 12)
 
     allAssert(
       result.isLeft shouldBe true,
@@ -930,8 +931,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
   /** <img src="file:../../../../../resources/dodecagonWithInnerSquare.svg"/> */
   def dodecagonWithInnerSquare: TilingDCEL =
-    TilingBuilder.createRegularPolygon(12).value
-      .addRegularPolygon(V1, V2, 4).value
+    dodecagon.addRegularPolygon(V1, V2, 4).value
 
   it should "add an inner regular polygon creating a hole" in {
     val result = dodecagonWithInnerSquare

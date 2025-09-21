@@ -1,6 +1,7 @@
 package io.github.scala_tessella.dcel
 
 import BigDecimalGeometry.AngleDegree
+import io.github.scala_tessella.dcel.Polygon.RegularPolygon
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -153,74 +154,51 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
   behavior of "TilingBuilder.createRegularPolygon"
 
   it should "create a valid TilingDCEL for a regular triangle" in {
-    val result = TilingBuilder.createRegularPolygon(3)
+    val tiling = triangle
     allAssert(
-      result.isRight shouldBe true, {
-        val tiling = result.value
-        allAssert(
-          tiling.vertices.length shouldBe 3,
-          tiling.faces.length shouldBe 2,
-          tiling.halfEdges.length shouldBe 6
-        )
-      }
+      tiling.vertices.length shouldBe 3,
+      tiling.faces.length shouldBe 2,
+      tiling.halfEdges.length shouldBe 6
     )
   }
 
   it should "create a valid TilingDCEL for a square" in {
-    val result = TilingBuilder.createRegularPolygon(4)
+    val tiling = square
     allAssert(
-      result.isRight shouldBe true, {
-        val tiling = result.value
-        allAssert(
-          tiling.vertices.length shouldBe 4,
-          tiling.vertices.map(_.id).mkString(", ") shouldBe "V1, V2, V3, V4",
-          tiling.faces.length shouldBe 2,
-          tiling.faces.map(_.id).mkString(", ") shouldBe "F0, F1",
-          tiling.halfEdges.length shouldBe 8,
-          tiling.outerFace.halfEdgesUnsafe.map(_.angle.get).mkString(", ") shouldBe "270, 270, 270, 270",
-          tiling.outerFace.halfEdgesUnsafe.map(
-            _.incidentFace.get.id
-          ).mkString(", ") shouldBe "F0, F0, F0, F0",
-          tiling.innerFaces.map(_.halfEdgesUnsafe.map(_.angle.get).mkString(", ")) shouldBe List(
-            "90, 90, 90, 90"
-          ),
-          tiling.innerFaces.map(_.halfEdgesUnsafe.map(_.incidentFace.get.id).mkString(", ")) shouldBe List(
-            "F1, F1, F1, F1"
-          )
-        )
-      }
+      tiling.vertices.length shouldBe 4,
+      tiling.vertices.map(_.id).mkString(", ") shouldBe "V1, V2, V3, V4",
+      tiling.faces.length shouldBe 2,
+      tiling.faces.map(_.id).mkString(", ") shouldBe "F0, F1",
+      tiling.halfEdges.length shouldBe 8,
+      tiling.outerFace.halfEdgesUnsafe.map(_.angle.get).mkString(", ") shouldBe "270, 270, 270, 270",
+      tiling.outerFace.halfEdgesUnsafe.map(
+        _.incidentFace.get.id
+      ).mkString(", ") shouldBe "F0, F0, F0, F0",
+      tiling.innerFaces.map(_.halfEdgesUnsafe.map(_.angle.get).mkString(", ")) shouldBe List(
+        "90, 90, 90, 90"
+      ),
+      tiling.innerFaces.map(_.halfEdgesUnsafe.map(_.incidentFace.get.id).mkString(", ")) shouldBe List(
+        "F1, F1, F1, F1"
+      )
     )
   }
 
   it should "create a valid TilingDCEL for a regular pentagon" in {
-    val result = TilingBuilder.createRegularPolygon(5)
+    val tiling = TilingBuilder.createRegularPolygon(RegularPolygon(5))
     allAssert(
-      result.isRight shouldBe true, {
-        val tiling = result.value
-        allAssert(
-          tiling.vertices.length shouldBe 5,
-          tiling.faces.length shouldBe 2,
-          tiling.halfEdges.length shouldBe 10,
-          tiling.outerFace.halfEdgesUnsafe.map(_.angle.get).mkString(", ") shouldBe "252, 252, 252, 252, 252",
-          tiling.outerFace.halfEdgesUnsafe.map(
-            _.incidentFace.get.id
-          ).mkString(", ") shouldBe "F0, F0, F0, F0, F0",
-          tiling.innerFaces.map(_.halfEdgesUnsafe.map(_.angle.get).mkString(", ")) shouldBe List(
-            "108, 108, 108, 108, 108"
-          ),
-          tiling.innerFaces.map(_.halfEdgesUnsafe.map(_.incidentFace.get.id).mkString(", ")) shouldBe List(
-            "F1, F1, F1, F1, F1"
-          )
-        )
-      }
-    )
-  }
-
-  it should "fail to create a polygon with fewer than 3 sides" in {
-    val result = TilingBuilder.createRegularPolygon(2)
-    allAssert(
-      result.isLeft shouldBe true,
-      result.left.value.message should include("at least 3 sides")
+      tiling.vertices.length shouldBe 5,
+      tiling.faces.length shouldBe 2,
+      tiling.halfEdges.length shouldBe 10,
+      tiling.outerFace.halfEdgesUnsafe.map(_.angle.get).mkString(", ") shouldBe "252, 252, 252, 252, 252",
+      tiling.outerFace.halfEdgesUnsafe.map(
+        _.incidentFace.get.id
+      ).mkString(", ") shouldBe "F0, F0, F0, F0, F0",
+      tiling.innerFaces.map(_.halfEdgesUnsafe.map(_.angle.get).mkString(", ")) shouldBe List(
+        "108, 108, 108, 108, 108"
+      ),
+      tiling.innerFaces.map(_.halfEdgesUnsafe.map(_.incidentFace.get.id).mkString(", ")) shouldBe List(
+        "F1, F1, F1, F1, F1"
+      )
     )
   }
 
