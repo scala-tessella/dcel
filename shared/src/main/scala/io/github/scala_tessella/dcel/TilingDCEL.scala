@@ -83,7 +83,6 @@ final case class TilingDCEL private (
     *
     * @param vertexId
     *   id of the vertex
-    * @return
     */
   def getAnglesAtVertex(vertexId: VertexId): Either[TilingError, List[AngleDegree]] =
     for
@@ -95,20 +94,15 @@ final case class TilingDCEL private (
     val edges  = vertex.incidentEdgesUnsafe
     edges.filterNot(isBoundaryEdge).map(_.angle.get)
 
+  /** Returns the inner angles at the given vertex.
+    *
+    * @param vertexId
+    *   id of the vertex
+    */
   def getInnerAnglesAtVertex(vertexId: VertexId): Either[TilingError, List[AngleDegree]] =
     for
-      vertex     <- findVertex(vertexId)
-      edges      <- vertex.incidentEdges
-      innerEdges  = edges.filterNot(isBoundaryEdge)
-      maybeAngles = innerEdges.map(_.angle)
-      angles     <-
-        if (maybeAngles.contains(None))
-          Left(
-            ValidationError(s"Vertex with ID $vertexId has at least one inner edge with no angle defined.")
-          )
-        else
-          Right(maybeAngles.flatten)
-    yield angles
+      vertex <- findVertex(vertexId)
+    yield getInnerAnglesAtVertexUnsafe(vertexId)
 
   def hasConnectedFaces: Boolean =
     innerFaces.isConnected
