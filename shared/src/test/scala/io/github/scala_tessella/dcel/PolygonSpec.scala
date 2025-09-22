@@ -1,17 +1,12 @@
 package io.github.scala_tessella.dcel
 
-import io.github.scala_tessella.dcel.BigDecimalGeometry.{ACCURACY, AngleDegree}
+import io.github.scala_tessella.dcel.BigDecimalGeometry.AngleDegree
 import io.github.scala_tessella.dcel.Polygon.{RegularPolygon, SimplePolygon}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import spire.math._
 
 class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
-
-  private val bigDecimalAccuracy = BigDecimal(ACCURACY)
-
-  private def approx(a: BigDecimal, b: BigDecimal): Boolean =
-    (a - b).abs < bigDecimalAccuracy
 
   behavior of "SimplePolygon.apply"
 
@@ -25,6 +20,20 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     SimplePolygon(triangleAngles).toAngles.nonEmpty shouldBe true
   }
 
+  // New: minimal length constraints
+  it should "reject polygons with fewer than 3 angles" in
+    allAssert(
+      an[IllegalArgumentException] should be thrownBy SimplePolygon(Vector.empty),
+      an[IllegalArgumentException] should be thrownBy SimplePolygon(Vector(AngleDegree(180))),
+      an[IllegalArgumentException] should be thrownBy SimplePolygon(Vector(AngleDegree(100), AngleDegree(80)))
+    )
+
+  // New: normalization handling (negative and >180 accepted only via normalisation if sum matches)
+  it should "accept angles that normalise to a valid simple polygon" in {
+    val weird = Vector(AngleDegree(-300), AngleDegree(450), AngleDegree(30)) // normalised -> 60,90,30 (sum 180) -> triangle
+    SimplePolygon(weird).toAngles.size shouldBe 3
+  }
+
   it should "invalidate angles if their sum is incorrect" in {
     // Sum is too small
     val wrongAngles = Vector(AngleDegree(90), AngleDegree(90), AngleDegree(90), AngleDegree(89))
@@ -35,6 +44,21 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val anglesWithFullCircle = Vector(AngleDegree(360), AngleDegree(0), AngleDegree(90), AngleDegree(-90))
     an[IllegalArgumentException] should be thrownBy SimplePolygon(anglesWithFullCircle)
   }
+
+  // New: toAngles preserves order and content
+  it should "preserve the provided angles order and size" in {
+    val angles = Vector(AngleDegree(60), AngleDegree(120), AngleDegree(60), AngleDegree(120))
+    val simple = SimplePolygon(angles)
+    simple.toAngles shouldBe angles
+  }
+
+  // New: alphaSum helper
+  it should "compute alphaSum correctly" in
+    allAssert(
+      SimplePolygon.alphaSum(3).toRational shouldBe Rational(180),
+      SimplePolygon.alphaSum(4).toRational shouldBe Rational(360),
+      SimplePolygon.alphaSum(6).toRational shouldBe Rational(720)
+    )
 
   behavior of "RegularPolygon"
 
@@ -63,3 +87,32 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       RegularPolygon(4).alpha.toRational shouldBe Rational(90), // Square
       RegularPolygon(6).alpha.toRational shouldBe Rational(120) // Hexagon
     )
+
+  // New: angles vector size and uniformity
+  it should "produce a vector of sides angles each equal to alpha" in {
+    val n      = 7
+    val poly   = RegularPolygon(n)
+    val as     = poly.angles
+    allAssert(
+      as.size shouldBe n,
+      all(as.map(_.toRational)) shouldBe poly.alpha.toRational
+    )
+  }
+
+  // New: sum of angles equals alphaSum(n)
+  it should "have total interior angle sum equal to alphaSum(n)" in {
+    val n      = 9
+    val sum    = RegularPolygon(n).angles.map(_.toRational).reduce(_ + _)
+    sum shouldBe SimplePolygon.alphaSum(n).toRational
+  }
+
+  // New: sanity for larger n
+  it should "produce sensible alpha for large n" in {
+    val n     = 1000
+    val alpha = RegularPolygon(n).alpha.toRational
+    // alpha approaches 180 as n grows; it must be less than 180
+    allAssert(
+      assert(alpha < Rational(180)),
+      assert(alpha > Rational(0))
+    )
+  }
