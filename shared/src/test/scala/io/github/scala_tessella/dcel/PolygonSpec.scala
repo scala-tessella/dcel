@@ -23,9 +23,11 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   // New: minimal length constraints
   it should "reject polygons with fewer than 3 angles" in
     allAssert(
-      an[IllegalArgumentException] should be thrownBy SimplePolygon(Vector.empty),
-      an[IllegalArgumentException] should be thrownBy SimplePolygon(Vector(AngleDegree(180))),
-      an[IllegalArgumentException] should be thrownBy SimplePolygon(Vector(AngleDegree(100), AngleDegree(80)))
+      the[IllegalArgumentException] thrownBy SimplePolygon(Vector.empty) should have message "A simple polygon must have at least 3 sides.",
+      the[IllegalArgumentException] thrownBy SimplePolygon(Vector(AngleDegree(180))) should have message "A simple polygon must have at least 3 sides.",
+      the[IllegalArgumentException] thrownBy SimplePolygon(
+        Vector(AngleDegree(100), AngleDegree(80))
+      ) should have message "A simple polygon must have at least 3 sides."
     )
 
   // New: normalization handling (negative and >180 accepted only via normalisation if sum matches)

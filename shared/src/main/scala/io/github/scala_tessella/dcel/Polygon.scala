@@ -13,14 +13,16 @@ object Polygon:
       AngleDegree(180) * (sides - 2)
 
     /** Validates the list of interior angles for a simple polygon.
-      *
-      * @param angles
-      *   A list of interior angles in degrees.
-      * @throws IllegalArgumentException
-      *   if any angle is a full circle or the sum of the angles is not correct.
-      */
+     *
+     * @param angles
+     *   A list of interior angles in degrees.
+     * @throws IllegalArgumentException
+     *   if there are fewer than 3 angles, any angle is a full circle, or the sum of the angles is not correct.
+     */
     def apply(angles: Vector[AngleDegree]): SimplePolygon =
       val n = angles.length
+      if n < 3 then
+        throw new IllegalArgumentException("A simple polygon must have at least 3 sides.")
       if angles.exists(_.isFullCircle) then
         throw new IllegalArgumentException("The polygon cannot have full circles as interior angles.")
       else
