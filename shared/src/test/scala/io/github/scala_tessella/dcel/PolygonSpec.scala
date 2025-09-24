@@ -23,8 +23,12 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   // New: minimal length constraints
   it should "reject polygons with fewer than 3 angles" in
     allAssert(
-      the[IllegalArgumentException] thrownBy SimplePolygon(Vector.empty) should have message "A simple polygon must have at least 3 sides.",
-      the[IllegalArgumentException] thrownBy SimplePolygon(Vector(AngleDegree(180))) should have message "A simple polygon must have at least 3 sides.",
+      the[IllegalArgumentException] thrownBy SimplePolygon(
+        Vector.empty
+      ) should have message "A simple polygon must have at least 3 sides.",
+      the[IllegalArgumentException] thrownBy SimplePolygon(
+        Vector(AngleDegree(180))
+      ) should have message "A simple polygon must have at least 3 sides.",
       the[IllegalArgumentException] thrownBy SimplePolygon(
         Vector(AngleDegree(100), AngleDegree(80))
       ) should have message "A simple polygon must have at least 3 sides."
@@ -32,7 +36,11 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   // New: normalization handling (negative and >180 accepted only via normalisation if sum matches)
   it should "accept angles that normalise to a valid simple polygon" in {
-    val weird = Vector(AngleDegree(-300), AngleDegree(450), AngleDegree(30)) // normalised -> 60,90,30 (sum 180) -> triangle
+    val weird = Vector(
+      AngleDegree(-300),
+      AngleDegree(450),
+      AngleDegree(30)
+    ) // normalised -> 60,90,30 (sum 180) -> triangle
     SimplePolygon(weird).toAngles.size shouldBe 3
   }
 
@@ -92,9 +100,9 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   // New: angles vector size and uniformity
   it should "produce a vector of sides angles each equal to alpha" in {
-    val n      = 7
-    val poly   = RegularPolygon(n)
-    val as     = poly.angles
+    val n    = 7
+    val poly = RegularPolygon(n)
+    val as   = poly.angles
     allAssert(
       as.size shouldBe n,
       all(as.map(_.toRational)) shouldBe poly.alpha.toRational
@@ -103,8 +111,8 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   // New: sum of angles equals alphaSum(n)
   it should "have total interior angle sum equal to alphaSum(n)" in {
-    val n      = 9
-    val sum    = RegularPolygon(n).angles.map(_.toRational).reduce(_ + _)
+    val n   = 9
+    val sum = RegularPolygon(n).angles.map(_.toRational).reduce(_ + _)
     sum shouldBe SimplePolygon.alphaSum(n).toRational
   }
 
