@@ -75,6 +75,14 @@ final case class TilingDCEL private (
         v1.findEdgeBetweenUnsafe(v2).toRight(NotFoundError("Edge", s"between $vertexId1 and $vertexId2"))
     yield (v1, v2, edge)
 
+  def innerFacesVertices: List[(FaceId, List[Vertex])] =
+    innerFaces.map(face => (face.id, face.getVerticesUnsafe))
+
+  def findInnerFaceVertices(faceId: FaceId): Either[TilingError, List[Vertex]] =
+    for
+      face <- findInnerFace(faceId)
+    yield face.getVerticesUnsafe
+
   private[dcel] def getAnglesAtVertexUnsafe(vertexId: VertexId): List[AngleDegree] =
     val vertex = findVertexUnsafe(vertexId).get
     val edges  = vertex.incidentEdgesUnsafe
