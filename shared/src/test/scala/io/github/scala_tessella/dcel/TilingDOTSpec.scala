@@ -1,8 +1,8 @@
 package io.github.scala_tessella.dcel
 
+import io.github.scala_tessella.dcel.TilingDOT.*
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import TilingDOT.*
 
 class TilingDOTSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 

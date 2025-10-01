@@ -1,6 +1,6 @@
 package io.github.scala_tessella.dcel.geo
 
-import BigDecimalGeometry.{IntersectionDetection, Orientation}
+import io.github.scala_tessella.dcel.geo.BigDecimalGeometry.{IntersectionDetection, Orientation}
 import spire.implicits.*
 
 opaque type BigLineSegment = (p1: BigPoint, p2: BigPoint)

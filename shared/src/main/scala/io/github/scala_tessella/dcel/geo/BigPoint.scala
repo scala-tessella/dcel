@@ -1,6 +1,6 @@
 package io.github.scala_tessella.dcel.geo
 
-import BigDecimalGeometry.{ACCURACY, Orientation}
+import io.github.scala_tessella.dcel.geo.BigDecimalGeometry.{ACCURACY, Orientation}
 import io.github.scala_tessella.dcel.geo.BigLineSegment
 import spire.implicits.*
 

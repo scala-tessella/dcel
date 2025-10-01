@@ -1,8 +1,8 @@
 package io.github.scala_tessella.dcel
 
-import io.github.scala_tessella.dcel.geo.{AngleDegree, BigPoint, BigRadian}
+import io.github.scala_tessella.dcel.Polygon.{RegularPolygon, SimplePolygon}
 import io.github.scala_tessella.dcel.geo.BigDecimalGeometry.*
-import Polygon.{RegularPolygon, SimplePolygon}
+import io.github.scala_tessella.dcel.geo.{AngleDegree, BigPoint, BigRadian}
 import spire.implicits.*
 
 import scala.collection.mutable

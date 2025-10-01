@@ -1,7 +1,7 @@
 package io.github.scala_tessella.dcel
 
-import io.github.scala_tessella.dcel.geo.{BigDecimalGeometry, BigLineSegment, BigPoint, BigRadian}
 import io.github.scala_tessella.dcel.geo.BigDecimalGeometry.*
+import io.github.scala_tessella.dcel.geo.{BigDecimalGeometry, BigLineSegment, BigPoint, BigRadian}
 import spire.implicits.*
 
 import scala.collection.mutable

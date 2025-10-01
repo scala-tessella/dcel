@@ -1,12 +1,12 @@
 package io.github.scala_tessella.dcel
 
-import io.github.scala_tessella.dcel.geo.{AngleDegree, BigPoint}
-import TilingAddition.*
-import TilingEquivalency.*
-import TilingDeletion.*
-import TilingDOT.*
-import TilingSVG.*
 import io.github.scala_tessella.dcel.Polygon.{RegularPolygon, SimplePolygon}
+import io.github.scala_tessella.dcel.TilingAddition.*
+import io.github.scala_tessella.dcel.TilingDOT.*
+import io.github.scala_tessella.dcel.TilingDeletion.*
+import io.github.scala_tessella.dcel.TilingEquivalency.*
+import io.github.scala_tessella.dcel.TilingSVG.*
+import io.github.scala_tessella.dcel.geo.{AngleDegree, BigPoint}
 
 import scala.collection.mutable
 

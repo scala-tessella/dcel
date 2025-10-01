@@ -1,7 +1,7 @@
 package io.github.scala_tessella.dcel
 
-import io.github.scala_tessella.dcel.geo.{AngleDegree, BigLineSegment, BigPoint, BigRadian}
 import io.github.scala_tessella.dcel.geo.BigDecimalGeometry.*
+import io.github.scala_tessella.dcel.geo.{AngleDegree, BigLineSegment, BigPoint, BigRadian}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import spire.implicits.*

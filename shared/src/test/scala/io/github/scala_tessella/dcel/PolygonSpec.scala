@@ -1,10 +1,10 @@
 package io.github.scala_tessella.dcel
 
-import io.github.scala_tessella.dcel.geo.AngleDegree
 import io.github.scala_tessella.dcel.Polygon.{RegularPolygon, SimplePolygon}
+import io.github.scala_tessella.dcel.geo.AngleDegree
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import spire.math._
+import spire.math.*
 
 class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 

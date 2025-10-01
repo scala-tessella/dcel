@@ -1,9 +1,9 @@
 package io.github.scala_tessella.dcel
 
+import io.github.scala_tessella.dcel.Polygon.{RegularPolygon, SimplePolygon}
+import io.github.scala_tessella.dcel.TilingBuilder.{calculateVertexPoints, validatePoints}
+import io.github.scala_tessella.dcel.TilingEquivalency.*
 import io.github.scala_tessella.dcel.geo.{AngleDegree, BigLineSegment, BigPoint}
-import Polygon.{RegularPolygon, SimplePolygon}
-import TilingBuilder.{calculateVertexPoints, validatePoints}
-import TilingEquivalency._
 import io.github.scala_tessella.ring_seq.RingSeq.{rotateRight, slidingO}
 
 import scala.annotation.tailrec

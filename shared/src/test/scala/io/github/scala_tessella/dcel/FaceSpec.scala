@@ -1,7 +1,7 @@
 package io.github.scala_tessella.dcel
 
-import io.github.scala_tessella.dcel.geo.{AngleDegree, BigPoint}
 import io.github.scala_tessella.dcel.Topology.breadthFirstSearch
+import io.github.scala_tessella.dcel.geo.{AngleDegree, BigPoint}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

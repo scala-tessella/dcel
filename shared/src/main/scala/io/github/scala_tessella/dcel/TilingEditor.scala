@@ -1,8 +1,8 @@
 package io.github.scala_tessella.dcel
 
-import TilingAddition.*
-import TilingEquivalency.*
-import io.github.scala_tessella.dcel.Polygon.RegularPolygon // bring .deepCopy extension into scope
+import io.github.scala_tessella.dcel.Polygon.RegularPolygon
+import io.github.scala_tessella.dcel.TilingAddition.*
+import io.github.scala_tessella.dcel.TilingEquivalency.* // bring .deepCopy extension into scope
 
 final class TilingEditor private[dcel] (private var working: TilingDCEL):
 

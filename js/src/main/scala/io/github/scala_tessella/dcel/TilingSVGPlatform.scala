@@ -1,6 +1,6 @@
 package io.github.scala_tessella.dcel
 
-import io.github.scala_tessella.dcel.Utils.*
+import io.github.scala_tessella.dcel.Utils._
 import io.github.scala_tessella.dcel.geo.{AngleDegree, BigPoint}
 import spire.math.Rational
 
