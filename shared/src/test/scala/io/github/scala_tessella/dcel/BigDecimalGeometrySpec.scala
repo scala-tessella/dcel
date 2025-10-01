@@ -1,8 +1,7 @@
 package io.github.scala_tessella.dcel
 
-import io.github.scala_tessella.dcel.geo.AngleDegree
-import io.github.scala_tessella.dcel.geo.BigRadian
-import BigDecimalGeometry.*
+import io.github.scala_tessella.dcel.geo.{AngleDegree, BigLineSegment, BigPoint, BigRadian}
+import BigDecimalGeometry.{BigBox, *}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import spire.implicits.*
@@ -167,7 +166,7 @@ class BigDecimalGeometrySpec extends AnyFlatSpec with Matchers with TilingTestHe
       List(p_A, p_B, p_C).hasNoAlmostEqualPoints(acc) shouldBe true,
 
       // Empty and single-element lists
-      List.empty.hasNoAlmostEqualPoints(acc) shouldBe true,
+      List.empty[BigPoint].hasNoAlmostEqualPoints(acc) shouldBe true,
       List(p_A).hasNoAlmostEqualPoints(acc) shouldBe true,
 
       // With identical points

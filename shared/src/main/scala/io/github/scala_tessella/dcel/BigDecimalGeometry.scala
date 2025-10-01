@@ -1,11 +1,10 @@
 package io.github.scala_tessella.dcel
 
-import io.github.scala_tessella.dcel.geo.BigRadian
+import io.github.scala_tessella.dcel.geo.{BigLineSegment, BigPoint}
 import spire.compat.numeric
 import spire.implicits.*
 
 import scala.collection.mutable
-import scala.util.boundary
 
 /** Planar geometry toolbox using Spire for precise calculations.
   *
@@ -25,140 +24,8 @@ object BigDecimalGeometry:
 
   val ACCURACY = 1.0e-12
 
-  /** A point in the plane defined by its 2 Cartesian coordinates x and y. */
-  case class BigPoint(x: BigDecimal, y: BigDecimal):
-
-    /** Sum of two points */
-    def plus(that: BigPoint): BigPoint =
-      BigPoint(this.x + that.x, this.y + that.y)
-
-    /** Tests whether this `BigPoint` is approximately equal to another, within given accuracy. */
-    def almostEquals(that: BigPoint, accuracy: Double = ACCURACY): Boolean =
-      (this.x - that.x).abs < BigDecimal(accuracy) && (this.y - that.y).abs < BigDecimal(accuracy)
-
-    /** New point moved by polar coordinates */
-    def plusPolar(rho: BigDecimal)(theta: BigRadian): BigPoint =
-      plus(BigPoint.fromPolar(rho, theta))
-
-    /** New point moved by distance 1.0 */
-    def plusPolarUnit: BigRadian => BigPoint =
-      plusPolar(BigDecimal(1.0))
-
-    /** Calculates the horizontal angle of the vector from this point to another point. */
-    def angleTo(other: BigPoint): BigRadian =
-      BigLineSegment(this, other).horizontalAngle
-
-    /** Calculates the distance to another point. */
-    def distanceTo(other: BigPoint): BigDecimal =
-      BigLineSegment(this, other).length
-
-    def scaled(scale: Double): BigPoint =
-      BigPoint(x * scale, y * scale)
-
-    def flippedY: BigPoint =
-      BigPoint(x, -y)
-
   enum Orientation:
     case Collinear, Clockwise, Counterclockwise
-
-  object BigPoint:
-    /** Creates a point at origin (0,0) */
-    def apply(): BigPoint = BigPoint(BigDecimal(0), BigDecimal(0))
-
-    /** Creates a point from polar coordinates */
-    def fromPolar(rho: BigDecimal, theta: BigRadian): BigPoint =
-      BigPoint(rho * spire.math.cos(theta.toBigDecimal), rho * spire.math.sin(theta.toBigDecimal))
-
-    /** Finds the orientation of the ordered triplet (p, q, r).
-      *
-      * @return
-      *   0 if points are collinear, 1 if are clockwise, 2 if are counterclockwise
-      */
-    def orientation(p: BigPoint, q: BigPoint, r: BigPoint): Orientation =
-      val v = (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y)
-      if spire.math.abs(v) < ACCURACY then Orientation.Collinear
-      else if v > 0 then Orientation.Clockwise
-      else Orientation.Counterclockwise
-
-    /** Checks if point q lies on segment pr, assuming they are collinear.
-      */
-    def onSegment(p: BigPoint, q: BigPoint, r: BigPoint): Boolean =
-      q.x <= spire.math.max(p.x, r.x) && q.x >= spire.math.min(p.x, r.x)
-        && q.y <= spire.math.max(p.y, r.y) && q.y >= spire.math.min(p.y, r.y)
-
-  extension (points: List[BigPoint])
-
-    def centroid: BigPoint =
-      if points.nonEmpty then
-        val sumX = points.map(_.x).sum
-        val sumY = points.map(_.y).sum
-        BigPoint(sumX / points.length, sumY / points.length)
-      else
-        BigPoint.apply() // origin (0,0)
-
-    /** Checks if a list of points contains any pair of `almostEquals` points at given accuracy.
-      *
-      * This method uses a grid-based approach (spatial hashing) for efficient checking. Its performance is
-      * typically O(n) for uniformly distributed data, which is much faster than a naive O(n^2) pair-wise
-      * comparison. In the worst case (all points in the same grid cell), performance degrades to O(n^2).
-      *
-      * The algorithm partitions the 2D space into a grid of cells, where each cell's dimension is determined
-      * by the `accuracy`. Each point is placed into a cell. To check for duplicates, each point only needs to
-      * be compared with other points in its own cell and the eight adjacent cells.
-      *
-      * @param accuracy
-      *   The tolerance value. Two points are `almostEquals` if their x and y coordinate differences are both
-      *   less than this value.
-      * @return
-      *   `true` if no two points are almost equal, `false` otherwise.
-      */
-    def hasNoAlmostEqualPoints(accuracy: Double = ACCURACY): Boolean =
-      if points.length < 2 then return true
-
-      // Accuracy must be positive for the grid logic to work.
-      val bigDecimalAccuracy = BigDecimal(accuracy).abs
-
-      val grid = mutable.Map.empty[(Long, Long), mutable.ListBuffer[BigPoint]]
-
-      boundary:
-        for (p <- points)
-          val cellX = (p.x / bigDecimalAccuracy).toLong
-          val cellY = (p.y / bigDecimalAccuracy).toLong
-
-          // Check current and 8 neighboring cells for almost equal points.
-          for (i <- -1 to 1; j <- -1 to 1)
-            val key = (cellX + i, cellY + j)
-            grid.get(key) match
-              case Some(neighbors) =>
-                if neighbors.exists(_.almostEquals(p, accuracy)) then
-                  boundary.break(false)
-              case None            => ()
-
-          // Add the current point to its cell in the grid.
-          val cellKey = (cellX, cellY)
-          grid.getOrElseUpdate(cellKey, scala.collection.mutable.ListBuffer.empty).append(p)
-
-        true
-
-    /** Checks if a polygon defined by a list of points is simple (does not self-intersect).
-      */
-    def isSimplePolygon: Boolean =
-
-      val n = points.length
-      if n < 4 then return true // Triangles cannot self-intersect
-
-      val segments = (0 until n).map(i => BigLineSegment(points(i), points((i + 1) % n))).toList
-
-      boundary:
-        for i <- 0 until n do
-          for j <- i + 1 until n do
-            val s1 = segments(i)
-            val s2 = segments(j)
-
-            // Non-adjacent segments
-            if i != (j + 1) % n && j != (i + 1) % n then
-              if s1.intersects(s2) then boundary.break(false)
-        true
 
   /** A spatial grid for efficient line segment intersection detection. Divides the 2D space into cells and
     * allows for faster neighbor queries.
@@ -277,7 +144,7 @@ object BigDecimalGeometry:
       // Empty case handling
       if segments1.isEmpty || segments2.isEmpty then return false
 
-      // If both collections are very small, use brute force approach
+      // If both collections are very small, use a brute force approach
       if segments1.length * segments2.length <= 100 then
         return segments1.exists(s1 => segments2.exists(s2 => s1.properlyIntersects(s2)))
 
@@ -310,70 +177,6 @@ object BigDecimalGeometry:
         val candidates = grid.getPotentialIntersections(segment)
         candidates.exists(candidate => segment.properlyIntersects(candidate))
       }
-
-  /** A line segment in the plane defined by its 2 endpoints. */
-  case class BigLineSegment(p1: BigPoint, p2: BigPoint):
-    /** The length of the line segment. */
-    lazy val length: BigDecimal =
-      spire.math.sqrt((p2.x - p1.x).pow(2) + (p2.y - p1.y).pow(2))
-
-    def midPoint: BigPoint =
-      BigPoint((p1.x + p2.x) / 2, (p1.y + p2.y) / 2)
-
-    /** The horizontal angle of the line segment. */
-    def horizontalAngle: BigRadian =
-      BigRadian(spire.math.atan2(p2.y - p1.y, p2.x - p1.x))
-
-    private def orientations(that: BigLineSegment): (Orientation, Orientation, Orientation, Orientation) =
-      val o1 = BigPoint.orientation(this.p1, this.p2, that.p1)
-      val o2 = BigPoint.orientation(this.p1, this.p2, that.p2)
-      val o3 = BigPoint.orientation(that.p1, that.p2, this.p1)
-      val o4 = BigPoint.orientation(that.p1, that.p2, this.p2)
-      (o1, o2, o3, o4)
-
-    /** Checks if this bounding box intersects with another one. */
-    def intersects(that: BigLineSegment): Boolean =
-      val (o1, o2, o3, o4) = orientations(that)
-
-      // General case: segments cross each other
-      if o1 != Orientation.Collinear
-        && o2 != Orientation.Collinear
-        && o3 != Orientation.Collinear
-        && o4 != Orientation.Collinear
-      then
-        o1 != o2 && o3 != o4
-      // Special Cases for collinear points
-      else
-        (o1 == Orientation.Collinear && BigPoint.onSegment(this.p1, that.p1, this.p2))
-        || (o2 == Orientation.Collinear && BigPoint.onSegment(this.p1, that.p2, this.p2))
-        || (o3 == Orientation.Collinear && BigPoint.onSegment(that.p1, this.p1, that.p2))
-        || (o4 == Orientation.Collinear && BigPoint.onSegment(that.p1, this.p2, that.p2))
-
-    def properlyIntersects(that: BigLineSegment): Boolean =
-
-      // If segments share an endpoint, it's not a proper intersection
-      val thisPoints = Set(this.p1, this.p2)
-      val thatPoints = Set(that.p1, that.p2)
-
-      if thisPoints.exists(p1 => thatPoints.exists(p2 => p1.almostEquals(p2))) then
-        false
-      else
-        val (o1, o2, o3, o4) = orientations(that)
-        // General case: segments cross each other in their interiors
-        o1 != o2 && o3 != o4
-
-  extension (segments: List[BigLineSegment])
-
-    /** Checks if this list of segments has any proper intersections with another list. Uses spatial
-      * partitioning for better performance.
-      *
-      * @param other
-      *   another list of segments
-      * @param cellSize
-      *   Size of each grid cell for spatial partitioning, defaulted to 2 that is double of unit segment
-      */
-    def hasProperIntersections(other: List[BigLineSegment], cellSize: Option[BigDecimal] = Some(2)): Boolean =
-      IntersectionDetection.hasProperIntersection(segments, other, cellSize)
 
   case class BigBox(minX: BigDecimal, minY: BigDecimal, maxX: BigDecimal, maxY: BigDecimal):
 

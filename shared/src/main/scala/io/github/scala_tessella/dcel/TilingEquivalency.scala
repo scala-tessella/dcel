@@ -1,7 +1,6 @@
 package io.github.scala_tessella.dcel
 
-import io.github.scala_tessella.dcel.geo.AngleDegree
-import BigDecimalGeometry.BigPoint
+import io.github.scala_tessella.dcel.geo.{AngleDegree, BigPoint}
 import io.github.scala_tessella.ring_seq.RingSeq.rotationsAndReflections
 
 import scala.Ordering.Implicits._
@@ -140,7 +139,7 @@ object TilingEquivalency:
 
       rawCopy(
         // Reflecting vertex coordinates across the calculated horizontal axis
-        coordsTransformer = point => point.copy(y = reflectionAxisY * 2 - point.y),
+        coordsTransformer = point => BigPoint(point.x, y = reflectionAxisY * 2 - point.y),
         // In a reflected copy, the edge cycle around a vertex is reversed.
         // The new `leaving` edge should be the one that PRECEDES the old `leaving` edge's twin.
         vertexLeavingTransformer =

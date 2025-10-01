@@ -1,7 +1,6 @@
 package io.github.scala_tessella.dcel
 
-import io.github.scala_tessella.dcel.geo.AngleDegree
-import io.github.scala_tessella.dcel.BigDecimalGeometry.BigPoint
+import io.github.scala_tessella.dcel.geo.{AngleDegree, BigPoint}
 import io.github.scala_tessella.dcel.Polygon.{RegularPolygon, SimplePolygon}
 import io.github.scala_tessella.dcel.TilingAddition.*
 import io.github.scala_tessella.dcel.TilingDeletion.*

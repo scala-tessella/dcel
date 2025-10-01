@@ -1,7 +1,7 @@
 package io.github.scala_tessella.dcel
 
 import io.github.scala_tessella.dcel.Utils.*
-import io.github.scala_tessella.dcel.geo.AngleDegree
+import io.github.scala_tessella.dcel.geo.{AngleDegree, BigPoint}
 import spire.math.Rational
 
 import scala.util.Try
@@ -67,7 +67,7 @@ object TilingSVGPlatform:
                         id <- getAttr(attrs, "vertex", "id")
                         x  <- attrAs(attrs, "vertex", "x", BigDecimal.apply, "BigDecimal")
                         y  <- attrAs(attrs, "vertex", "y", BigDecimal.apply, "BigDecimal")
-                      yield Vertex(VertexId(id), BigDecimalGeometry.BigPoint(x, y))
+                      yield Vertex(VertexId(id), BigPoint(x, y))
                     }.sequence
         vertexMap = vertices.map(v => v.id -> v).toMap
 

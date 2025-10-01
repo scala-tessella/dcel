@@ -1,5 +1,7 @@
 package io.github.scala_tessella.dcel
 
+import io.github.scala_tessella.dcel.geo.BigPoint
+
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -220,7 +222,6 @@ class TopologySpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   }
 
   it should "work with vertices from DCEL" in {
-    import BigDecimalGeometry.BigPoint
 
     val v1 = Vertex(V1, BigPoint(0, 0))
     val v2 = Vertex(V2, BigPoint(1, 0))

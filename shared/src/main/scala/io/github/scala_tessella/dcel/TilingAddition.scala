@@ -1,7 +1,6 @@
 package io.github.scala_tessella.dcel
 
-import io.github.scala_tessella.dcel.geo.AngleDegree
-import BigDecimalGeometry.{BigLineSegment, BigPoint, *}
+import io.github.scala_tessella.dcel.geo.{AngleDegree, BigLineSegment, BigPoint}
 import Polygon.{RegularPolygon, SimplePolygon}
 import TilingBuilder.{calculateVertexPoints, validatePoints}
 import TilingEquivalency._
