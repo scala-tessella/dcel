@@ -1,7 +1,7 @@
 package io.github.scala_tessella.dcel
 
 import io.github.scala_tessella.dcel.geo.{AngleDegree, BigPoint, BigRadian}
-import BigDecimalGeometry.*
+import io.github.scala_tessella.dcel.geo.BigDecimalGeometry.*
 import Polygon.{RegularPolygon, SimplePolygon}
 import spire.implicits.*
 

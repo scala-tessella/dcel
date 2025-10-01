@@ -1,4 +1,4 @@
-package io.github.scala_tessella.dcel
+package io.github.scala_tessella.dcel.geo
 
 import io.github.scala_tessella.dcel.geo.{BigLineSegment, BigPoint}
 import spire.compat.numeric
