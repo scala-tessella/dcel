@@ -11,7 +11,7 @@ opaque type BigPoint = (x: BigDecimal, y: BigDecimal)
 
 object BigPoint:
 
-  def apply(x: BigDecimal, y: BigDecimal): BigPoint =
+  inline def apply(x: BigDecimal, y: BigDecimal): BigPoint =
     (x, y)
 
   /** Creates a point at origin (0,0) */
@@ -41,10 +41,10 @@ object BigPoint:
   /** A point in the plane defined by its 2 Cartesian coordinates x and y. */
   extension (point: BigPoint)
 
-    def x: BigDecimal =
+    inline def x: BigDecimal =
       point.x
 
-    def y: BigDecimal =
+    inline def y: BigDecimal =
       point.y
 
     /** Sum of two points */

@@ -7,15 +7,15 @@ opaque type BigLineSegment = (p1: BigPoint, p2: BigPoint)
 
 object BigLineSegment:
 
-  def apply(p1: BigPoint, p2: BigPoint): BigLineSegment =
+  inline def apply(p1: BigPoint, p2: BigPoint): BigLineSegment =
     (p1, p2)
 
   extension (segment: BigLineSegment)
 
-    def p1: BigPoint =
+    inline def p1: BigPoint =
       segment.p1
 
-    def p2: BigPoint =
+    inline def p2: BigPoint =
       segment.p2
 
     /** The length of the line segment. */
