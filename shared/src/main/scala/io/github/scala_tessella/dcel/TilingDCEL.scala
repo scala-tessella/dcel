@@ -1,6 +1,7 @@
 package io.github.scala_tessella.dcel
 
-import BigDecimalGeometry.{AngleDegree, BigPoint, hasNoAlmostEqualPoints}
+import io.github.scala_tessella.dcel.geo.AngleDegree
+import BigDecimalGeometry.{BigPoint, hasNoAlmostEqualPoints}
 import TilingAddition.*
 import TilingEquivalency.*
 import TilingDeletion.*

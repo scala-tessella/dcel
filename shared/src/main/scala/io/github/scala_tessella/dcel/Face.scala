@@ -1,7 +1,7 @@
 package io.github.scala_tessella.dcel
 
 import Topology.breadthFirstSearch
-import io.github.scala_tessella.dcel.BigDecimalGeometry.AngleDegree
+import io.github.scala_tessella.dcel.geo.AngleDegree
 import io.github.scala_tessella.dcel.Utils.sequence
 import io.github.scala_tessella.ring_seq.RingSeq.slidingO
 

@@ -1,8 +1,9 @@
 package io.github.scala_tessella.dcel
 
-import BigDecimalGeometry._
+import io.github.scala_tessella.dcel.geo.{AngleDegree, BigRadian}
+import BigDecimalGeometry.{BigPoint, *}
 import Polygon.{RegularPolygon, SimplePolygon}
-import spire.implicits._
+import spire.implicits.*
 
 import scala.collection.mutable
 
@@ -396,7 +397,7 @@ object TilingBuilder:
     // IMPORTANT: The exterior turn exts(k) is applied at vertex k to go from edge k to edge (k+1).
     // Edge headings h(k) are the directions of edges (k) from vertex k to k+1.
     // Hence, h1 = h0 + exts(1), h2 = h1 + exts(2). (exts(0) turns from edge5 to edge0.)
-    val h0 = BigDecimalGeometry.BigRadian(0)
+    val h0 = BigRadian(0)
     val h1 = h0 + exteriorAngles(1).toBigRadian
     val h2 = h1 + exteriorAngles(2).toBigRadian
 

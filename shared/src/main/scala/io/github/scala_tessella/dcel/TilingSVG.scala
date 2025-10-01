@@ -1,5 +1,6 @@
 package io.github.scala_tessella.dcel
 
+import io.github.scala_tessella.dcel.geo.BigRadian
 import BigDecimalGeometry.*
 import spire.implicits.*
 

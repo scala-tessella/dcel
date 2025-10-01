@@ -1,10 +1,11 @@
 package io.github.scala_tessella.dcel
 
-import BigDecimalGeometry.BigRadian._
-import BigDecimalGeometry._
+import io.github.scala_tessella.dcel.geo.AngleDegree
+import io.github.scala_tessella.dcel.geo.BigRadian
+import BigDecimalGeometry.*
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import spire.implicits._
+import spire.implicits.*
 import spire.math.Rational
 
 class BigDecimalGeometrySpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
@@ -38,8 +39,8 @@ class BigDecimalGeometrySpec extends AnyFlatSpec with Matchers with TilingTestHe
 
   it should "convert to BigRadian correctly" in
     allAssert(
-      AngleDegree(180).toBigRadian.almostEquals(TAU_2, accuracy) shouldBe true,
-      AngleDegree(90).toBigRadian.almostEquals(TAU_4, accuracy) shouldBe true,
+      AngleDegree(180).toBigRadian.almostEquals(BigRadian.TAU_2, accuracy) shouldBe true,
+      AngleDegree(90).toBigRadian.almostEquals(BigRadian.TAU_4, accuracy) shouldBe true,
       AngleDegree(0).toBigRadian.almostEquals(BigRadian(0.0), accuracy) shouldBe true
     )
 

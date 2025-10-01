@@ -1,6 +1,7 @@
 package io.github.scala_tessella.dcel
 
-import BigDecimalGeometry.{AngleDegree, BigPoint}
+import io.github.scala_tessella.dcel.geo.AngleDegree
+import BigDecimalGeometry.BigPoint
 import io.github.scala_tessella.ring_seq.RingSeq.rotationsAndReflections
 
 import scala.Ordering.Implicits._

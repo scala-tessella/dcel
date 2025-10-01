@@ -1,7 +1,9 @@
 package io.github.scala_tessella.dcel
 
 import io.github.scala_tessella.dcel.Utils.*
+import io.github.scala_tessella.dcel.geo.AngleDegree
 import spire.math.Rational
+
 import scala.util.Try
 
 object TilingSVGPlatform:
@@ -129,7 +131,7 @@ object TilingSVGPlatform:
                  incidentFace <- faceMap.get(FaceId(faceId)).toRight(NotFoundError("Incident face", faceId))
                  _             = he.incidentFace = Some(incidentFace)
                  angleStr     <- getAttr(attrs, "half-edge", "angle")
-                 angle         = BigDecimalGeometry.AngleDegree(Rational(angleStr))
+                 angle         = AngleDegree(Rational(angleStr))
                  _             = he.angle = Some(angle)
                yield ()
              }.sequence

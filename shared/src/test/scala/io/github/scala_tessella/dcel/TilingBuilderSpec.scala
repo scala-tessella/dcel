@@ -1,6 +1,6 @@
 package io.github.scala_tessella.dcel
 
-import BigDecimalGeometry.AngleDegree
+import io.github.scala_tessella.dcel.geo.AngleDegree
 import io.github.scala_tessella.dcel.Polygon.{RegularPolygon, SimplePolygon}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

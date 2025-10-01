@@ -1,6 +1,6 @@
 package io.github.scala_tessella.dcel
 
-import BigDecimalGeometry.AngleDegree
+import io.github.scala_tessella.dcel.geo.AngleDegree
 import io.github.scala_tessella.ring_seq.RingSeq.slidingO
 
 import scala.annotation.tailrec
