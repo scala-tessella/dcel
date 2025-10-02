@@ -231,7 +231,7 @@ class BigDecimalGeometrySpec extends AnyFlatSpec with Matchers with TilingTestHe
 
   behavior of "BigBox"
 
-  private val box = BigBox(0, 0, 1, 1)
+  private val box = BigBox(BigPoint.origin, BigPoint(1, 1))
 
   it should "check if it contains a point" in
     allAssert(
@@ -244,10 +244,10 @@ class BigDecimalGeometrySpec extends AnyFlatSpec with Matchers with TilingTestHe
   it should "be enlarged" in {
     val enlargedBox = box.expand(BigDecimal(0.5))
     allAssert(
-      enlargedBox.minX shouldBe BigDecimal(-0.5),
-      enlargedBox.maxX shouldBe BigDecimal(1.5),
-      enlargedBox.minY shouldBe BigDecimal(-0.5),
-      enlargedBox.maxY shouldBe BigDecimal(1.5),
+      enlargedBox.min.x shouldBe BigDecimal(-0.5),
+      enlargedBox.max.x shouldBe BigDecimal(1.5),
+      enlargedBox.min.y shouldBe BigDecimal(-0.5),
+      enlargedBox.max.y shouldBe BigDecimal(1.5),
       enlargedBox.contains(BigPoint(1.5, 1.5)) shouldBe true
     )
   }

@@ -1,6 +1,6 @@
 package io.github.scala_tessella.dcel.geometry
 
-import io.github.scala_tessella.dcel.geometry.{BigLineSegment, BigPoint}
+import io.github.scala_tessella.dcel.geometry.{BigBox, BigLineSegment, BigPoint}
 import spire.compat.numeric
 import spire.implicits.*
 
@@ -32,10 +32,10 @@ object BigDecimalGeometry:
     */
   class SpatialGrid(bounds: BigBox, cellSize: BigDecimal):
 
-    private val minX = bounds.minX
-    private val minY = bounds.minY
-    private val maxX = bounds.maxX
-    private val maxY = bounds.maxY
+    private val minX = bounds.min.x
+    private val minY = bounds.min.y
+    private val maxX = bounds.max.x
+    private val maxY = bounds.max.y
 
     private val width  = maxX - minX
     private val height = maxY - minY
@@ -177,32 +177,3 @@ object BigDecimalGeometry:
         val candidates = grid.getPotentialIntersections(segment)
         candidates.exists(candidate => segment.properlyIntersects(candidate))
       }
-
-  case class BigBox(minX: BigDecimal, minY: BigDecimal, maxX: BigDecimal, maxY: BigDecimal):
-
-    def contains(point: BigPoint): Boolean =
-      if point.x < minX then false
-      else if point.y < minY then false
-      else if point.x > maxX then false
-      else !(point.y > maxY)
-
-    /** Checks if this bounding box intersects with another one. */
-    def intersects(that: BigBox): Boolean =
-      !(that.minX > this.maxX || that.maxX < this.minX || that.minY > this.maxY || that.maxY < this.minY)
-
-    /** Expands the bounding box by a given amount in all directions. */
-    def expand(by: BigDecimal): BigBox =
-      BigBox(minX - by, minY - by, maxX + by, maxY + by)
-
-  object BigBox:
-    /** Creates a BoundingBox that encloses a collection of points. */
-    def fromPoints(points: Iterable[BigPoint]): BigBox =
-      if points.isEmpty then BigBox(0, 0, 0, 0)
-      else
-        val xs = points.map(_.x)
-        val ys = points.map(_.y)
-        BigBox(xs.min, ys.min, xs.max, ys.max)
-
-    /** Creates a BoundingBox for a single line segment. */
-    def fromSegment(segment: BigLineSegment): BigBox =
-      fromPoints(List(segment.p1, segment.p2))
