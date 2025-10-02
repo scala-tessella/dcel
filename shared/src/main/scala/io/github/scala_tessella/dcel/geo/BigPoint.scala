@@ -11,11 +11,10 @@ opaque type BigPoint = (x: BigDecimal, y: BigDecimal)
 
 object BigPoint:
 
+  val origin: BigPoint = (BigDecimal(0), BigDecimal(0))
+
   inline def apply(x: BigDecimal, y: BigDecimal): BigPoint =
     (x, y)
-
-  /** Creates a point at origin (0,0) */
-  def apply(): BigPoint = (BigDecimal(0), BigDecimal(0))
 
   /** Creates a point from polar coordinates */
   def fromPolar(rho: BigDecimal, theta: BigRadian): BigPoint =
@@ -85,7 +84,7 @@ object BigPoint:
         val sumY = points.map(_.y).sum
         BigPoint(sumX / points.length, sumY / points.length)
       else
-        BigPoint.apply() // origin (0,0)
+        BigPoint.origin // origin (0,0)
 
     /** Checks if a list of points contains any pair of `almostEquals` points at given accuracy.
       *

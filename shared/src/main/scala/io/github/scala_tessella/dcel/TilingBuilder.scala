@@ -119,7 +119,7 @@ object TilingBuilder:
     */
   private[dcel] def calculateVertexPoints(
       angles: Vector[AngleDegree],
-      p0: BigPoint = BigPoint(),
+      p0: BigPoint = BigPoint.origin,
       p1: BigPoint = BigPoint(1, 0)
   ): List[BigPoint] =
     val n            = angles.length

@@ -121,12 +121,12 @@ object TilingAddition:
     // Create line segments for the new boundary
     val newSides = adjustedTempVertices.sliding(2).toList.map {
       case p1 :: p2 :: Nil => BigLineSegment(p1.coords, p2.coords)
-      case _               => BigLineSegment(BigPoint(), BigPoint()) // This should never happen
+      case _               => BigLineSegment(BigPoint.origin, BigPoint.origin) // This should never happen
     }
 
     val oldSides = boundaryEdges.slidingO(2).map {
       case e1 :: e2 :: Nil => BigLineSegment(e1.origin.coords, e2.origin.coords)
-      case _               => BigLineSegment(BigPoint(), BigPoint())
+      case _               => BigLineSegment(BigPoint.origin, BigPoint.origin)
     }.toList
 
     // Check for intersections
