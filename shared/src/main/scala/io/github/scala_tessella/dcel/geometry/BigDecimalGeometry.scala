@@ -22,7 +22,8 @@ object BigDecimalGeometry:
       else
         formatted
 
-  val ACCURACY = 1.0e-12
+  val ACCURACY: Double   = 1.0e-12
+  val BigAcc: BigDecimal = BigDecimal(ACCURACY)
 
   enum Orientation:
     case Collinear, Clockwise, Counterclockwise
