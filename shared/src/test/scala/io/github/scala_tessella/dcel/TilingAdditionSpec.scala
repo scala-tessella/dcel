@@ -214,7 +214,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
           tiling.innerFaces should have size 2, {
             // Check that the sum of angles around shared vertices is 360°
             val v0             = tiling.findVertexUnsafe(V1).get
-            val anglesAroundV0 = v0.incidentEdgesUnsafe.flatMap(_.angle).sum2
+            val anglesAroundV0 = v0.incidentEdgesUnsafe.flatMap(_.angle).sumExact
             anglesAroundV0.isFullCircle shouldBe true
           }
         )

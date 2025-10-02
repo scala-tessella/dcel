@@ -23,7 +23,7 @@ object SimplePolygon:
     if angles.exists(_.isFullCircle) then
       throw new IllegalArgumentException("The polygon cannot have full circles as interior angles.")
     else
-      val angleSum         = angles.map(_.normalised).sum2
+      val angleSum         = angles.map(_.normalised).sumExact
       val expectedAngleSum = alphaSum(n)
       if (angleSum - expectedAngleSum).toRational.abs > ACCURACY then
         throw new IllegalArgumentException(

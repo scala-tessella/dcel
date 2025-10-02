@@ -10,6 +10,10 @@ opaque type AngleDegree = Rational
 
 object AngleDegree:
 
+  private val R180: Rational = Rational(180)
+
+  private val R360: Rational = Rational(360)
+
   inline def apply(r: Rational): AngleDegree =
     r
 
@@ -28,7 +32,7 @@ object AngleDegree:
       BigRadian(BigDecimal(spire.math.pi) * (d / 180).toDouble)
 
     def normalised: AngleDegree =
-      d.toRational.fmod(Rational(360))
+      d.toRational.fmod(R360)
 
     def isFullCircle: Boolean =
       normalised == Rational(0)
@@ -37,10 +41,10 @@ object AngleDegree:
       -d
 
     def conjugate: AngleDegree =
-      Rational(360) - d
+      R360 - d
 
     def supplement: AngleDegree =
-      Rational(180) - d
+      R180 - d
 
     @targetName("plusDegree")
     def +(that: AngleDegree): AngleDegree =
@@ -60,5 +64,5 @@ object AngleDegree:
 
   extension (degrees: Seq[AngleDegree])
 
-    def sum2: AngleDegree =
+    def sumExact: AngleDegree =
       degrees.map(_.toRational).sum

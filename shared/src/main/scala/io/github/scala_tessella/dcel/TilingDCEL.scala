@@ -400,7 +400,7 @@ object TilingDCEL:
 
       tiling.getAnglesAtVertex(vertex.id) match
         case Right(angles) =>
-          val sum = angles.sum2
+          val sum = angles.sumExact
           if !sum.isFullCircle then
             errors += s"Angles around interior vertex ${vertex.id} do not sum to a full circle: $sum."
         case Left(error)   =>

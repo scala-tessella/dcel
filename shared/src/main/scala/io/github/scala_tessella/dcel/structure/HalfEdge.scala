@@ -202,7 +202,7 @@ object HalfEdge:
       halfEdges
         .filterNot(_.hasIncidentFace(outerFace))
         .flatMap(_.angle)
-        .sum2
+        .sumExact
 
     def getPath(from: Vertex, to: Vertex): List[HalfEdge] =
       val startEdgeOpt = halfEdges.find(_.origin == from)

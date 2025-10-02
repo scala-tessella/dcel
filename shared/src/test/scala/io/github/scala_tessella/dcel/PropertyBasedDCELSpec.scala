@@ -47,7 +47,7 @@ class PropertyBasedDCELSpec
     tiling.vertices.filterNot(boundary.contains)
 
   private def angleSumIsFullCircle(angles: List[AngleDegree]): Boolean =
-    angles.nonEmpty && angles.map(_.normalised).sum2.isFullCircle
+    angles.nonEmpty && angles.map(_.normalised).sumExact.isFullCircle
 
   private def random: Random = new Random(0xc0ffee) // deterministic seed for reproducibility
 
