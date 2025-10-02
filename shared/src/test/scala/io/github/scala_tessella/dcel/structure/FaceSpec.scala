@@ -2,7 +2,7 @@ package io.github.scala_tessella.dcel.structure
 
 import io.github.scala_tessella.dcel.TilingTestHelpers
 import io.github.scala_tessella.dcel.Topology.breadthFirstSearch
-import io.github.scala_tessella.dcel.geo.{AngleDegree, BigPoint}
+import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint}
 import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

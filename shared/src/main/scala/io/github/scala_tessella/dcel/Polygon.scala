@@ -1,7 +1,7 @@
 package io.github.scala_tessella.dcel
 
-import io.github.scala_tessella.dcel.geo.AngleDegree
-import io.github.scala_tessella.dcel.geo.BigDecimalGeometry.ACCURACY
+import io.github.scala_tessella.dcel.geometry.AngleDegree
+import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.ACCURACY
 
 /** Methods to deal with regular polygons in tiling */
 object Polygon:

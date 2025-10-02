@@ -1,6 +1,6 @@
-package io.github.scala_tessella.dcel.geo
+package io.github.scala_tessella.dcel.geometry
 
-import io.github.scala_tessella.dcel.geo.BigDecimalGeometry.ACCURACY
+import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.ACCURACY
 
 import scala.annotation.targetName
 

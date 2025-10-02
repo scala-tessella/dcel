@@ -2,7 +2,7 @@ package io.github.scala_tessella.dcel.structure
 
 import io.github.scala_tessella.dcel.Topology.breadthFirstSearch
 import io.github.scala_tessella.dcel.Utils.sequence
-import io.github.scala_tessella.dcel.geo.AngleDegree
+import io.github.scala_tessella.dcel.geometry.AngleDegree
 import io.github.scala_tessella.dcel.*
 import io.github.scala_tessella.ring_seq.RingSeq.slidingO
 

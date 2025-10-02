@@ -5,7 +5,7 @@ import io.github.scala_tessella.dcel.Polygon.{RegularPolygon, SimplePolygon}
 import io.github.scala_tessella.dcel.TilingAddition.*
 import io.github.scala_tessella.dcel.TilingDeletion.*
 import io.github.scala_tessella.dcel.TilingEquivalency.*
-import io.github.scala_tessella.dcel.geo.{AngleDegree, BigPoint}
+import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint}
 import io.github.scala_tessella.ring_seq.RingSeq.*
 import org.scalatest.Assertion
 import org.scalatest.flatspec.AnyFlatSpec

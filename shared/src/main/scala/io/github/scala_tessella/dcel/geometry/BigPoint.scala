@@ -1,7 +1,7 @@
-package io.github.scala_tessella.dcel.geo
+package io.github.scala_tessella.dcel.geometry
 
-import io.github.scala_tessella.dcel.geo.BigDecimalGeometry.{ACCURACY, Orientation}
-import io.github.scala_tessella.dcel.geo.BigLineSegment
+import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.{ACCURACY, Orientation}
+import io.github.scala_tessella.dcel.geometry.BigLineSegment
 import spire.implicits.*
 
 import scala.collection.mutable

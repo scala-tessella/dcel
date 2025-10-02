@@ -3,7 +3,7 @@ package io.github.scala_tessella.dcel
 import io.github.scala_tessella.dcel.structure.{Face, Vertex, VertexId}
 import io.github.scala_tessella.dcel.TilingEquivalency.isEquivalentTo
 import io.github.scala_tessella.dcel.TilingSVG.*
-import io.github.scala_tessella.dcel.geo.BigPoint
+import io.github.scala_tessella.dcel.geometry.BigPoint
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

@@ -7,7 +7,7 @@ import io.github.scala_tessella.dcel.TilingDOT.*
 import io.github.scala_tessella.dcel.TilingDeletion.*
 import io.github.scala_tessella.dcel.TilingEquivalency.*
 import io.github.scala_tessella.dcel.TilingSVG.*
-import io.github.scala_tessella.dcel.geo.{AngleDegree, BigPoint}
+import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint}
 
 import scala.collection.mutable
 

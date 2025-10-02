@@ -1,4 +1,4 @@
-package io.github.scala_tessella.dcel.geo
+package io.github.scala_tessella.dcel.geometry
 
 import spire.compat.numeric
 import spire.implicits.*

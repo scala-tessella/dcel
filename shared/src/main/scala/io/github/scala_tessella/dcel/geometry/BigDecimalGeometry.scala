@@ -1,6 +1,6 @@
-package io.github.scala_tessella.dcel.geo
+package io.github.scala_tessella.dcel.geometry
 
-import io.github.scala_tessella.dcel.geo.{BigLineSegment, BigPoint}
+import io.github.scala_tessella.dcel.geometry.{BigLineSegment, BigPoint}
 import spire.compat.numeric
 import spire.implicits.*
 

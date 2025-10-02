@@ -1,8 +1,8 @@
 package io.github.scala_tessella.dcel.structure
 
 import io.github.scala_tessella.dcel.Topology.breadthFirstSearch
-import io.github.scala_tessella.dcel.geo.BigDecimalGeometry.format
-import io.github.scala_tessella.dcel.geo.{AngleDegree, BigDecimalGeometry, BigPoint}
+import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.format
+import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigDecimalGeometry, BigPoint}
 import io.github.scala_tessella.dcel.{TilingError, ValidationError}
 
 /** Represents a single vertex in the DCEL.
