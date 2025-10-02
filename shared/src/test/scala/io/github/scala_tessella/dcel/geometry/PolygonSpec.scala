@@ -1,5 +1,6 @@
-package io.github.scala_tessella.dcel
+package io.github.scala_tessella.dcel.geometry
 
+import io.github.scala_tessella.dcel.TilingTestHelpers
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, RegularPolygon, SimplePolygon}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
