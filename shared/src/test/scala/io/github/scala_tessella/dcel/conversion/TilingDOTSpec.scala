@@ -1,5 +1,6 @@
-package io.github.scala_tessella.dcel
+package io.github.scala_tessella.dcel.conversion
 
+import io.github.scala_tessella.dcel.TilingTestHelpers
 import io.github.scala_tessella.dcel.conversion.TilingDOT.*
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

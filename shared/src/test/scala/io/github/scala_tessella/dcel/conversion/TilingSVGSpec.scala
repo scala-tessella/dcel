@@ -1,9 +1,10 @@
-package io.github.scala_tessella.dcel
+package io.github.scala_tessella.dcel.conversion
 
-import io.github.scala_tessella.dcel.structure.{Face, Vertex, VertexId}
 import io.github.scala_tessella.dcel.TilingEquivalency.isEquivalentTo
 import io.github.scala_tessella.dcel.conversion.TilingSVG.*
 import io.github.scala_tessella.dcel.geometry.BigPoint
+import io.github.scala_tessella.dcel.structure.{Face, Vertex, VertexId}
+import io.github.scala_tessella.dcel.{TilingBuilder, TilingDCEL, TilingTestHelpers}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
