@@ -1,5 +1,6 @@
 package io.github.scala_tessella.dcel
 
+import io.github.scala_tessella.dcel.structure.{Face, HalfEdge, Vertex}
 import io.github.scala_tessella.dcel.geo.{AngleDegree, BigPoint}
 import io.github.scala_tessella.ring_seq.RingSeq.rotationsAndReflections
 

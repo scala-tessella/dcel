@@ -1,4 +1,4 @@
-package io.github.scala_tessella.dcel
+package io.github.scala_tessella.dcel.structure
 
 // Define opaque types for IDs to prevent mixing them up
 opaque type VertexId = String

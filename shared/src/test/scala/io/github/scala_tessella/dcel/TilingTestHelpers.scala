@@ -1,5 +1,6 @@
 package io.github.scala_tessella.dcel
 
+import io.github.scala_tessella.dcel.structure.{FaceId, VertexId}
 import io.github.scala_tessella.dcel.Polygon.RegularPolygon
 import org.scalatest.Assertions.succeed
 import org.scalatest.{Assertion, EitherValues}

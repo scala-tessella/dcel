@@ -1,5 +1,6 @@
 package io.github.scala_tessella.dcel
 
+import io.github.scala_tessella.dcel.structure.{FaceId, VertexId}
 import io.github.scala_tessella.dcel.Polygon.{RegularPolygon, SimplePolygon}
 import io.github.scala_tessella.dcel.TilingAddition.*
 import io.github.scala_tessella.dcel.TilingDeletion.*

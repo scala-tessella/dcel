@@ -1,5 +1,6 @@
 package io.github.scala_tessella.dcel
 
+import io.github.scala_tessella.dcel.structure.{FaceId, HalfEdge, Vertex, VertexId}
 import io.github.scala_tessella.dcel.geo.BigDecimalGeometry.*
 import io.github.scala_tessella.dcel.geo.{BigDecimalGeometry, BigLineSegment, BigPoint, BigRadian}
 import spire.implicits.*

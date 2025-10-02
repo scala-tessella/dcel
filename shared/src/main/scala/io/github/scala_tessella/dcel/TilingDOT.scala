@@ -1,5 +1,7 @@
 package io.github.scala_tessella.dcel
 
+import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
+
 object TilingDOT:
 
   extension (tiling: TilingDCEL)
