@@ -1,6 +1,7 @@
-package io.github.scala_tessella.dcel
+package io.github.scala_tessella.dcel.conversion
 
-import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
+import io.github.scala_tessella.dcel.TilingDCEL
+import io.github.scala_tessella.dcel.structure.*
 
 object TilingDOT:
 

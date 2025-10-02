@@ -1,8 +1,9 @@
-package io.github.scala_tessella.dcel
+package io.github.scala_tessella.dcel.conversion
 
-import io.github.scala_tessella.dcel.structure.{FaceId, HalfEdge, Vertex, VertexId}
 import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.*
 import io.github.scala_tessella.dcel.geometry.{BigDecimalGeometry, BigLineSegment, BigPoint, BigRadian}
+import io.github.scala_tessella.dcel.structure.{FaceId, HalfEdge, Vertex, VertexId}
+import io.github.scala_tessella.dcel.{TilingDCEL, TilingError}
 import spire.implicits.*
 
 import scala.collection.mutable

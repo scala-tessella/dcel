@@ -1,8 +1,9 @@
-package io.github.scala_tessella.dcel
+package io.github.scala_tessella.dcel.conversion
 
-import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
 import io.github.scala_tessella.dcel.Utils.{sequence, traverse}
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint}
+import io.github.scala_tessella.dcel.structure.*
+import io.github.scala_tessella.dcel.{NotFoundError, TilingDCEL, TilingError, ValidationError}
 import spire.math.Rational
 
 import scala.util.Try
