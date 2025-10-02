@@ -1,6 +1,6 @@
 package io.github.scala_tessella.dcel
 
-import io.github.scala_tessella.dcel.Polygon.RegularPolygon
+import io.github.scala_tessella.dcel.geometry.RegularPolygon
 import io.github.scala_tessella.dcel.TilingAddition.*
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

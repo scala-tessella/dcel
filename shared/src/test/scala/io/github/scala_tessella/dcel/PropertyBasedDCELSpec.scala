@@ -1,8 +1,7 @@
 package io.github.scala_tessella.dcel
 
 import io.github.scala_tessella.dcel.structure.{Vertex, VertexId}
-import io.github.scala_tessella.dcel.Polygon.{RegularPolygon, SimplePolygon}
-import io.github.scala_tessella.dcel.geometry.AngleDegree
+import io.github.scala_tessella.dcel.geometry.{AngleDegree, RegularPolygon, SimplePolygon}
 import org.scalacheck.Gen
 import org.scalatest.Assertion
 import org.scalatest.flatspec.AnyFlatSpec

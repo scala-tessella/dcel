@@ -1,7 +1,7 @@
 package io.github.scala_tessella.dcel
 
 import io.github.scala_tessella.dcel.structure.VertexId
-import io.github.scala_tessella.dcel.Polygon.RegularPolygon
+import io.github.scala_tessella.dcel.geometry.RegularPolygon
 import org.scalacheck.Gen
 import org.scalatest.Assertion
 import org.scalatest.flatspec.AnyFlatSpec

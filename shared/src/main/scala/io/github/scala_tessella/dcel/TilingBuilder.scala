@@ -1,9 +1,14 @@
 package io.github.scala_tessella.dcel
 
 import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
-import io.github.scala_tessella.dcel.Polygon.{RegularPolygon, SimplePolygon}
 import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.*
-import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint, BigRadian}
+import io.github.scala_tessella.dcel.geometry.{
+  AngleDegree,
+  BigPoint,
+  BigRadian,
+  RegularPolygon,
+  SimplePolygon
+}
 import spire.implicits.*
 
 import scala.collection.mutable

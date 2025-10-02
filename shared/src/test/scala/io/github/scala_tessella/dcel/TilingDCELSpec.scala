@@ -1,8 +1,7 @@
 package io.github.scala_tessella.dcel
 
 import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
-import io.github.scala_tessella.dcel.Polygon.RegularPolygon
-import io.github.scala_tessella.dcel.geometry.AngleDegree
+import io.github.scala_tessella.dcel.geometry.{AngleDegree, RegularPolygon}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
