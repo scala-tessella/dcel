@@ -1,7 +1,7 @@
 package io.github.scala_tessella.dcel
 
 import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
-import io.github.scala_tessella.dcel.Utils._
+import io.github.scala_tessella.dcel.Utils.{sequence, traverse}
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint}
 import spire.math.Rational
 
