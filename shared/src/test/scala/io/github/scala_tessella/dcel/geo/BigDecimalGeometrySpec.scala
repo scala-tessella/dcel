@@ -1,5 +1,6 @@
-package io.github.scala_tessella.dcel
+package io.github.scala_tessella.dcel.geo
 
+import io.github.scala_tessella.dcel.TilingTestHelpers
 import io.github.scala_tessella.dcel.geo.BigDecimalGeometry.*
 import io.github.scala_tessella.dcel.geo.{AngleDegree, BigLineSegment, BigPoint, BigRadian}
 import org.scalatest.flatspec.AnyFlatSpec
