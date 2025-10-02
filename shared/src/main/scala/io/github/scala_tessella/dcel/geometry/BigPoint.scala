@@ -46,13 +46,27 @@ object BigPoint:
     inline def y: BigDecimal =
       point.y
 
-    /** Sum of two points */
+    // Provide common vector-like ops and keep names consistent
+    def +(that: BigPoint): BigPoint =
+      (point.x + that.x, point.y + that.y)
+
+    def -(that: BigPoint): BigPoint =
+      (point.x - that.x, point.y - that.y)
+
+    def dot(that: BigPoint): BigDecimal =
+      point.x * that.x + point.y * that.y
+
+    def cross(that: BigPoint): BigDecimal =
+      point.x * that.y - point.y * that.x
+
+    /** Sum of two points (kept for source compatibility, prefer +) */
     def plus(that: BigPoint): BigPoint =
       (point.x + that.x, point.y + that.y)
 
     /** Tests whether this `BigPoint` is approximately equal to another, within given accuracy. */
     def almostEquals(that: BigPoint, accuracy: Double = ACCURACY): Boolean =
-      (point.x - that.x).abs < BigDecimal(accuracy) && (point.y - that.y).abs < BigDecimal(accuracy)
+      val a = BigDecimal(accuracy)
+      (point.x - that.x).abs < a && (point.y - that.y).abs < a
 
     /** New point moved by polar coordinates */
     def plusPolar(rho: BigDecimal)(theta: BigRadian): BigPoint =
@@ -80,72 +94,71 @@ object BigPoint:
 
     def centroid: BigPoint =
       if points.nonEmpty then
-        val sumX = points.map(_.x).sum
-        val sumY = points.map(_.y).sum
-        BigPoint(sumX / points.length, sumY / points.length)
+        // single pass reduce to avoid building intermediate lists
+        val (sx, sy) = points.foldLeft((BigDecimal(0), BigDecimal(0))) { case ((ax, ay), p) =>
+          (ax + p.x, ay + p.y)
+        }
+        BigPoint(sx / points.length, sy / points.length)
       else
         BigPoint.origin // origin (0,0)
 
-    /** Checks if a list of points contains any pair of `almostEquals` points at given accuracy.
-      *
-      * This method uses a grid-based approach (spatial hashing) for efficient checking. Its performance is
-      * typically O(n) for uniformly distributed data, which is much faster than a naive O(n^2) pair-wise
-      * comparison. In the worst case (all points in the same grid cell), performance degrades to O(n^2).
-      *
-      * The algorithm partitions the 2D space into a grid of cells, where each cell's dimension is determined
-      * by the `accuracy`. Each point is placed into a cell. To check for duplicates, each point only needs to
-      * be compared with other points in its own cell and the eight adjacent cells.
-      *
-      * @param accuracy
-      *   The tolerance value. Two points are `almostEquals` if their x and y coordinate differences are both
-      *   less than this value.
-      * @return
-      *   `true` if no two points are almost equal, `false` otherwise.
-      */
+    /** Checks if a list of points contains any pair of `almostEquals` points at given accuracy. */
     def hasNoAlmostEqualPoints(accuracy: Double = ACCURACY): Boolean =
       if points.length < 2 then return true
 
-      // Accuracy must be positive for the grid logic to work.
-      val bigDecimalAccuracy = BigDecimal(accuracy).abs
+      val cellSize = BigDecimal(accuracy).abs
+      if cellSize == 0 then
+        // With zero tolerance, exact equality is required; use a Set for O(n)
+        val seen = mutable.HashSet.empty[(BigDecimal, BigDecimal)]
+        boundary:
+          for p <- points do
+            val key = (p.x, p.y)
+            if seen.contains(key) then boundary.break(false)
+            seen += key
+          true
+      else
+        val grid = mutable.HashMap.empty[(Long, Long), mutable.ListBuffer[BigPoint]]
 
-      val grid = mutable.Map.empty[(Long, Long), mutable.ListBuffer[BigPoint]]
+        boundary:
+          for p <- points do
+            val cx = (p.x / cellSize).setScale(0, BigDecimal.RoundingMode.FLOOR).toLong
+            val cy = (p.y / cellSize).setScale(0, BigDecimal.RoundingMode.FLOOR).toLong
 
-      boundary:
-        for (p <- points)
-          val cellX = (p.x / bigDecimalAccuracy).toLong
-          val cellY = (p.y / bigDecimalAccuracy).toLong
+            // Check current and 8 neighboring cells for almost equal points.
+            var found = false
+            var i     = -1
+            while i <= 1 && !found do
+              var j = -1
+              while j <= 1 && !found do
+                grid.get((cx + i, cy + j)) match
+                  case Some(neighbors) =>
+                    if neighbors.exists(_.almostEquals(p, accuracy)) then
+                      found = true
+                  case None            => ()
+                j += 1
+              i += 1
+            if found then boundary.break(false)
 
-          // Check current and 8 neighboring cells for almost equal points.
-          for (i <- -1 to 1; j <- -1 to 1)
-            val key = (cellX + i, cellY + j)
-            grid.get(key) match
-              case Some(neighbors) =>
-                if neighbors.exists(_.almostEquals(p, accuracy)) then
-                  boundary.break(false)
-              case None            => ()
+            grid.getOrElseUpdate((cx, cy), mutable.ListBuffer.empty).append(p)
 
-          // Add the current point to its cell in the grid.
-          val cellKey = (cellX, cellY)
-          grid.getOrElseUpdate(cellKey, scala.collection.mutable.ListBuffer.empty).append(p)
-
-        true
+          true
 
     /** Checks if a polygon defined by a list of points is simple (does not self-intersect).
       */
     def isSimplePolygon: Boolean =
-
       val n = points.length
       if n < 4 then return true // Triangles cannot self-intersect
 
-      val segments = (0 until n).map(i => BigLineSegment(points(i), points((i + 1) % n))).toList
+      val segments = (0 until n).iterator.map(i => BigLineSegment(points(i), points((i + 1) % n))).toArray
 
       boundary:
-        for i <- 0 until n do
-          for j <- i + 1 until n do
-            val s1 = segments(i)
-            val s2 = segments(j)
-
-            // Non-adjacent segments
-            if i != (j + 1) % n && j != (i + 1) % n then
-              if s1.intersects(s2) then boundary.break(false)
+        var i = 0
+        while i < n do
+          var j = i + 1
+          while j < n do
+            // Non-adjacent segments; also exclude first and last which share a vertex
+            if i != (j + 1) % n && j != (i + 1) % n && !(i == 0 && j == n - 1) then
+              if segments(i).intersects(segments(j)) then boundary.break(false)
+            j += 1
+          i += 1
         true
