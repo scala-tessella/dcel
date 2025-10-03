@@ -970,9 +970,9 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
   /** <img src="file:../../../../../resources/threeDecagons.svg"/> */
   def threeDecagons: TilingDCEL =
-    TilingBuilder.createRegularPolygon(RegularPolygon(10)).
-      addRegularPolygonToBoundary(V1, RegularPolygon(10)).value.
-      addRegularPolygonToBoundary(VertexId("V12"), RegularPolygon(10)).value
+    TilingBuilder.createRegularPolygon(RegularPolygon(10))
+      .addRegularPolygonToBoundary(V1, RegularPolygon(10)).value
+      .addRegularPolygonToBoundary(VertexId("V12"), RegularPolygon(10)).value
 
   val attachingSimplePolygon: SimplePolygon =
     SimplePolygon(Vector(
@@ -984,6 +984,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     TilingBuilder.createSimplePolygon(attachingSimplePolygon).value
 
   it should "add an irregular polygon forming another irregular polygon" in {
+
     /** <img src="file:../../../../../resources/attached.svg"/> */
     val result = threeDecagons
       .maybeAddSimplePolygonToBoundary(VertexId("V3"), attachingSimplePolygon)
