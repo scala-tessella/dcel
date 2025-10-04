@@ -124,19 +124,39 @@ object TilingAddition:
       boundaryEdges: List[HalfEdge]
   ): Either[TilingError, Unit] =
     // Create line segments for the new boundary
-    val newSides = adjustedTempVertices.sliding(2).toList.map {
+    val verticesPairs = adjustedTempVertices.sliding(2).toVector
+    val newSides      = verticesPairs.map {
       case p1 :: p2 :: Nil => BigLineSegment(p1.coords, p2.coords)
-      case _               => BigLineSegment(BigPoint.origin, BigPoint.origin) // This should never happen
+      case _               => throw new Error("Edge vertices not in pair")
     }
 
-    val oldSides = boundaryEdges.slidingO(2).map {
+    val edgesPairs = boundaryEdges.slidingO(2).toVector
+    val oldSides   = edgesPairs.map {
       case e1 :: e2 :: Nil => BigLineSegment(e1.origin.coords, e2.origin.coords)
-      case _               => BigLineSegment(BigPoint.origin, BigPoint.origin)
-    }.toList
+      case _               => throw new Error("Edges not in pair")
+    }
 
     // Check for intersections
     if oldSides.hasProperIntersections(newSides) then
-      Left(ValidationError("Boundary intersection"))
+      val intersections = oldSides.properIntersections(newSides)
+      val decoded       = intersections.map((segment1, segment2) =>
+        newSides.indexOf(segment1) match
+          case -1 => oldSides.indexOf(segment1) match
+              case -1 => throw new Error("Intersection not in either list")
+              case j  => newSides.indexOf(segment2) match
+                  case -1 => throw new Error("Segment 2 not in list")
+                  case i  => (verticesPairs(i), edgesPairs(j))
+          case i  => oldSides.indexOf(segment2) match
+              case -1 => throw new Error("Segment 2 not in list")
+              case j  => (verticesPairs(i), edgesPairs(j))
+      )
+      val vertexIds     =
+        decoded.map((verticesPair, edgesPair) =>
+          (verticesPair.map(_.id), edgesPair.map(_.origin.id))
+        )
+      val edges         =
+        vertexIds.map((e1, e2) => s"${e1.head}-${e1(1)} with ${e2.head}-${e2(1)}")
+      Left(ValidationError(s"Boundary intersection: ${edges.mkString(", ")}"))
     else
       Right(())
 

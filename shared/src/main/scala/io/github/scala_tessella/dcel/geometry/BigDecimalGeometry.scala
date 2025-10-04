@@ -125,29 +125,11 @@ object BigDecimalGeometry:
     */
   object IntersectionDetection:
 
-    /** Checks if there are any proper intersections between two collections of line segments. Uses spatial
-      * partitioning for better performance with large collections.
-      *
-      * @param segments1
-      *   First collection of line segments
-      * @param segments2
-      *   Second collection of line segments
-      * @param cellSize
-      *   Size of each grid cell for spatial partitioning (auto-calculated if None)
-      * @return
-      *   true if any segment from segments1 properly intersects any segment from segments2
-      */
-    def hasProperIntersection(
+    private def smallerAndSpatialGrid(
         segments1: Seq[BigLineSegment],
         segments2: Seq[BigLineSegment],
-        cellSize: Option[BigDecimal] = None
-    ): Boolean =
-      // Empty case handling
-      if segments1.isEmpty || segments2.isEmpty then return false
-
-      // If both collections are very small, use a brute force approach
-      if segments1.length * segments2.length <= 100 then
-        return segments1.exists(s1 => segments2.exists(s2 => s1.properlyIntersects(s2)))
+        cellSize: Option[BigDecimal]
+    ): (Seq[BigLineSegment], SpatialGrid) =
 
       // Determine cell size - if not provided, estimate based on average segment length
       val actualCellSize = cellSize.getOrElse {
@@ -172,9 +154,78 @@ object BigDecimalGeometry:
       val grid = SpatialGrid(bounds, actualCellSize)
       grid.addSegments(larger)
 
-      // Check for intersections by only comparing segments from smaller collection
-      // with potentially intersecting segments from the larger collection
-      smaller.exists { segment =>
-        val candidates = grid.getPotentialIntersections(segment)
-        candidates.exists(candidate => segment.properlyIntersects(candidate))
-      }
+      (smaller, grid)
+
+    /** Checks if there are any proper intersections between two collections of line segments. Uses spatial
+      * partitioning for better performance with large collections.
+      *
+      * @param segments1
+      *   First collection of line segments
+      * @param segments2
+      *   Second collection of line segments
+      * @param cellSize
+      *   Size of each grid cell for spatial partitioning (auto-calculated if None)
+      * @return
+      *   true if any segment from segments1 properly intersects any segment from segments2
+      */
+    def hasProperIntersection(
+        segments1: Seq[BigLineSegment],
+        segments2: Seq[BigLineSegment],
+        cellSize: Option[BigDecimal] = None
+    ): Boolean =
+      // Empty case handling
+      if segments1.isEmpty || segments2.isEmpty then
+        false
+      else
+
+        // If both collections are very small, use a brute force approach
+        if segments1.length * segments2.length <= 100 then
+          segments1.exists(s1 => segments2.exists(s2 => s1.properlyIntersects(s2)))
+        else
+
+          val (smaller, grid) = smallerAndSpatialGrid(segments1, segments2, cellSize)
+
+          // Check for intersections by only comparing segments from smaller collection
+          // with potentially intersecting segments from the larger collection
+          smaller.exists { segment =>
+            val candidates = grid.getPotentialIntersections(segment)
+            candidates.exists(candidate => segment.properlyIntersects(candidate))
+          }
+
+    def properIntersections(
+        segments1: Seq[BigLineSegment],
+        segments2: Seq[BigLineSegment],
+        cellSize: Option[BigDecimal] = None
+    ): List[(BigLineSegment, BigLineSegment)] =
+      // Empty case handling
+      if segments1.isEmpty || segments2.isEmpty then
+        Nil
+      else
+        // If both collections are small, use a brute force approach
+        if segments1.length * segments2.length <= 100 then
+          (for
+            s1 <- segments1
+            s2 <- segments2
+            if s1.properlyIntersects(s2)
+          yield (s1, s2)).toList
+        else
+
+          val (smaller, grid) = smallerAndSpatialGrid(segments1, segments2, cellSize)
+
+          // Collect all proper intersections avoiding duplicates
+          val intersections = scala.collection.mutable.ListBuffer.empty[(BigLineSegment, BigLineSegment)]
+          val seen          = scala.collection.mutable.HashSet.empty[(BigLineSegment, BigLineSegment)]
+
+          smaller.foreach { segment =>
+            val candidates = grid.getPotentialIntersections(segment)
+            candidates.foreach { candidate =>
+
+              if segment.properlyIntersects(candidate) then
+                val pair = (segment, candidate)
+                if !seen.contains(pair) then
+                  seen += pair
+                  intersections += pair
+            }
+          }
+
+          intersections.toList

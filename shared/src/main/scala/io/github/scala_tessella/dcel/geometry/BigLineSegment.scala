@@ -67,7 +67,7 @@ object BigLineSegment:
         // General case: segments cross each other in their interiors
         o1 != o2 && o3 != o4
 
-  extension (segments: List[BigLineSegment])
+  extension (segments: Vector[BigLineSegment])
 
     /** Checks if this list of segments has any proper intersections with another list. Uses spatial
       * partitioning for better performance.
@@ -77,5 +77,14 @@ object BigLineSegment:
       * @param cellSize
       *   Size of each grid cell for spatial partitioning, defaulted to 2 that is double of unit segment
       */
-    def hasProperIntersections(other: List[BigLineSegment], cellSize: Option[BigDecimal] = Some(2)): Boolean =
+    def hasProperIntersections(
+        other: Vector[BigLineSegment],
+        cellSize: Option[BigDecimal] = Some(2)
+    ): Boolean =
       IntersectionDetection.hasProperIntersection(segments, other, cellSize)
+
+    def properIntersections(
+        other: Vector[BigLineSegment],
+        cellSize: Option[BigDecimal] = Some(2)
+    ): List[(BigLineSegment, BigLineSegment)] =
+      IntersectionDetection.properIntersections(segments, other, cellSize)
