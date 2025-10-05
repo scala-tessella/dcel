@@ -1,11 +1,12 @@
-package io.github.scala_tessella.dcel
+package io.github.scala_tessella.dcel.structure
 
-import io.github.scala_tessella.dcel.structure.{Face, Utils, Vertex}
+import io.github.scala_tessella.dcel.TilingTestHelpers
 import io.github.scala_tessella.dcel.geometry.BigPoint
+import io.github.scala_tessella.dcel.structure.{Face, Utils, Vertex}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class TopologySpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
+class UtilsSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   behavior of "Topology.breadthFirstSearch"
 
