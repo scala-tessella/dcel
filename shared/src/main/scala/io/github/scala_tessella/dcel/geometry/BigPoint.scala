@@ -2,6 +2,7 @@ package io.github.scala_tessella.dcel.geometry
 
 import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.{ACCURACY, Orientation}
 import io.github.scala_tessella.dcel.geometry.BigLineSegment
+import io.github.scala_tessella.ring_seq.RingSeq.slidingO
 import spire.implicits.*
 
 import scala.collection.mutable
@@ -162,3 +163,15 @@ object BigPoint:
             j += 1
           i += 1
         true
+
+    // Shoelace formula
+    def area: BigDecimal =
+      if points.size < 3 then
+        BigDecimal(0)
+      else
+        val sum =
+          points.slidingO(2).map {
+            (_: @unchecked) match
+              case p1 :: p2 :: Nil => p1.x * p2.y - p2.x * p1.y
+          }.sum
+        sum.abs / 2

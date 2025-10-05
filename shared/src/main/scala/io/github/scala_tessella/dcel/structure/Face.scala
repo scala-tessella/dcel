@@ -4,7 +4,6 @@ import io.github.scala_tessella.dcel.Utils.sequence
 import io.github.scala_tessella.dcel.*
 import io.github.scala_tessella.dcel.geometry.AngleDegree
 import io.github.scala_tessella.dcel.structure.Utils.breadthFirstSearch
-import io.github.scala_tessella.ring_seq.RingSeq.slidingO
 
 /** Represents a single face in the DCEL.
   *
@@ -33,15 +32,7 @@ final class Face(
   // Area calculation
   def area: BigDecimal =
     val vertices = getVertices.getOrElse(List.empty)
-    if vertices.length < 3 then BigDecimal(0)
-    else
-      // Shoelace formula
-      val sum = vertices.slidingO(2).map {
-        (_: @unchecked) match
-          case v1 :: v2 :: Nil =>
-            v1.coords.x * v2.coords.y - v2.coords.x * v1.coords.y
-      }.sum
-      sum.abs / 2
+    vertices.map(_.coords).area
 
   def hasHoles: Boolean =
     innerComponents.nonEmpty

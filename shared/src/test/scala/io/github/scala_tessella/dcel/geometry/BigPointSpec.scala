@@ -174,3 +174,20 @@ class BigPointSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       bow.isSimplePolygon shouldBe false
     )
   }
+
+  it should "compute polygon area with shoelace formula and treat degenerate inputs as zero" in {
+    val triCW   = List(BigPoint(0, 0), BigPoint(4, 0), BigPoint(0, 3))                 // area 6, clockwise
+    val triCCW  = List(BigPoint(0, 0), BigPoint(0, 3), BigPoint(4, 0))                 // area 6, counterclockwise
+    val square  = List(BigPoint(0, 0), BigPoint(2, 0), BigPoint(2, 2), BigPoint(0, 2)) // area 4
+    val colline = List(BigPoint(0, 0), BigPoint(1, 1), BigPoint(2, 2))                 // degenerate -> 0
+    val twoPts  = List(BigPoint(0, 0), BigPoint(1, 1))                                 // < 3 -> 0
+    val empty   = List.empty[BigPoint]                                                 // < 3 -> 0
+    allAssert(
+      triCW.area shouldBe BigDecimal(6),
+      triCCW.area shouldBe BigDecimal(6),
+      square.area shouldBe BigDecimal(4),
+      colline.area shouldBe BigDecimal(0),
+      twoPts.area shouldBe BigDecimal(0),
+      empty.area shouldBe BigDecimal(0)
+    )
+  }
