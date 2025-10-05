@@ -139,15 +139,15 @@ object BigDecimalGeometry:
               segments2.map(s => s.p1.distanceTo(s.p2)).sum
           ) / (segments1.length + segments2.length)
 
-        // Cell size should be larger than average segment to reduce redundant checks
+        // Cell size should be larger than the average segment to reduce redundant checks
         avgLength * 2
       }
 
-      // Create bounding box for all segments
+      // Create a bounding box for all segments
       val allPoints = segments1.flatMap(s => List(s.p1, s.p2)) ++ segments2.flatMap(s => List(s.p1, s.p2))
       val bounds    = BigBox.fromPoints(allPoints).expand(actualCellSize)
 
-      // Create spatial grid and add the larger collection
+      // Create a spatial grid and add the larger collection
       val (smaller, larger) =
         if segments1.length <= segments2.length then (segments1, segments2) else (segments2, segments1)
 
@@ -185,7 +185,7 @@ object BigDecimalGeometry:
 
           val (smaller, grid) = smallerAndSpatialGrid(segments1, segments2, cellSize)
 
-          // Check for intersections by only comparing segments from smaller collection
+          // Check for intersections by only comparing segments from the smaller collection
           // with potentially intersecting segments from the larger collection
           smaller.exists { segment =>
             val candidates = grid.getPotentialIntersections(segment)

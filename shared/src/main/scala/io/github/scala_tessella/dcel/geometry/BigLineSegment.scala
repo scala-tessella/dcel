@@ -75,7 +75,7 @@ object BigLineSegment:
       * @param other
       *   another list of segments
       * @param cellSize
-      *   Size of each grid cell for spatial partitioning, defaulted to 2 that is double of unit segment
+      *   Size of each grid cell for spatial partitioning, defaulted to 2 that is double of the unit segment
       */
     def hasProperIntersections(
         other: Vector[BigLineSegment],

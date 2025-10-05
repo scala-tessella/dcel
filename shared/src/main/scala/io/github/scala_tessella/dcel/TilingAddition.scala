@@ -168,6 +168,18 @@ object TilingAddition:
     private def nextVertexIndex: Int =
       tiling.vertices.map(_.id.value.tail.toInt).max + 1
 
+    private def addElements(
+        newVertices: List[Vertex],
+        newHalfEdges: List[HalfEdge],
+        newFace: Face
+    ): TilingDCEL =
+      TilingDCEL(
+        vertices = tiling.vertices ::: newVertices,
+        halfEdges = tiling.halfEdges ::: newHalfEdges,
+        innerFaces = tiling.innerFaces :+ newFace,
+        outerFace = tiling.outerFace
+      )
+
     private def growthWithHoleCheck(
         startVertex: Vertex,
         endVertex: Vertex,
@@ -210,12 +222,7 @@ object TilingAddition:
             )
           // Return new DCEL with updated components
           val grownTiling                                =
-            TilingDCEL(
-              vertices = tiling.vertices ::: newVertices,
-              halfEdges = tiling.halfEdges ::: newHalfEdges,
-              innerFaces = tiling.innerFaces :+ newFace,
-              outerFace = tiling.outerFace
-            )
+            addElements(newVertices, newHalfEdges, newFace)
           Right((grownTiling, deepCopiedOriginal, containerFace, maybeHoleClosure))
       yield result
 
@@ -485,12 +492,7 @@ object TilingAddition:
           )
 
         // Return new DCEL with updated components
-        TilingDCEL(
-          vertices = tiling.vertices ::: newVertices,
-          halfEdges = tiling.halfEdges ::: newHalfEdges,
-          innerFaces = tiling.innerFaces :+ newFace,
-          outerFace = tiling.outerFace
-        )
+        addElements(newVertices, newHalfEdges, newFace)
 
     /** Adds a regular polygon between two boundary vertices.
       *
