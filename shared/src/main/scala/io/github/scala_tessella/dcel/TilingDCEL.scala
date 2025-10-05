@@ -32,7 +32,7 @@ final case class TilingDCEL private (
     vertices.isEmpty
 
   def coordinates: Map[VertexId, BigPoint] =
-    vertices.map(v => v.id -> v.coords).toMap
+    vertices.map(vertex => vertex.id -> vertex.coords).toMap
 
   /** @return a list of all faces, both inner and outer */
   def faces: List[Face] =
