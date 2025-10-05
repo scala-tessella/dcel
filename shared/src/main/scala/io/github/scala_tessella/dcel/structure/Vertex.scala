@@ -1,6 +1,6 @@
 package io.github.scala_tessella.dcel.structure
 
-import io.github.scala_tessella.dcel.Topology.breadthFirstSearch
+import Utils.breadthFirstSearch
 import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.format
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigDecimalGeometry, BigPoint}
 import io.github.scala_tessella.dcel.{TilingError, ValidationError}

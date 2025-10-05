@@ -1,6 +1,6 @@
 package io.github.scala_tessella.dcel
 
-import io.github.scala_tessella.dcel.structure.{Face, Vertex}
+import io.github.scala_tessella.dcel.structure.{Face, Utils, Vertex}
 import io.github.scala_tessella.dcel.geometry.BigPoint
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -13,7 +13,7 @@ class TopologySpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val start                                = "A"
     val adjacency: Map[String, List[String]] = Map.empty
 
-    val result = Topology.breadthFirstSearch(start, adjacency)
+    val result = Utils.breadthFirstSearch(start, adjacency)
 
     result shouldBe Set("A")
   }
@@ -22,7 +22,7 @@ class TopologySpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val start     = "A"
     val adjacency = Map("A" -> List.empty[String])
 
-    val result = Topology.breadthFirstSearch(start, adjacency)
+    val result = Utils.breadthFirstSearch(start, adjacency)
 
     result shouldBe Set("A")
   }
@@ -35,7 +35,7 @@ class TopologySpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       "C" -> List("D")
     )
 
-    val result = Topology.breadthFirstSearch(start, adjacency)
+    val result = Utils.breadthFirstSearch(start, adjacency)
 
     result shouldBe Set("A", "B", "C", "D")
   }
@@ -48,7 +48,7 @@ class TopologySpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       "C" -> List("A")
     )
 
-    val result = Topology.breadthFirstSearch(start, adjacency)
+    val result = Utils.breadthFirstSearch(start, adjacency)
 
     result shouldBe Set("A", "B", "C")
   }
@@ -64,7 +64,7 @@ class TopologySpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       "rightChild1" -> List.empty[String]
     )
 
-    val result = Topology.breadthFirstSearch(start, adjacency)
+    val result = Utils.breadthFirstSearch(start, adjacency)
 
     result shouldBe Set("root", "left", "right", "leftChild1", "leftChild2", "rightChild1")
   }
@@ -81,7 +81,7 @@ class TopologySpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       "G" -> List.empty[String]
     )
 
-    val result = Topology.breadthFirstSearch(start, adjacency)
+    val result = Utils.breadthFirstSearch(start, adjacency)
 
     result shouldBe Set("A", "B", "C", "D", "E", "F", "G")
   }
@@ -95,7 +95,7 @@ class TopologySpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       "D" -> List.empty[String]
     )
 
-    val result = Topology.breadthFirstSearch(start, adjacency)
+    val result = Utils.breadthFirstSearch(start, adjacency)
     allAssert(
       result shouldBe Set("A", "B"),
       result should not contain "C",
@@ -111,7 +111,7 @@ class TopologySpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       "C" -> List.empty[String]
     )
 
-    val result = Topology.breadthFirstSearch(start, adjacency)
+    val result = Utils.breadthFirstSearch(start, adjacency)
 
     result shouldBe Set("A", "B", "C")
   }
@@ -125,7 +125,7 @@ class TopologySpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       "D" -> List.empty[String]
     )
 
-    val result = Topology.breadthFirstSearch(start, adjacency)
+    val result = Utils.breadthFirstSearch(start, adjacency)
 
     result shouldBe Set("A", "B", "C", "D")
   }
@@ -140,7 +140,7 @@ class TopologySpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       5 -> List.empty[Int]
     )
 
-    val result = Topology.breadthFirstSearch(start, adjacency)
+    val result = Utils.breadthFirstSearch(start, adjacency)
 
     result shouldBe Set(1, 2, 3, 4, 5)
   }
@@ -161,7 +161,7 @@ class TopologySpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       nodeD -> List.empty[Node]
     )
 
-    val result = Topology.breadthFirstSearch(start, adjacency)
+    val result = Utils.breadthFirstSearch(start, adjacency)
 
     result shouldBe Set(nodeA, nodeB, nodeC, nodeD)
   }
@@ -170,7 +170,7 @@ class TopologySpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val start     = "single"
     val adjacency = Map("single" -> List.empty[String])
 
-    val result = Topology.breadthFirstSearch(start, adjacency)
+    val result = Utils.breadthFirstSearch(start, adjacency)
 
     result shouldBe Set("single")
   }
@@ -185,7 +185,7 @@ class TopologySpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       "node4"  -> List.empty[String]
     )
 
-    val result = Topology.breadthFirstSearch(start, adjacency)
+    val result = Utils.breadthFirstSearch(start, adjacency)
 
     result shouldBe Set("center", "node1", "node2", "node3", "node4")
   }
@@ -198,7 +198,7 @@ class TopologySpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       "C" -> List("B")       // Bidirectional with B
     )
 
-    val result = Topology.breadthFirstSearch(start, adjacency)
+    val result = Utils.breadthFirstSearch(start, adjacency)
 
     result shouldBe Set("A", "B", "C")
   }
@@ -216,7 +216,7 @@ class TopologySpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       "level2_3" -> List.empty[String]
     )
 
-    val result = Topology.breadthFirstSearch(start, adjacency)
+    val result = Utils.breadthFirstSearch(start, adjacency)
 
     result shouldBe Set("level0", "level1_1", "level1_2", "level2_1", "level2_2", "level2_3")
   }
@@ -234,7 +234,7 @@ class TopologySpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       v3 -> List.empty[Vertex]
     )
 
-    val result = Topology.breadthFirstSearch(start, adjacency)
+    val result = Utils.breadthFirstSearch(start, adjacency)
 
     result shouldBe Set(v1, v2, v3)
   }
@@ -251,7 +251,7 @@ class TopologySpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       f3 -> List.empty[Face]
     )
 
-    val result = Topology.breadthFirstSearch(start, adjacency)
+    val result = Utils.breadthFirstSearch(start, adjacency)
 
     result shouldBe Set(f1, f2, f3)
   }
@@ -265,7 +265,7 @@ class TopologySpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       "B" -> List.empty[String]
     )
 
-    val result = Topology.breadthFirstSearch(start, adjacency)
+    val result = Utils.breadthFirstSearch(start, adjacency)
 
     result shouldBe Set("NotInMap")
   }
@@ -278,7 +278,7 @@ class TopologySpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       "C" -> Nil
     )
 
-    val result = Topology.breadthFirstSearch(start, adjacency)
+    val result = Utils.breadthFirstSearch(start, adjacency)
 
     result shouldBe Set("A", "B", "C")
   }
@@ -289,7 +289,7 @@ class TopologySpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val adjacency = nodes.zip(nodes.tail).toMap.view.mapValues(List(_)).toMap
 
     val start  = "1"
-    val result = Topology.breadthFirstSearch(start, adjacency)
+    val result = Utils.breadthFirstSearch(start, adjacency)
 
     allAssert(
       result should have size 1000,
@@ -322,9 +322,9 @@ class TopologySpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       "D" -> List.empty[String]
     )
 
-    val result1 = Topology.breadthFirstSearch(start, adjacency)
-    val result2 = Topology.breadthFirstSearch(start, adjacency)
-    val result3 = Topology.breadthFirstSearch(start, adjacency)
+    val result1 = Utils.breadthFirstSearch(start, adjacency)
+    val result2 = Utils.breadthFirstSearch(start, adjacency)
+    val result3 = Utils.breadthFirstSearch(start, adjacency)
 
     allAssert(
       result1 shouldBe result2,

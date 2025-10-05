@@ -1,8 +1,8 @@
-package io.github.scala_tessella.dcel
+package io.github.scala_tessella.dcel.structure
 
 import scala.collection.mutable
 
-object Topology:
+object Utils:
 
   def breadthFirstSearch[T](start: T, adjacency: Map[T, List[T]]): Set[T] =
     val visited = mutable.Set[T](start)
