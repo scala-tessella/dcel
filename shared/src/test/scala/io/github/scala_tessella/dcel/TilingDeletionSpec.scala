@@ -1,9 +1,9 @@
 package io.github.scala_tessella.dcel
 
-import io.github.scala_tessella.dcel.structure.{FaceId, VertexId}
-import io.github.scala_tessella.dcel.geometry.RegularPolygon
 import io.github.scala_tessella.dcel.TilingAddition.*
 import io.github.scala_tessella.dcel.TilingDeletion.*
+import io.github.scala_tessella.dcel.geometry.RegularPolygon
+import io.github.scala_tessella.dcel.structure.{FaceId, VertexId}
 import org.scalatest.Assertion
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -41,6 +41,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   }
 
   it should "fail to delete a face touching the boundary in different points" in {
+
     /** <img src="file:../../../../../resources/squareCross.svg"/> */
     val tiling = square
       .addRegularPolygonToBoundary(V2, RegularPolygon(4)).value

@@ -1,9 +1,9 @@
 package io.github.scala_tessella.dcel.structure
 
-import Utils.breadthFirstSearch
 import io.github.scala_tessella.dcel.Utils.sequence
-import io.github.scala_tessella.dcel.geometry.AngleDegree
 import io.github.scala_tessella.dcel.*
+import io.github.scala_tessella.dcel.geometry.AngleDegree
+import io.github.scala_tessella.dcel.structure.Utils.breadthFirstSearch
 import io.github.scala_tessella.ring_seq.RingSeq.slidingO
 
 /** Represents a single face in the DCEL.

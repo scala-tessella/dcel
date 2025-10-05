@@ -1,6 +1,5 @@
 package io.github.scala_tessella.dcel
 
-import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
 import io.github.scala_tessella.dcel.TilingBuilder.{calculateVertexPoints, validatePoints}
 import io.github.scala_tessella.dcel.TilingEquivalency.*
 import io.github.scala_tessella.dcel.geometry.{
@@ -10,6 +9,7 @@ import io.github.scala_tessella.dcel.geometry.{
   RegularPolygon,
   SimplePolygon
 }
+import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
 import io.github.scala_tessella.ring_seq.RingSeq.{rotateRight, slidingO}
 
 import scala.annotation.tailrec
