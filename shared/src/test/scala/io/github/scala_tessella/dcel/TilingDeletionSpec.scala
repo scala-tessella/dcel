@@ -33,7 +33,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
         allAssert(
           newTiling.innerFaces shouldBe empty,
           newTiling.vertices.length shouldBe 0,
-          newTiling.halfEdges.length shouldBe 0, // After deleting inner face, only outer edges remain
+          newTiling.halfEdges.length shouldBe 0, // After deleting the inner face, only outer edges remain
           newTiling.boundaryVertices.map(_.id).length shouldBe 0
         )
       }
@@ -41,6 +41,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   }
 
   it should "fail to delete a face touching the boundary in different points" in {
+    /** <img src="file:../../../../../resources/squareCross.svg"/> */
     val tiling = square
       .addRegularPolygonToBoundary(V2, RegularPolygon(4)).value
       .addRegularPolygonToBoundary(V3, RegularPolygon(4)).value
@@ -48,8 +49,8 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       .addRegularPolygonToBoundary(V1, RegularPolygon(4)).value
     val result = tiling.deleteFace(FaceId.firstInnerId)
     allAssert(
-//      result.isLeft shouldBe true,
-//      result.left.value.message should include("would partition the tiling in two or more parts")
+      result.isLeft shouldBe true,
+      result.left.value.message should include("would partition the tiling in two or more parts")
     )
   }
 

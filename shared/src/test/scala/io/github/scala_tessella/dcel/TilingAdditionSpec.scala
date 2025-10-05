@@ -65,7 +65,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
     allAssert(
       result should have length 3,
-      // Pentagon has interior angle of 108 degrees
+      // Pentagon has each interior angle of 108 degrees
       // Each vertex should be positioned using polar coordinates with 72-degree external angles
       allAssert(
         result.map { vertex =>
@@ -385,7 +385,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       verifyValidTiling(withPentagon),
       //    println(withPentagon.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
       {
-        // Check that boundary is still traversable
+        // Check that the boundary is still traversable
         val boundary = withPentagon.boundaryVertices
         boundary should not be empty
       }, {
@@ -427,7 +427,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     allAssert(
       result.isRight shouldBe true, {
         val tiling         = result.value
-        // V0 is shared between two squares, so boundary angle should be 360 - 90 - 90 = 180
+        // V0 is shared between two squares, so the boundary angle should be 360 - 90 - 90 = 180
         val v0BoundaryEdge = tiling.boundaryEdgesSafer.value.find(_.origin.id == V1).get
         v0BoundaryEdge.angle.get shouldBe AngleDegree(180)
       }
@@ -440,7 +440,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
     allAssert(
       verifyValidTiling(withTriangle3), {
-        // V0 now has 3 triangles, so boundary angle should be 360 - 3*60 = 180
+        // V0 now has 3 triangles, so the boundary angle should be 360 - 3*60 = 180
         val v0BoundaryEdge = withTriangle3.boundaryEdgesSafer.value.find(_.origin.id == V1).get
         v0BoundaryEdge.angle.get shouldBe AngleDegree(180)
       }
