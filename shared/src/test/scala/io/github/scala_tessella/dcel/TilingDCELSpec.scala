@@ -48,7 +48,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   it should "find an existing face by id" in
     allAssert(
       triangle.findFace(FaceId.outerId).toOption shouldBe defined,
-      triangle.findFace(FaceId.firstInnerId).toOption shouldBe defined
+      triangle.findFace(F1).toOption shouldBe defined
     )
 
   it should "return None for non-existent face id" in
@@ -293,7 +293,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val twoSquares      = square.maybeAddRegularPolygonToBoundary(V1, RegularPolygon(4)).value
     // V2 is on the boundary. The inner edge from V2 belongs to the first square.
     val v2              = twoSquares.findVertexUnsafe(V2).get
-    val innerEdgeFromV2 = v2.incidentEdgesUnsafe.find(_.incidentFace.exists(_.id == FaceId.firstInnerId)).get
+    val innerEdgeFromV2 = v2.incidentEdgesUnsafe.find(_.incidentFace.exists(_.id == F1)).get
 
     // Distort the angle, which affects both the face and boundary angle sums
     innerEdgeFromV2.angle = Some(AngleDegree(80))

@@ -519,8 +519,8 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
         val tiling  = result.value
         val faceIds = tiling.innerFaces.map(_.id).toSet
         allAssert(
-          faceIds should contain(FaceId.firstInnerId), // Original face
-          faceIds should contain("F2"),                // New face
+          faceIds should contain(F1), // Original face
+          faceIds should contain(F2), // New face
           faceIds should have size 2
         )
       }
