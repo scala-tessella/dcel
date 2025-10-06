@@ -1,6 +1,7 @@
 package io.github.scala_tessella.dcel.conversion
 
 import io.github.scala_tessella.dcel.TilingEquivalency.isEquivalentTo
+import io.github.scala_tessella.dcel.TilingValidation.validate
 import io.github.scala_tessella.dcel.conversion.TilingSVG.*
 import io.github.scala_tessella.dcel.geometry.BigPoint
 import io.github.scala_tessella.dcel.structure.{Face, Vertex, VertexId}
@@ -651,7 +652,7 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val reconstructed = fromMetadata(metadata)
     allAssert(
       reconstructed.isRight shouldBe true,
-      TilingDCEL.validate(reconstructed.value) shouldBe Right(()),
+      validate(reconstructed.value) shouldBe Right(()),
       triangle.isEquivalentTo(reconstructed.value) shouldBe true
     )
   }
@@ -662,7 +663,7 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val reconstructed = fromMetadata(metadata)
     allAssert(
       reconstructed.isRight shouldBe true,
-      TilingDCEL.validate(reconstructed.value) shouldBe Right(()),
+      validate(reconstructed.value) shouldBe Right(()),
       net.isEquivalentTo(reconstructed.value) shouldBe true
     )
   }

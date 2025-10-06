@@ -1,5 +1,6 @@
 package io.github.scala_tessella.dcel
 
+import io.github.scala_tessella.dcel.TilingValidation.validate
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, RegularPolygon, SimplePolygon}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -152,7 +153,7 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
     TilingBuilder.createRhombusNet(3, 3, AngleDegree(60))
 
   it should "create a valid TilingDCEL with a net of rhombi" in {
-    TilingDCEL.validate(rhombusNet).isRight shouldBe true
+    validate(rhombusNet).isRight shouldBe true
   }
 
   behavior of "TilingBuilder.createTriangleNet"
@@ -162,7 +163,7 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
     TilingBuilder.createTriangleNet(3, 3)
 
   it should "create a valid TilingDCEL with a net of regular triangles" in {
-    TilingDCEL.validate(triangleNet).isRight shouldBe true
+    validate(triangleNet).isRight shouldBe true
   }
 
   behavior of "TilingBuilder.createHexagonNet"
@@ -172,5 +173,5 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
     TilingBuilder.createHexagonNet(3, 3, AngleDegree(90))
 
   it should "create a valid TilingDCEL with a net of regular hexagons" in {
-    TilingDCEL.validate(hexagonNet).isRight shouldBe true
+    validate(hexagonNet).isRight shouldBe true
   }

@@ -1,5 +1,6 @@
 package io.github.scala_tessella.dcel
 
+import io.github.scala_tessella.dcel.TilingValidation.*
 import io.github.scala_tessella.dcel.geometry.RegularPolygon
 import io.github.scala_tessella.dcel.structure.VertexId
 import org.scalacheck.Gen
@@ -26,9 +27,9 @@ class TilingRandomGrowthSpec
 
   private def validateAll(t: TilingDCEL): Assertion =
     allAssert(
-      TilingDCEL.validateTopologically(t).isRight shouldBe true,
-      TilingDCEL.validateGeometrically(t).isRight shouldBe true,
-      TilingDCEL.validateSpatially(t).isRight shouldBe true
+      validateTopologically(t).isRight shouldBe true,
+      validateGeometrically(t).isRight shouldBe true,
+      validateSpatially(t).isRight shouldBe true
     )
 
   private val rng = new Random(0xfaceb00c)

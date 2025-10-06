@@ -3,6 +3,7 @@ package io.github.scala_tessella.dcel
 import io.github.scala_tessella.dcel.TilingAddition.*
 import io.github.scala_tessella.dcel.TilingDeletion.*
 import io.github.scala_tessella.dcel.TilingEquivalency.*
+import io.github.scala_tessella.dcel.TilingValidation.validate
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint, RegularPolygon, SimplePolygon}
 import io.github.scala_tessella.dcel.structure.{FaceId, VertexId}
 import io.github.scala_tessella.ring_seq.RingSeq.*
@@ -16,7 +17,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
   // Helper method to verify DCEL validity
   private def verifyValidTiling(tiling: TilingDCEL): Assertion =
-    val comprehensiveCheck = TilingDCEL.validate(tiling)
+    val comprehensiveCheck = validate(tiling)
     comprehensiveCheck.isRight shouldBe true
 
   // Tests for calculateNewVertices method

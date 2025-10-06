@@ -2,6 +2,7 @@ package io.github.scala_tessella.dcel
 
 import io.github.scala_tessella.dcel.TilingDeletion.*
 import io.github.scala_tessella.dcel.TilingEquivalency.*
+import io.github.scala_tessella.dcel.TilingValidation.validate
 import io.github.scala_tessella.dcel.geometry.RegularPolygon
 import io.github.scala_tessella.dcel.structure.VertexId
 import org.scalatest.flatspec.AnyFlatSpec
@@ -126,8 +127,8 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
 
     // Both original and copy should validate successfully
     allAssert(
-      TilingDCEL.validate(original) shouldBe Right(()),
-      TilingDCEL.validate(copy) shouldBe Right(())
+      validate(original) shouldBe Right(()),
+      validate(copy) shouldBe Right(())
     )
   }
 
@@ -150,7 +151,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
         originalBoundaryBefore shouldEqual originalBoundaryAfter
       },
       // The original structure should still be valid
-      TilingDCEL.validate(original) shouldBe Right(()),
+      validate(original) shouldBe Right(()),
       // Original should have the same number of components as before
       original.vertices should have length 4,
       original.innerFaces should have length 1
@@ -173,7 +174,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
         copyBoundaryBefore shouldEqual copyBoundaryAfter
       },
       // Copy structure should still be valid
-      TilingDCEL.validate(copy) shouldBe Right(()),
+      validate(copy) shouldBe Right(()),
 
       // Copy should have the same number of components as before
       copy.vertices should have length 3,
@@ -268,8 +269,8 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
       copy.innerFaces should have length original.innerFaces.length,
 
       // Verify both validate correctly
-      TilingDCEL.validate(original) shouldBe Right(()),
-      TilingDCEL.validate(copy) shouldBe Right(()), {
+      validate(original) shouldBe Right(()),
+      validate(copy) shouldBe Right(()), {
         // Verify independence by modifying each
         val modifiedOriginal = original.maybeAddRegularPolygonToBoundary(V2, RegularPolygon(6))
         val modifiedCopy     = copy.maybeAddRegularPolygonToBoundary(V3, RegularPolygon(5))
@@ -398,7 +399,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
 
   it should "create a valid reflected copy" in {
     val reflected = shapeL.verticallyReflectedCopy
-    TilingDCEL.validate(reflected).isRight shouldBe true
+    validate(reflected).isRight shouldBe true
 //    println(reflected.toSVG())
   }
 

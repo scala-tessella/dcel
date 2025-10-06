@@ -1,5 +1,6 @@
 package io.github.scala_tessella.dcel
 
+import io.github.scala_tessella.dcel.TilingValidation.validate
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, RegularPolygon}
 import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
 import org.scalatest.flatspec.AnyFlatSpec
@@ -213,18 +214,18 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   behavior of "TilingDCEL.validate"
 
   it should "succeed for a valid single polygon tiling" in {
-    TilingDCEL.validate(square) shouldBe Right(())
+    validate(square) shouldBe Right(())
   }
 
   it should "succeed for a valid multi-polygon tiling" in {
     val twoSquares = square.maybeAddRegularPolygonToBoundary(V1, RegularPolygon(4)).value
-    TilingDCEL.validate(twoSquares) shouldBe Right(())
+    validate(twoSquares) shouldBe Right(())
   }
 
   it should "fail if a vertex has no leaving edge" in {
     val tiling = square
     tiling.vertices.head.leaving = None
-    val result = TilingDCEL.validate(tiling)
+    val result = validate(tiling)
     allAssert(
       result.isLeft shouldBe true,
       result.left.value.message should include("has no leaving edge")
@@ -234,7 +235,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   it should "fail if an edge has no twin" in {
     val tiling = square
     tiling.halfEdges.head.twin = None
-    val result = TilingDCEL.validate(tiling)
+    val result = validate(tiling)
     allAssert(
       result.isLeft shouldBe true,
       result.left.value.message should include("has no twin")
@@ -245,7 +246,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val tiling = square
     val edge   = tiling.halfEdges.head
     edge.next.get.prev = None // Break the link
-    val result = TilingDCEL.validate(tiling)
+    val result = validate(tiling)
     allAssert(
       result.isLeft shouldBe true,
       result.left.value.message should include("Next/prev relationship broken")
@@ -256,7 +257,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val tiling = square
     // Tamper with an angle
     tiling.innerFaces.head.outerComponent.get.angle = Some(AngleDegree(89))
-    val result = TilingDCEL.validate(tiling)
+    val result = validate(tiling)
     allAssert(
       result.isLeft shouldBe true,
       result.left.value.message should include("The sum of interior angles is incorrect")
@@ -271,7 +272,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     edges(1).angle = Some(AngleDegree(0))
     edges(2).angle = Some(AngleDegree(90))
     edges(3).angle = Some(AngleDegree(-90))
-    val result = TilingDCEL.validate(tiling)
+    val result = validate(tiling)
     allAssert(
       result.isLeft shouldBe true,
       result.left.value.message should include("cannot have full circles as interior angles")
@@ -282,7 +283,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val tiling = square
     // Make an inner edge "forget" its face
     tiling.innerFaces.head.outerComponent.get.incidentFace = None
-    val result = TilingDCEL.validate(tiling)
+    val result = validate(tiling)
     allAssert(
       result.isLeft shouldBe true,
       result.left.value.message should include("references back")
@@ -298,7 +299,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     // Distort the angle, which affects both the face and boundary angle sums
     innerEdgeFromV2.angle = Some(AngleDegree(80))
 
-    val result = TilingDCEL.validate(twoSquares)
+    val result = validate(twoSquares)
     allAssert(
       result.isLeft shouldBe true, {
         val error         = result.left.value.message
@@ -313,7 +314,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   it should "fail if a boundary angle is undefined" in {
     val tiling = square
     tiling.boundaryEdgesSafer.value.head.angle = None
-    val result = TilingDCEL.validate(tiling)
+    val result = validate(tiling)
     allAssert(
       result.isLeft shouldBe true,
       result.left.value.message should include("Tiling has at least one half-edge with no angle defined")
@@ -323,7 +324,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   it should "fail if a boundary angle is a full circle (360 degrees)" in {
     val tiling = square
     tiling.boundaryEdgesSafer.value.head.angle = Some(AngleDegree(360))
-    val result = TilingDCEL.validate(tiling)
+    val result = validate(tiling)
     allAssert(
       result.isLeft shouldBe true,
       result.left.value.message should include("Full circle boundary angles")
@@ -333,7 +334,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   it should "fail if a boundary angle is a full circle (0 degrees)" in {
     val tiling = square
     tiling.boundaryEdgesSafer.value.head.angle = Some(AngleDegree(0))
-    val result = TilingDCEL.validate(tiling)
+    val result = validate(tiling)
     allAssert(
       result.isLeft shouldBe true,
       result.left.value.message should include("Full circle boundary angles")

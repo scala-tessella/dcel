@@ -1,5 +1,6 @@
 package io.github.scala_tessella.dcel
 
+import io.github.scala_tessella.dcel.TilingValidation.*
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, RegularPolygon, SimplePolygon}
 import io.github.scala_tessella.dcel.structure.{Vertex, VertexId}
 import org.scalacheck.Gen
@@ -32,15 +33,15 @@ class PropertyBasedDCELSpec
   private def validateAll(tiling: TilingDCEL): Assertion =
     allAssert(
       // Topology
-      TilingDCEL.validateTopologically(tiling).isRight shouldBe true,
+      validateTopologically(tiling).isRight shouldBe true,
       // Geometry
-      TilingDCEL.validateGeometrically(tiling).isRight shouldBe true,
+      validateGeometrically(tiling).isRight shouldBe true,
       // Space
-      TilingDCEL.validateSpatially(tiling).isRight shouldBe true
+      validateSpatially(tiling).isRight shouldBe true
     )
 
   private def validateTopology(tiling: TilingDCEL): Assertion =
-    TilingDCEL.validateTopologically(tiling).isRight shouldBe true
+    validateTopologically(tiling).isRight shouldBe true
 
   private def interiorVertices(tiling: TilingDCEL): List[Vertex] =
     val boundary = tiling.boundaryVertices.toSet
@@ -73,7 +74,7 @@ class PropertyBasedDCELSpec
           current.maybeAddRegularPolygonToBoundary(startVid, RegularPolygon(s)) match
             case Right(next) =>
               // Accept only if topology remains valid
-              if TilingDCEL.validateTopologically(next).isRight then
+              if validateTopologically(next).isRight then
                 current = next
                 done = true
             // else keep searching another random operation
@@ -111,7 +112,7 @@ class PropertyBasedDCELSpec
         current.maybeDeleteFace(f.id) match
           case Right(next) =>
             // Accept only if topology remains valid
-            if TilingDCEL.validateTopologically(next).isRight then
+            if validateTopologically(next).isRight then
               current = next
               done = true
           // else keep searching another random operation
