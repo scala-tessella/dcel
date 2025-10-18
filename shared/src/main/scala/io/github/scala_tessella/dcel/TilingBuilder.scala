@@ -9,6 +9,7 @@ import io.github.scala_tessella.dcel.geometry.{
   SimplePolygon
 }
 import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
+import io.github.scala_tessella.dcel.TilingAddition.addRegularPolygonToBoundary
 import spire.implicits.*
 
 import scala.collection.mutable
@@ -524,3 +525,8 @@ object TilingBuilder:
       innerFaces = faces.flatten.toList,
       outerFace = fOuter
     )
+
+  def createRing(polygon: RegularPolygon): TilingDCEL =
+    val start = createRegularPolygon(polygon)
+    val vertexIds: List[VertexId] = ???
+    vertexIds.foldLeft(start) { (ring, vertexId) => ring.addRegularPolygonToBoundary(vertexId, polygon).toOption.get}
