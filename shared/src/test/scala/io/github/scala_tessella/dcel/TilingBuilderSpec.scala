@@ -185,6 +185,13 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
     triangleRing.innerFaces.length shouldBe 6
   }
 
+  it should "create a valid TilingDCEL with a ring of squares" in {
+    /** <img src="file:../../../../../resources/ring4.svg"/> */
+    val squareRing: TilingDCEL =
+      TilingBuilder.createRing(RegularPolygon(4))
+    squareRing.innerFaces.length shouldBe 4
+  }
+
   it should "create a valid TilingDCEL with a ring of regular pentagons" in {
     /** <img src="file:../../../../../resources/ring5.svg"/> */
     val pentagonRing: TilingDCEL =
@@ -192,9 +199,37 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
     pentagonRing.innerFaces.length shouldBe 11
   }
 
+  it should "create a valid TilingDCEL with a ring of regular hexagons" in {
+    /** <img src="file:../../../../../resources/ring6.svg"/> */
+    val hexagonRing: TilingDCEL =
+      TilingBuilder.createRing(RegularPolygon(6))
+    hexagonRing.innerFaces.length shouldBe 7
+  }
+
   it should "create a valid TilingDCEL with a ring of regular eptagons" in {
     /** <img src="file:../../../../../resources/ring7.svg"/> */
     val eptagonRing: TilingDCEL =
       TilingBuilder.createRing(RegularPolygon(7))
     eptagonRing.innerFaces.length shouldBe 15
+  }
+
+  it should "create a valid TilingDCEL with a ring of regular octagons" in {
+    /** <img src="file:../../../../../resources/ring8.svg"/> */
+    val octagonRing: TilingDCEL =
+      TilingBuilder.createRing(RegularPolygon(8))
+    octagonRing.innerFaces.length shouldBe 9
+  }
+
+  it should "create a valid TilingDCEL with a ring of regular ennagons" in {
+    /** <img src="file:../../../../../resources/ring9.svg"/> */
+    val ennagonRing: TilingDCEL =
+      TilingBuilder.createRing(RegularPolygon(9))
+    ennagonRing.innerFaces.length shouldBe 19
+  }
+
+  it should "create a valid TilingDCEL with a ring of regular decagons" in {
+    /** <img src="file:../../../../../resources/ring10.svg"/> */
+    val decagonRing: TilingDCEL =
+      TilingBuilder.createRing(RegularPolygon(10))
+    decagonRing.innerFaces.length shouldBe 11
   }
