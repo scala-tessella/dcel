@@ -241,3 +241,13 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
       TilingBuilder.createRing(RegularPolygon(10))
     decagonRing.innerFaces.length shouldBe 11
   }
+
+  /** @todo from 46 sides onwards this is failing, probably a drift issue */
+  it should "create a valid TilingDCEL with a ring of regular 46-gons" in {
+
+    val xgonRing: TilingDCEL =
+      TilingBuilder.createRing(RegularPolygon(46))
+//    println(xgonRing.toSVG())
+    xgonRing.innerFaces.length shouldBe 47
+  }
+
