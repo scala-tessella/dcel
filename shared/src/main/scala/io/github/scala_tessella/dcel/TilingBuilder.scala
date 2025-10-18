@@ -527,19 +527,15 @@ object TilingBuilder:
     )
 
   def createRing(polygon: RegularPolygon): TilingDCEL =
-    val start = createRegularPolygon(polygon)
-    val vertexIds: List[VertexId] = polygon.toSides match
-      case odd if odd % 2 != 0 =>
-        val start = (odd - 1) / 2 + 2
-        val step = odd - 2
-        val end = start + step * (odd * 2 - 1)
-        val list = Range(start, end, step).toList
-        list.map(i => s"V$i").map(VertexId(_))
-      case even =>
-        val start = even / 2 + 2
-        val step = even - 2
-        val end = start + step * (even - 1)
-        val list = Range(start, end, step).toList
-        list.map(i => s"V$i").map(VertexId(_))
+    val first                     = createRegularPolygon(polygon)
+    val sides: Int                = polygon.toSides
+    val areEven: Boolean          = sides % 2 == 0
+    val start                     = (sides - (if areEven then 0 else 1)) / 2 + 2
+    val step                      = sides - 2
+    val end                       = start + step * (sides * (if areEven then 1 else 2) - 1)
+    val vertexIds: List[VertexId] =
+      Range(start, end, step).map(i => s"V$i").map(VertexId(_)).toList
+    vertexIds.foldLeft(first) { (ring, vertexId) =>
 
-    vertexIds.foldLeft(start) { (ring, vertexId) => ring.addRegularPolygonToBoundary(vertexId, polygon).toOption.get}
+      ring.addRegularPolygonToBoundary(vertexId, polygon).toOption.get
+    }
