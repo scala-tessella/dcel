@@ -175,3 +175,26 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
   it should "create a valid TilingDCEL with a net of regular hexagons" in {
     validate(hexagonNet).isRight shouldBe true
   }
+
+  behavior of "TilingBuilder.createRing"
+
+  it should "create a valid TilingDCEL with a ring of regular triangles" in {
+    /** <img src="file:../../../../../resources/ring3.svg"/> */
+    val triangleRing: TilingDCEL =
+      TilingBuilder.createRing(RegularPolygon(3))
+    triangleRing.innerFaces.length shouldBe 6
+  }
+
+  it should "create a valid TilingDCEL with a ring of regular pentagons" in {
+    /** <img src="file:../../../../../resources/ring5.svg"/> */
+    val pentagonRing: TilingDCEL =
+      TilingBuilder.createRing(RegularPolygon(5))
+    pentagonRing.innerFaces.length shouldBe 11
+  }
+
+  it should "create a valid TilingDCEL with a ring of regular eptagons" in {
+    /** <img src="file:../../../../../resources/ring7.svg"/> */
+    val eptagonRing: TilingDCEL =
+      TilingBuilder.createRing(RegularPolygon(7))
+    eptagonRing.innerFaces.length shouldBe 15
+  }
