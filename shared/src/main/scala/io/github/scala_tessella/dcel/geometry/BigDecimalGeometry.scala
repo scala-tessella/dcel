@@ -22,7 +22,7 @@ object BigDecimalGeometry:
       else
         formatted
 
-  val ACCURACY: Double   = 1.0e-12
+  val ACCURACY: Double   = 1.0e-10
   val BigAcc: BigDecimal = BigDecimal(ACCURACY)
 
   enum Orientation:

@@ -242,12 +242,16 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
     decagonRing.innerFaces.length shouldBe 11
   }
 
-  /** @todo from 46 sides onwards this is failing, probably a drift issue */
-  it should "create a valid TilingDCEL with a ring of regular 46-gons" in {
+  /** @note
+    *   from 46 sides onwards this is failing, if ACCURACY at 1.0e-12; from 92 sides onwards, if at 1.0e-11
+    */
+  it should "create a valid TilingDCEL with a ring of regular centagons" in {
 
-    val xgonRing: TilingDCEL =
-      TilingBuilder.createRing(RegularPolygon(46))
-//    println(xgonRing.toSVG())
-    xgonRing.innerFaces.length shouldBe 47
+    val centagonRing: TilingDCEL =
+      TilingBuilder.createRing(RegularPolygon(100))
+    allAssert(
+      centagonRing.innerFaces.length shouldBe 101,
+      centagonRing.vertices.length shouldBe 9800
+    )
+
   }
-
