@@ -198,6 +198,38 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     )
   }
 
+  /** See <img src="file:../../../../../resources/bench.svg"/> */
+  def bench: TilingDCEL =
+    hexagon
+      .maybeAddRegularPolygonToBoundary(V1, RegularPolygon(3)).value
+      .maybeAddRegularPolygonToBoundary(V2, RegularPolygon(3)).value
+      .maybeAddRegularPolygonToBoundary(V3, RegularPolygon(3)).value
+      .maybeAddRegularPolygonToBoundary(V2, RegularPolygon(4)).value
+      .maybeAddRegularPolygonToBoundary(VertexId("V8"), RegularPolygon(4)).value
+      .maybeAddRegularPolygonToBoundary(VertexId("V11"), RegularPolygon(6)).value
+
+  it should "return the angles for the inner vertex of the bench" in {
+    val result = bench.getAnglesAtVertex(VertexId("V8"))
+    result.value shouldBe List(120, 90, 60, 90).map(AngleDegree(_))
+  }
+
+  it should "return the angles for a boundary vertex of the bench" in {
+    val result = bench.getAnglesAtVertex(V1)
+    result.value shouldBe List(30, 60, 120, 60, 90).map(AngleDegree(_))
+  }
+
+  behavior of "TilingDCEL.getInnerAnglesAtVertex"
+
+  it should "return the inner angles for the inner vertex of the bench" in {
+    val result = bench.getInnerAnglesAtVertex(VertexId("V8"))
+    result.value shouldBe List(120, 90, 60, 90).map(AngleDegree(_))
+  }
+
+  it should "return the inner angles for a boundary vertex of the bench" in {
+    val result = bench.getInnerAnglesAtVertex(V1)
+    result.value shouldBe List(60, 120, 60, 90).map(AngleDegree(_))
+  }
+
   behavior of "TilingDCEL.empty"
 
   it should "create empty tiling" in {

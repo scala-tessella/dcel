@@ -8,6 +8,7 @@ import io.github.scala_tessella.dcel.conversion.TilingDOT.*
 import io.github.scala_tessella.dcel.conversion.TilingSVG.*
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint, RegularPolygon, SimplePolygon}
 import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
+import io.github.scala_tessella.ring_seq.RingSeq.startAt
 
 /** Represents the entire tiling structure as a container for its components.
   *
@@ -87,7 +88,7 @@ final case class TilingDCEL private (
     val edges  = vertex.incidentEdgesUnsafe
     edges.map(_.angle.get)
 
-  /** Returns the angles at the given vertex.
+  /** Returns the ordered angles at the given vertex.
     *
     * @param vertexId
     *   id of the vertex
@@ -98,11 +99,15 @@ final case class TilingDCEL private (
     yield getAnglesAtVertexUnsafe(vertexId)
 
   private[dcel] def getInnerAnglesAtVertexUnsafe(vertexId: VertexId): List[AngleDegree] =
-    val vertex = findVertexUnsafe(vertexId).get
-    val edges  = vertex.incidentEdgesUnsafe
-    edges.filterNot(isBoundaryEdge).map(_.angle.get)
+    val vertex        = findVertexUnsafe(vertexId).get
+    val edges         = vertex.incidentEdgesUnsafe
+    val filteredEdges =
+      edges.indexWhere(isBoundaryEdge) match
+        case -1 => edges
+        case i  => edges.startAt(i).tail
+    filteredEdges.map(_.angle.get)
 
-  /** Returns the inner angles at the given vertex.
+  /** Returns the ordered inner angles at the given vertex.
     *
     * @param vertexId
     *   id of the vertex
@@ -111,6 +116,11 @@ final case class TilingDCEL private (
     for
       vertex <- findVertex(vertexId)
     yield getInnerAnglesAtVertexUnsafe(vertexId)
+
+  /** Computes a mapping between each vertex and the list of its inner angles in the tiling.
+    */
+  def degreesMap: Map[VertexId, List[AngleDegree]] =
+    vertices.map(vertex => vertex.id -> getInnerAnglesAtVertexUnsafe(vertex.id)).toMap
 
   def hasConnectedFaces: Boolean =
     innerFaces.isConnected
