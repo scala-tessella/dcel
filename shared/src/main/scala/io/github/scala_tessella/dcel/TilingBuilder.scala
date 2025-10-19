@@ -526,6 +526,13 @@ object TilingBuilder:
       outerFace = fOuter
     )
 
+  /** Creates a ring structure based on the given regular polygon. If the n sides of the regular polygon are
+    * even, the ring is made of n such polygons, plus an inner one if n > 4. If odd, is made of n * 2 such
+    * polygons, plus an inner one if n > 3
+    *
+    * @param polygon
+    *   the regular polygon that serves as the basis for the ring structure creation
+    */
   def createRing(polygon: RegularPolygon): TilingDCEL =
     val first                     = createRegularPolygon(polygon)
     val sides: Int                = polygon.toSides
