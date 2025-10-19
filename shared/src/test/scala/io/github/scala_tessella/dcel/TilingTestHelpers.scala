@@ -14,22 +14,22 @@ trait TilingTestHelpers extends EitherValues:
   def emptyTiling: TilingDCEL =
     TilingDCEL.empty
 
-  /** A tiling with a single triangle <img src="file:../../../../../resources/triangle.svg"/>
+  /** Tiling with a single triangle <img src="file:../../../../../resources/triangle.svg"/>
     */
   def triangle: TilingDCEL =
     TilingBuilder.createRegularPolygon(RegularPolygon(3))
 
-  /** A tiling with a single square <img src="file:../../../../../resources/square.svg"/>
+  /** Tiling with a single square <img src="file:../../../../../resources/square.svg"/>
     */
   def square: TilingDCEL =
     TilingBuilder.createRegularPolygon(RegularPolygon(4))
 
-  /** A tiling with a single rhombus <img src="file:../../../../../resources/rhombus.svg"/>
+  /** Tiling with a single rhombus <img src="file:../../../../../resources/rhombus.svg"/>
     */
   def rhombus: TilingDCEL =
     TilingBuilder.createSimplePolygon(60, 120, 60, 120).value
 
-  /** A tiling with a single regular hexagon <img src="file:../../../../../resources/hexagon.svg"/>
+  /** Tiling with a single regular hexagon <img src="file:../../../../../resources/hexagon.svg"/>
     */
   def hexagon: TilingDCEL =
     TilingBuilder.createRegularPolygon(RegularPolygon(6))
