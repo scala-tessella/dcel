@@ -81,8 +81,10 @@ object TilingValidation:
           }
     }
 
-    if tiling.faces.exists(_.outerComponent.isEmpty) then
-      errors += "Face with no outer component edge"
+    tiling.faces.filter(_.outerComponent.isEmpty).foreach { face =>
+
+      errors += s"Face ${face.id} with no outer component edge"
+    }
 
     // Ensure all edges that claim to be on the outer face are covered by the outer face traversal
     val outerEdgesClaimed   = tiling.halfEdges.filter(_.hasIncidentFace(tiling.outerFace)).toSet
