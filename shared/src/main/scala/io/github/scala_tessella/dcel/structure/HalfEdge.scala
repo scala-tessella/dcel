@@ -48,6 +48,9 @@ final class HalfEdge(
   def endpointsAsVertices: Option[(Vertex, Vertex)] =
     destination.map(dest => (origin, dest))
 
+  def key: Option[(VertexId, VertexId)] =
+    endpointsAsVertices.map((orig, dest) => (orig.id, dest.id))
+
   private[dcel] def linkWith(that: HalfEdge): Unit =
     this.next = Some(that)
     that.prev = Some(this)

@@ -21,7 +21,9 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       edge.next shouldBe None,
       edge.prev shouldBe None,
       edge.angle shouldBe None,
-      edge.toString shouldBe "HalfEdge V1 -> ? [Missing twin edge, Missing incident face, Missing next edge, Missing previous edge, Missing angle]"
+      edge.toString shouldBe "HalfEdge V1 -> ? [Missing twin edge, Missing incident face, Missing next edge, Missing previous edge, Missing angle]",
+      edge.endpointsAsVertices shouldBe None,
+      edge.key shouldBe None
     )
   }
 
@@ -50,7 +52,9 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       edge.next shouldBe Some(nextEdge),
       edge.prev shouldBe Some(prevEdge),
       edge.angle shouldBe Some(angle),
-      edge.toString shouldBe "HalfEdge V1 -> V2"
+      edge.toString shouldBe "HalfEdge V1 -> V2",
+      edge.endpointsAsVertices shouldBe Some((vertex, twinVertex)),
+      edge.key shouldBe Some((V1, V2))
     )
   }
 
