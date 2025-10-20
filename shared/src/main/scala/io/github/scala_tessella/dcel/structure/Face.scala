@@ -29,6 +29,9 @@ final class Face(
   override def toString: String =
     s"Face $id${validate().swap.map(error => s" [${error.message}]").getOrElse("")}"
 
+  def isOuter: Boolean =
+    id == FaceId.outerId
+
   // Area calculation
   def area: BigDecimal =
     val vertices = getVertices.getOrElse(List.empty)

@@ -72,7 +72,8 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     allAssert(
       face.id.value shouldBe "F1",
       face.outerComponent shouldBe None,
-      face.innerComponents shouldBe Nil
+      face.innerComponents shouldBe Nil,
+      face.isOuter shouldBe false
     )
   }
 
