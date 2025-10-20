@@ -24,7 +24,7 @@ class TilingValidationSpec extends AnyFlatSpec with Matchers with TilingTestHelp
     val result = validate(tiling)
     allAssert(
       result.isLeft shouldBe true,
-      result.left.value.message should include("has no leaving edge")
+      result.left.value.message shouldBe "Vertex V1 at coords (0, 0) [Missing leaving edge]"
     )
   }
 
@@ -34,7 +34,7 @@ class TilingValidationSpec extends AnyFlatSpec with Matchers with TilingTestHelp
     val result = validate(tiling)
     allAssert(
       result.isLeft shouldBe true,
-      result.left.value.message should include("has no twin")
+      result.left.value.message shouldBe "HalfEdge V1 -> ? [Missing twin edge]"
     )
   }
 
@@ -45,7 +45,7 @@ class TilingValidationSpec extends AnyFlatSpec with Matchers with TilingTestHelp
     val result = validate(tiling)
     allAssert(
       result.isLeft shouldBe true,
-      result.left.value.message should include("Next/prev relationship broken")
+      result.left.value.message shouldBe "HalfEdge V2 -> V3 [Missing previous edge]"
     )
   }
 
@@ -82,7 +82,7 @@ class TilingValidationSpec extends AnyFlatSpec with Matchers with TilingTestHelp
     val result = validate(tiling)
     allAssert(
       result.isLeft shouldBe true,
-      result.left.value.message should include("references back")
+      result.left.value.message shouldBe "HalfEdge V1 -> V2 [Missing incident face]"
     )
   }
 
@@ -114,7 +114,7 @@ class TilingValidationSpec extends AnyFlatSpec with Matchers with TilingTestHelp
     allAssert(
       result.isLeft shouldBe true,
       result.left.value.message should include(
-        "HalfEdge V1 -> V4 [Missing angle] has no angle defined"
+        "HalfEdge V1 -> V4 [Missing angle]"
       )
     )
   }

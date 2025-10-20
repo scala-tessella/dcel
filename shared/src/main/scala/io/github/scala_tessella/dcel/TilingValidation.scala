@@ -6,6 +6,26 @@ import scala.collection.mutable
 
 object TilingValidation:
 
+  def validateCompleteness(tiling: TilingDCEL): Either[TilingError, Unit] =
+    val errors = mutable.ListBuffer[String]()
+    tiling.vertices.foreach { vertex =>
+
+      if vertex.validate().isLeft then
+        errors += vertex.toString
+    }
+    tiling.halfEdges.foreach { halfEdge =>
+
+      if halfEdge.validate().isLeft then
+        errors += halfEdge.toString
+    }
+    (tiling.outerFace :: tiling.innerFaces).foreach { face =>
+
+      if face.validate().isLeft then
+        errors += face.toString
+    }
+    if errors.isEmpty then Right(())
+    else Left(TilingError.combineErrors(errors.toList, TilingError.incomplete))
+
   def validateTopologically(tiling: TilingDCEL): Either[TilingError, Unit] =
     val errors = mutable.ListBuffer[String]()
 
@@ -17,39 +37,31 @@ object TilingValidation:
 
     // Check vertex consistency
     tiling.vertices.foreach { vertex =>
-
-      vertex.leaving match
-        case None       => errors += s"Vertex ${vertex.id} has no leaving edge"
-        case Some(edge) =>
-          if edge.origin ne vertex then
-            errors += s"Vertex ${vertex.id} leaving edge doesn't originate from it"
-          if !edgeSet.contains(edge) then
-            errors += s"Vertex ${vertex.id} leaving edge is not part of this tiling"
+      val edge = vertex.leaving.get
+      if edge.origin ne vertex then
+        errors += s"Vertex ${vertex.id} leaving edge doesn't originate from it"
+      if !edgeSet.contains(edge) then
+        errors += s"Vertex ${vertex.id} leaving edge is not part of this tiling"
     }
 
     // Check half-edge consistency
     tiling.halfEdges.foreach { edge =>
       if !vertexSet.contains(edge.origin) then
         errors += s"Edge has origin not part of this tiling: ${edge.origin.id}"
+      val twin = edge.twin.get
+      if !edgeSet.contains(twin) then
+        errors += s"Edge from ${edge.origin.id} twin is not part of this tiling"
+      else
+        if twin eq edge then
+          errors += s"Edge from ${edge.origin.id} has itself as twin"
+        if !twin.twin.contains(edge) then
+          errors += s"Edge from ${edge.origin.id} twin relationship is not symmetric"
 
-      edge.twin match
-        case None       => errors += s"Edge from ${edge.origin.id} has no twin"
-        case Some(twin) =>
-          if !edgeSet.contains(twin) then
-            errors += s"Edge from ${edge.origin.id} twin is not part of this tiling"
-          else
-            if twin eq edge then
-              errors += s"Edge from ${edge.origin.id} has itself as twin"
-            if !twin.twin.contains(edge) then
-              errors += s"Edge from ${edge.origin.id} twin relationship is not symmetric"
-
-      edge.next match
-        case None       => errors += s"Edge from ${edge.origin.id} has no next edge"
-        case Some(next) =>
-          if !edgeSet.contains(next) then
-            errors += s"Edge from ${edge.origin.id} next edge is not part of this tiling"
-          if !next.prev.contains(edge) then
-            errors += s"Next/prev relationship broken: $edge has next edge $next which has prev edge ${next.prev}"
+      val next = edge.next.get
+      if !edgeSet.contains(next) then
+        errors += s"Edge from ${edge.origin.id} next edge is not part of this tiling"
+      if !next.prev.contains(edge) then
+        errors += s"Next/prev relationship broken: $edge has next edge $next which has prev edge ${next.prev}"
 
       edge.prev.foreach { prev =>
 
@@ -81,11 +93,6 @@ object TilingValidation:
           }
     }
 
-    tiling.faces.filter(_.outerComponent.isEmpty).foreach { face =>
-
-      errors += s"$face with no outer component edge"
-    }
-
     // Ensure all edges that claim to be on the outer face are covered by the outer face traversal
     val outerEdgesClaimed   = tiling.halfEdges.filter(_.hasIncidentFace(tiling.outerFace)).toSet
     val outerTraversalEdges =
@@ -102,84 +109,76 @@ object TilingValidation:
   def validateGeometrically(tiling: TilingDCEL): Either[TilingError, Unit] =
     val errors = mutable.ListBuffer[String]()
 
-    // Check if all half-edges have an angle
-    tiling.halfEdges.filter(_.angle.isEmpty).foreach {
-      halfEdge =>
+    // Disallow full-circle or invalid angles on any half-edge
+    tiling.halfEdges.foreach { e =>
 
-        errors += s"$halfEdge has no angle defined"
+      e.angle.foreach { a =>
+
+        if a.isFullCircle then
+          errors += s"Edge from ${e.origin.id} cannot have full circles as interior angles: $a"
+      }
     }
 
-    if errors.isEmpty then
-      // Disallow full-circle or invalid angles on any half-edge
-      tiling.halfEdges.foreach { e =>
+    // Check angles' sum for each inner face
+    tiling.innerFaces.foreach { face =>
 
-        e.angle.foreach { a =>
-
-          if a.isFullCircle then
-            errors += s"Edge from ${e.origin.id} cannot have full circles as interior angles: $a"
-        }
-      }
-
-      // Check angles' sum for each inner face
-      tiling.innerFaces.foreach { face =>
-
-        face.halfEdges match
-          case Right(edges) =>
-            val angles = edges.flatMap(_.angle)
-            if angles.length == edges.length && angles.length >= 3 then
-              try
-                val simple = SimplePolygon(angles.toVector)
-              catch
-                case e: IllegalArgumentException =>
-                  errors += s"Face ${face.id} has an invalid polygon: ${e.getMessage}"
-          case Left(_)      => // NOTE: topological error, handled in validateTopologically
-      }
-
-      // Check angles' sum for the tiling boundary (interior view)
-      tiling.boundaryVerticesSafer match
-        case Right(boundaryVertices) if boundaryVertices.length >= 3 =>
-          val boundaryAngles = boundaryVertices.map(_.currentInteriorAngleSum(tiling.outerFace)).toList
-          if boundaryAngles.exists(_.isLeft) then
-            boundaryAngles.filter(_.isLeft).map(_.swap.toOption.get).foreach(error =>
-              errors += s"Boundary angles calculation failed: $error"
-            )
-          else
+      face.halfEdges match
+        case Right(edges) =>
+          val angles = edges.flatMap(_.angle)
+          if angles.length == edges.length && angles.length >= 3 then
             try
-              val simple = SimplePolygon(boundaryAngles.map(_.toOption.get).toVector)
+              val simple = SimplePolygon(angles.toVector)
             catch
               case e: IllegalArgumentException =>
-                errors += s"Boundary angles sum is incorrect: ${e.getMessage}"
-        case Left(_)                                                 => // NOTE: topological error
-        case _                                                       => // Not enough vertices to form a polygon
+                errors += s"Face ${face.id} has an invalid polygon: ${e.getMessage}"
+        case Left(_)      => // NOTE: topological error, handled in validateTopologically
+    }
 
-      // Check angles' sum for the tiling boundary (exterior view)
-      tiling.boundaryEdgesSafer match
-        case Right(boundaryEdges) if boundaryEdges.length >= 3 =>
-          val boundaryAngles = boundaryEdges.flatMap(_.angle)
-          if boundaryAngles.exists(_.isFullCircle) then
-            errors += s"Full circle boundary angles are invalid: ${boundaryAngles.mkString("; ")}"
-          else
-            try
-              val simple = SimplePolygon(boundaryAngles.map(_.conjugate).toVector)
-            catch
-              case e: IllegalArgumentException =>
-                errors += s"Boundary angles sum is incorrect: ${e.getMessage}"
-        case Left(_)                                           => // NOTE: topological error
-        case _                                                 => // Not enough edges
+    // Check angles' sum for the tiling boundary (interior view)
+    tiling.boundaryVerticesSafer match
+      case Right(boundaryVertices) if boundaryVertices.length >= 3 =>
+        val boundaryAngles = boundaryVertices.map(_.currentInteriorAngleSum(tiling.outerFace)).toList
+        if boundaryAngles.exists(_.isLeft) then
+          boundaryAngles.filter(_.isLeft).map(_.swap.toOption.get).foreach(error =>
+            errors += s"Boundary angles calculation failed: $error"
+          )
+        else
+          try
+            val simple = SimplePolygon(boundaryAngles.map(_.toOption.get).toVector)
+          catch
+            case e: IllegalArgumentException =>
+              errors += s"Boundary angles sum is incorrect: ${e.getMessage}"
+      case Left(_)                                                 => // NOTE: topological error
+      case _                                                       => // Not enough vertices to form a polygon
 
-      // Check angles' sum for each interior vertex
-      val boundaryVertices = tiling.boundaryVertices.toSet
-      val interiorVertices = tiling.vertices.filterNot(boundaryVertices.contains)
-      interiorVertices.foreach { vertex =>
+    // Check angles' sum for the tiling boundary (exterior view)
+    tiling.boundaryEdgesSafer match
+      case Right(boundaryEdges) if boundaryEdges.length >= 3 =>
+        val boundaryAngles = boundaryEdges.flatMap(_.angle)
+        if boundaryAngles.exists(_.isFullCircle) then
+          errors += s"Full circle boundary angles are invalid: ${boundaryAngles.mkString("; ")}"
+        else
+          try
+            val simple = SimplePolygon(boundaryAngles.map(_.conjugate).toVector)
+          catch
+            case e: IllegalArgumentException =>
+              errors += s"Boundary angles sum is incorrect: ${e.getMessage}"
+      case Left(_)                                           => // NOTE: topological error
+      case _                                                 => // Not enough edges
 
-        tiling.getAnglesAtVertex(vertex.id) match
-          case Right(angles) =>
-            val sum = angles.sumExact
-            if !sum.isFullCircle then
-              errors += s"Angles around interior vertex ${vertex.id} do not sum to a full circle: $sum."
-          case Left(error)   =>
-            errors += s"Could not validate angles for interior vertex ${vertex.id} due to: $error"
-      }
+    // Check angles' sum for each interior vertex
+    val boundaryVertices = tiling.boundaryVertices.toSet
+    val interiorVertices = tiling.vertices.filterNot(boundaryVertices.contains)
+    interiorVertices.foreach { vertex =>
+
+      tiling.getAnglesAtVertex(vertex.id) match
+        case Right(angles) =>
+          val sum = angles.sumExact
+          if !sum.isFullCircle then
+            errors += s"Angles around interior vertex ${vertex.id} do not sum to a full circle: $sum."
+        case Left(error)   =>
+          errors += s"Could not validate angles for interior vertex ${vertex.id} due to: $error"
+    }
 
     if errors.isEmpty then Right(()) else Left(TilingError.combineErrors(errors.toList, TilingError.geometry))
 
@@ -209,9 +208,12 @@ object TilingValidation:
     if errors.isEmpty then Right(()) else Left(TilingError.combineErrors(errors.toList, TilingError.spatial))
 
   def validate(tiling: TilingDCEL): Either[TilingError, Unit] =
-    val topoErrors  = validateTopologically(tiling).left.toOption.map(_.message)
-    val geoErrors   = validateGeometrically(tiling).left.toOption.map(_.message)
-    val spaceErrors = validateSpatially(tiling).left.toOption.map(_.message)
-    val allErrors   = topoErrors.toList ++ geoErrors.toList ++ spaceErrors.toList
-    if allErrors.isEmpty then Right(())
-    else Left(TilingError.combineErrors(allErrors, TilingError.validation))
+    validateCompleteness(tiling) match
+      case Left(value) => Left(value)
+      case Right(_)    =>
+        val topoErrors  = validateTopologically(tiling).left.toOption.map(_.message)
+        val geoErrors   = validateGeometrically(tiling).left.toOption.map(_.message)
+        val spaceErrors = validateSpatially(tiling).left.toOption.map(_.message)
+        val allErrors   = topoErrors.toList ++ geoErrors.toList ++ spaceErrors.toList
+        if allErrors.isEmpty then Right(())
+        else Left(TilingError.combineErrors(allErrors, TilingError.validation))

@@ -4,6 +4,7 @@ sealed trait TilingError:
   def message: String
 
 case class ValidationError(message: String)          extends TilingError
+case class IncompleteError(message: String)          extends TilingError
 case class TopologyError(message: String)            extends TilingError
 case class GeometryError(message: String)            extends TilingError
 case class SpatialError(message: String)             extends TilingError
@@ -14,6 +15,7 @@ object TilingError:
 
   // Helper methods for common error creation patterns
   def validation(msg: String): TilingError              = ValidationError(msg)
+  def incomplete(msg: String): TilingError              = IncompleteError(msg)
   def topology(msg: String): TilingError                = TopologyError(msg)
   def geometry(msg: String): TilingError                = GeometryError(msg)
   def spatial(msg: String): TilingError                 = SpatialError(msg)
@@ -26,6 +28,7 @@ object TilingError:
       val errorType =
         f.apply("whatever") match
           case ValidationError(message)  => "validation"
+          case IncompleteError(message)  => "completeness"
           case TopologyError(message)    => "topology"
           case GeometryError(message)    => "geometry"
           case SpatialError(message)     => "spatial"

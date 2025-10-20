@@ -62,7 +62,7 @@ final class HalfEdge(
   def isComplete: Boolean =
     twin.isDefined && incidentFace.isDefined && next.isDefined && prev.isDefined && angle.isDefined
 
-  def validate(): Either[ValidationError, Unit] =
+  def validate(): Either[IncompleteError, Unit] =
     val errors = List(
       Option.when(twin.isEmpty)("Missing twin edge"),
       Option.when(incidentFace.isEmpty)("Missing incident face"),
@@ -72,7 +72,7 @@ final class HalfEdge(
     ).flatten
 
     if errors.isEmpty then Right(())
-    else Left(ValidationError(errors.mkString(", ")))
+    else Left(IncompleteError(errors.mkString(", ")))
 
   private def traverseUnsafe[T](direction: HalfEdge => Option[HalfEdge])(f: HalfEdge => T =
     identity): List[T] =

@@ -3,7 +3,7 @@ package io.github.scala_tessella.dcel.structure
 import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.format
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigDecimalGeometry, BigPoint}
 import io.github.scala_tessella.dcel.structure.Utils.breadthFirstSearch
-import io.github.scala_tessella.dcel.{TilingError, ValidationError}
+import io.github.scala_tessella.dcel.{IncompleteError, TilingError}
 
 /** Represents a single vertex in the DCEL.
   *
@@ -34,9 +34,9 @@ final class Vertex(
   def isComplete: Boolean =
     leaving.isDefined
 
-  def validate(): Either[ValidationError, Unit] =
+  def validate(): Either[IncompleteError, Unit] =
     if isComplete then Right(())
-    else Left(ValidationError("Missing leaving edge"))
+    else Left(IncompleteError("Missing leaving edge"))
 
   private[dcel] def incidentEdgesUnsafe: List[HalfEdge] =
     leaving match
