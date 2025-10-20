@@ -230,6 +230,13 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     result.value shouldBe List(60, 120, 60, 90).map(AngleDegree(_))
   }
 
+  behavior of "TilingDCEL.innerVertices"
+
+  it should "return the inner vertices of the bench" in {
+    val result = bench.innerVertices
+    result.map(_.id) shouldBe List(VertexId("V8"))
+  }
+
   behavior of "TilingDCEL.empty"
 
   it should "create empty tiling" in {

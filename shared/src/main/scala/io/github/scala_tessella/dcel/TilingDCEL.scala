@@ -145,6 +145,10 @@ final case class TilingDCEL private (
       case Some(startEdge) => startEdge.faceTraversal(_.origin).map(_.toVector)
       case None            => Right(Vector.empty)
 
+  /** All vertices in the tiling, except those on the outer boundary. */
+  def innerVertices: List[Vertex] =
+    vertices.diff(boundaryVertices)
+    
   /** Finds the ordered half-edges forming the outer boundary of the tiling. */
   def boundaryEdges: List[HalfEdge] =
     outerFace.outerComponent match
