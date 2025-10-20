@@ -113,7 +113,9 @@ class TilingValidationSpec extends AnyFlatSpec with Matchers with TilingTestHelp
     val result = validate(tiling)
     allAssert(
       result.isLeft shouldBe true,
-      result.left.value.message should include("Tiling has at least one half-edge with no angle defined")
+      result.left.value.message should include(
+        "HalfEdge V1 -> V4 [Missing angle] has no angle defined"
+      )
     )
   }
 
