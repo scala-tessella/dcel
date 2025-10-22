@@ -41,13 +41,13 @@ final case class TilingDCEL private (
   private[dcel] def findVertexUnsafe(vertexId: VertexId): Option[Vertex] =
     vertices.find(_.id == vertexId)
 
-  def findVertex(vertexId: VertexId): Either[TilingError, Vertex] =
+  def findVertex(vertexId: VertexId): Either[NotFoundError, Vertex] =
     findVertexUnsafe(vertexId).toRight(NotFoundError("Vertex", vertexId.value))
 
-  def findFace(faceId: FaceId): Either[TilingError, Face] =
+  def findFace(faceId: FaceId): Either[NotFoundError, Face] =
     faces.find(_.id == faceId).toRight(NotFoundError("Face", faceId.value))
 
-  def findInnerFace(faceId: FaceId): Either[TilingError, Face] =
+  def findInnerFace(faceId: FaceId): Either[NotFoundError, Face] =
     innerFaces.find(_.id == faceId).toRight(NotFoundError("Inner face", faceId.value))
 
   /** Checks if the given edge is on the boundary.
@@ -78,7 +78,7 @@ final case class TilingDCEL private (
   def innerFacesVertices: List[(FaceId, List[Vertex])] =
     innerFaces.map(face => (face.id, face.getVerticesUnsafe))
 
-  def findInnerFaceVertices(faceId: FaceId): Either[TilingError, List[Vertex]] =
+  def findInnerFaceVertices(faceId: FaceId): Either[NotFoundError, List[Vertex]] =
     for
       face <- findInnerFace(faceId)
     yield face.getVerticesUnsafe
@@ -93,7 +93,7 @@ final case class TilingDCEL private (
     * @param vertexId
     *   id of the vertex
     */
-  def getAnglesAtVertex(vertexId: VertexId): Either[TilingError, List[AngleDegree]] =
+  def getAnglesAtVertex(vertexId: VertexId): Either[NotFoundError, List[AngleDegree]] =
     for
       vertex <- findVertex(vertexId)
     yield getAnglesAtVertexUnsafe(vertexId)
@@ -112,7 +112,7 @@ final case class TilingDCEL private (
     * @param vertexId
     *   id of the vertex
     */
-  def getInnerAnglesAtVertex(vertexId: VertexId): Either[TilingError, List[AngleDegree]] =
+  def getInnerAnglesAtVertex(vertexId: VertexId): Either[NotFoundError, List[AngleDegree]] =
     for
       vertex <- findVertex(vertexId)
     yield getInnerAnglesAtVertexUnsafe(vertexId)
@@ -123,7 +123,7 @@ final case class TilingDCEL private (
     vertices.map(vertex => vertex.id -> getInnerAnglesAtVertexUnsafe(vertex.id)).toMap
 
   /** Gets a reduced TilingDCEL made only of the polygons sharing the given vertex */
-  def vertexDCEL(vertexId: VertexId): Either[TilingError, TilingDCEL] =
+  def vertexDCEL(vertexId: VertexId): Either[NotFoundError, TilingDCEL] =
     for
       center <- findVertex(vertexId)
     yield
