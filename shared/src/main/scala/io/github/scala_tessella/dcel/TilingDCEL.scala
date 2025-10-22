@@ -282,6 +282,21 @@ final case class TilingDCEL private (
       val newInner    = fMap.values.toList
       val newHalf     = (heMap.values ++ boundaryStubs).toList
 
+      // Fix boundary angles so that at every outer vertex:
+      // boundaryAngle = conjugate(sum(inner incident angles at that vertex))
+      outerFace.outerComponent.foreach { start =>
+        val boundaryLoop = start.faceTraversalUnsafe[HalfEdge]()
+        boundaryLoop.foreach { be =>
+          val v = be.origin
+          val incidentAtV = newHalf.filter(_.origin eq v)
+          val innerSumAtV = incidentAtV
+            .filterNot(_.hasIncidentFace(outerFace))
+            .flatMap(_.angle)
+            .sumExact
+          be.angle = Some(innerSumAtV.conjugate)
+        }
+      }
+
       // Return new DCEL
       TilingDCEL(
         vertices = newVertices,
