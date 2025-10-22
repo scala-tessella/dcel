@@ -48,14 +48,14 @@ class TilingValidationComprehensiveSpec extends AnyFlatSpec with Matchers with T
 //    msg should include ("unit length")
 //  }
 
-  behavior of "TilingValidation.validateTopologically"
+  behavior of "TilingValidation.validateCompleteness"
 
   it should "fail when a vertex has no leaving edge" in {
     val tiling = square
     tiling.vertices.head.leaving = None
-    val res    = validateTopologically(tiling)
+    val res    = validateCompleteness(tiling)
     res.isLeft shouldBe true
-    res.left.value.message should include("has no leaving edge")
+    res.left.value.message shouldBe "Vertex V1 at coords (0, 0) [Missing leaving edge]"
   }
 
   it should "fail when a vertex leaving edge does not originate from that vertex" in {
@@ -78,18 +78,18 @@ class TilingValidationComprehensiveSpec extends AnyFlatSpec with Matchers with T
     // We cannot mutate tiling.halfEdges collection; instead, make leaving point to e.twin, then set that twin to None so it fails earlier.
     // Fall back to a direct, reliable case already covered (twin None) to ensure membership error is also triggered elsewhere:
     e.next = None
-    val res     = validateTopologically(tiling)
+    val res     = validateCompleteness(tiling)
     res.isLeft shouldBe true
     // This test ensures at least one topological error is caught here (no next edge)
-    res.left.value.message should include("has no next edge")
+    res.left.value.message shouldBe "HalfEdge V1 -> V2 [Missing next edge]"
   }
 
   it should "fail when a half-edge has no twin" in {
     val tiling = square
     tiling.halfEdges.head.twin = None
-    val res    = validateTopologically(tiling)
+    val res    = validateCompleteness(tiling)
     res.isLeft shouldBe true
-    res.left.value.message should include("has no twin")
+    res.left.value.message shouldBe "HalfEdge V1 -> ? [Missing twin edge]"
   }
 
   it should "fail when a half-edge twin is itself" in {
@@ -107,9 +107,9 @@ class TilingValidationComprehensiveSpec extends AnyFlatSpec with Matchers with T
     val t      = e.twin.get
     // break symmetry
     t.twin = None
-    val res    = validateTopologically(tiling)
+    val res    = validateCompleteness(tiling)
     res.isLeft shouldBe true
-    res.left.value.message should include("twin relationship is not symmetric")
+    res.left.value.message shouldBe "HalfEdge V2 -> ? [Missing twin edge]"
   }
 
   it should "fail when a half-edge has no next or prev or they are inconsistent" in {
@@ -146,9 +146,9 @@ class TilingValidationComprehensiveSpec extends AnyFlatSpec with Matchers with T
   it should "fail when a face has no outer component" in {
     val tiling = square
     tiling.faces.foreach(_.outerComponent = None)
-    val res    = validateTopologically(tiling)
+    val res    = validateCompleteness(tiling)
     res.isLeft shouldBe true
-    res.left.value.message should include("Face with no outer component edge")
+    res.left.value.message should include("Face F0 [Missing outer component edge]")
   }
 
   it should "fail if outer face has edges not reachable from its outer component" in {
@@ -156,9 +156,9 @@ class TilingValidationComprehensiveSpec extends AnyFlatSpec with Matchers with T
     // Break traversal by disconnecting one boundary link
     val be     = tiling.outerFace.outerComponent.get
     be.next = None
-    val res    = validateTopologically(tiling)
+    val res    = validateCompleteness(tiling)
     res.isLeft shouldBe true
-    res.left.value.message should include("Outer face has edges not reachable from its outer component")
+    res.left.value.message shouldBe "HalfEdge V1 -> V4 [Missing next edge]"
   }
 
   it should "fail when an inner face has holes (disallowed in this tessellation)" in {
@@ -181,9 +181,9 @@ class TilingValidationComprehensiveSpec extends AnyFlatSpec with Matchers with T
   it should "fail if any half-edge has undefined angle" in {
     val tiling = square
     tiling.halfEdges.head.angle = None
-    val res    = validateGeometrically(tiling)
+    val res    = validateCompleteness(tiling)
     res.isLeft shouldBe true
-    res.left.value.message should include("no angle defined")
+    res.left.value.message shouldBe "HalfEdge V1 -> V2 [Missing angle]"
   }
 
   it should "fail when any half-edge has a full-circle angle" in {
