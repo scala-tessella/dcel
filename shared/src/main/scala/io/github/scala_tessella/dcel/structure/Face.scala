@@ -58,7 +58,7 @@ final class Face(
   /** Get all vertices that form the boundary of a face. Returns vertices in the order they appear around the
     * face boundary.
     */
-  def getVertices: Either[TilingError, List[Vertex]] =
+  def getVertices: Either[TopologyError, List[Vertex]] =
     outerComponent match
       case None            => Right(List.empty)
       case Some(startEdge) => startEdge.faceTraversal(_.origin)
@@ -68,7 +68,7 @@ final class Face(
 
   /** Get all half-edges forming a face loop.
     */
-  def halfEdges: Either[TilingError, List[HalfEdge]] =
+  def halfEdges: Either[TopologyError, List[HalfEdge]] =
     outerComponent match
       case None        => Right(List.empty)
       case Some(start) => start.faceTraversal()

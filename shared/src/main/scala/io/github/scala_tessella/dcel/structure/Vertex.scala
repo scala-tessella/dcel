@@ -3,7 +3,7 @@ package io.github.scala_tessella.dcel.structure
 import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.format
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigDecimalGeometry, BigPoint}
 import io.github.scala_tessella.dcel.structure.Utils.breadthFirstSearch
-import io.github.scala_tessella.dcel.{IncompleteError, TilingError}
+import io.github.scala_tessella.dcel.{IncompleteError, TopologyError}
 
 /** Represents a single vertex in the DCEL.
   *
@@ -43,7 +43,7 @@ final class Vertex(
       case None            => List.empty
       case Some(startEdge) => startEdge.vertexTraversalUnsafe()
 
-  def incidentEdges: Either[TilingError, List[HalfEdge]] =
+  def incidentEdges: Either[TopologyError, List[HalfEdge]] =
     leaving match
       case None            => Right(List.empty)
       case Some(startEdge) => startEdge.vertexTraversal()
@@ -51,7 +51,7 @@ final class Vertex(
   private[dcel] def currentInteriorAngleSumUnsafe(outerFace: Face): AngleDegree =
     incidentEdgesUnsafe.interiorAnglesSum(outerFace)
 
-  def currentInteriorAngleSum(outerFace: Face): Either[TilingError, AngleDegree] =
+  def currentInteriorAngleSum(outerFace: Face): Either[TopologyError, AngleDegree] =
     incidentEdges.map(_.interiorAnglesSum(outerFace))
 
   def degree: Int = incidentEdgesUnsafe.length
@@ -62,7 +62,7 @@ final class Vertex(
     incidentEdgesUnsafe.flatMap(_.destination)
 
   // Safe helper returning all distinct adjacent vertices
-  def adjacentVertices: Either[TilingError, List[Vertex]] =
+  def adjacentVertices: Either[TopologyError, List[Vertex]] =
     incidentEdges.map(_.flatMap(_.destination).distinct)
 
   private[dcel] def incidentFacesUnsafe: List[Face] =
