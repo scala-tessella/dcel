@@ -137,10 +137,7 @@ final case class TilingDCEL private (
 
       // Maps from original ids to cloned elements for the local DCEL
       val vMap  = scala.collection.mutable.HashMap[VertexId, Vertex]()
-      val heMap = scala.collection.mutable.HashMap[
-        (VertexId, VertexId),
-        HalfEdge
-      ]()
+      val heMap = scala.collection.mutable.HashMap[(VertexId, VertexId), HalfEdge]()
       val fMap  = scala.collection.mutable.HashMap[FaceId, Face]()
 
       // Helper to clone or reuse vertices
@@ -287,7 +284,7 @@ final case class TilingDCEL private (
       outerFace.outerComponent.foreach { start =>
         val boundaryLoop = start.faceTraversalUnsafe[HalfEdge]()
         boundaryLoop.foreach { be =>
-          val v = be.origin
+          val v           = be.origin
           val incidentAtV = newHalf.filter(_.origin eq v)
           val innerSumAtV = incidentAtV
             .filterNot(_.hasIncidentFace(outerFace))
