@@ -67,7 +67,7 @@ final case class TilingDCEL private (
   def findVerticesAndEdgeBetween(
       vertexId1: VertexId,
       vertexId2: VertexId
-  ): Either[TilingError, (Vertex, Vertex, HalfEdge)] =
+  ): Either[NotFoundError, (Vertex, Vertex, HalfEdge)] =
     for
       v1   <- findVertex(vertexId1)
       v2   <- findVertex(vertexId2)
