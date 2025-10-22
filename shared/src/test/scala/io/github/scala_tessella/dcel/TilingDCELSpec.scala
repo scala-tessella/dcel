@@ -198,7 +198,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     )
   }
 
-  /** See <img src="file:../../../../../resources/bench.svg"/> */
+  /** @see <img src="file:../../../../../resources/bench.svg"/> */
   def bench: TilingDCEL =
     hexagon
       .maybeAddRegularPolygonToBoundary(V1, RegularPolygon(3)).value
@@ -252,16 +252,13 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   behavior of "TilingDCEL.vertexDCEL"
 
   it should "return the DCEL around the inner vertex of the bench" in {
+    /** @see <img src="file:../../../../../resources/aroundInnerVertex.svg"/> */
     val result = bench.vertexDCEL(VertexId("V8"))
-    println(result.value.toSVG())
-//    result.isRight shouldBe true
-    println(TilingValidation.validate(result.value))
     TilingValidation.validate(result.value).isRight shouldBe true
   }
 
   it should "return the DCEL around a boundary vertex of the bench" in {
+    /** @see <img src="file:../../../../../resources/aroundBoundaryVertex.svg"/> */
     val result = bench.vertexDCEL(V1)
-    println(result.value.toSVG())
-    result.isRight shouldBe true
     TilingValidation.validate(result.value).isRight shouldBe true
   }
