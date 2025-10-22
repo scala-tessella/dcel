@@ -140,7 +140,7 @@ final case class TilingDCEL private (
       val heMap = scala.collection.mutable.HashMap[
         (VertexId, VertexId),
         HalfEdge
-      ]() // use a stable unique key of HalfEdge (e.g., its id)
+      ]()
       val fMap  = scala.collection.mutable.HashMap[FaceId, Face]()
 
       // Helper to clone or reuse vertices
@@ -167,7 +167,7 @@ final case class TilingDCEL private (
             )
             heMap.put(key, nh): Unit
             // set leaving edge for vertex if missing
-            if (o.leaving.isEmpty) o.leaving = Some(nh)
+            if o.leaving.isEmpty then o.leaving = Some(nh)
         }
       }
 
@@ -197,8 +197,7 @@ final case class TilingDCEL private (
         val cycle = f.outerComponent.get.faceTraversalUnsafe[HalfEdge]()
         cycle.foreach { he =>
           val nh = heMap(he.key.get)
-          val tw = he.twin
-          tw.foreach { t =>
+          he.twin.foreach { t =>
 
             if heMap.contains(t.key.get) then
               val nt = heMap(t.key.get)
@@ -228,40 +227,51 @@ final case class TilingDCEL private (
           boundaryStubs += b
       }
 
-      // Link boundary half-edges into one outer component cycle if possible
-      // We map by origin to stitch them clockwise around the outside.
-      val byOrigin = boundaryStubs.groupBy(_.origin.id).view.mapValues(_.toBuffer).toMap
+      // Stitch boundary half-edges into chains by following inner prev-links
+      // For a boundary edge b (twin = nh), its next boundary should correspond to nh.prev's twin boundary.
+      // That next boundary must start at nh.prev.destination (which equals b.destination).
+      val keyOf: HalfEdge => (VertexId, VertexId) = he => (he.origin.id, he.destination.get.id)
+      val stubByKey                               = boundaryStubs.map(b => keyOf(b) -> b).toMap
 
-      // Simple stitching: next of a boundary edge should be the boundary edge whose origin is this edge's twin.origin
-      // (i.e., follow around the outside of adjacent inner edges)
       def nextBoundaryOf(b: HalfEdge): Option[HalfEdge] =
-        val innerPrev = b.twin.get.prev.get
-        val wantedOrigin = innerPrev.origin.id
-        // among boundaries starting at wantedOrigin, pick the one whose twin == innerPrev
-        byOrigin.get(wantedOrigin).flatMap(_.find(_.twin.contains(innerPrev)))
-//        val inner           = b.twin.get
-//        val prevInner       = inner.prev.get
-//        val candidateOrigin = prevInner.origin.id
-//        byOrigin.get(candidateOrigin).flatMap(_.headOption)
+        val inner     = b.twin.get
+        val innerPrev = inner.prev.get
+        // the boundary twin corresponding to innerPrev should be the boundary whose origin is innerPrev.destination
+        // i.e., key = (innerPrev.destination, innerPrev.origin) in terms of vertex ids
+        val wantedKey = (innerPrev.destination.get.id, innerPrev.origin.id)
+        stubByKey.get(wantedKey)
 
-      // Build cycles
+      // Build all boundary cycles (some chains may share vertices; we only accept closed loops)
       val visited        = scala.collection.mutable.HashSet[(VertexId, VertexId)]()
       val boundaryCycles = scala.collection.mutable.ArrayBuffer[HalfEdge]()
 
       boundaryStubs.foreach { start =>
-
-        if !visited.contains(start.key.get) then
+        val startKey = keyOf(start)
+        if !visited.contains(startKey) then
           var cur   = start
           var first = start
           var ok    = true
-          while (ok && !visited.contains(cur.key.get))
-            visited += cur.key.get
+          while ok && !visited.contains(keyOf(cur)) do
+            visited += keyOf(cur)
             nextBoundaryOf(cur) match
-              case Some(n) => cur.next = Some(n); n.prev = Some(cur); cur = n
-              case None    => ok = false
+              case Some(n) =>
+                cur.next = Some(n)
+                n.prev = Some(cur)
+                cur = n
+              case None    =>
+                ok = false
+          // close only if we returned to first
           if ok && (cur eq first) then
             boundaryCycles += first
       }
+
+      // If we have no complete outer boundary cycle yet, attempt to order stubs around the outside
+      // as a fallback to avoid leaving dangling prev/next.
+      if boundaryCycles.isEmpty && boundaryStubs.nonEmpty then
+        val ordered = boundaryStubs.toList.orderBoundary
+        if ordered.nonEmpty then
+          ordered.linkInCycle()
+          boundaryCycles += ordered.head
 
       // Assign one of the cycles (if any) as the outer component
       if boundaryCycles.nonEmpty then
@@ -272,7 +282,7 @@ final case class TilingDCEL private (
       val newInner    = fMap.values.toList
       val newHalf     = (heMap.values ++ boundaryStubs).toList
 
-      // Return new DCEL without global validation; caller can validate if desired
+      // Return new DCEL
       TilingDCEL(
         vertices = newVertices,
         halfEdges = newHalf,
@@ -306,7 +316,7 @@ final case class TilingDCEL private (
   /** All vertices in the tiling, except those on the outer boundary. */
   def innerVertices: List[Vertex] =
     vertices.diff(boundaryVertices)
-    
+
   /** Finds the ordered half-edges forming the outer boundary of the tiling. */
   def boundaryEdges: List[HalfEdge] =
     outerFace.outerComponent match
