@@ -122,6 +122,164 @@ final case class TilingDCEL private (
   def degreesMap: Map[VertexId, List[AngleDegree]] =
     vertices.map(vertex => vertex.id -> getInnerAnglesAtVertexUnsafe(vertex.id)).toMap
 
+  /** Gets a reduced TilingDCEL made only of the polygons sharing the given vertex */
+  def vertexDCEL(vertexId: VertexId): Either[TilingError, TilingDCEL] =
+    for
+      center <- findVertex(vertexId)
+    yield
+      // Collect incident inner faces in cyclic order around the vertex
+      val incidentEdges      = center.incidentEdgesUnsafe
+      val incidentInnerFaces =
+        incidentEdges
+          .flatMap(e => e.incidentFace.toList)
+          .filterNot(_.isOuter) // exclude outerFace
+          .distinct
+
+      // Maps from original ids to cloned elements for the local DCEL
+      val vMap  = scala.collection.mutable.HashMap[VertexId, Vertex]()
+      val heMap = scala.collection.mutable.HashMap[
+        (VertexId, VertexId),
+        HalfEdge
+      ]() // use a stable unique key of HalfEdge (e.g., its id)
+      val fMap  = scala.collection.mutable.HashMap[FaceId, Face]()
+
+      // Helper to clone or reuse vertices
+      def cloneVertex(v: Vertex): Vertex =
+        vMap.getOrElseUpdate(v.id, Vertex(v.id, v.coords, leaving = None))
+
+      // First pass: clone faces and boundary cycles, clone half-edges without wiring next/prev/twin
+      incidentInnerFaces.foreach { f =>
+        val newFace = Face(f.id, outerComponent = None, innerComponents = Nil)
+        fMap.put(f.id, newFace): Unit
+
+        val cycle = f.outerComponent.get.faceTraversalUnsafe[HalfEdge]() // ordered half-edges around face
+        cycle.foreach { he =>
+          val key = he.key.get
+          if !heMap.contains(key) then
+            val o  = cloneVertex(he.origin)
+            val nh = HalfEdge(
+              origin = o,
+              twin = None,
+              next = None,
+              prev = None,
+              incidentFace = None,
+              angle = he.angle
+            )
+            heMap.put(key, nh): Unit
+            // set leaving edge for vertex if missing
+            if (o.leaving.isEmpty) o.leaving = Some(nh)
+        }
+      }
+
+      // Second pass: set next/prev/incidentFace for inner faces
+      incidentInnerFaces.foreach { f =>
+        val newFace            = fMap(f.id)
+        val cycle              = f.outerComponent.get.faceTraversalUnsafe[HalfEdge]()
+        var firstNew: HalfEdge = null
+        var prevNew: HalfEdge  = null
+        cycle.foreach { he =>
+          val nh = heMap(he.key.get)
+          nh.incidentFace = Some(newFace)
+          if firstNew eq null then firstNew = nh
+          if prevNew != null then
+            prevNew.next = Some(nh)
+            nh.prev = Some(prevNew)
+          prevNew = nh
+        }
+        // close the cycle
+        prevNew.next = Some(firstNew)
+        firstNew.prev = Some(prevNew)
+        newFace.outerComponent = Some(firstNew)
+      }
+
+      // Third pass: wire twins when both sides are inside the local subgraph
+      incidentInnerFaces.foreach { f =>
+        val cycle = f.outerComponent.get.faceTraversalUnsafe[HalfEdge]()
+        cycle.foreach { he =>
+          val nh = heMap(he.key.get)
+          val tw = he.twin
+          tw.foreach { t =>
+
+            if heMap.contains(t.key.get) then
+              val nt = heMap(t.key.get)
+              nh.twin = Some(nt)
+              nt.twin = Some(nh)
+          }
+        }
+      }
+
+      // Build outer boundary half-edges for any inner half-edge whose twin is missing
+      val outerFace     = Face.outer
+      val boundaryStubs = scala.collection.mutable.ArrayBuffer[HalfEdge]()
+
+      heMap.values.foreach { nh =>
+
+        if nh.twin.isEmpty then
+          // Create boundary twin
+          val b = HalfEdge(
+            origin = nh.next.get.origin, // boundary runs opposite direction
+            twin = Some(nh),
+            next = None,
+            prev = None,
+            incidentFace = Some(outerFace),
+            angle = nh.angle.map(_.conjugate)
+          )
+          nh.twin = Some(b)
+          boundaryStubs += b
+      }
+
+      // Link boundary half-edges into one outer component cycle if possible
+      // We map by origin to stitch them clockwise around the outside.
+      val byOrigin = boundaryStubs.groupBy(_.origin.id).view.mapValues(_.toBuffer).toMap
+
+      // Simple stitching: next of a boundary edge should be the boundary edge whose origin is this edge's twin.origin
+      // (i.e., follow around the outside of adjacent inner edges)
+      def nextBoundaryOf(b: HalfEdge): Option[HalfEdge] =
+        val innerPrev = b.twin.get.prev.get
+        val wantedOrigin = innerPrev.origin.id
+        // among boundaries starting at wantedOrigin, pick the one whose twin == innerPrev
+        byOrigin.get(wantedOrigin).flatMap(_.find(_.twin.contains(innerPrev)))
+//        val inner           = b.twin.get
+//        val prevInner       = inner.prev.get
+//        val candidateOrigin = prevInner.origin.id
+//        byOrigin.get(candidateOrigin).flatMap(_.headOption)
+
+      // Build cycles
+      val visited        = scala.collection.mutable.HashSet[(VertexId, VertexId)]()
+      val boundaryCycles = scala.collection.mutable.ArrayBuffer[HalfEdge]()
+
+      boundaryStubs.foreach { start =>
+
+        if !visited.contains(start.key.get) then
+          var cur   = start
+          var first = start
+          var ok    = true
+          while (ok && !visited.contains(cur.key.get))
+            visited += cur.key.get
+            nextBoundaryOf(cur) match
+              case Some(n) => cur.next = Some(n); n.prev = Some(cur); cur = n
+              case None    => ok = false
+          if ok && (cur eq first) then
+            boundaryCycles += first
+      }
+
+      // Assign one of the cycles (if any) as the outer component
+      if boundaryCycles.nonEmpty then
+        outerFace.outerComponent = Some(boundaryCycles.head)
+
+      // Assemble final collections
+      val newVertices = vMap.values.toList
+      val newInner    = fMap.values.toList
+      val newHalf     = (heMap.values ++ boundaryStubs).toList
+
+      // Return new DCEL without global validation; caller can validate if desired
+      TilingDCEL(
+        vertices = newVertices,
+        halfEdges = newHalf,
+        innerFaces = newInner,
+        outerFace = outerFace
+      )
+
   def hasConnectedFaces: Boolean =
     innerFaces.isConnected
 
