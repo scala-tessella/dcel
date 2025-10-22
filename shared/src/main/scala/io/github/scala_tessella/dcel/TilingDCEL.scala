@@ -123,7 +123,7 @@ final case class TilingDCEL private (
     vertices.map(vertex => vertex.id -> getInnerAnglesAtVertexUnsafe(vertex.id)).toMap
 
   /** Gets a reduced TilingDCEL made only of the polygons sharing the given vertex */
-  def vertexDCEL(vertexId: VertexId): Either[NotFoundError, TilingDCEL] =
+  def getDcelAtVertex(vertexId: VertexId): Either[NotFoundError, TilingDCEL] =
     for
       center <- findVertex(vertexId)
     yield

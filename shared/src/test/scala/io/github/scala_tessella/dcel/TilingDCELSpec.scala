@@ -253,12 +253,12 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "return the DCEL around the inner vertex of the bench" in {
     /** @see <img src="file:../../../../../resources/aroundInnerVertex.svg"/> */
-    val result = bench.vertexDCEL(VertexId("V8"))
+    val result = bench.getDcelAtVertex(VertexId("V8"))
     TilingValidation.validate(result.value).isRight shouldBe true
   }
 
   it should "return the DCEL around a boundary vertex of the bench" in {
     /** @see <img src="file:../../../../../resources/aroundBoundaryVertex.svg"/> */
-    val result = bench.vertexDCEL(V1)
+    val result = bench.getDcelAtVertex(V1)
     TilingValidation.validate(result.value).isRight shouldBe true
   }
