@@ -323,7 +323,7 @@ final case class TilingDCEL private (
       case None            => Vector.empty
 
   /** For validation purposes only. */
-  private[dcel] def boundaryVerticesSafer: Either[TilingError, Vector[Vertex]] =
+  private[dcel] def boundaryVerticesSafer: Either[TopologyError, Vector[Vertex]] =
     outerFace.outerComponent match
       case Some(startEdge) => startEdge.faceTraversal(_.origin).map(_.toVector)
       case None            => Right(Vector.empty)
@@ -339,7 +339,7 @@ final case class TilingDCEL private (
       case None            => List.empty
 
   /** For validation purposes only. */
-  private[dcel] def boundaryEdgesSafer: Either[TilingError, List[HalfEdge]] =
+  private[dcel] def boundaryEdgesSafer: Either[TopologyError, List[HalfEdge]] =
     outerFace.outerComponent match
       case Some(startEdge) => startEdge.faceTraversal()
       case None            => Right(List.empty)

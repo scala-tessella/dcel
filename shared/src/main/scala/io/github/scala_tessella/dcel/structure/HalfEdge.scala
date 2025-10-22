@@ -90,16 +90,16 @@ final class HalfEdge(
   private[dcel] def vertexTraversalUnsafe[T](f: HalfEdge => T = identity): List[T] =
     traverseUnsafe[T](_.twin.flatMap(_.next))(f)
 
-  def vertexTraversal[T](f: HalfEdge => T = identity): Either[TilingError, List[T]] =
+  def vertexTraversal[T](f: HalfEdge => T = identity): Either[TopologyError, List[T]] =
     traverse[T](_.twin.flatMap(_.next))(f)
 
   private def traverse[T](direction: HalfEdge => Option[HalfEdge])(f: HalfEdge => T =
-    identity): Either[TilingError, List[T]] =
+    identity): Either[TopologyError, List[T]] =
     val startEdge = this
     val visited   = mutable.Set[HalfEdge]()
 
     @tailrec
-    def collectEdges(current: HalfEdge, acc: List[T]): Either[TilingError, List[T]] =
+    def collectEdges(current: HalfEdge, acc: List[T]): Either[TopologyError, List[T]] =
       if visited.contains(current) then
         Left(TopologyError(s"Cycle detected: edge from vertex ${current.origin.id} has already been visited"))
       else
@@ -120,7 +120,7 @@ final class HalfEdge(
   private[dcel] def faceTraversalUnsafe[T](f: HalfEdge => T = identity): List[T] =
     traverseUnsafe[T](_.next)(f)
 
-  def faceTraversal[T](f: HalfEdge => T = identity): Either[TilingError, List[T]] =
+  def faceTraversal[T](f: HalfEdge => T = identity): Either[TopologyError, List[T]] =
     traverse[T](_.next)(f)
 
   def hasIncidentFace(face: Face): Boolean =
