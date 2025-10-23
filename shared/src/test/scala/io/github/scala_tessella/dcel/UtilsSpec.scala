@@ -36,19 +36,19 @@ class UtilsSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   behavior of "Utils.traverse on Option"
 
   it should "map Some via function returning Right, wrapping in Some" in {
-    val some    = Some(5)
+    val some                             = Some(5)
     val f: Int => Either[String, String] = i => Right(s"n=$i")
     some.traverse(f) shouldBe Right(Some("n=5"))
   }
 
   it should "propagate Left from function" in {
-    val some    = Some(5)
+    val some                             = Some(5)
     val f: Int => Either[String, String] = _ => Left("bad")
     some.traverse(f) shouldBe Left("bad")
   }
 
   it should "return Right(None) for None regardless of function" in {
-    val none: Option[Int] = None
+    val none: Option[Int]             = None
     val f: Int => Either[String, Int] = i => Right(i + 1)
     none.traverse(f) shouldBe Right(None)
   }
@@ -74,7 +74,7 @@ class UtilsSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   it should "support non-primitive types" in {
     case class K(i: Int)
     case class V(s: String)
-    val k1 = K(1); val k2 = K(2)
+    val k1  = K(1); val k2 = K(2)
     val res = Seq(k1, k2).associate(k => V(s"v${k.i}"))
     res shouldBe Map(k1 -> V("v1"), k2 -> V("v2"))
   }
