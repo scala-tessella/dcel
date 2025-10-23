@@ -11,6 +11,8 @@ import io.github.scala_tessella.dcel.structure.Utils.shortestPath
 import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
 import io.github.scala_tessella.ring_seq.RingSeq.{slidingO, startAt}
 
+import scala.::
+
 /** Represents the entire tiling structure as a container for its components.
   *
   * @param vertices
@@ -339,6 +341,32 @@ final case class TilingDCEL private (
         innerFaces = newInner,
         outerFace = outerFace
       )
+
+//  def gonalityMap: Map[VertexId, TilingDCEL] =
+//   innerVertices.map(_.id).associate(getDcelAtVertex(_).toOption.get)
+
+  /** Computes a mapping where each TilingDCEL instance is associated
+   *  with a list of inner vertices having the same equivalent TilingDCEL.
+   *  Equivalency between two TilingDCEL is calculated with the [[TilingDCEL.equivalentTo]] method.
+   */
+  def groupedInnerVertices: Map[TilingDCEL, List[VertexId]] =
+    val localByVertex: List[(VertexId, TilingDCEL)] =
+      innerVertices.map(_.id).map(vertexId => vertexId -> getDcelAtVertex(vertexId).toOption.get)
+
+    // Group by equivalence class using a canonical representative per class
+    val classes = scala.collection.mutable.ArrayBuffer[(TilingDCEL, List[VertexId])]()
+    localByVertex.foreach { case (vertexId, local) =>
+      // Try to find an existing equivalent representative
+      classes.indexWhere { case (rep, _) => local.isEquivalentTo(rep) } match
+        case -1 =>
+          classes += ((local, List(vertexId)))
+        case idx =>
+          val (rep, ids) = classes(idx)
+          classes.update(idx, (rep, vertexId :: ids))
+    }
+
+    // Return as a Map with vertex ids in stable order (ascending by their appearance order)
+    classes.iterator.map { case (rep, ids) => rep -> ids.reverse }.toMap
 
   def hasConnectedFaces: Boolean =
     innerFaces.isConnected
