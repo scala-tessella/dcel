@@ -57,24 +57,24 @@ class UtilsSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "map elements using provided function" in {
     val seq = Seq(1, 2, 3)
-    seq.toMap2(_ * 10) shouldBe Map(1 -> 10, 2 -> 20, 3 -> 30)
+    seq.associate(_ * 10) shouldBe Map(1 -> 10, 2 -> 20, 3 -> 30)
   }
 
   it should "favor last occurrence as key when duplicates exist" in {
     val seq = Seq("a", "b", "a")
     // Map semantics keep the last value for duplicate key "a"
-    seq.toMap2(_.toUpperCase) shouldBe Map("a" -> "A", "b" -> "B")
+    seq.associate(_.toUpperCase) shouldBe Map("a" -> "A", "b" -> "B")
   }
 
   it should "work with empty sequence" in {
     val seq = Seq.empty[Int]
-    seq.toMap2(_ + 1) shouldBe Map.empty
+    seq.associate(_ + 1) shouldBe Map.empty
   }
 
   it should "support non-primitive types" in {
     case class K(i: Int)
     case class V(s: String)
     val k1 = K(1); val k2 = K(2)
-    val res = Seq(k1, k2).toMap2(k => V(s"v${k.i}"))
+    val res = Seq(k1, k2).associate(k => V(s"v${k.i}"))
     res shouldBe Map(k1 -> V("v1"), k2 -> V("v2"))
   }

@@ -26,5 +26,5 @@ object Utils:
      * @return a `Map` mapping each element to its transformation.
      * @example {{{List(1, 2).toMap2(_ + 1) // Map(1 -> 2, 2 -> 3)}}}
      */
-    def toMap2[T](f: A => T): Map[A, T] =
-      seq.view.map(elem => elem -> f(elem)).toMap
+    def associate[T](f: A => T): Map[A, T] =
+      seq.iterator.map(elem => elem -> f(elem)).toMap
