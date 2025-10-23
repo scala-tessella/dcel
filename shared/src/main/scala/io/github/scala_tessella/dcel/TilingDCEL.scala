@@ -7,8 +7,9 @@ import io.github.scala_tessella.dcel.TilingValidation.validate
 import io.github.scala_tessella.dcel.conversion.TilingDOT.*
 import io.github.scala_tessella.dcel.conversion.TilingSVG.*
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint, RegularPolygon, SimplePolygon}
+import io.github.scala_tessella.dcel.structure.Utils.shortestPath
 import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
-import io.github.scala_tessella.ring_seq.RingSeq.startAt
+import io.github.scala_tessella.ring_seq.RingSeq.{slidingO, startAt}
 
 /** Represents the entire tiling structure as a container for its components.
   *
@@ -121,6 +122,43 @@ final case class TilingDCEL private (
     */
   def degreesMap: Map[VertexId, List[AngleDegree]] =
     vertices.map(vertex => vertex.id -> getInnerAnglesAtVertexUnsafe(vertex.id)).toMap
+
+  def adjacencyMap: Map[VertexId, List[VertexId]] =
+    // For each vertex, collect destinations of its incident half-edges (distinct, keep stable order)
+    vertices.map { v =>
+      val neighbors = v.incidentEdgesUnsafe
+        .flatMap(_.destination)
+        .map(_.id)
+        .distinct
+      v.id -> neighbors
+    }.toMap
+
+  def getPolygonVerticesAroundVertex(vertexId: VertexId): Either[NotFoundError, List[VertexId]] =
+    for
+      center <- findVertex(vertexId)
+    yield
+      val adjacency = adjacencyMap
+
+      def cumulativePath(
+          vertexIds: List[VertexId],
+          f: List[VertexId] => Iterator[List[VertexId]],
+          excluded: Set[VertexId]
+      ): List[VertexId] =
+        f(vertexIds).toList.map((_: @unchecked) match {
+          case start :: goal :: Nil => shortestPath(start, goal, adjacency, excluded)
+        }).flatMap(_.tail)
+
+      val adjacentVertexIds = center.adjacentVerticesUnsafe.map(_.id)
+      if !boundaryVertices.contains(center) then
+        cumulativePath(adjacentVertexIds, _.slidingO(2), Set(vertexId))
+      else
+        val innerPart    =
+          cumulativePath(adjacentVertexIds, _.sliding(2), Set(vertexId))
+        val continuation = adjacentVertexIds.last :: vertexId :: adjacentVertexIds.head :: Nil
+
+        val boundaryPart =
+          cumulativePath(continuation, _.sliding(2), innerPart.init.toSet)
+        innerPart ::: boundaryPart
 
   /** Gets a reduced TilingDCEL made only of the polygons sharing the given vertex */
   def getDcelAtVertex(vertexId: VertexId): Either[NotFoundError, TilingDCEL] =
