@@ -31,3 +31,6 @@ object Utils:
       */
     def associate[T](f: A => T): Map[A, T] =
       seq.iterator.map(elem => elem -> f(elem)).toMap
+
+    def associateValues[T](f: A => T): Map[T, A] =
+      seq.iterator.map(elem => f(elem) -> elem).toMap

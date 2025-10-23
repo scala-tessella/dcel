@@ -236,14 +236,13 @@ object TilingEquivalency:
         // which is a safe upper bound for information to propagate across the entire graph (related to graph diameter).
         val iterations = t.vertices.size
         (1 to iterations).foreach { _ =>
-          val nextSignatures = t.vertices.map { v =>
+          val nextSignatures = t.vertices.associate { v =>
             // 3. For each vertex, collect the signatures of its neighbors.
             val neighborSignatures  =
               v.incidentEdgesUnsafe.flatMap(_.destination).flatMap(signatures.get).sorted
             // 4. The new signature is a hash/combination of the current signature and the neighbors' signatures.
-            val aggregatedSignature = s"${signatures(v)}|${neighborSignatures.mkString(";")}"
-            v -> aggregatedSignature
-          }.toMap
+            s"${signatures(v)}|${neighborSignatures.mkString(";")}"
+          }
           println(nextSignatures)
           signatures = nextSignatures
         }

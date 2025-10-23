@@ -1,8 +1,8 @@
 package io.github.scala_tessella.dcel.conversion
 
-import io.github.scala_tessella.dcel.Utils.{sequence, traverse}
+import io.github.scala_tessella.dcel.Utils.{associateValues, sequence, traverse}
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint}
-import io.github.scala_tessella.dcel.structure._
+import io.github.scala_tessella.dcel.structure.*
 import io.github.scala_tessella.dcel.{NotFoundError, TilingDCEL, TilingError, ValidationError}
 import spire.math.Rational
 
@@ -71,7 +71,7 @@ object TilingSVGPlatform:
                         y  <- attrAs(attrs, "vertex", "y", BigDecimal.apply, "BigDecimal")
                       yield Vertex(VertexId(id), BigPoint(x, y))
                     }.sequence
-        vertexMap = vertices.map(v => v.id -> v).toMap
+        vertexMap = vertices.associateValues(_.id)
 
         // Build half-edges by explicit id, not by order
         heIdAndAttrs <- halfEdgeAttrs0.map { attrs =>
@@ -98,7 +98,7 @@ object TilingSVGPlatform:
 
                    getAttr(attrs, "face", "id").map(id => Face(FaceId(id)))
                  }.sequence
-        faceMap = faces.map(f => f.id -> f).toMap
+        faceMap = faces.associateValues(_.id)
 
         // Wire vertex.leaving (optional; id references halfEdgeMap)
         _ <- vertexAttrs.zip(vertices).map { case (attrs, vertex) =>

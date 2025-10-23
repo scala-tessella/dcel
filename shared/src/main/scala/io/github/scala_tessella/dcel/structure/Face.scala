@@ -1,6 +1,6 @@
 package io.github.scala_tessella.dcel.structure
 
-import io.github.scala_tessella.dcel.Utils.sequence
+import io.github.scala_tessella.dcel.Utils.{associate, sequence}
 import io.github.scala_tessella.dcel.*
 import io.github.scala_tessella.dcel.geometry.AngleDegree
 import io.github.scala_tessella.dcel.structure.Utils.breadthFirstSearch
@@ -97,9 +97,9 @@ object Face:
   def outer: Face = Face(FaceId.outerId)
 
   def adjacencyMap(faces: List[Face]): Map[Face, List[Face]] =
-    faces.map { face =>
+    faces.associate { face =>
 
-      face -> face.halfEdges.getOrElse(List.empty)
+      face.halfEdges.getOrElse(List.empty)
         .flatMap(edge =>
           for
             twin         <- edge.twin
@@ -107,7 +107,7 @@ object Face:
             if faces.contains(incidentFace)
           yield incidentFace
         )
-    }.toMap
+    }
 
   extension (faces: List[Face])
 

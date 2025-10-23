@@ -1,6 +1,6 @@
 package io.github.scala_tessella.dcel.conversion
 
-import io.github.scala_tessella.dcel.Utils.{sequence, traverse}
+import io.github.scala_tessella.dcel.Utils.{associateValues, sequence, traverse}
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint}
 import io.github.scala_tessella.dcel.structure._
 import io.github.scala_tessella.dcel.{NotFoundError, TilingDCEL, TilingError, ValidationError}
@@ -37,7 +37,7 @@ object TilingSVGPlatform:
                         y  <- attrAs(vNode, "y", BigDecimal.apply, "BigDecimal")
                       } yield Vertex(VertexId(id), BigPoint(x, y))
                     }.sequence
-      vertexMap = vertices.map(v => v.id -> v).toMap
+      vertexMap = vertices.associateValues(_.id)
 
       halfEdgeNodes = (xmlRoot \ "half-edges" \ "half-edge").toList
       halfEdges    <- halfEdgeNodes.map { heNode =>
@@ -59,7 +59,7 @@ object TilingSVGPlatform:
 
                     getAttr(fNode, "id").map(id => Face(FaceId(id)))
                   }.sequence
-      faceMap = faces.map(f => f.id -> f).toMap
+      faceMap = faces.associateValues(_.id)
 
       _ <- vertexNodes.zip(vertices).map { case (vNode, vertex) =>
              vNode.attribute("leaving").map(_.text).traverse { leavingIdStr =>
