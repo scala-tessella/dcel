@@ -1,6 +1,7 @@
 package io.github.scala_tessella.dcel
 
 import io.github.scala_tessella.dcel.TilingDeletion.deleteEdge
+import io.github.scala_tessella.dcel.TilingEquivalency.isEquivalentTo
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, RegularPolygon}
 import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
 import org.scalatest.flatspec.AnyFlatSpec
@@ -264,6 +265,23 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     /** @see <img src="file:../../../../../resources/aroundBoundaryVertex.svg"/> */
     val result = bench.getDcelAtVertex(V1)
     TilingValidation.validate(result.value).isRight shouldBe true
+  }
+
+  it should "return the DCEL around another boundary vertex of the bench" in {
+    val result = bench.getDcelAtVertex(VertexId("V7"))
+    allAssert(
+      TilingValidation.validate(result.value).isRight shouldBe true,
+      result.value.isEquivalentTo(triangle) shouldBe true
+    )
+  }
+
+  it should "return the DCEL around the inner vertex with varying distances" in {
+    val net = TilingBuilder.createRhombusNet(6, 6)
+    allAssert(
+      net.getDcelAtVertex(VertexId("V25"), 0).value.innerFaces.size shouldBe 4,
+      net.getDcelAtVertex(VertexId("V25"), 1).value.innerFaces.size shouldBe 12,
+      net.getDcelAtVertex(VertexId("V25"), 2).value.innerFaces.size shouldBe 24
+    )
   }
 
   behavior of "TilingDCEL.getPolygonVerticesAroundVertex"
