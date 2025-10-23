@@ -332,3 +332,182 @@ class UtilsSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       result2 shouldBe result3
     )
   }
+
+  behavior of "Utils.shortestPath"
+
+  it should "return Some(List(start)) when start == goal" in {
+    val start     = "A"
+    val adjacency = Map("A" -> List("B"), "B" -> List("C"))
+
+    Utils.shortestPath(start, start, adjacency) shouldBe Some(List("A"))
+  }
+
+  it should "return None when start or goal is excluded" in {
+    val adjacency = Map("A" -> List("B"), "B" -> List("C"))
+    allAssert(
+      Utils.shortestPath("A", "C", adjacency, excluded = Set("A")) shouldBe None,
+      Utils.shortestPath("A", "C", adjacency, excluded = Set("C")) shouldBe None
+    )
+  }
+
+  it should "find the shortest path in a simple linear graph" in {
+    val adjacency = Map(
+      "A" -> List("B"),
+      "B" -> List("C"),
+      "C" -> List("D"),
+      "D" -> Nil
+    )
+    Utils.shortestPath("A", "D", adjacency) shouldBe Some(List("A", "B", "C", "D"))
+  }
+
+  it should "prefer the truly shortest path in a branching graph" in {
+    // A -> B -> C -> D (length 3)
+    // A -> E -> D     (length 2) should be chosen
+    val adjacency = Map(
+      "A" -> List("B", "E"),
+      "B" -> List("C"),
+      "C" -> List("D"),
+      "E" -> List("D"),
+      "D" -> Nil
+    )
+    Utils.shortestPath("A", "D", adjacency) shouldBe Some(List("A", "E", "D"))
+  }
+
+  it should "return None when no path exists" in {
+    val adjacency = Map(
+      "A" -> List("B"),
+      "B" -> Nil,
+      "C" -> List("D"),
+      "D" -> Nil
+    )
+    Utils.shortestPath("A", "D", adjacency) shouldBe None
+  }
+
+  it should "respect exclusions by removing intermediate vertices from consideration" in {
+    // Without exclusions: A -> B -> C -> D
+    // Excluding B or C should break the path
+    val adjacency = Map(
+      "A" -> List("B"),
+      "B" -> List("C"),
+      "C" -> List("D"),
+      "D" -> Nil
+    )
+    allAssert(
+      Utils.shortestPath("A", "D", adjacency, excluded = Set("B")) shouldBe None,
+      Utils.shortestPath("A", "D", adjacency, excluded = Set("C")) shouldBe None
+    )
+  }
+
+  it should "work on graphs with cycles" in {
+    // A -> B -> C -> A (cycle) and C -> D
+    val adjacency = Map(
+      "A" -> List("B"),
+      "B" -> List("C"),
+      "C" -> List("A", "D"),
+      "D" -> Nil
+    )
+    Utils.shortestPath("A", "D", adjacency) shouldBe Some(List("A", "B", "C", "D"))
+  }
+
+  it should "handle self-loops" in {
+    // self-loop on A, but path to D goes through B, C
+    val adjacency = Map(
+      "A" -> List("A", "B"),
+      "B" -> List("C"),
+      "C" -> List("D"),
+      "D" -> Nil
+    )
+    Utils.shortestPath("A", "D", adjacency) shouldBe Some(List("A", "B", "C", "D"))
+  }
+
+  it should "handle multiple edges to the same node without affecting the path" in {
+    val adjacency = Map(
+      "A" -> List("B", "B", "C"),
+      "B" -> List("D"),
+      "C" -> List("D"),
+      "D" -> Nil
+    )
+    // Both paths have equal length; BFS will discover via B first due to neighbor order
+    val path      = Utils.shortestPath("A", "D", adjacency)
+    path should (be(Some(List("A", "B", "D"))) or be(Some(List("A", "C", "D"))))
+  }
+
+  it should "return shortest path in presence of disconnected components" in {
+    val adjacency = Map(
+      "A" -> List("B"),
+      "B" -> List("C"),
+      "C" -> Nil,
+      "X" -> List("Y"),
+      "Y" -> Nil
+    )
+    Utils.shortestPath("A", "C", adjacency) shouldBe Some(List("A", "B", "C"))
+  }
+
+  it should "handle start or goal not present in the adjacency map" in {
+    val adjacency  = Map(
+      "A" -> List("B"),
+      "B" -> Nil
+    )
+    // Start not in map but should still allow path search (no outgoing edges)
+    Utils.shortestPath("Z", "B", adjacency) shouldBe None
+    // Goal not in map, but reachable if listed as neighbor
+    val adjacency2 = Map(
+      "A" -> List("Z")
+    )
+    Utils.shortestPath("A", "Z", adjacency2) shouldBe Some(List("A", "Z"))
+  }
+
+  it should "work with non-String node types (Int)" in {
+    val adjacency = Map(
+      1 -> List(2, 3),
+      2 -> List(4),
+      3 -> List(4),
+      4 -> List.empty[Int]
+    )
+    Utils.shortestPath(1, 4, adjacency) should (be(Some(List(1, 2, 4))) or be(Some(List(1, 3, 4))))
+  }
+
+  it should "work with case class nodes" in {
+    case class Node(id: String, v: Int)
+    val a = Node("A", 1)
+    val b = Node("B", 2)
+    val c = Node("C", 3)
+    val d = Node("D", 4)
+
+    val adjacency = Map(
+      a -> List(b),
+      b -> List(c),
+      c -> List(d),
+      d -> Nil
+    )
+    Utils.shortestPath(a, d, adjacency) shouldBe Some(List(a, b, c, d))
+  }
+
+  it should "respect exclusions with complex branching" in {
+    // A -> B -> D
+    // A -> C -> D
+    // Excluding C forces path via B
+    val adjacency = Map(
+      "A" -> List("B", "C"),
+      "B" -> List("D"),
+      "C" -> List("D"),
+      "D" -> Nil
+    )
+    Utils.shortestPath("A", "D", adjacency, excluded = Set("C")) shouldBe Some(List("A", "B", "D"))
+  }
+
+  it should "return None if exclusions block all shortest paths" in {
+    val adjacency = Map(
+      "A" -> List("B", "C"),
+      "B" -> List("D"),
+      "C" -> List("D"),
+      "D" -> Nil
+    )
+    Utils.shortestPath("A", "D", adjacency, excluded = Set("B", "C")) shouldBe None
+  }
+
+  it should "handle large linear graphs efficiently" in {
+    val nodes     = (1 to 300).map(_.toString).toList
+    val adjacency = nodes.zip(nodes.tail).toMap.view.mapValues(List(_)).toMap
+    Utils.shortestPath("1", "300", adjacency) shouldBe Some(nodes)
+  }
