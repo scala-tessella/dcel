@@ -178,7 +178,7 @@ final case class TilingDCEL private (
   def getDcelAtVertex(vertexId: VertexId, distance: Int = 0): Either[NotFoundError, TilingDCEL] =
     val d = math.max(0, distance)
 
-    // BFS on vertices to get all vertices within distance d from center
+    // BFS on vertices to get all vertices within distance d from the center
     def bfsVertices(center: Vertex): Set[Vertex] =
       val visited = scala.collection.mutable.LinkedHashSet.empty[Vertex]
       val queue   = scala.collection.mutable.Queue.empty[(Vertex, Int)]
@@ -211,7 +211,7 @@ final case class TilingDCEL private (
           vs.exists(inRadius.contains)
         }
 
-      // 3) Build a local DCEL from those faces, cloning only needed vertices/edges/faces
+      // 3) Build a local DCEL from those faces, cloning only the necessary vertices/edges/faces
       val vMap  = scala.collection.mutable.HashMap[VertexId, Vertex]()
       val heMap = scala.collection.mutable.HashMap[(VertexId, VertexId), HalfEdge]()
       val fMap  = scala.collection.mutable.HashMap[FaceId, Face]()
@@ -242,7 +242,7 @@ final case class TilingDCEL private (
         }
       }
 
-      // Second pass: set next/prev/incidentFace for inner faces
+      // Second pass: set next/prev/incidentFace for the inner faces
       selectedInnerFaces.foreach { f =>
         val nf                 = fMap(f.id)
         val cycle              = f.outerComponent.get.faceTraversalUnsafe[HalfEdge]()
@@ -309,7 +309,7 @@ final case class TilingDCEL private (
         val startKey = keyOf(start)
         if !visitedPairs.contains(startKey) then
           var cur   = start
-          var first = start
+          val first = start
           var ok    = true
           while ok && !visitedPairs.contains(keyOf(cur)) do
             visitedPairs += keyOf(cur)
