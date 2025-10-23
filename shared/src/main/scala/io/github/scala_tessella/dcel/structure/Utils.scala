@@ -31,9 +31,9 @@ object Utils:
       goal: T,
       adjacency: Map[T, List[T]],
       excluded: Set[T] = Set.empty[T]
-  ): Option[List[T]] =
-    if excluded.contains(start) || excluded.contains(goal) then return None
-    if start == goal then return Some(List(start))
+  ): List[T] =
+    if excluded.contains(start) || excluded.contains(goal) then return Nil
+    if start == goal then return List(start)
 
     val visited = mutable.Set[T](start)
     val queue   = mutable.Queue[T](start)
@@ -49,7 +49,7 @@ object Utils:
           val p = parent(node)
           pathBuf.prepend(p)
           node = p
-        return Some(pathBuf.toList)
+        return pathBuf.toList
 
       val neighbors = adjacency.getOrElse(current, Nil)
       neighbors.foreach { neighbor =>
@@ -60,4 +60,4 @@ object Utils:
           queue.enqueue(neighbor)
       }
 
-    None
+    Nil

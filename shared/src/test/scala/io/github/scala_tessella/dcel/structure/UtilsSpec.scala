@@ -339,14 +339,14 @@ class UtilsSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val start     = "A"
     val adjacency = Map("A" -> List("B"), "B" -> List("C"))
 
-    Utils.shortestPath(start, start, adjacency) shouldBe Some(List("A"))
+    Utils.shortestPath(start, start, adjacency) shouldBe List("A")
   }
 
   it should "return None when start or goal is excluded" in {
     val adjacency = Map("A" -> List("B"), "B" -> List("C"))
     allAssert(
-      Utils.shortestPath("A", "C", adjacency, excluded = Set("A")) shouldBe None,
-      Utils.shortestPath("A", "C", adjacency, excluded = Set("C")) shouldBe None
+      Utils.shortestPath("A", "C", adjacency, excluded = Set("A")) shouldBe Nil,
+      Utils.shortestPath("A", "C", adjacency, excluded = Set("C")) shouldBe Nil
     )
   }
 
@@ -357,7 +357,7 @@ class UtilsSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       "C" -> List("D"),
       "D" -> Nil
     )
-    Utils.shortestPath("A", "D", adjacency) shouldBe Some(List("A", "B", "C", "D"))
+    Utils.shortestPath("A", "D", adjacency) shouldBe List("A", "B", "C", "D")
   }
 
   it should "prefer the truly shortest path in a branching graph" in {
@@ -370,7 +370,7 @@ class UtilsSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       "E" -> List("D"),
       "D" -> Nil
     )
-    Utils.shortestPath("A", "D", adjacency) shouldBe Some(List("A", "E", "D"))
+    Utils.shortestPath("A", "D", adjacency) shouldBe List("A", "E", "D")
   }
 
   it should "return None when no path exists" in {
@@ -380,7 +380,7 @@ class UtilsSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       "C" -> List("D"),
       "D" -> Nil
     )
-    Utils.shortestPath("A", "D", adjacency) shouldBe None
+    Utils.shortestPath("A", "D", adjacency) shouldBe Nil
   }
 
   it should "respect exclusions by removing intermediate vertices from consideration" in {
@@ -393,8 +393,8 @@ class UtilsSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       "D" -> Nil
     )
     allAssert(
-      Utils.shortestPath("A", "D", adjacency, excluded = Set("B")) shouldBe None,
-      Utils.shortestPath("A", "D", adjacency, excluded = Set("C")) shouldBe None
+      Utils.shortestPath("A", "D", adjacency, excluded = Set("B")) shouldBe Nil,
+      Utils.shortestPath("A", "D", adjacency, excluded = Set("C")) shouldBe Nil
     )
   }
 
@@ -406,7 +406,7 @@ class UtilsSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       "C" -> List("A", "D"),
       "D" -> Nil
     )
-    Utils.shortestPath("A", "D", adjacency) shouldBe Some(List("A", "B", "C", "D"))
+    Utils.shortestPath("A", "D", adjacency) shouldBe List("A", "B", "C", "D")
   }
 
   it should "handle self-loops" in {
@@ -417,7 +417,7 @@ class UtilsSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       "C" -> List("D"),
       "D" -> Nil
     )
-    Utils.shortestPath("A", "D", adjacency) shouldBe Some(List("A", "B", "C", "D"))
+    Utils.shortestPath("A", "D", adjacency) shouldBe List("A", "B", "C", "D")
   }
 
   it should "handle multiple edges to the same node without affecting the path" in {
@@ -429,7 +429,7 @@ class UtilsSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     )
     // Both paths have equal length; BFS will discover via B first due to neighbor order
     val path      = Utils.shortestPath("A", "D", adjacency)
-    path should (be(Some(List("A", "B", "D"))) or be(Some(List("A", "C", "D"))))
+    path should (be(List("A", "B", "D")) or be(List("A", "C", "D")))
   }
 
   it should "return shortest path in presence of disconnected components" in {
@@ -440,7 +440,7 @@ class UtilsSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       "X" -> List("Y"),
       "Y" -> Nil
     )
-    Utils.shortestPath("A", "C", adjacency) shouldBe Some(List("A", "B", "C"))
+    Utils.shortestPath("A", "C", adjacency) shouldBe List("A", "B", "C")
   }
 
   it should "handle start or goal not present in the adjacency map" in {
@@ -449,12 +449,12 @@ class UtilsSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       "B" -> Nil
     )
     // Start not in map but should still allow path search (no outgoing edges)
-    Utils.shortestPath("Z", "B", adjacency) shouldBe None
+    Utils.shortestPath("Z", "B", adjacency) shouldBe Nil
     // Goal not in map, but reachable if listed as neighbor
     val adjacency2 = Map(
       "A" -> List("Z")
     )
-    Utils.shortestPath("A", "Z", adjacency2) shouldBe Some(List("A", "Z"))
+    Utils.shortestPath("A", "Z", adjacency2) shouldBe List("A", "Z")
   }
 
   it should "work with non-String node types (Int)" in {
@@ -464,7 +464,7 @@ class UtilsSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       3 -> List(4),
       4 -> List.empty[Int]
     )
-    Utils.shortestPath(1, 4, adjacency) should (be(Some(List(1, 2, 4))) or be(Some(List(1, 3, 4))))
+    Utils.shortestPath(1, 4, adjacency) should (be(List(1, 2, 4)) or be(List(1, 3, 4)))
   }
 
   it should "work with case class nodes" in {
@@ -480,7 +480,7 @@ class UtilsSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       c -> List(d),
       d -> Nil
     )
-    Utils.shortestPath(a, d, adjacency) shouldBe Some(List(a, b, c, d))
+    Utils.shortestPath(a, d, adjacency) shouldBe List(a, b, c, d)
   }
 
   it should "respect exclusions with complex branching" in {
@@ -493,7 +493,7 @@ class UtilsSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       "C" -> List("D"),
       "D" -> Nil
     )
-    Utils.shortestPath("A", "D", adjacency, excluded = Set("C")) shouldBe Some(List("A", "B", "D"))
+    Utils.shortestPath("A", "D", adjacency, excluded = Set("C")) shouldBe List("A", "B", "D")
   }
 
   it should "return None if exclusions block all shortest paths" in {
@@ -503,11 +503,11 @@ class UtilsSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       "C" -> List("D"),
       "D" -> Nil
     )
-    Utils.shortestPath("A", "D", adjacency, excluded = Set("B", "C")) shouldBe None
+    Utils.shortestPath("A", "D", adjacency, excluded = Set("B", "C")) shouldBe Nil
   }
 
   it should "handle large linear graphs efficiently" in {
     val nodes     = (1 to 300).map(_.toString).toList
     val adjacency = nodes.zip(nodes.tail).toMap.view.mapValues(List(_)).toMap
-    Utils.shortestPath("1", "300", adjacency) shouldBe Some(nodes)
+    Utils.shortestPath("1", "300", adjacency) shouldBe nodes
   }
