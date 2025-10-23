@@ -1,5 +1,6 @@
 package io.github.scala_tessella.dcel
 
+import io.github.scala_tessella.dcel.Utils.associate
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint}
 import io.github.scala_tessella.dcel.structure.{Face, HalfEdge, Vertex}
 import io.github.scala_tessella.ring_seq.RingSeq.rotationsAndReflections
@@ -16,9 +17,9 @@ object TilingEquivalency:
 
     private def createMaps(coordsTransformer: BigPoint => BigPoint)
         : (Map[Vertex, Vertex], Map[HalfEdge, HalfEdge], Map[Face, Face]) =
-      val vertexMap   = tiling.vertices.map(v => v -> Vertex(v.id, coordsTransformer(v.coords))).toMap
-      val halfEdgeMap = tiling.halfEdges.map(he => he -> HalfEdge(vertexMap(he.origin))).toMap
-      val faceMap     = tiling.faces.map(f => f -> Face(f.id)).toMap
+      val vertexMap   = tiling.vertices.associate(v => Vertex(v.id, coordsTransformer(v.coords)))
+      val halfEdgeMap = tiling.halfEdges.associate(he => HalfEdge(vertexMap(he.origin)))
+      val faceMap     = tiling.faces.associate(f => Face(f.id))
       (vertexMap, halfEdgeMap, faceMap)
 
     private def copyHalfEdgeRelationships(
