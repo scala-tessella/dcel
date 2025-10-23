@@ -163,8 +163,8 @@ final case class TilingDCEL private (
           cumulativePath(continuation, _.sliding(2), innerPart.init.toSet)
         innerPart ::: boundaryPart
 
-  /** Retrieves a reduced TilingDCEL around a vertex containing only the polygons reached within the given vertex-distance.
-    * Distance is clamped to >= 0.
+  /** Retrieves a reduced TilingDCEL around a vertex containing only the polygons reached within the given
+    * vertex-distance. Distance is clamped to >= 0.
     *
     * @param vertexId
     *   The ID of the vertex around which the reduced TilingDCEL is generated.

@@ -238,7 +238,7 @@ object TilingEquivalency:
         (1 to iterations).foreach { _ =>
           val nextSignatures = t.vertices.associate { v =>
             // 3. For each vertex, collect the signatures of its neighbors.
-            val neighborSignatures  =
+            val neighborSignatures =
               v.incidentEdgesUnsafe.flatMap(_.destination).flatMap(signatures.get).sorted
             // 4. The new signature is a hash/combination of the current signature and the neighbors' signatures.
             s"${signatures(v)}|${neighborSignatures.mkString(";")}"

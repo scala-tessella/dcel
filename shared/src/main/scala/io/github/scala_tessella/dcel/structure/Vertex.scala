@@ -2,7 +2,6 @@ package io.github.scala_tessella.dcel.structure
 
 import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.format
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigDecimalGeometry, BigPoint}
-import io.github.scala_tessella.dcel.structure.Utils.breadthFirstSearch
 import io.github.scala_tessella.dcel.{IncompleteError, TopologyError}
 
 /** Represents a single vertex in the DCEL.
@@ -98,17 +97,6 @@ object Vertex:
         }
       }
       .toMap
-
-  /** Performs a traversal to check if all target vertices are reachable from the start vertex through the
-    * boundary path.
-    */
-  def checkConnectivity(
-      start: Vertex,
-      targetVertices: Set[Vertex],
-      adjacency: Map[Vertex, List[Vertex]]
-  ): Option[Unit] =
-    val visited = breadthFirstSearch(start, adjacency)
-    Option.when(visited == targetVertices)(())
 
   extension (vertices: List[Vertex])
 
