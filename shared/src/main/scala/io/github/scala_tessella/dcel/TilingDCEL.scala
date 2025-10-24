@@ -411,11 +411,11 @@ final case class TilingDCEL private (
       if vertexIds.isEmpty then
         acc.reverse
       else
-        val distance                                            = key.length
-        val dcels                                               = vertexIds.map(vertexId => vertexId -> getDcelAtVertex(vertexId, distance).toOption.get)
-        val classes: List[List[VertexId]]                       = vertexIdClasses(dcels)
-        val dcelMaps                                            = dcels.toMap
-        val partitioned: List[(List[VertexId], List[VertexId])] = classes.map(_.partition(vertexId =>
+        val distance      = key.length
+        val centeredDcels = vertexIds.map(id => id -> getDcelAtVertex(id, distance).toOption.get)
+        val classes       = vertexIdClasses(centeredDcels)
+        val dcelMaps      = centeredDcels.toMap
+        val partitioned   = classes.map(_.partition(vertexId =>
           val localBoundaryVertexIds = dcelMaps(vertexId).boundaryVertices.map(_.id)
           boundaryVertexIds.intersect(localBoundaryVertexIds).isEmpty
         ))
