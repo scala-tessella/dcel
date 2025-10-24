@@ -315,8 +315,25 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   it should "uniform" in {
     val net = TilingBuilder.createRhombusNet(6, 6)
     net.uniformity shouldBe Map(
-      List(0) -> List("V9", "V10", "V11", "V12", "V13", "V16", "V20", "V23", "V27", "V30", "V34", "V37", "V38", "V39", "V40", "V41").map(VertexId(_)),
-      List(0, 0) -> List("V17", "V18", "V19", "V24", "V26", "V31", "V32", "V33").map(VertexId(_)),
+      List(0)       -> List(
+        "V9",
+        "V10",
+        "V11",
+        "V12",
+        "V13",
+        "V16",
+        "V20",
+        "V23",
+        "V27",
+        "V30",
+        "V34",
+        "V37",
+        "V38",
+        "V39",
+        "V40",
+        "V41"
+      ).map(VertexId(_)),
+      List(0, 0)    -> List("V17", "V18", "V19", "V24", "V26", "V31", "V32", "V33").map(VertexId(_)),
       List(0, 0, 0) -> List("V25").map(VertexId(_))
     )
 

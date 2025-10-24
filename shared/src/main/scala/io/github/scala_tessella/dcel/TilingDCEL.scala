@@ -388,11 +388,17 @@ final case class TilingDCEL private (
     val boundaryVertexIds = boundaryVertices.map(_.id)
 
     @tailrec
-    def loop(key: List[Int], vertexIds: List[VertexId], acc: List[(List[Int], List[VertexId])]): List[(List[Int], List[VertexId])] =
-      val distance = key.length
-      val pairs = vertexIds.map(vertexId => vertexId -> getDcelAtVertex(vertexId, distance).toOption.get)
-      val (inner, stuck) = pairs.partition((_, tilingDCEL) => boundaryVertexIds.intersect(tilingDCEL.boundaryVertices.map(_.id)).isEmpty)
-      val nextKey = key :+ 0
+    def loop(
+        key: List[Int],
+        vertexIds: List[VertexId],
+        acc: List[(List[Int], List[VertexId])]
+    ): List[(List[Int], List[VertexId])] =
+      val distance                              = key.length
+      val pairs                                 = vertexIds.map(vertexId => vertexId -> getDcelAtVertex(vertexId, distance).toOption.get)
+      val (inner, stuck)                        = pairs.partition((_, tilingDCEL) =>
+        boundaryVertexIds.intersect(tilingDCEL.boundaryVertices.map(_.id)).isEmpty
+      )
+      val nextKey                               = key :+ 0
       val stuckMap: (List[Int], List[VertexId]) = (nextKey, stuck.map(_._1))
       if inner.isEmpty then (stuckMap :: acc).reverse
       else loop(nextKey, inner.map(_._1), stuckMap :: acc)
