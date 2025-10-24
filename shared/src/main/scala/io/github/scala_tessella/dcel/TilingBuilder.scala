@@ -548,11 +548,11 @@ object TilingBuilder:
     }
 
   def createHoledTriangleNet(width: Int, height: Int)(f: (Int, Int) => Boolean): TilingDCEL =
-    val transform: (Int, Int) => VertexId = (x, y) => VertexId(s"V${x + y * width + 1}")
-    val holes                             =
+    val transform: (Int, Int) => VertexId = (x, y) => VertexId(s"V${x + 1 + y * (width + 1)}")
+    val holes: IndexedSeq[VertexId]       =
       for
-        y <- 0 until height
-        x <- 0 until width
+        y <- 0 to height
+        x <- 0 to width
         if f(x, y)
       yield transform(x, y)
     holes.foldLeft(Right(createTriangleNet(width, height)): Either[TilingError, TilingDCEL])(
