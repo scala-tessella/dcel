@@ -312,10 +312,10 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   behavior of "TilingDCEL.uniformity"
 
-  it should "uniform" in {
+  it should "calculate the uniformity of a square net" in {
     val net = TilingBuilder.createRhombusNet(6, 6)
     net.uniformity shouldBe Map(
-      List(0)       -> List(
+      List(0) -> List(
         "V9",
         "V10",
         "V11",
@@ -333,8 +333,13 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
         "V40",
         "V41"
       ).map(VertexId(_)),
-      List(0, 0)    -> List("V17", "V18", "V19", "V24", "V26", "V31", "V32", "V33").map(VertexId(_)),
+      List(0, 0) -> List("V17", "V18", "V19", "V24", "V26", "V31", "V32", "V33").map(VertexId(_)),
       List(0, 0, 0) -> List("V25").map(VertexId(_))
     )
+  }
+
+  it should "calculate the uniformity of a holed net" in {
+    holeInNet2.uniformity shouldBe Map(
+      )
 
   }

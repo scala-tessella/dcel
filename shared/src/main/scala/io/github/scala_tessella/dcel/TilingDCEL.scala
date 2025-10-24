@@ -12,8 +12,6 @@ import io.github.scala_tessella.dcel.structure.Utils.shortestPath
 import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
 import io.github.scala_tessella.ring_seq.RingSeq.{slidingO, startAt}
 
-import scala.annotation.tailrec
-
 /** Represents the entire tiling structure as a container for its components.
   *
   * @param vertices
@@ -387,11 +385,9 @@ final case class TilingDCEL private (
   def uniformity: Map[List[Int], List[VertexId]] =
     val boundaryVertexIds = boundaryVertices.map(_.id)
 
-    @tailrec
     def loop(
         key: List[Int],
         vertexIds: List[VertexId],
-        acc: List[(List[Int], List[VertexId])]
     ): List[(List[Int], List[VertexId])] =
       val distance                              = key.length
       val pairs                                 = vertexIds.map(vertexId => vertexId -> getDcelAtVertex(vertexId, distance).toOption.get)
@@ -400,10 +396,30 @@ final case class TilingDCEL private (
       )
       val nextKey                               = key :+ 0
       val stuckMap: (List[Int], List[VertexId]) = (nextKey, stuck.map(_._1))
-      if inner.isEmpty then (stuckMap :: acc).reverse
-      else loop(nextKey, inner.map(_._1), stuckMap :: acc)
+      if inner.isEmpty then List(stuckMap)
+      else
+        // Group by equivalence class using a canonical representative per class
+        val classes = scala.collection.mutable.ArrayBuffer[(TilingDCEL, List[VertexId])]()
+        inner.foreach { case (vertexId, local) =>
+          // Try to find an existing equivalent representative
+          classes.indexWhere { case (rep, _) =>
+            local.isEquivalentTo(rep)
+          } match
+            case -1 =>
+              classes += ((local, List(vertexId)))
+            case idx =>
+              val (rep, ids) = classes(idx)
+              classes.update(idx, (rep, vertexId :: ids))
+        }
 
-    loop(Nil, innerVertices.map(_.id), Nil).toMap
+        val y =
+          classes.iterator.map { case (rep, ids) =>
+            ids.reverse
+          }.zipWithIndex.toList
+
+        stuckMap :: y.flatMap((vertexIds, index) => loop(key :+ index, vertexIds))
+
+    loop(Nil, innerVertices.map(_.id)).toMap
 
   def hasConnectedFaces: Boolean =
     innerFaces.isConnected
