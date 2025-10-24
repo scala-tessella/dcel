@@ -434,6 +434,36 @@ final case class TilingDCEL private (
 
     loop(List((Nil, innerVertices.map(_.id))), Nil).toMap
 
+  def uniformityTree: Tree[List[VertexId]] =
+    val startMap: Map[List[Int], List[VertexId]] = uniformity
+
+    // Build a tree from the map where keys are paths (indices) and value is the node payload.
+    // Each path (k0, k1, ..., kn) is a descendant of (k0, ..., k(n-1)).
+    def childrenOf(prefix: List[Int]): List[(Int, List[Int])] =
+      // Direct children are those keys that extend prefix by exactly one index
+      startMap.keys
+        .collect {
+          case key if key.length == prefix.length + 1 && key.startsWith(prefix) =>
+            key.last -> key
+        }
+        .toList
+        .sortBy(_._1) // keep deterministic order of children by their last index
+
+    def build(prefix: List[Int]): Tree[List[VertexId]] =
+      val payload = startMap.getOrElse(prefix, Nil)
+      val kids    = childrenOf(prefix)
+      if kids.isEmpty then
+        Tree.Leaf(payload)
+      else
+        Tree.Branch(
+          payload,
+          kids.map { case (_, childKey) =>
+            build(childKey)
+          }
+        )
+
+    build(Nil)
+
   def hasConnectedFaces: Boolean =
     innerFaces.isConnected
 
