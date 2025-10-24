@@ -400,7 +400,7 @@ final case class TilingDCEL private (
             val (rep, ids) = classes(idx)
             classes.update(idx, (rep, vertexId :: ids))
       }
-      classes.toList.map(_._2.reverse)
+      classes.toList.map((tiling, vertexIds) => vertexIds.reverse)
 
     def loop(
         key: List[Int],
