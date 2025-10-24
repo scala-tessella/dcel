@@ -387,18 +387,18 @@ final case class TilingDCEL private (
   def uniformity: Map[List[Int], List[VertexId]] =
     val boundaryVertexIds = boundaryVertices.map(_.id)
 
-    def vertexIdClasses(dcels: List[(VertexId, TilingDCEL)]): List[List[VertexId]] =
+    def vertexIdClasses(centeredTilings: List[(VertexId, TilingDCEL)]): List[List[VertexId]] =
       val classes = mutable.ArrayBuffer[(TilingDCEL, List[VertexId])]()
-      dcels.foreach { case (vertexId, local) =>
+      centeredTilings.foreach { case (vertexId, tiling) =>
         // Try to find an existing equivalent representative
-        classes.indexWhere { case (rep, _) =>
-          local.isEquivalentTo(rep)
+        classes.indexWhere { case (classified, _) =>
+          tiling.isEquivalentTo(classified)
         } match
           case -1  =>
-            classes += ((local, List(vertexId)))
-          case idx =>
-            val (rep, ids) = classes(idx)
-            classes.update(idx, (rep, vertexId :: ids))
+            classes += ((tiling, List(vertexId)))
+          case i =>
+            val (classified, vertexIds) = classes(i)
+            classes.update(i, (classified, vertexId :: vertexIds))
       }
       classes.toList.map((tiling, vertexIds) => vertexIds.reverse)
 
