@@ -12,6 +12,8 @@ import io.github.scala_tessella.dcel.structure.Utils.shortestPath
 import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
 import io.github.scala_tessella.ring_seq.RingSeq.{slidingO, startAt}
 
+import scala.collection.mutable
+
 /** Represents the entire tiling structure as a container for its components.
   *
   * @param vertices
@@ -388,19 +390,16 @@ final case class TilingDCEL private (
     def loop(
         key: List[Int],
         vertexIds: List[VertexId],
+        acc: List[(List[Int], List[VertexId])]
     ): List[(List[Int], List[VertexId])] =
-      val distance                              = key.length
-      val pairs                                 = vertexIds.map(vertexId => vertexId -> getDcelAtVertex(vertexId, distance).toOption.get)
-      val (inner, stuck)                        = pairs.partition((_, tilingDCEL) =>
-        boundaryVertexIds.intersect(tilingDCEL.boundaryVertices.map(_.id)).isEmpty
-      )
-      val nextKey                               = key :+ 0
-      val stuckMap: (List[Int], List[VertexId]) = (nextKey, stuck.map(_._1))
-      if inner.isEmpty then List(stuckMap)
+      if vertexIds.isEmpty then
+        acc.reverse
       else
+        val distance = key.length
+        val dcels = vertexIds.map(vertexId => vertexId -> getDcelAtVertex(vertexId, distance).toOption.get)
         // Group by equivalence class using a canonical representative per class
-        val classes = scala.collection.mutable.ArrayBuffer[(TilingDCEL, List[VertexId])]()
-        inner.foreach { case (vertexId, local) =>
+        val classes = mutable.ArrayBuffer[(TilingDCEL, List[VertexId])]()
+        dcels.foreach { case (vertexId, local) =>
           // Try to find an existing equivalent representative
           classes.indexWhere { case (rep, _) =>
             local.isEquivalentTo(rep)
@@ -412,14 +411,18 @@ final case class TilingDCEL private (
               classes.update(idx, (rep, vertexId :: ids))
         }
 
-        val y =
-          classes.iterator.map { case (rep, ids) =>
-            ids.reverse
-          }.zipWithIndex.toList
+        val dcelMaps = dcels.toMap
+        val vertexIdClasses: List[List[VertexId]] = classes.toList.map(_._2.reverse)
+        val partitioned: List[(List[VertexId], List[VertexId])] = vertexIdClasses.map(_.partition(vertexId =>
+          val localBoundaryVertexIds = dcelMaps(vertexId).boundaryVertices.map(_.id)
+          boundaryVertexIds.intersect(localBoundaryVertexIds).isEmpty
+        ))
+        partitioned.zipWithIndex.flatMap { case ((inner, stuck), index) =>
+          val newKey = key :+ index
+          loop(newKey, inner, (newKey, stuck) :: acc)
+        }
 
-        stuckMap :: y.flatMap((vertexIds, index) => loop(key :+ index, vertexIds))
-
-    loop(Nil, innerVertices.map(_.id)).toMap
+    loop(Nil, innerVertices.map(_.id), Nil).toMap
 
   def hasConnectedFaces: Boolean =
     innerFaces.isConnected

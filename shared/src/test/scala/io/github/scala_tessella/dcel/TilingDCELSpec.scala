@@ -340,6 +340,8 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "calculate the uniformity of a holed net" in {
     holeInNet2.uniformity shouldBe Map(
-      )
-
+      List(0) -> List("V6", "V7", "V22", "V23").map(VertexId(_)),
+      List(1) -> List("V10", "V11", "V18", "V19").map(VertexId(_)),
+      List(2) -> List("V14", "V15").map(VertexId(_))
+    )
   }
