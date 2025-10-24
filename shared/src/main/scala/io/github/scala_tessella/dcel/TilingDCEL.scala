@@ -403,42 +403,36 @@ final case class TilingDCEL private (
       }
       classes.toList.map((tiling, vertexIds) => vertexIds.reverse)
 
+    @tailrec
     def loop(
-        key: List[Int],
-        vertexIds: List[VertexId],
-        acc: List[(List[Int], List[VertexId])]
+        work: List[(List[Int], List[VertexId])],
+        accPairs: List[(List[Int], List[VertexId])]
     ): List[(List[Int], List[VertexId])] =
-      @tailrec
-      def go(
-          work: List[(List[Int], List[VertexId])],
-          accPairs: List[(List[Int], List[VertexId])]
-      ): List[(List[Int], List[VertexId])] =
-        work match
-          case Nil                            =>
-            accPairs.reverse
-          case (curKey, curVertexIds) :: rest =>
-            if curVertexIds.isEmpty then
-              go(rest, accPairs)
-            else
-              val distance           = curKey.length
-              val centeredDcels      = curVertexIds.map(id => id -> getDcelAtVertex(id, distance).toOption.get)
-              val classes            = vertexIdClasses(centeredDcels)
-              val dcelMaps           = centeredDcels.toMap
-              val partitioned        = classes.map(_.partition(vertexId =>
-                val localBoundaryVertexIds = dcelMaps(vertexId).boundaryVertices.map(_.id)
-                boundaryVertexIds.intersect(localBoundaryVertexIds).isEmpty
-              ))
-              // Enqueue next-level work and accumulate stuck groups
-              val (nextWork, newAcc) =
-                partitioned.zipWithIndex.foldRight((rest, accPairs)) {
-                  case (((inner, stuck), idx), (w, a)) =>
-                    val newKey = curKey :+ idx
-                    ((newKey, inner) :: w, (newKey, stuck) :: a)
-                }
-              go(nextWork, newAcc)
+      work match
+        case Nil                            =>
+          accPairs.reverse
+        case (curKey, curVertexIds) :: rest =>
+          if curVertexIds.isEmpty then
+            loop(rest, accPairs)
+          else
+            val distance           = curKey.length
+            val centeredDcels      = curVertexIds.map(id => id -> getDcelAtVertex(id, distance).toOption.get)
+            val classes            = vertexIdClasses(centeredDcels)
+            val dcelMaps           = centeredDcels.toMap
+            val partitioned        = classes.map(_.partition(vertexId =>
+              val localBoundaryVertexIds = dcelMaps(vertexId).boundaryVertices.map(_.id)
+              boundaryVertexIds.intersect(localBoundaryVertexIds).isEmpty
+            ))
+            // Enqueue next-level work and accumulate stuck groups
+            val (nextWork, newAcc) =
+              partitioned.zipWithIndex.foldRight((rest, accPairs)) {
+                case (((inner, stuck), idx), (w, a)) =>
+                  val newKey = curKey :+ idx
+                  ((newKey, inner) :: w, (newKey, stuck) :: a)
+              }
+            loop(nextWork, newAcc)
 
-      go(List((key, vertexIds)), acc)
-    loop(Nil, innerVertices.map(_.id), Nil).toMap
+    loop(List((Nil, innerVertices.map(_.id))), Nil).toMap
 
   def hasConnectedFaces: Boolean =
     innerFaces.isConnected
