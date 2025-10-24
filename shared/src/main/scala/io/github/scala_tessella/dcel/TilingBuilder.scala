@@ -33,9 +33,9 @@ object TilingBuilder:
 
   /** Creates a TilingDCEL for a single simple polygon with unit-length sides.
     *
-    * @param angles
-    *   A list of interior angles in degrees. The angles are ordered for a counter-clockwise traversal of the
-    *   polygon boundary.
+    * @param simple
+    *   The simple polygon of unit side length as a list of interior angles in degrees. The angles are ordered
+    *   for a counter-clockwise traversal of the polygon boundary.
     * @return
     *   Either a TilingError explaining the validation error, or the successfully created TilingDCEL.
     */
@@ -397,13 +397,13 @@ object TilingBuilder:
     val beta: AngleDegree = (alpha / 2).supplement
 
     // Interior angles per vertex in CCW order: [alpha, beta, beta, alpha, beta, beta]
-    // Exterior turns at vertices: exts(k) = 180 - interior(k)
+    // Exterior turns at vertices: exterior(k) = 180 - interior(k)
     val exteriorAngles: Array[AngleDegree] =
       Array(alpha, beta, beta, alpha, beta, beta).map(_.supplement)
 
-    // IMPORTANT: The exterior turn exts(k) is applied at vertex k to go from edge k to edge (k+1).
+    // IMPORTANT: The exterior turn exterior(k) is applied at vertex k to go from edge k to edge (k+1).
     // Edge headings h(k) are the directions of edges (k) from vertex k to k+1.
-    // Hence, h1 = h0 + exts(1), h2 = h1 + exts(2). (exts(0) turns from edge5 to edge0.)
+    // Hence, h1 = h0 + exterior(1), h2 = h1 + exterior(2). (exterior(0) turns from edge5 to edge0.)
     val h0 = BigRadian(0)
     val h1 = h0 + exteriorAngles(1).toBigRadian
     val h2 = h1 + exteriorAngles(2).toBigRadian
@@ -527,8 +527,8 @@ object TilingBuilder:
     )
 
   /** Creates a ring structure based on the given regular polygon. If the n sides of the regular polygon are
-    * even, the ring is made of n such polygons, plus an inner one if n > 4. If odd, is made of n * 2 such
-    * polygons, plus an inner one if n > 3
+    * even, the ring is made of n such polygons, plus an inner one if n > 4. If odd, the ring is made of n * 2
+    * such polygons; plus an inner one, if n > 3
     *
     * @param polygon
     *   the regular polygon that serves as the basis for the ring structure creation
