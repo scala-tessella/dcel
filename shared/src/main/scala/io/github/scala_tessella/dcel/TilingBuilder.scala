@@ -546,3 +546,16 @@ object TilingBuilder:
 
       ring.addRegularPolygonToBoundary(vertexId, polygon).toOption.get
     }
+
+  def createHoledTriangleNet(width: Int, height: Int)(f: (Int, Int) => Boolean): TilingDCEL =
+    val transform: (Int, Int) => VertexId = (x, y) => VertexId(s"V${x + y * width + 1}")
+    val holes                             =
+      for
+        y <- 0 until height
+        x <- 0 until width
+        if f(x, y)
+      yield transform(x, y)
+    holes.foldLeft(Right(createTriangleNet(width, height)): Either[TilingError, TilingDCEL])(
+      (either, vertexId) =>
+        either.flatMap(tilingDCEL => tilingDCEL.maybeDeleteVertex(vertexId))
+    ).toOption.getOrElse(TilingDCEL.empty)
