@@ -396,23 +396,23 @@ final case class TilingDCEL private (
         acc.reverse
       else
         val distance = key.length
-        val dcels = vertexIds.map(vertexId => vertexId -> getDcelAtVertex(vertexId, distance).toOption.get)
+        val dcels    = vertexIds.map(vertexId => vertexId -> getDcelAtVertex(vertexId, distance).toOption.get)
         // Group by equivalence class using a canonical representative per class
-        val classes = mutable.ArrayBuffer[(TilingDCEL, List[VertexId])]()
+        val classes  = mutable.ArrayBuffer[(TilingDCEL, List[VertexId])]()
         dcels.foreach { case (vertexId, local) =>
           // Try to find an existing equivalent representative
           classes.indexWhere { case (rep, _) =>
             local.isEquivalentTo(rep)
           } match
-            case -1 =>
+            case -1  =>
               classes += ((local, List(vertexId)))
             case idx =>
               val (rep, ids) = classes(idx)
               classes.update(idx, (rep, vertexId :: ids))
         }
 
-        val dcelMaps = dcels.toMap
-        val vertexIdClasses: List[List[VertexId]] = classes.toList.map(_._2.reverse)
+        val dcelMaps                                            = dcels.toMap
+        val vertexIdClasses: List[List[VertexId]]               = classes.toList.map(_._2.reverse)
         val partitioned: List[(List[VertexId], List[VertexId])] = vertexIdClasses.map(_.partition(vertexId =>
           val localBoundaryVertexIds = dcelMaps(vertexId).boundaryVertices.map(_.id)
           boundaryVertexIds.intersect(localBoundaryVertexIds).isEmpty
