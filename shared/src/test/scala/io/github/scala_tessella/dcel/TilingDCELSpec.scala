@@ -7,6 +7,8 @@ import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import scala.math.Ordered.orderingToOrdered
+
 class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   behavior of "TilingDCEL.faces"
@@ -288,12 +290,12 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "return the DCEL around the inner vertex of the bench" in {
     val result = bench.getPolygonVerticesAroundVertex(VertexId("V8"))
-    result.value shouldBe List("V13", "V1", "V2", "V10", "V11", "V14", "V15", "V16", "V12").map(VertexId(_))
+    result.value shouldBe List("V13", "V1", "V2", "V10", "V11", "V14", "V15", "V16", "V12")
   }
 
   it should "return the DCEL around a boundary vertex of the bench" in {
     val result = bench.getPolygonVerticesAroundVertex(V1)
-    result.value shouldBe List("V6", "V5", "V4", "V3", "V2", "V8", "V12", "V13", "V1", "V7").map(VertexId(_))
+    result.value shouldBe List("V6", "V5", "V4", "V3", "V2", "V8", "V12", "V13", "V1", "V7")
   }
 
   behavior of "TilingDCEL.groupedInnerVertices"
@@ -304,9 +306,9 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "group the inner vertices according to their adjacent polygons" in {
     holeInNet2.groupedInnerVertices.values.toList shouldBe List(
-      List("V6", "V7", "V22", "V23").map(VertexId(_)),
-      List("V10", "V11", "V18", "V19").map(VertexId(_)),
-      List("V14", "V15").map(VertexId(_))
+      List("V6", "V7", "V22", "V23"),
+      List("V10", "V11", "V18", "V19"),
+      List("V14", "V15")
     )
   }
 
@@ -332,17 +334,17 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
         "V39",
         "V40",
         "V41"
-      ).map(VertexId(_)),
-      List(0, 0)    -> List("V17", "V18", "V19", "V24", "V26", "V31", "V32", "V33").map(VertexId(_)),
-      List(0, 0, 0) -> List("V25").map(VertexId(_))
+      ),
+      List(0, 0)    -> List("V17", "V18", "V19", "V24", "V26", "V31", "V32", "V33"),
+      List(0, 0, 0) -> List("V25")
     )
   }
 
   it should "calculate the uniformity of a holed net" in {
     holeInNet2.uniformity shouldBe Map(
-      List(0) -> List("V6", "V7", "V22", "V23").map(VertexId(_)),
-      List(1) -> List("V10", "V11", "V18", "V19").map(VertexId(_)),
-      List(2) -> List("V14", "V15").map(VertexId(_))
+      List(0) -> List("V6", "V7", "V22", "V23"),
+      List(1) -> List("V10", "V11", "V18", "V19"),
+      List(2) -> List("V14", "V15")
     )
   }
 
@@ -393,4 +395,53 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       List(0, 2, 0)    -> List("V60", "V82", "V114"),
       List(0, 0, 0, 0) -> List("V72")
     )
+    result.uniformity.toList.sortBy((k, _) => k) shouldBe List(
+      (
+        List(0),
+        List(
+          "V15",
+          "V16",
+          "V17",
+          "V18",
+          "V19",
+          "V25",
+          "V28",
+          "V36",
+          "V37",
+          "V38",
+          "V41",
+          "V51",
+          "V80",
+          "V90",
+          "V93",
+          "V103",
+          "V106",
+          "V116",
+          "V137",
+          "V138",
+          "V145",
+          "V146",
+          "V147",
+          "V148",
+          "V149",
+          "V155"
+        )
+      ),
+      (List(0, 0), List("V29", "V48", "V50", "V81", "V94", "V102", "V115", "V124", "V126", "V135")),
+      (List(0, 0, 0), List("V59", "V61", "V70", "V83", "V113")),
+      (List(0, 0, 0, 0), List("V72")),
+      (List(0, 1), List("V30", "V47", "V62", "V69", "V95", "V101", "V127", "V134")),
+      (List(0, 1, 0), List("V58", "V73", "V84", "V112", "V123")),
+      (List(0, 2), List("V49", "V125", "V136")),
+      (List(0, 2, 0), List("V60", "V82", "V114")),
+      (List(0, 2, 0, 0), List("V71")),
+      (List(1), List("V20", "V35", "V42", "V63", "V68", "V89", "V107", "V128", "V133", "V139", "V154")),
+      (List(1, 0), List("V31", "V46", "V57", "V74", "V96", "V100", "V122")),
+      (List(1, 0, 0), List("V111")),
+      (List(1, 0, 0, 0), List("V85")),
+      (List(2), List("V21", "V34", "V43", "V56", "V75", "V88", "V108", "V121", "V140", "V153")),
+      (List(2, 0), List("V32")),
+      (List(2, 0, 0), List("V45", "V86", "V97", "V99", "V110"))
+    )
+
   }
