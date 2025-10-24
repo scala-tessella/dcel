@@ -426,8 +426,8 @@ final case class TilingDCEL private (
             // Enqueue next-level work and accumulate stuck groups
             val (nextWork, newAcc) =
               partitioned.zipWithIndex.foldRight((rest, accPairs)) {
-                case (((inner, stuck), idx), (w, a)) =>
-                  val newKey = curKey :+ idx
+                case (((inner, stuck), index), (w, a)) =>
+                  val newKey = curKey :+ index
                   ((newKey, inner) :: w, (newKey, stuck) :: a)
               }
             loop(nextWork, newAcc)
