@@ -12,7 +12,7 @@ import io.github.scala_tessella.dcel.structure.Utils.shortestPath
 import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
 import io.github.scala_tessella.ring_seq.RingSeq.{slidingO, startAt}
 
-import scala.::
+import scala.annotation.tailrec
 
 /** Represents the entire tiling structure as a container for its components.
   *
@@ -383,6 +383,21 @@ final case class TilingDCEL private (
     classes.iterator.map { case (rep, ids) =>
       rep -> ids.reverse
     }.toMap
+
+  def uniformity: Map[List[Int], List[VertexId]] =
+    val boundaryVertexIds = boundaryVertices.map(_.id)
+
+    @tailrec
+    def loop(key: List[Int], vertexIds: List[VertexId], acc: List[(List[Int], List[VertexId])]): List[(List[Int], List[VertexId])] =
+      val distance = key.length
+      val pairs = vertexIds.map(vertexId => vertexId -> getDcelAtVertex(vertexId, distance).toOption.get)
+      val (inner, stuck) = pairs.partition((_, tilingDCEL) => boundaryVertexIds.intersect(tilingDCEL.boundaryVertices.map(_.id)).isEmpty)
+      val nextKey = key :+ 0
+      val stuckMap: (List[Int], List[VertexId]) = (nextKey, stuck.map(_._1))
+      if inner.isEmpty then (stuckMap :: acc).reverse
+      else loop(nextKey, inner.map(_._1), stuckMap :: acc)
+
+    loop(Nil, innerVertices.map(_.id), Nil).toMap
 
   def hasConnectedFaces: Boolean =
     innerFaces.isConnected
