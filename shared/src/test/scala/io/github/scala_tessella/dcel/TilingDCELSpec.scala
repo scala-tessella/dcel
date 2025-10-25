@@ -8,8 +8,6 @@ import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import scala.math.Ordered.orderingToOrdered
-
 class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   behavior of "TilingDCEL.faces"
