@@ -13,7 +13,6 @@ import io.github.scala_tessella.dcel.structure.Utils.shortestPath
 import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
 import io.github.scala_tessella.ring_seq.RingSeq.{slidingO, startAt}
 
-import scala.annotation.tailrec
 import scala.collection.mutable
 
 /** Represents the entire tiling structure as a container for its components.
@@ -386,86 +385,7 @@ final case class TilingDCEL private (
       rep -> ids.reverse
     }.toMap
 
-  def uniformity: Map[List[Int], List[VertexId]] =
-    val boundaryVertexIds = boundaryVertices.map(_.id)
-
-    def vertexIdClasses(centeredTilings: List[(VertexId, TilingDCEL)]): List[List[VertexId]] =
-      val classes = mutable.ArrayBuffer[(TilingDCEL, List[VertexId])]()
-      centeredTilings.foreach { case (vertexId, tiling) =>
-        // Try to find an existing equivalent representative
-        classes.indexWhere { case (classified, _) =>
-          tiling.isEquivalentTo(classified)
-        } match
-          case -1 =>
-            classes += ((tiling, List(vertexId)))
-          case i  =>
-            val (classified, vertexIds) = classes(i)
-            classes.update(i, (classified, vertexId :: vertexIds))
-      }
-      classes.toList.map((tiling, vertexIds) => vertexIds.reverse)
-
-    @tailrec
-    def loop(
-        work: List[(List[Int], List[VertexId])],
-        accPairs: List[(List[Int], List[VertexId])]
-    ): List[(List[Int], List[VertexId])] =
-      work match
-        case Nil                            =>
-          accPairs.reverse
-        case (curKey, curVertexIds) :: rest =>
-          if curVertexIds.isEmpty then
-            loop(rest, accPairs)
-          else
-            val distance           = curKey.length
-            val centeredDcels      = curVertexIds.map(id => id -> getDcelAtVertex(id, distance).toOption.get)
-            val classes            = vertexIdClasses(centeredDcels)
-            val dcelMaps           = centeredDcels.toMap
-            val partitioned        = classes.map(_.partition(vertexId =>
-              val localBoundaryVertexIds = dcelMaps(vertexId).boundaryVertices.map(_.id)
-              boundaryVertexIds.intersect(localBoundaryVertexIds).isEmpty
-            ))
-            // Enqueue next-level work and accumulate stuck groups
-            val (nextWork, newAcc) =
-              partitioned.zipWithIndex.foldRight((rest, accPairs)) {
-                case (((inner, stuck), index), (w, a)) =>
-                  val newKey = curKey :+ index
-                  ((newKey, inner) :: w, (newKey, stuck) :: a)
-              }
-            loop(nextWork, newAcc)
-
-    loop(List((Nil, innerVertices.map(_.id))), Nil).toMap
-
   def uniformityTree: Tree[List[VertexId]] =
-    val startMap: Map[List[Int], List[VertexId]] = uniformity
-
-    // Build a tree from the map where keys are paths (indices) and value is the node payload.
-    // Each path (k0, k1, ..., kn) is a descendant of (k0, ..., k(n-1)).
-    def childrenOf(prefix: List[Int]): List[(Int, List[Int])] =
-      // Direct children are those keys that extend prefix by exactly one index
-      startMap.keys
-        .collect {
-          case key if key.length == prefix.length + 1 && key.startsWith(prefix) =>
-            key.last -> key
-        }
-        .toList
-        .sortBy(_._1) // keep deterministic order of children by their last index
-
-    def build(prefix: List[Int]): Tree[List[VertexId]] =
-      val payload = startMap.getOrElse(prefix, Nil)
-      val kids    = childrenOf(prefix)
-      if kids.isEmpty then
-        Tree.Leaf(payload)
-      else
-        Tree.Branch(
-          payload,
-          kids.map { case (_, childKey) =>
-            build(childKey)
-          }
-        )
-
-    build(Nil)
-
-  def uniformityDirect: Tree[List[VertexId]] =
     val boundaryVertexIds = boundaryVertices.map(_.id)
 
     def vertexIdClasses(centeredTilings: List[(VertexId, TilingDCEL)]): List[List[VertexId]] =

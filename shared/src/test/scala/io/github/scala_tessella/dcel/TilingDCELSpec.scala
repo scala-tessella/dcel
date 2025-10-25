@@ -317,133 +317,48 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "calculate the uniformity of a square net" in {
     val net = TilingBuilder.createRhombusNet(6, 6)
-    net.uniformity shouldBe Map(
-      List(0)       -> List(
-        "V9",
-        "V10",
-        "V11",
-        "V12",
-        "V13",
-        "V16",
-        "V20",
-        "V23",
-        "V27",
-        "V30",
-        "V34",
-        "V37",
-        "V38",
-        "V39",
-        "V40",
-        "V41"
-      ),
-      List(0, 0)    -> List("V17", "V18", "V19", "V24", "V26", "V31", "V32", "V33"),
-      List(0, 0, 0) -> List("V25")
-    )
+    net.uniformityTree.flattenLeaves shouldBe
+      List(
+        List(
+          "V9",
+          "V10",
+          "V11",
+          "V12",
+          "V13",
+          "V16",
+          "V20",
+          "V23",
+          "V27",
+          "V30",
+          "V34",
+          "V37",
+          "V38",
+          "V39",
+          "V40",
+          "V41",
+          "V17",
+          "V18",
+          "V19",
+          "V24",
+          "V26",
+          "V31",
+          "V32",
+          "V33",
+          "V25"
+        )
+      )
   }
 
   it should "calculate the uniformity of a holed net" in {
-    holeInNet2.uniformity shouldBe Map(
-      List(0) -> List("V6", "V7", "V22", "V23"),
-      List(1) -> List("V10", "V11", "V18", "V19"),
-      List(2) -> List("V14", "V15")
+    holeInNet2.uniformityTree.flattenLeaves shouldBe List(
+      List("V6", "V7", "V22", "V23"),
+      List("V10", "V11", "V18", "V19"),
+      List("V14", "V15")
     )
   }
 
   it should "calculate another" in {
     val result = TilingBuilder.createHoledTriangleNet(12, 12)((i, j) => i % 10 == (j * 8) % 10)
-    result.uniformity shouldBe Map(
-      List(1)          -> List("V20", "V35", "V42", "V63", "V68", "V89", "V107", "V128", "V133", "V139", "V154"),
-      List(2, 0)       -> List("V32"),
-      List(0, 1, 0)    -> List("V58", "V73", "V84", "V112", "V123"),
-      List(0, 0)       -> List("V29", "V48", "V50", "V81", "V94", "V102", "V115", "V124", "V126", "V135"),
-      List(0)          -> List(
-        "V15",
-        "V16",
-        "V17",
-        "V18",
-        "V19",
-        "V25",
-        "V28",
-        "V36",
-        "V37",
-        "V38",
-        "V41",
-        "V51",
-        "V80",
-        "V90",
-        "V93",
-        "V103",
-        "V106",
-        "V116",
-        "V137",
-        "V138",
-        "V145",
-        "V146",
-        "V147",
-        "V148",
-        "V149",
-        "V155"
-      ),
-      List(2, 0, 0)    -> List("V45", "V86", "V97", "V99", "V110"),
-      List(2)          -> List("V21", "V34", "V43", "V56", "V75", "V88", "V108", "V121", "V140", "V153"),
-      List(1, 0, 0, 0) -> List("V85"),
-      List(1, 0)       -> List("V31", "V46", "V57", "V74", "V96", "V100", "V122"),
-      List(0, 0, 0)    -> List("V59", "V61", "V70", "V83", "V113"),
-      List(0, 2, 0, 0) -> List("V71"),
-      List(0, 1)       -> List("V30", "V47", "V62", "V69", "V95", "V101", "V127", "V134"),
-      List(1, 0, 0)    -> List("V111"),
-      List(0, 2)       -> List("V49", "V125", "V136"),
-      List(0, 2, 0)    -> List("V60", "V82", "V114"),
-      List(0, 0, 0, 0) -> List("V72")
-    )
-    result.uniformity.toList.sortBy((k, _) => k) shouldBe List(
-      (
-        List(0),
-        List(
-          "V15",
-          "V16",
-          "V17",
-          "V18",
-          "V19",
-          "V25",
-          "V28",
-          "V36",
-          "V37",
-          "V38",
-          "V41",
-          "V51",
-          "V80",
-          "V90",
-          "V93",
-          "V103",
-          "V106",
-          "V116",
-          "V137",
-          "V138",
-          "V145",
-          "V146",
-          "V147",
-          "V148",
-          "V149",
-          "V155"
-        )
-      ),
-      (List(0, 0), List("V29", "V48", "V50", "V81", "V94", "V102", "V115", "V124", "V126", "V135")),
-      (List(0, 0, 0), List("V59", "V61", "V70", "V83", "V113")),
-      (List(0, 0, 0, 0), List("V72")),
-      (List(0, 1), List("V30", "V47", "V62", "V69", "V95", "V101", "V127", "V134")),
-      (List(0, 1, 0), List("V58", "V73", "V84", "V112", "V123")),
-      (List(0, 2), List("V49", "V125", "V136")),
-      (List(0, 2, 0), List("V60", "V82", "V114")),
-      (List(0, 2, 0, 0), List("V71")),
-      (List(1), List("V20", "V35", "V42", "V63", "V68", "V89", "V107", "V128", "V133", "V139", "V154")),
-      (List(1, 0), List("V31", "V46", "V57", "V74", "V96", "V100", "V122")),
-      (List(1, 0, 0), List("V111")),
-      (List(1, 0, 0, 0), List("V85")),
-      (List(2), List("V21", "V34", "V43", "V56", "V75", "V88", "V108", "V121", "V140", "V153")),
-      (List(2, 0), List("V32")),
-      (List(2, 0, 0), List("V45", "V86", "V97", "V99", "V110"))
-    )
     result.uniformityTree shouldBe
       Branch(
         List(),
@@ -478,81 +393,82 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
               "V155"
             ),
             List(
-              Branch(
-                List("V29", "V48", "V50", "V81", "V94", "V102", "V115", "V124", "V126", "V135"),
-                List(
-                  Branch(
-                    List("V59", "V61", "V70", "V83", "V113"),
-                    List(
-                      Leaf(List("V72"))
-                    )
-                  )
-                )
-              ),
-              Branch(
-                List("V30", "V47", "V62", "V69", "V95", "V101", "V127", "V134"),
-                List(
-                  Leaf(List("V58", "V73", "V84", "V112", "V123"))
-                )
-              ),
-              Branch(
-                List("V49", "V125", "V136"),
-                List(
-                  Branch(
-                    List("V60", "V82", "V114"),
-                    List(
-                      Leaf(List("V71"))
-                    )
-                  )
-                )
-              )
-            )
-          ),
-          Branch(
-            List("V20", "V35", "V42", "V63", "V68", "V89", "V107", "V128", "V133", "V139", "V154"),
-            List(
-              Branch(
-                List("V31", "V46", "V57", "V74", "V96", "V100", "V122"),
-                List(
-                  Branch(
-                    List("V111"),
-                    List(
-                      Leaf(List("V85"))
-                    )
-                  )
-                )
-              )
-            )
-          ),
-          Branch(
-            List("V21", "V34", "V43", "V56", "V75", "V88", "V108", "V121", "V140", "V153"),
-            List(
-              Branch(
-                List("V32"),
-                List(
-                  Leaf(List("V45", "V86", "V97", "V99", "V110"))
-                )
-              )
-            )
-          )
-        )
-      )
-    result.uniformityDirect shouldBe
-      Branch(
-        List(),
-        List(
-          Branch(
-            List("V15", "V16", "V17", "V18", "V19", "V25", "V28", "V36", "V37", "V38", "V41", "V51", "V80", "V90", "V93", "V103", "V106", "V116", "V137", "V138", "V145", "V146", "V147", "V148", "V149", "V155"),
-            List(
-              Leaf(List("V29", "V48", "V50", "V81", "V94", "V102", "V115", "V124", "V126", "V135", "V59", "V61", "V70", "V83", "V113", "V72")),
-              Leaf(List("V30", "V47", "V62", "V69", "V95", "V101", "V127", "V134", "V58", "V73", "V84", "V112", "V123")),
+              Leaf(List(
+                "V29",
+                "V48",
+                "V50",
+                "V81",
+                "V94",
+                "V102",
+                "V115",
+                "V124",
+                "V126",
+                "V135",
+                "V59",
+                "V61",
+                "V70",
+                "V83",
+                "V113",
+                "V72"
+              )),
+              Leaf(List(
+                "V30",
+                "V47",
+                "V62",
+                "V69",
+                "V95",
+                "V101",
+                "V127",
+                "V134",
+                "V58",
+                "V73",
+                "V84",
+                "V112",
+                "V123"
+              )),
               Leaf(List("V49", "V125", "V136", "V60", "V82", "V114", "V71"))
             )
           ),
-          Leaf(List("V20", "V35", "V42", "V63", "V68", "V89", "V107", "V128", "V133", "V139", "V154", "V31", "V46", "V57", "V74", "V96", "V100", "V122", "V111", "V85")),
-          Leaf(List("V21", "V34", "V43", "V56", "V75", "V88", "V108", "V121", "V140", "V153", "V32", "V45", "V86", "V97", "V99", "V110"))
+          Leaf(List(
+            "V20",
+            "V35",
+            "V42",
+            "V63",
+            "V68",
+            "V89",
+            "V107",
+            "V128",
+            "V133",
+            "V139",
+            "V154",
+            "V31",
+            "V46",
+            "V57",
+            "V74",
+            "V96",
+            "V100",
+            "V122",
+            "V111",
+            "V85"
+          )),
+          Leaf(List(
+            "V21",
+            "V34",
+            "V43",
+            "V56",
+            "V75",
+            "V88",
+            "V108",
+            "V121",
+            "V140",
+            "V153",
+            "V32",
+            "V45",
+            "V86",
+            "V97",
+            "V99",
+            "V110"
+          ))
         )
       )
-    //    result.uniformityDirect.shrinkAll() shouldBe
-
   }
