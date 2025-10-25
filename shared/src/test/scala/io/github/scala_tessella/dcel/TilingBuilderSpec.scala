@@ -262,5 +262,8 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
 
     /** <img src="file:../../../../../resources/uniform5.svg"/> */
     val result = TilingBuilder.createHoledTriangleNet(12, 12)((i, j) => i % 10 == (j * 8) % 10)
-    result.innerFaces.size shouldBe 214
+    allAssert(
+      result.uniformityTree.sizeLeaves shouldBe 5,
+      result.innerFaces.size shouldBe 214
+    )
   }
