@@ -464,6 +464,52 @@ final case class TilingDCEL private (
 
     build(Nil)
 
+  def uniformityDirect: Tree[List[VertexId]] =
+    val boundaryVertexIds = boundaryVertices.map(_.id)
+
+    def vertexIdClasses(centeredTilings: List[(VertexId, TilingDCEL)]): List[List[VertexId]] =
+      val classes = mutable.ArrayBuffer[(TilingDCEL, List[VertexId])]()
+      centeredTilings.foreach { case (vertexId, tiling) =>
+        classes.indexWhere { case (classified, _) =>
+          tiling.isEquivalentTo(classified)
+        } match
+          case -1 =>
+            classes += ((tiling, List(vertexId)))
+          case i  =>
+            val (classified, vertexIds) = classes(i)
+            classes.update(i, (classified, vertexId :: vertexIds))
+      }
+      classes.toList.map((_, vertexIds) => vertexIds.reverse)
+
+    // Build the tree directly with a BFS over "keys" but accumulating children as Tree nodes
+    def buildNode(key: List[Int], vertexIds: List[VertexId]): Tree[List[VertexId]] =
+      // distance equals the depth
+      val distance      = key.length
+      val centeredDcels = vertexIds.map(id => id -> getDcelAtVertex(id, distance).toOption.get)
+      val classes       = vertexIdClasses(centeredDcels)
+      val dcelMaps      = centeredDcels.toMap
+      val partitioned   = classes.map(_.partition { vertexId =>
+        val localBoundaryVertexIds = dcelMaps(vertexId).boundaryVertices.map(_.id)
+        boundaryVertexIds.intersect(localBoundaryVertexIds).isEmpty
+      })
+      val children      =
+        partitioned.zipWithIndex.map { case ((inner, stuck), idx) =>
+          val childKey = key :+ idx
+          // Create branch for this class; recurse only if there are inner (non-stuck) vertices
+          val child    =
+            if inner.nonEmpty then buildNode(childKey, inner)
+            else Tree.Leaf(Nil) // no deeper inner vertices; just a placeholder to keep structure consistent
+          // Attach stuck vertices as the value of this child node
+          child match
+            case Tree.Leaf(_)              => Tree.Leaf(stuck)
+            case Tree.Branch(_, grandkids) => Tree.Branch(stuck, grandkids)
+        }
+      Tree.Branch(Nil, children)
+
+    // Start from all inner vertices at the root
+    val rootIds = innerVertices.map(_.id)
+    buildNode(Nil, rootIds)
+
   def hasConnectedFaces: Boolean =
     innerFaces.isConnected
 
