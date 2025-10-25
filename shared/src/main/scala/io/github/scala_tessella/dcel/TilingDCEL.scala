@@ -4,6 +4,7 @@ import io.github.scala_tessella.dcel.TilingAddition.*
 import io.github.scala_tessella.dcel.TilingDeletion.*
 import io.github.scala_tessella.dcel.TilingEquivalency.*
 import io.github.scala_tessella.dcel.TilingValidation.validate
+import io.github.scala_tessella.dcel.Tree.*
 import io.github.scala_tessella.dcel.Utils.associate
 import io.github.scala_tessella.dcel.conversion.TilingDOT.*
 import io.github.scala_tessella.dcel.conversion.TilingSVG.*
@@ -498,13 +499,13 @@ final case class TilingDCEL private (
           // Create branch for this class; recurse only if there are inner (non-stuck) vertices
           val child    =
             if inner.nonEmpty then loop(childKey, inner)
-            else Tree.Leaf(Nil) // no deeper inner vertices; just a placeholder to keep structure consistent
+            else Leaf(Nil) // no deeper inner vertices; just a placeholder to keep structure consistent
           // Attach stuck vertices as the value of this child node
           child match
-            case Tree.Leaf(_)              => Tree.Leaf(stuck)
-            case Tree.Branch(_, grandkids) => Tree.Branch(stuck, grandkids)
+            case Leaf(_)              => Leaf(stuck)
+            case Branch(_, grandkids) => Branch(stuck, grandkids)
         }
-      Tree.Branch(Nil, children)
+      Branch(Nil, children)
 
     // Start from all inner vertices at the root
     loop(Nil, innerVertices.map(_.id))
