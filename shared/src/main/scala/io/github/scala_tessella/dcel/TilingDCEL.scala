@@ -502,8 +502,8 @@ final case class TilingDCEL private (
             else Leaf(Nil) // no deeper inner vertices; just a placeholder to keep structure consistent
           // Attach stuck vertices as the value of this child node
           child match
-            case Leaf(_)              => Leaf(stuck)
-            case Branch(_, grandkids) => Branch(stuck, grandkids)
+            case Leaf(_)                  => Leaf(stuck)
+            case Branch(_, grandchildren) => Branch(stuck, grandchildren)
         }
       Branch(Nil, children)
 
