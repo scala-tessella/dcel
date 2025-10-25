@@ -198,4 +198,40 @@ class TreeSpec extends AnyFlatSpec with should.Matchers {
       8
   }
 
+  "A tree with long terminal branches" can "be shortened" in {
+    Branch(
+      1,
+      List(
+        Branch(
+          2,
+          List(
+            Branch(
+              3,
+              List(Leaf(4), Leaf(5))
+            ),
+            Branch(
+              6,
+              List(
+                Branch(
+                  7,
+                  List(Leaf(8))
+                )
+              )
+            )
+          )
+        )
+      )
+    ).compress(_ + _) shouldBe
+      Branch(
+        3,
+        List(
+          Branch(
+            3,
+            List(Leaf(4), Leaf(5))
+          ),
+          Leaf(21)
+        )
+      )
+
+  }
 }

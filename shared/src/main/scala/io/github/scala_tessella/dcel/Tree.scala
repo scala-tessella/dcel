@@ -203,6 +203,26 @@ enum Tree[A]:
           Branch(shrunk, children)
     )
 
+  /** Produces a simplified version of the tree by applying a binary folding operation on the values of branch
+    * nodes and their children.
+    *
+    * @param fold
+    *   A binary function that combines two values of type A into one. Applied to compress branch values and
+    *   their child values.
+    * @return
+    *   A new tree with the branch values simplified according to the provided folding function, while
+    *   maintaining the tree structure where necessary.
+    */
+  def compress(fold: (A, A) => A): Tree[A] =
+    foldAlt(
+      value => Leaf(value),
+      (value, children) =>
+        children match
+          case Leaf(v) :: Nil      => Leaf(fold(value, v))
+          case Branch(v, c) :: Nil => Branch(fold(value, v), c)
+          case _                   => Branch(value, children)
+    )
+
   def foldValues(gBranch: List[A] => A): A =
     simpleFold(identity, gBranch)
 
