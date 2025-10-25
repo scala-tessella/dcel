@@ -260,13 +260,18 @@ object TilingSVG:
 
     val circles =
       if config.showUniformity then
-        val classes = tilingDCEL.uniformityTree.flattenLeaves
+        val classes  = tilingDCEL.uniformityTree.flattenLeaves
         val indexMap = classes.zipWithIndex.flatMap((vertexIds, index) => vertexIds.map((_, index))).toMap
         tilingDCEL.vertices.map { v =>
-          val index = indexMap.get(v.id)
+          val index      = indexMap.get(v.id)
           val multiplier = if index.isDefined then 20 else 2
-          val (cx, cy) = v.coords.toSvgCoords(config.scale)
-          circleElem(cx, cy, (config.strokeWidth * multiplier).toString, attrs("fill" -> index.map(uniformColorMap).getOrElse("red")))
+          val (cx, cy)   = v.coords.toSvgCoords(config.scale)
+          circleElem(
+            cx,
+            cy,
+            (config.strokeWidth * multiplier).toString,
+            attrs("fill" -> index.map(uniformColorMap).getOrElse("red"))
+          )
         }
       else
         tilingDCEL.vertices.map { v =>
@@ -385,7 +390,15 @@ object TilingSVG:
           svgElem("0", "0", "0 0 0 0", Seq.empty)
         else
           val config          =
-            SvgConfig(strokeWidth, padding, scale, showHalfEdgeTraversal, leavingEdgeMarkers, faceIdsOnEdges, showUniformity)
+            SvgConfig(
+              strokeWidth,
+              padding,
+              scale,
+              showHalfEdgeTraversal,
+              leavingEdgeMarkers,
+              faceIdsOnEdges,
+              showUniformity
+            )
           val vertices        = tiling.vertices.map(_.coords)
           val viewBox         = calculateViewBox(vertices, scale, padding)
           val (width, height) = viewBox.dimensions
