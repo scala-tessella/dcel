@@ -405,17 +405,17 @@ final case class TilingDCEL private (
     // Build the tree directly with a BFS over "keys" but accumulating children as Tree nodes
     def loop(key: List[Int], vertexIds: List[VertexId]): Tree[List[VertexId]] =
       // distance equals the depth
-      val distance      = key.length
-      val centeredDcels = vertexIds.map(id => id -> getDcelAtVertex(id, distance).toOption.get)
-      val classes       = vertexIdClasses(centeredDcels)
-      val dcelMaps      = centeredDcels.toMap
-      val partitioned   = classes.map(_.partition { vertexId =>
-        val localBoundaryVertexIds = dcelMaps(vertexId).boundaryVertices.map(_.id)
+      val distance        = key.length
+      val centeredTilings = vertexIds.map(id => id -> getDcelAtVertex(id, distance).toOption.get)
+      val classes         = vertexIdClasses(centeredTilings)
+      val centeredMaps    = centeredTilings.toMap
+      val partitioned     = classes.map(_.partition { vertexId =>
+        val localBoundaryVertexIds = centeredMaps(vertexId).boundaryVertices.map(_.id)
         boundaryVertexIds.intersect(localBoundaryVertexIds).isEmpty
       })
-      val children      =
-        partitioned.zipWithIndex.map { case ((inner, stuck), idx) =>
-          val childKey = key :+ idx
+      val children        =
+        partitioned.zipWithIndex.map { case ((inner, stuck), index) =>
+          val childKey = key :+ index
           // Create branch for this class; recurse only if there are inner (non-stuck) vertices
           val child    =
             if inner.nonEmpty then loop(childKey, inner)
