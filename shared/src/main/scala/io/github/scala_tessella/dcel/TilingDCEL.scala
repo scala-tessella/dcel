@@ -560,7 +560,8 @@ final case class TilingDCEL private (
       scale: Double = 50.0,
       showHalfEdgeTraversal: Boolean = false,
       leavingEdgeMarkers: Boolean = false,
-      faceIdsOnEdges: Boolean = false
+      faceIdsOnEdges: Boolean = false,
+      showUniformity: Boolean = false
   ): String =
     this.toScalableVectorGraphics(
       strokeWidth,
@@ -568,7 +569,8 @@ final case class TilingDCEL private (
       scale,
       showHalfEdgeTraversal,
       leavingEdgeMarkers,
-      faceIdsOnEdges
+      faceIdsOnEdges,
+      showUniformity
     )
 
   def toSVG(options: SvgOptions): String =

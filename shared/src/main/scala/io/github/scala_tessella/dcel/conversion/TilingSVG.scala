@@ -37,7 +37,8 @@ object TilingSVG:
       scale: Double = 50.0,
       showHalfEdgeTraversal: Boolean = false,
       leavingEdgeMarkers: Boolean = false,
-      faceIdsOnEdges: Boolean = false
+      faceIdsOnEdges: Boolean = false,
+      showUniformity: Boolean = false
   )
 
   private case class SvgConfig(
@@ -46,7 +47,8 @@ object TilingSVG:
       scale: Double,
       showHalfEdgeTraversal: Boolean,
       leavingEdgeMarkers: Boolean,
-      faceIdsOnEdges: Boolean
+      faceIdsOnEdges: Boolean,
+      showUniformity: Boolean
   )
 
   private def toConfig(opts: SvgOptions): SvgConfig =
@@ -56,7 +58,8 @@ object TilingSVG:
       scale = opts.scale,
       showHalfEdgeTraversal = opts.showHalfEdgeTraversal,
       leavingEdgeMarkers = opts.leavingEdgeMarkers,
-      faceIdsOnEdges = opts.faceIdsOnEdges
+      faceIdsOnEdges = opts.faceIdsOnEdges,
+      showUniformity = opts.showUniformity
     )
 
   private def createArrow(
@@ -240,10 +243,36 @@ object TilingSVG:
       case _                             => None
 
   private def createVertexElements(tilingDCEL: TilingDCEL, config: SvgConfig): (Seq[Elem], Seq[Elem]) =
-    val circles = tilingDCEL.vertices.map { v =>
-      val (cx, cy) = v.coords.toSvgCoords(config.scale)
-      circleElem(cx, cy, (config.strokeWidth * 2).toString)
-    }
+
+    def uniformColorMap: Map[Int, String] =
+      Map(
+        0 -> "yellow",
+        1 -> "orange",
+        2 -> "violet",
+        3 -> "green",
+        4 -> "brown",
+        5 -> "pink",
+        6 -> "deeppink",
+        7 -> "darkkhaki",
+        8 -> "blueviolet",
+        9 -> "lime"
+      )
+
+    val circles =
+      if config.showUniformity then
+        val classes = tilingDCEL.uniformityTree.flattenLeaves
+        val indexMap = classes.zipWithIndex.flatMap((vertexIds, index) => vertexIds.map((_, index))).toMap
+        tilingDCEL.vertices.map { v =>
+          val index = indexMap.get(v.id)
+          val multiplier = if index.isDefined then 20 else 2
+          val (cx, cy) = v.coords.toSvgCoords(config.scale)
+          circleElem(cx, cy, (config.strokeWidth * multiplier).toString, attrs("fill" -> index.map(uniformColorMap).getOrElse("red")))
+        }
+      else
+        tilingDCEL.vertices.map { v =>
+          val (cx, cy) = v.coords.toSvgCoords(config.scale)
+          circleElem(cx, cy, (config.strokeWidth * 2).toString)
+        }
 
     val labels = tilingDCEL.vertices.map { v =>
       val point = v.coords.scaled(config.scale).flippedY
@@ -348,14 +377,15 @@ object TilingSVG:
         scale: Double = 50.0,
         showHalfEdgeTraversal: Boolean = false,
         leavingEdgeMarkers: Boolean = false,
-        faceIdsOnEdges: Boolean = false
+        faceIdsOnEdges: Boolean = false,
+        showUniformity: Boolean = false
     ): String =
       val svg: Elem =
         if tiling.vertices.isEmpty then
           svgElem("0", "0", "0 0 0 0", Seq.empty)
         else
           val config          =
-            SvgConfig(strokeWidth, padding, scale, showHalfEdgeTraversal, leavingEdgeMarkers, faceIdsOnEdges)
+            SvgConfig(strokeWidth, padding, scale, showHalfEdgeTraversal, leavingEdgeMarkers, faceIdsOnEdges, showUniformity)
           val vertices        = tiling.vertices.map(_.coords)
           val viewBox         = calculateViewBox(vertices, scale, padding)
           val (width, height) = viewBox.dimensions
@@ -471,7 +501,8 @@ object TilingSVG:
         scale = config.scale,
         showHalfEdgeTraversal = config.showHalfEdgeTraversal,
         leavingEdgeMarkers = config.leavingEdgeMarkers,
-        faceIdsOnEdges = config.faceIdsOnEdges
+        faceIdsOnEdges = config.faceIdsOnEdges,
+        showUniformity = config.showUniformity
       )
 
     /** Serializes the complete structure of a [[TilingDCEL]] into XML metadata, which can be embedded within
