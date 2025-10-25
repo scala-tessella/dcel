@@ -482,7 +482,7 @@ final case class TilingDCEL private (
       classes.toList.map((_, vertexIds) => vertexIds.reverse)
 
     // Build the tree directly with a BFS over "keys" but accumulating children as Tree nodes
-    def buildNode(key: List[Int], vertexIds: List[VertexId]): Tree[List[VertexId]] =
+    def loop(key: List[Int], vertexIds: List[VertexId]): Tree[List[VertexId]] =
       // distance equals the depth
       val distance      = key.length
       val centeredDcels = vertexIds.map(id => id -> getDcelAtVertex(id, distance).toOption.get)
@@ -497,7 +497,7 @@ final case class TilingDCEL private (
           val childKey = key :+ idx
           // Create branch for this class; recurse only if there are inner (non-stuck) vertices
           val child    =
-            if inner.nonEmpty then buildNode(childKey, inner)
+            if inner.nonEmpty then loop(childKey, inner)
             else Tree.Leaf(Nil) // no deeper inner vertices; just a placeholder to keep structure consistent
           // Attach stuck vertices as the value of this child node
           child match
@@ -507,8 +507,7 @@ final case class TilingDCEL private (
       Tree.Branch(Nil, children)
 
     // Start from all inner vertices at the root
-    val rootIds = innerVertices.map(_.id)
-    buildNode(Nil, rootIds)
+    loop(Nil, innerVertices.map(_.id))
 
   def hasConnectedFaces: Boolean =
     innerFaces.isConnected
