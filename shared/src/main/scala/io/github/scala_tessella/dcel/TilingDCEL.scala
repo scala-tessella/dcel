@@ -508,7 +508,7 @@ final case class TilingDCEL private (
       Branch(Nil, children)
 
     // Start from all inner vertices at the root
-    loop(Nil, innerVertices.map(_.id))
+    loop(Nil, innerVertices.map(_.id)).compress(_ ::: _)
 
   def hasConnectedFaces: Boolean =
     innerFaces.isConnected
