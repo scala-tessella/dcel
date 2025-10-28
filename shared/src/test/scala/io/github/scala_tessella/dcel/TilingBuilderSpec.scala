@@ -274,6 +274,46 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
     val result = TilingBuilder.createHoledTriangleNet(12, 12)((i, j) => (i + 3 * j) % 13 == 0)
     allAssert(
       result.uniformityTree.sizeLeaves shouldBe 6,
-      result.innerFaces.size shouldBe 214
+      result.innerFaces.size shouldBe 231
+    )
+  }
+
+  it should "create an uniform 1 tiling" in {
+
+    /** <img src="file:../../../../../resources/uniform1.svg"/> */
+    val result = TilingBuilder.createHoledTriangleNet(12, 12)((i, j) => (i + 3 * j) % 7 == 0)
+    allAssert(
+      result.uniformityTree.sizeLeaves shouldBe 1,
+      result.innerFaces.size shouldBe 182
+    )
+  }
+
+  it should "create an uniform 3 tiling" in {
+
+    /** <img src="file:../../../../../resources/uniform3.svg"/> */
+    val result = TilingBuilder.createHoledTriangleNet(12, 12)((i, j) => (i + 4 * j) % 7 == 0)
+    allAssert(
+      result.uniformityTree.sizeLeaves shouldBe 3,
+      result.innerFaces.size shouldBe 184
+    )
+  }
+
+  it should "create an uniform 1 tiling with opposite chirality" in {
+
+    /** <img src="file:../../../../../resources/uniform1_specular.svg"/> */
+    val result = TilingBuilder.createHoledTriangleNet(12, 12)((i, j) => (i + 5 * j) % 7 == 0)
+    allAssert(
+      result.uniformityTree.sizeLeaves shouldBe 1,
+      result.innerFaces.size shouldBe 182
+    )
+  }
+
+  it should "create an uniform 4 tiling" in {
+
+    /** <img src="file:../../../../../resources/uniform4.svg"/> */
+    val result = TilingBuilder.createHoledTriangleNet(12, 12)((i, j) => (i + 7 * j) % 9 == 0)
+    allAssert(
+      result.uniformityTree.sizeLeaves shouldBe 4,
+      result.innerFaces.size shouldBe 205
     )
   }
