@@ -13,6 +13,7 @@ import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint, RegularPol
 import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
 import io.github.scala_tessella.ring_seq.RingSeq.startAt
 
+//import scala.annotation.tailrec
 import scala.collection.mutable
 
 /** Represents the entire tiling structure as a container for its components.
@@ -385,22 +386,24 @@ final case class TilingDCEL private (
 //      rep -> ids.reverse
 //    }.toMap
 
+  /** Group the ids of the vertices in classes of equivalent TilingDCEL. */
+  private def vertexIdClasses(centeredTilings: List[(VertexId, TilingDCEL)]): List[List[VertexId]] =
+    val classes = mutable.ArrayBuffer[(TilingDCEL, List[VertexId])]()
+    centeredTilings.foreach { case (vertexId, tiling) =>
+      classes.indexWhere { case (classified, _) =>
+        tiling.isEquivalentTo(classified)
+      } match
+        case -1 =>
+          classes += ((tiling, List(vertexId)))
+        case i  =>
+          val (classified, vertexIds) = classes(i)
+          classes.update(i, (classified, vertexId :: vertexIds))
+    }
+    classes.toList.map((_, vertexIds) => vertexIds.reverse)
+
+  /** Calculates the uniformity of the tiling, each leaf a different class of vertices. */
   def uniformityTree: Tree[List[VertexId]] =
     val boundaryVertexIds = boundaryVertices.map(_.id)
-
-    def vertexIdClasses(centeredTilings: List[(VertexId, TilingDCEL)]): List[List[VertexId]] =
-      val classes = mutable.ArrayBuffer[(TilingDCEL, List[VertexId])]()
-      centeredTilings.foreach { case (vertexId, tiling) =>
-        classes.indexWhere { case (classified, _) =>
-          tiling.isEquivalentTo(classified)
-        } match
-          case -1 =>
-            classes += ((tiling, List(vertexId)))
-          case i  =>
-            val (classified, vertexIds) = classes(i)
-            classes.update(i, (classified, vertexId :: vertexIds))
-      }
-      classes.toList.map((_, vertexIds) => vertexIds.reverse)
 
     // Build the tree directly with a BFS over "keys" but accumulating children as Tree nodes
     def loop(key: List[Int], vertexIds: List[VertexId]): Tree[List[VertexId]] =
