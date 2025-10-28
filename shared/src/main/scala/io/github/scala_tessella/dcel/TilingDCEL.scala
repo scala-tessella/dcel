@@ -5,6 +5,7 @@ import io.github.scala_tessella.dcel.TilingDeletion.*
 import io.github.scala_tessella.dcel.TilingEquivalency.*
 import io.github.scala_tessella.dcel.TilingValidation.validate
 import io.github.scala_tessella.dcel.Tree.*
+
 //import io.github.scala_tessella.dcel.Utils.associate
 import io.github.scala_tessella.dcel.conversion.TilingDOT.*
 import io.github.scala_tessella.dcel.conversion.TilingSVG.*
@@ -15,6 +16,7 @@ import io.github.scala_tessella.ring_seq.RingSeq.startAt
 
 //import scala.annotation.tailrec
 import scala.collection.mutable
+import scala.util.control.TailCalls.{TailRec, done, tailcall}
 
 /** Represents the entire tiling structure as a container for its components.
   *
@@ -401,8 +403,8 @@ final case class TilingDCEL private (
     }
     classes.toList.map((_, vertexIds) => vertexIds.reverse)
 
-  /** Calculates the uniformity of the tiling, each leaf a different class of vertices. */
-  def uniformityTree: Tree[List[VertexId]] =
+  /** Version without tail call, potentially prone to stack overflow. */
+  def uniformityTreeOld: Tree[List[VertexId]] =
     val boundaryVertexIds = boundaryVertices.map(_.id)
 
     // Build the tree directly with a BFS over "keys" but accumulating children as Tree nodes
@@ -432,6 +434,48 @@ final case class TilingDCEL private (
 
     // Start from all inner vertices at the root
     loop(Nil, innerVertices.map(_.id)).compress(_ ::: _)
+
+  /** Calculates the uniformity of the tiling, each leaf a different class of vertices. */
+  def uniformityTree: Tree[List[VertexId]] =
+    val boundaryVertexIds = boundaryVertices.map(_.id)
+
+    // Tail-recursive helper using TailCalls
+    def loop(key: List[Int], vertexIds: List[VertexId]): TailRec[Tree[List[VertexId]]] =
+      val distance        = key.length
+      val centeredTilings = vertexIds.map(id => id -> getDcelAtVertex(id, distance).toOption.get)
+      val classes         = vertexIdClasses(centeredTilings)
+      val centeredMaps    = centeredTilings.toMap
+      val partitioned     = classes.map(_.partition { vertexId =>
+        val localBoundaryVertexIds = centeredMaps(vertexId).boundaryVertices.map(_.id)
+        boundaryVertexIds.intersect(localBoundaryVertexIds).isEmpty
+      })
+
+      // Process children with tail recursion
+      def processChildren(
+          remaining: List[((List[VertexId], List[VertexId]), Int)],
+          accumulated: List[Tree[List[VertexId]]]
+      ): TailRec[List[Tree[List[VertexId]]]] =
+        remaining match
+          case Nil                             => done(accumulated.reverse)
+          case ((inner, stuck), index) :: tail =>
+            val childKey = key :+ index
+            if inner.nonEmpty then
+              tailcall(loop(childKey, inner)).flatMap { childTree =>
+                val updatedChild = childTree match
+                  case Leaf(_)                  => Leaf(stuck)
+                  case Branch(_, grandchildren) => Branch(stuck, grandchildren)
+                processChildren(tail, updatedChild :: accumulated)
+              }
+            else
+              processChildren(tail, Leaf(stuck) :: accumulated)
+
+      tailcall(processChildren(partitioned.zipWithIndex, Nil)).map { children =>
+
+        Branch(Nil, children)
+      }
+
+    // Start from all inner vertices at the root
+    loop(Nil, innerVertices.map(_.id)).result.compress(_ ::: _)
 
   def hasConnectedFaces: Boolean =
     innerFaces.isConnected
