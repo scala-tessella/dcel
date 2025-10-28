@@ -267,3 +267,13 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
       result.innerFaces.size shouldBe 214
     )
   }
+
+  it should "create an uniform 6 tiling" in {
+
+    /** <img src="file:../../../../../resources/uniform6.svg"/> */
+    val result = TilingBuilder.createHoledTriangleNet(12, 12)((i, j) => (i + 3 * j) % 13 == 0)
+    allAssert(
+      result.uniformityTree.sizeLeaves shouldBe 6,
+      result.innerFaces.size shouldBe 214
+    )
+  }
