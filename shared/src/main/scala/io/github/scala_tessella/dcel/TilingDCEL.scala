@@ -5,13 +5,13 @@ import io.github.scala_tessella.dcel.TilingDeletion.*
 import io.github.scala_tessella.dcel.TilingEquivalency.*
 import io.github.scala_tessella.dcel.TilingValidation.validate
 import io.github.scala_tessella.dcel.Tree.*
-import io.github.scala_tessella.dcel.Utils.associate
+//import io.github.scala_tessella.dcel.Utils.associate
 import io.github.scala_tessella.dcel.conversion.TilingDOT.*
 import io.github.scala_tessella.dcel.conversion.TilingSVG.*
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint, RegularPolygon, SimplePolygon}
-import io.github.scala_tessella.dcel.structure.Utils.shortestPath
+//import io.github.scala_tessella.dcel.structure.Utils.shortestPath
 import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
-import io.github.scala_tessella.ring_seq.RingSeq.{slidingO, startAt}
+import io.github.scala_tessella.ring_seq.RingSeq.startAt
 
 import scala.collection.mutable
 
@@ -122,47 +122,47 @@ final case class TilingDCEL private (
       vertex <- findVertex(vertexId)
     yield getInnerAnglesAtVertexUnsafe(vertexId)
 
-  /** Computes a mapping between each vertex and the list of its inner angles in the tiling.
-    */
-  def degreesMap: Map[VertexId, List[AngleDegree]] =
-    vertices.map(_.id).associate(getInnerAnglesAtVertexUnsafe)
-
-  def adjacencyMap: Map[VertexId, List[VertexId]] =
-    // For each vertex, collect destinations of its incident half-edges (distinct, keep stable order)
-    vertices.map { v =>
-      val neighbors = v.incidentEdgesUnsafe
-        .flatMap(_.destination)
-        .map(_.id)
-        .distinct
-      v.id -> neighbors
-    }.toMap
-
-  def getPolygonVerticesAroundVertex(vertexId: VertexId): Either[NotFoundError, List[VertexId]] =
-    for
-      center <- findVertex(vertexId)
-    yield
-      val adjacency = adjacencyMap
-
-      def cumulativePath(
-          vertexIds: List[VertexId],
-          f: List[VertexId] => Iterator[List[VertexId]],
-          excluded: Set[VertexId]
-      ): List[VertexId] =
-        f(vertexIds).toList.map((_: @unchecked) match {
-          case start :: goal :: Nil => shortestPath(start, goal, adjacency, excluded)
-        }).flatMap(_.tail)
-
-      val adjacentVertexIds = center.adjacentVerticesUnsafe.map(_.id)
-      if !boundaryVertices.contains(center) then
-        cumulativePath(adjacentVertexIds, _.slidingO(2), Set(vertexId))
-      else
-        val innerPart    =
-          cumulativePath(adjacentVertexIds, _.sliding(2), Set(vertexId))
-        val continuation = adjacentVertexIds.last :: vertexId :: adjacentVertexIds.head :: Nil
-
-        val boundaryPart =
-          cumulativePath(continuation, _.sliding(2), innerPart.init.toSet)
-        innerPart ::: boundaryPart
+//  /** Computes a mapping between each vertex and the list of its inner angles in the tiling.
+//    */
+//  def degreesMap: Map[VertexId, List[AngleDegree]] =
+//    vertices.map(_.id).associate(getInnerAnglesAtVertexUnsafe)
+//
+//  def adjacencyMap: Map[VertexId, List[VertexId]] =
+//    // For each vertex, collect destinations of its incident half-edges (distinct, keep stable order)
+//    vertices.map { v =>
+//      val neighbors = v.incidentEdgesUnsafe
+//        .flatMap(_.destination)
+//        .map(_.id)
+//        .distinct
+//      v.id -> neighbors
+//    }.toMap
+//
+//  def getPolygonVerticesAroundVertex(vertexId: VertexId): Either[NotFoundError, List[VertexId]] =
+//    for
+//      center <- findVertex(vertexId)
+//    yield
+//      val adjacency = adjacencyMap
+//
+//      def cumulativePath(
+//          vertexIds: List[VertexId],
+//          f: List[VertexId] => Iterator[List[VertexId]],
+//          excluded: Set[VertexId]
+//      ): List[VertexId] =
+//        f(vertexIds).toList.map((_: @unchecked) match {
+//          case start :: goal :: Nil => shortestPath(start, goal, adjacency, excluded)
+//        }).flatMap(_.tail)
+//
+//      val adjacentVertexIds = center.adjacentVerticesUnsafe.map(_.id)
+//      if !boundaryVertices.contains(center) then
+//        cumulativePath(adjacentVertexIds, _.slidingO(2), Set(vertexId))
+//      else
+//        val innerPart    =
+//          cumulativePath(adjacentVertexIds, _.sliding(2), Set(vertexId))
+//        val continuation = adjacentVertexIds.last :: vertexId :: adjacentVertexIds.head :: Nil
+//
+//        val boundaryPart =
+//          cumulativePath(continuation, _.sliding(2), innerPart.init.toSet)
+//        innerPart ::: boundaryPart
 
   /** Retrieves a reduced TilingDCEL around a vertex containing only the polygons reached within the given
     * vertex-distance. Distance is clamped to >= 0.
@@ -358,32 +358,32 @@ final case class TilingDCEL private (
 //  def gonalityMap: Map[VertexId, TilingDCEL] =
 //   innerVertices.map(_.id).associate(getDcelAtVertex(_).toOption.get)
 
-  /** Computes a mapping where each TilingDCEL instance is associated with a list of inner vertices having the
-    * same equivalent TilingDCEL. Equivalency between two TilingDCEL is calculated with the
-    * [[TilingDCEL.equivalentTo]] method.
-    */
-  def groupedInnerVertices: Map[TilingDCEL, List[VertexId]] =
-    val localByVertex: List[(VertexId, TilingDCEL)] =
-      innerVertices.map(_.id).map(vertexId => vertexId -> getDcelAtVertex(vertexId).toOption.get)
-
-    // Group by equivalence class using a canonical representative per class
-    val classes = scala.collection.mutable.ArrayBuffer[(TilingDCEL, List[VertexId])]()
-    localByVertex.foreach { case (vertexId, local) =>
-      // Try to find an existing equivalent representative
-      classes.indexWhere { case (rep, _) =>
-        local.isEquivalentTo(rep)
-      } match
-        case -1  =>
-          classes += ((local, List(vertexId)))
-        case idx =>
-          val (rep, ids) = classes(idx)
-          classes.update(idx, (rep, vertexId :: ids))
-    }
-
-    // Return as a Map with vertex ids in stable order (ascending by their appearance order)
-    classes.iterator.map { case (rep, ids) =>
-      rep -> ids.reverse
-    }.toMap
+//  /** Computes a mapping where each TilingDCEL instance is associated with a list of inner vertices having the
+//    * same equivalent TilingDCEL. Equivalency between two TilingDCEL is calculated with the
+//    * [[TilingDCEL.equivalentTo]] method.
+//    */
+//  def groupedInnerVertices: Map[TilingDCEL, List[VertexId]] =
+//    val localByVertex: List[(VertexId, TilingDCEL)] =
+//      innerVertices.map(_.id).map(vertexId => vertexId -> getDcelAtVertex(vertexId).toOption.get)
+//
+//    // Group by equivalence class using a canonical representative per class
+//    val classes = scala.collection.mutable.ArrayBuffer[(TilingDCEL, List[VertexId])]()
+//    localByVertex.foreach { case (vertexId, local) =>
+//      // Try to find an existing equivalent representative
+//      classes.indexWhere { case (rep, _) =>
+//        local.isEquivalentTo(rep)
+//      } match
+//        case -1  =>
+//          classes += ((local, List(vertexId)))
+//        case idx =>
+//          val (rep, ids) = classes(idx)
+//          classes.update(idx, (rep, vertexId :: ids))
+//    }
+//
+//    // Return as a Map with vertex ids in stable order (ascending by their appearance order)
+//    classes.iterator.map { case (rep, ids) =>
+//      rep -> ids.reverse
+//    }.toMap
 
   def uniformityTree: Tree[List[VertexId]] =
     val boundaryVertexIds = boundaryVertices.map(_.id)
