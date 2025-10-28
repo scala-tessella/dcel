@@ -440,7 +440,7 @@ final case class TilingDCEL private (
     val boundaryVertexIds = boundaryVertices.map(_.id)
 
     // Tail-recursive helper using TailCalls
-    def loop(key: List[Int], vertexIds: List[VertexId]): TailRec[Tree[List[VertexId]]] =
+    def deepMap(key: List[Int], vertexIds: List[VertexId]): TailRec[Tree[List[VertexId]]] =
       val distance        = key.length
       val centeredTilings = vertexIds.map(id => id -> getDcelAtVertex(id, distance).toOption.get)
       val classes         = vertexIdClasses(centeredTilings)
@@ -451,7 +451,7 @@ final case class TilingDCEL private (
       })
 
       // Process children with tail recursion
-      def processChildren(
+      def iterate(
           remaining: List[((List[VertexId], List[VertexId]), Int)],
           accumulated: List[Tree[List[VertexId]]]
       ): TailRec[List[Tree[List[VertexId]]]] =
@@ -460,22 +460,22 @@ final case class TilingDCEL private (
           case ((inner, stuck), index) :: tail =>
             val childKey = key :+ index
             if inner.nonEmpty then
-              tailcall(loop(childKey, inner)).flatMap { childTree =>
+              tailcall(deepMap(childKey, inner)).flatMap { childTree =>
                 val updatedChild = childTree match
                   case Leaf(_)                  => Leaf(stuck)
                   case Branch(_, grandchildren) => Branch(stuck, grandchildren)
-                processChildren(tail, updatedChild :: accumulated)
+                iterate(tail, updatedChild :: accumulated)
               }
             else
-              processChildren(tail, Leaf(stuck) :: accumulated)
+              iterate(tail, Leaf(stuck) :: accumulated)
 
-      tailcall(processChildren(partitioned.zipWithIndex, Nil)).map { children =>
+      tailcall(iterate(partitioned.zipWithIndex, Nil)).map { children =>
 
         Branch(Nil, children)
       }
 
     // Start from all inner vertices at the root
-    loop(Nil, innerVertices.map(_.id)).result.compress(_ ::: _)
+    deepMap(Nil, innerVertices.map(_.id)).result.compress(_ ::: _)
 
   def hasConnectedFaces: Boolean =
     innerFaces.isConnected
