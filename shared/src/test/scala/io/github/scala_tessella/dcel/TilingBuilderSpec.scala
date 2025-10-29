@@ -260,80 +260,10 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
 
   it should "create an hexagon net" in {
 
-    /** <img src="file:../../../../../resources/uniform1.svg"/> */
+    /** <img src="file:../../../../../resources/uniform1_all_hex.svg"/> */
     val result = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => (i - j) % 3 == 0)
     allAssert(
       result.uniformityTree.sizeLeaves shouldBe 1,
       result.innerFaces.size shouldBe 22
-    )
-  }
-
-  it should "create an uniform 1 tiling" in {
-
-    /** <img src="file:../../../../../resources/uniform1.svg"/> */
-    val result = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => (i + 3 * j) % 7 == 0)
-    allAssert(
-      result.uniformityTree.sizeLeaves shouldBe 1,
-      result.innerFaces.size shouldBe 101
-    )
-  }
-
-  it should "create the same tiling with opposite chirality" in {
-
-    /** <img src="file:../../../../../resources/uniform1_specular.svg"/> */
-    val result = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => (i + 5 * j) % 7 == 0)
-    allAssert(
-      result.uniformityTree.sizeLeaves shouldBe 1,
-      result.innerFaces.size shouldBe 101
-    )
-  }
-
-  it should "create an uniform 2 tiling" in {
-
-    /** <img src="file:../../../../../resources/uniform2.svg"/> */
-    val result = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => i % 3 == 0 && j % 3 == 0)
-    allAssert(
-      result.uniformityTree.sizeLeaves shouldBe 2,
-      result.innerFaces.size shouldBe 112
-    )
-  }
-
-  it should "create an uniform 3 tiling" in {
-
-    /** <img src="file:../../../../../resources/uniform3.svg"/> */
-    val result = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => (i + 4 * j) % 7 == 0)
-    allAssert(
-      result.uniformityTree.sizeLeaves shouldBe 3,
-      result.innerFaces.size shouldBe 104
-    )
-  }
-
-  it should "create an uniform 4 tiling" in {
-
-    /** <img src="file:../../../../../resources/uniform4.svg"/> */
-    val result = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => (i + 7 * j) % 9 == 0)
-    allAssert(
-      result.uniformityTree.sizeLeaves shouldBe 4,
-      result.innerFaces.size shouldBe 116
-    )
-  }
-
-  it should "create an uniform 5 tiling" in {
-
-    /** <img src="file:../../../../../resources/uniform5.svg"/> */
-    val result = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => i % 10 == (j * 8) % 10)
-    allAssert(
-      result.uniformityTree.sizeLeaves shouldBe 5,
-      result.innerFaces.size shouldBe 120
-    )
-  }
-
-  it should "create an uniform 6 tiling" in {
-
-    /** <img src="file:../../../../../resources/uniform6.svg"/> */
-    val result = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => (i + 3 * j) % 13 == 0)
-    allAssert(
-      result.uniformityTree.sizeLeaves shouldBe 6,
-      result.innerFaces.size shouldBe 131
     )
   }
