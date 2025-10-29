@@ -258,6 +258,16 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
 
   behavior of "TilingBuilder.createHoledTriangleNet"
 
+  it should "create an hexagon net" in {
+
+    /** <img src="file:../../../../../resources/uniform1.svg"/> */
+    val result = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => (i - j) % 3 == 0)
+    allAssert(
+      result.uniformityTree.sizeLeaves shouldBe 1,
+      result.innerFaces.size shouldBe 22
+    )
+  }
+
   it should "create an uniform 1 tiling" in {
 
     /** <img src="file:../../../../../resources/uniform1.svg"/> */
