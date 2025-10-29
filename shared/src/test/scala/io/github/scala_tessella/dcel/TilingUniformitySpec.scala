@@ -19,10 +19,11 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
     )
   }
 
-  it should "find the same tiling with opposite chirality" in {
+  it should "find the same tiling with opposite chirality by inverting the axes" in {
 
     /** <img src="file:../../../../../resources/uniform1_specular.svg"/> */
-    val result = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => (i + 5 * j) % 7 == 0)
+    val result = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => (j + 3 * i) % 7 == 0)
+    println(result.toSVG(showUniformity = true))
     allAssert(
       result.uniformityTree.sizeLeaves shouldBe 1,
       result.innerFaces.size shouldBe 101
