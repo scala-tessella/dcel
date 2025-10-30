@@ -5,17 +5,12 @@ import io.github.scala_tessella.dcel.TilingDeletion.*
 import io.github.scala_tessella.dcel.TilingEquivalency.*
 import io.github.scala_tessella.dcel.TilingValidation.validate
 import io.github.scala_tessella.dcel.Tree.*
-
-//import io.github.scala_tessella.dcel.Utils.associate
 import io.github.scala_tessella.dcel.conversion.TilingDOT.*
 import io.github.scala_tessella.dcel.conversion.TilingSVG.*
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint, RegularPolygon, SimplePolygon}
-//import io.github.scala_tessella.dcel.structure.Utils.shortestPath
 import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
 import io.github.scala_tessella.ring_seq.RingSeq.startAt
 
-//import scala.annotation.tailrec
-//import scala.collection.mutable
 import scala.util.control.TailCalls.{TailRec, done, tailcall}
 
 /** Represents the entire tiling structure as a container for its components.
@@ -192,7 +187,9 @@ final case class TilingDCEL private (
         val (v, dist) = queue.dequeue()
         if dist < d then
           v.incidentEdgesUnsafe.foreach { he =>
+
             he.destination.foreach { nb =>
+
               if !visited.contains(nb) then
                 visited += nb
                 queue.enqueue((nb, dist + 1))
@@ -218,9 +215,10 @@ final case class TilingDCEL private (
       var changed = true
       while changed do
         val currentVertices = selectedInnerFaces.flatMap(_.getVerticesUnsafe).toSet
-        val holeFaces = innerFaces.filter { f =>
+        val holeFaces       = innerFaces.filter { f =>
+
           !selectedInnerFaces.contains(f) &&
-            f.getVerticesUnsafe.forall(currentVertices.contains)
+          f.getVerticesUnsafe.forall(currentVertices.contains)
         }
         if holeFaces.nonEmpty then
           selectedInnerFaces ++= holeFaces

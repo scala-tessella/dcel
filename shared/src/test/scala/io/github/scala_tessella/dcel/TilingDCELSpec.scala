@@ -320,7 +320,6 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     )
   }
 
-
 //  behavior of "TilingDCEL.getPolygonVerticesAroundVertex"
 //
 //  it should "return the DCEL around the inner vertex of the bench" in {
