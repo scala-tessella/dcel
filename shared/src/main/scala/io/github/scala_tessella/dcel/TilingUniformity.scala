@@ -40,8 +40,8 @@ object TilingUniformity:
       *   The vertex-radius to include (0 = only polygons incident to the center; 1 = also polygons around the
       *   neighbors of the center; etc.).
       * @return
-      *   An `Either` containing the reduced TilingDCEL if the operation succeeds or a `NotFoundError` if the
-      *   specified vertex is not found.
+      *   An `Either` containing the structure of the reduced TilingDCEL if the operation succeeds or a
+      *   `NotFoundError` if the specified vertex is not found.
       */
     private[dcel] def getStructureAtVertex(
         vertexId: VertexId,
