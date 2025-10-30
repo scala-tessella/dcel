@@ -192,9 +192,7 @@ final case class TilingDCEL private (
         val (v, dist) = queue.dequeue()
         if dist < d then
           v.incidentEdgesUnsafe.foreach { he =>
-
             he.destination.foreach { nb =>
-
               if !visited.contains(nb) then
                 visited += nb
                 queue.enqueue((nb, dist + 1))
@@ -209,11 +207,25 @@ final case class TilingDCEL private (
       val inRadius: Set[Vertex] = bfsVertices(center)
 
       // 2) Collect all inner faces that are incident to at least one vertex in the set
-      val selectedInnerFaces: List[Face] =
+      var selectedInnerFaces: Set[Face] =
         innerFaces.filter { f =>
           val vs = f.getVerticesUnsafe
           vs.exists(inRadius.contains)
+        }.toSet
+
+      // 2b) Iteratively find and add "hole" faces
+      // A hole face has all its vertices already in our vertex set but wasn't selected
+      var changed = true
+      while changed do
+        val currentVertices = selectedInnerFaces.flatMap(_.getVerticesUnsafe).toSet
+        val holeFaces = innerFaces.filter { f =>
+          !selectedInnerFaces.contains(f) &&
+            f.getVerticesUnsafe.forall(currentVertices.contains)
         }
+        if holeFaces.nonEmpty then
+          selectedInnerFaces ++= holeFaces
+        else
+          changed = false
 
       // 3) Build a local DCEL from those faces, cloning only the necessary vertices/edges/faces
       val vMap  = scala.collection.mutable.HashMap[VertexId, Vertex]()
@@ -463,19 +475,14 @@ final case class TilingDCEL private (
     // Tail-recursive helper using TailCalls
     def deepMap(key: List[Int], vertexIds: List[VertexId]): TailRec[Tree[List[VertexId]]] =
       val distance        = key.length
-//      println(s"preparing to calculate centered tilings at distance $distance")
       val centeredTilings = vertexIds.map(id => id -> getDcelAtVertex(id, distance).toOption.get)
 //      centeredTilings.filter((_, tiling) => TilingValidation.validate(tiling).isLeft).foreach((id, tiling) =>
 //        println(s"Invalid tiling for vertex $id at distance $distance")
 //      )
-//      println(s"validity check: ${centeredTilings.map(_._2).forall(TilingValidation.validate(_).isRight)}")
-//      println(s"done calculating centered tilings. Preparing to group")
       val classes         = vertexIdClasses(centeredTilings)
-//      println(s"done group. Preparing to convert to map")
       val boundaryInfoMap = centeredTilings.map { case (vid, tiling) =>
         vid -> tiling.boundaryVertices.map(_.id).toSet
       }.toMap
-//      println(s"done conversion. Preparing to partition")
       val partitioned     = classes.map(_.partition { vertexId =>
         val localBoundaryVertexIds = boundaryInfoMap(vertexId)
         boundaryVertexIds.toSet.intersect(localBoundaryVertexIds).isEmpty
