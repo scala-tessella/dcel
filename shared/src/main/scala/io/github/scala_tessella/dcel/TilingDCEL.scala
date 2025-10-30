@@ -465,6 +465,10 @@ final case class TilingDCEL private (
       val distance        = key.length
 //      println(s"preparing to calculate centered tilings at distance $distance")
       val centeredTilings = vertexIds.map(id => id -> getDcelAtVertex(id, distance).toOption.get)
+//      centeredTilings.filter((_, tiling) => TilingValidation.validate(tiling).isLeft).foreach((id, tiling) =>
+//        println(s"Invalid tiling for vertex $id at distance $distance")
+//      )
+//      println(s"validity check: ${centeredTilings.map(_._2).forall(TilingValidation.validate(_).isRight)}")
 //      println(s"done calculating centered tilings. Preparing to group")
       val classes         = vertexIdClasses(centeredTilings)
 //      println(s"done group. Preparing to convert to map")
