@@ -3,15 +3,14 @@ package io.github.scala_tessella.dcel
 import io.github.scala_tessella.dcel.TilingAddition.*
 import io.github.scala_tessella.dcel.TilingDeletion.*
 import io.github.scala_tessella.dcel.TilingEquivalency.*
+import io.github.scala_tessella.dcel.TilingUniformity.uniformityTreeUncompressed
 import io.github.scala_tessella.dcel.TilingValidation.validate
-import io.github.scala_tessella.dcel.Tree.*
+import io.github.scala_tessella.dcel.Tree
 import io.github.scala_tessella.dcel.conversion.TilingDOT.*
 import io.github.scala_tessella.dcel.conversion.TilingSVG.*
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint, RegularPolygon, SimplePolygon}
 import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
 import io.github.scala_tessella.ring_seq.RingSeq.startAt
-
-import scala.util.control.TailCalls.{TailRec, done, tailcall}
 
 /** Represents the entire tiling structure as a container for its components.
   *
@@ -119,48 +118,6 @@ final case class TilingDCEL private (
     for
       vertex <- findVertex(vertexId)
     yield getInnerAnglesAtVertexUnsafe(vertexId)
-
-//  /** Computes a mapping between each vertex and the list of its inner angles in the tiling.
-//    */
-//  def degreesMap: Map[VertexId, List[AngleDegree]] =
-//    vertices.map(_.id).associate(getInnerAnglesAtVertexUnsafe)
-//
-//  def adjacencyMap: Map[VertexId, List[VertexId]] =
-//    // For each vertex, collect destinations of its incident half-edges (distinct, keep stable order)
-//    vertices.map { v =>
-//      val neighbors = v.incidentEdgesUnsafe
-//        .flatMap(_.destination)
-//        .map(_.id)
-//        .distinct
-//      v.id -> neighbors
-//    }.toMap
-//
-//  def getPolygonVerticesAroundVertex(vertexId: VertexId): Either[NotFoundError, List[VertexId]] =
-//    for
-//      center <- findVertex(vertexId)
-//    yield
-//      val adjacency = adjacencyMap
-//
-//      def cumulativePath(
-//          vertexIds: List[VertexId],
-//          f: List[VertexId] => Iterator[List[VertexId]],
-//          excluded: Set[VertexId]
-//      ): List[VertexId] =
-//        f(vertexIds).toList.map((_: @unchecked) match {
-//          case start :: goal :: Nil => shortestPath(start, goal, adjacency, excluded)
-//        }).flatMap(_.tail)
-//
-//      val adjacentVertexIds = center.adjacentVerticesUnsafe.map(_.id)
-//      if !boundaryVertices.contains(center) then
-//        cumulativePath(adjacentVertexIds, _.slidingO(2), Set(vertexId))
-//      else
-//        val innerPart    =
-//          cumulativePath(adjacentVertexIds, _.sliding(2), Set(vertexId))
-//        val continuation = adjacentVertexIds.last :: vertexId :: adjacentVertexIds.head :: Nil
-//
-//        val boundaryPart =
-//          cumulativePath(continuation, _.sliding(2), innerPart.init.toSet)
-//        innerPart ::: boundaryPart
 
   /** Retrieves a reduced TilingDCEL around a vertex containing only the polygons reached within the given
     * vertex-distance. Distance is clamped to >= 0.
@@ -368,150 +325,8 @@ final case class TilingDCEL private (
         outerFace = localOuter
       )
 
-//  def gonalityMap: Map[VertexId, TilingDCEL] =
-//   innerVertices.map(_.id).associate(getDcelAtVertex(_).toOption.get)
-
-//  /** Computes a mapping where each TilingDCEL instance is associated with a list of inner vertices having the
-//    * same equivalent TilingDCEL. Equivalency between two TilingDCEL is calculated with the
-//    * [[TilingDCEL.equivalentTo]] method.
-//    */
-//  def groupedInnerVertices: Map[TilingDCEL, List[VertexId]] =
-//    val localByVertex: List[(VertexId, TilingDCEL)] =
-//      innerVertices.map(_.id).map(vertexId => vertexId -> getDcelAtVertex(vertexId).toOption.get)
-//
-//    // Group by equivalence class using a canonical representative per class
-//    val classes = scala.collection.mutable.ArrayBuffer[(TilingDCEL, List[VertexId])]()
-//    localByVertex.foreach { case (vertexId, local) =>
-//      // Try to find an existing equivalent representative
-//      classes.indexWhere { case (rep, _) =>
-//        local.isEquivalentTo(rep)
-//      } match
-//        case -1  =>
-//          classes += ((local, List(vertexId)))
-//        case idx =>
-//          val (rep, ids) = classes(idx)
-//          classes.update(idx, (rep, vertexId :: ids))
-//    }
-//
-//    // Return as a Map with vertex ids in stable order (ascending by their appearance order)
-//    classes.iterator.map { case (rep, ids) =>
-//      rep -> ids.reverse
-//    }.toMap
-
-//  /** Group the ids of the vertices in classes of equivalent TilingDCEL. */
-//  private def vertexIdClassesOld(centeredTilings: List[(VertexId, TilingDCEL)]): List[List[VertexId]] =
-//    val classes = mutable.ArrayBuffer[(TilingDCEL, List[VertexId])]()
-//    centeredTilings.foreach { case (vertexId, tiling) =>
-//      classes.indexWhere { case (classified, _) =>
-//        tiling.isEquivalentTo(classified)
-//      } match
-//        case -1 =>
-//          classes += ((tiling, List(vertexId)))
-//        case i  =>
-//          val (classified, vertexIds) = classes(i)
-//          classes.update(i, (classified, vertexId :: vertexIds))
-//    }
-//    classes.toList.map((_, vertexIds) => vertexIds.reverse)
-
-  /** Group the ids of the vertices in classes of equivalent TilingDCEL. Uses boundary-only comparison for
-    * efficiency in uniformity calculations.
-    */
-  private def vertexIdClasses(centeredTilings: List[(VertexId, TilingDCEL)]): List[List[VertexId]] =
-    centeredTilings
-      .foldLeft(List.empty[(TilingDCEL, List[VertexId])]) { case (classes, (vertexId, tiling)) =>
-        classes.indexWhere { case (representative, _) =>
-          tiling.isBoundaryEquivalentTo(representative)
-        } match
-          case -1 =>
-            // No equivalent class found, create a new one
-            classes :+ (tiling, List(vertexId))
-          case i  =>
-            // Found an equivalent class at index i, add vertexId to it
-            val (representative, vertexIds) = classes(i)
-            classes.updated(i, (representative, vertexId :: vertexIds))
-      }
-      .map { case (_, vertexIds) =>
-        vertexIds.reverse
-      }
-
-  /** Version without tail call, potentially prone to stack overflow. */
-  def uniformityTreeOld: Tree[List[VertexId]] =
-    val boundaryVertexIds = boundaryVertices.map(_.id)
-
-    // Build the tree directly with a BFS over "keys" but accumulating children as Tree nodes
-    def loop(key: List[Int], vertexIds: List[VertexId]): Tree[List[VertexId]] =
-      // distance equals the depth
-      val distance        = key.length
-      val centeredTilings = vertexIds.map(id => id -> getDcelAtVertex(id, distance).toOption.get)
-      val classes         = vertexIdClasses(centeredTilings)
-      val centeredMaps    = centeredTilings.toMap
-      val partitioned     = classes.map(_.partition { vertexId =>
-        val localBoundaryVertexIds = centeredMaps(vertexId).boundaryVertices.map(_.id)
-        boundaryVertexIds.intersect(localBoundaryVertexIds).isEmpty
-      })
-      val children        =
-        partitioned.zipWithIndex.map { case ((inner, stuck), index) =>
-          val childKey = key :+ index
-          // Create branch for this class; recurse only if there are inner (non-stuck) vertices
-          val child    =
-            if inner.nonEmpty then loop(childKey, inner)
-            else Leaf(Nil) // no deeper inner vertices; just a placeholder to keep structure consistent
-          // Attach stuck vertices as the value of this child node
-          child match
-            case Leaf(_)                  => Leaf(stuck)
-            case Branch(_, grandchildren) => Branch(stuck, grandchildren)
-        }
-      Branch(Nil, children)
-
-    // Start from all inner vertices at the root
-    loop(Nil, innerVertices.map(_.id)).compress(_ ::: _)
-
-  /** Calculates the uniformity of the tiling, each leaf a different class of vertices. */
   def uniformityTree: Tree[List[VertexId]] =
-    val boundaryVertexIds = boundaryVertices.map(_.id)
-
-    // Tail-recursive helper using TailCalls
-    def deepMap(key: List[Int], vertexIds: List[VertexId]): TailRec[Tree[List[VertexId]]] =
-      val distance        = key.length
-      val centeredTilings = vertexIds.map(id => id -> getDcelAtVertex(id, distance).toOption.get)
-//      centeredTilings.filter((_, tiling) => TilingValidation.validate(tiling).isLeft).foreach((id, tiling) =>
-//        println(s"Invalid tiling for vertex $id at distance $distance")
-//      )
-      val classes         = vertexIdClasses(centeredTilings)
-      val boundaryInfoMap = centeredTilings.map { case (vid, tiling) =>
-        vid -> tiling.boundaryVertices.map(_.id).toSet
-      }.toMap
-      val partitioned     = classes.map(_.partition { vertexId =>
-        val localBoundaryVertexIds = boundaryInfoMap(vertexId)
-        boundaryVertexIds.toSet.intersect(localBoundaryVertexIds).isEmpty
-      })
-
-      // Process children with tail recursion
-      def iterate(
-          remaining: List[((List[VertexId], List[VertexId]), Int)],
-          accumulated: List[Tree[List[VertexId]]]
-      ): TailRec[List[Tree[List[VertexId]]]] =
-        remaining match
-          case Nil                             => done(accumulated.reverse)
-          case ((inner, stuck), index) :: tail =>
-            val childKey = key :+ index
-            if inner.nonEmpty then
-              tailcall(deepMap(childKey, inner)).flatMap { childTree =>
-                val updatedChild = childTree match
-                  case Leaf(_)                  => Leaf(stuck)
-                  case Branch(_, grandchildren) => Branch(stuck, grandchildren)
-                iterate(tail, updatedChild :: accumulated)
-              }
-            else
-              iterate(tail, Leaf(stuck) :: accumulated)
-
-      tailcall(iterate(partitioned.zipWithIndex, Nil)).map { children =>
-
-        Branch(Nil, children)
-      }
-
-    // Start from all inner vertices at the root
-    deepMap(Nil, innerVertices.map(_.id)).result.compress(_ ::: _)
+    this.uniformityTreeUncompressed.compress(_ ::: _)
 
   def hasConnectedFaces: Boolean =
     innerFaces.isConnected
