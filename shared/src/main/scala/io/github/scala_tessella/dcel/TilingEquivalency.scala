@@ -287,6 +287,44 @@ object TilingEquivalency:
         (vertices, _) => toMultiset(vertices.map(getVertexSignature))
       )
 
+    /** Fast equivalence check for uniformity calculation that only compares boundary layers.
+      *
+      * This method is optimized for comparing tilings centered at different vertices with the same distance
+      * parameter. It only compares the boundary (outermost layer) rather than the entire structure, since the
+      * inner portions are identical.
+      *
+      * @param other
+      *   The other TilingDCEL to compare with.
+      * @return
+      *   true if the boundary layers are equivalent, false otherwise.
+      */
+    def isBoundaryEquivalentTo(other: TilingDCEL): Boolean =
+      // Quick size checks first
+      if tiling.boundaryVertices.size != other.boundaryVertices.size then
+        return false
+
+      if tiling.boundaryEdges.size != other.boundaryEdges.size then
+        return false
+
+      // Compare only boundary vertex signatures (angles around each boundary vertex)
+      given Ordering[AngleDegree] with
+        def compare(x: AngleDegree, y: AngleDegree): Int =
+          x.toRational.compare(y.toRational)
+
+      def getBoundaryVertexSignature(vertex: Vertex): List[AngleDegree] =
+        val angles = vertex.incidentEdgesUnsafe.flatMap(_.angle)
+        angles.rotationsAndReflections.min
+
+      val thisBoundarySignatures = tiling.boundaryVertices
+        .map(getBoundaryVertexSignature)
+        .groupMapReduce(identity)(_ => 1)(_ + _)
+
+      val otherBoundarySignatures = other.boundaryVertices
+        .map(getBoundaryVertexSignature)
+        .groupMapReduce(identity)(_ => 1)(_ + _)
+
+      thisBoundarySignatures == otherBoundarySignatures
+
     def isReflectionOf(other: TilingDCEL): Boolean =
       ???
 

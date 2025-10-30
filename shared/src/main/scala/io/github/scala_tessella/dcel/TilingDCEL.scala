@@ -15,7 +15,7 @@ import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, 
 import io.github.scala_tessella.ring_seq.RingSeq.startAt
 
 //import scala.annotation.tailrec
-import scala.collection.mutable
+//import scala.collection.mutable
 import scala.util.control.TailCalls.{TailRec, done, tailcall}
 
 /** Represents the entire tiling structure as a container for its components.
@@ -388,20 +388,41 @@ final case class TilingDCEL private (
 //      rep -> ids.reverse
 //    }.toMap
 
-  /** Group the ids of the vertices in classes of equivalent TilingDCEL. */
+//  /** Group the ids of the vertices in classes of equivalent TilingDCEL. */
+//  private def vertexIdClassesOld(centeredTilings: List[(VertexId, TilingDCEL)]): List[List[VertexId]] =
+//    val classes = mutable.ArrayBuffer[(TilingDCEL, List[VertexId])]()
+//    centeredTilings.foreach { case (vertexId, tiling) =>
+//      classes.indexWhere { case (classified, _) =>
+//        tiling.isEquivalentTo(classified)
+//      } match
+//        case -1 =>
+//          classes += ((tiling, List(vertexId)))
+//        case i  =>
+//          val (classified, vertexIds) = classes(i)
+//          classes.update(i, (classified, vertexId :: vertexIds))
+//    }
+//    classes.toList.map((_, vertexIds) => vertexIds.reverse)
+
+  /** Group the ids of the vertices in classes of equivalent TilingDCEL. Uses boundary-only comparison for
+    * efficiency in uniformity calculations.
+    */
   private def vertexIdClasses(centeredTilings: List[(VertexId, TilingDCEL)]): List[List[VertexId]] =
-    val classes = mutable.ArrayBuffer[(TilingDCEL, List[VertexId])]()
-    centeredTilings.foreach { case (vertexId, tiling) =>
-      classes.indexWhere { case (classified, _) =>
-        tiling.isEquivalentTo(classified)
-      } match
-        case -1 =>
-          classes += ((tiling, List(vertexId)))
-        case i  =>
-          val (classified, vertexIds) = classes(i)
-          classes.update(i, (classified, vertexId :: vertexIds))
-    }
-    classes.toList.map((_, vertexIds) => vertexIds.reverse)
+    centeredTilings
+      .foldLeft(List.empty[(TilingDCEL, List[VertexId])]) { case (classes, (vertexId, tiling)) =>
+        classes.indexWhere { case (representative, _) =>
+          tiling.isBoundaryEquivalentTo(representative)
+        } match
+          case -1 =>
+            // No equivalent class found, create a new one
+            classes :+ (tiling, List(vertexId))
+          case i  =>
+            // Found an equivalent class at index i, add vertexId to it
+            val (representative, vertexIds) = classes(i)
+            classes.updated(i, (representative, vertexId :: vertexIds))
+      }
+      .map { case (_, vertexIds) =>
+        vertexIds.reverse
+      }
 
   /** Version without tail call, potentially prone to stack overflow. */
   def uniformityTreeOld: Tree[List[VertexId]] =
@@ -442,12 +463,18 @@ final case class TilingDCEL private (
     // Tail-recursive helper using TailCalls
     def deepMap(key: List[Int], vertexIds: List[VertexId]): TailRec[Tree[List[VertexId]]] =
       val distance        = key.length
+//      println(s"preparing to calculate centered tilings at distance $distance")
       val centeredTilings = vertexIds.map(id => id -> getDcelAtVertex(id, distance).toOption.get)
+//      println(s"done calculating centered tilings. Preparing to group")
       val classes         = vertexIdClasses(centeredTilings)
-      val centeredMaps    = centeredTilings.toMap
+//      println(s"done group. Preparing to convert to map")
+      val boundaryInfoMap = centeredTilings.map { case (vid, tiling) =>
+        vid -> tiling.boundaryVertices.map(_.id).toSet
+      }.toMap
+//      println(s"done conversion. Preparing to partition")
       val partitioned     = classes.map(_.partition { vertexId =>
-        val localBoundaryVertexIds = centeredMaps(vertexId).boundaryVertices.map(_.id)
-        boundaryVertexIds.intersect(localBoundaryVertexIds).isEmpty
+        val localBoundaryVertexIds = boundaryInfoMap(vertexId)
+        boundaryVertexIds.toSet.intersect(localBoundaryVertexIds).isEmpty
       })
 
       // Process children with tail recursion
