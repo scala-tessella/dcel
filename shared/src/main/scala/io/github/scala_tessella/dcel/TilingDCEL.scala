@@ -133,11 +133,11 @@ final case class TilingDCEL private (
     */
   def getDcelAtVertex(vertexId: VertexId, distance: Int = 0): Either[NotFoundError, TilingDCEL] =
     this.getStructureAtVertex(vertexId, distance).map {
-      case (newVertices, newHalf, localOuter, newInner) =>
+      case (newVertices, newHalfEdges, localOuter, newInnerFaces) =>
         TilingDCEL(
           vertices = newVertices,
-          halfEdges = newHalf,
-          innerFaces = newInner,
+          halfEdges = newHalfEdges,
+          innerFaces = newInnerFaces,
           outerFace = localOuter
         )
     }
