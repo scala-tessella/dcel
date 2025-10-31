@@ -143,7 +143,7 @@ final case class TilingDCEL private (
     }
 
   def uniformityTree: Tree[List[VertexId]] =
-    this.uniformityTreeUncompressed.compress(_ ::: _)
+    this.uniformityTreeUncompressed().compress(_ ::: _)
 
   def hasConnectedFaces: Boolean =
     innerFaces.isConnected

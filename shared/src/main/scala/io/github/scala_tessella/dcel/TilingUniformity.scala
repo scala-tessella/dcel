@@ -241,7 +241,7 @@ object TilingUniformity:
         )
 
     /** Calculates the uniformity of the tiling, each leaf a different class of vertices. */
-    def uniformityTreeUncompressed: Tree[List[VertexId]] =
+    def uniformityTreeUncompressed(maxDistance: Option[Int] = None): Tree[List[VertexId]] =
       val boundaryVertexIds = tiling.boundaryVertices.map(_.id)
 
       // Tail-recursive helper using TailCalls
@@ -265,19 +265,22 @@ object TilingUniformity:
             remaining: List[((List[VertexId], List[VertexId]), Int)],
             accumulated: List[Tree[List[VertexId]]]
         ): TailRec[List[Tree[List[VertexId]]]] =
-          remaining match
-            case Nil                             => done(accumulated.reverse)
-            case ((inner, stuck), index) :: tail =>
-              val childKey = key :+ index
-              if inner.nonEmpty then
-                tailcall(deepMap(childKey, inner)).flatMap { childTree =>
-                  val updatedChild = childTree match
-                    case Leaf(_)                  => Leaf(stuck)
-                    case Branch(_, grandchildren) => Branch(stuck, grandchildren)
-                  iterate(tail, updatedChild :: accumulated)
-                }
-              else
-                iterate(tail, Leaf(stuck) :: accumulated)
+          if maxDistance.exists(_ < distance) then
+            done(accumulated.reverse)
+          else
+            remaining match
+              case Nil                             => done(accumulated.reverse)
+              case ((inner, stuck), index) :: tail =>
+                val childKey = key :+ index
+                if inner.nonEmpty then
+                  tailcall(deepMap(childKey, inner)).flatMap { childTree =>
+                    val updatedChild = childTree match
+                      case Leaf(_)                  => Leaf(stuck)
+                      case Branch(_, grandchildren) => Branch(stuck, grandchildren)
+                    iterate(tail, updatedChild :: accumulated)
+                  }
+                else
+                  iterate(tail, Leaf(stuck) :: accumulated)
 
         tailcall(iterate(partitioned.zipWithIndex, Nil)).map { children =>
 

@@ -1,5 +1,7 @@
 package io.github.scala_tessella.dcel
 
+import io.github.scala_tessella.dcel.TilingUniformity.uniformityTreeUncompressed
+import io.github.scala_tessella.dcel.Tree.{Branch, Leaf}
 import io.github.scala_tessella.dcel.geometry.RegularPolygon
 import io.github.scala_tessella.dcel.structure.VertexId
 import org.scalatest.flatspec.AnyFlatSpec
@@ -69,13 +71,13 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
     )
   }
 
-  it should "find an uniform 6 tiling" in {
+  /** <img src="file:../../../../../resources/uniform6.svg"/> */
+  val uniformity6: TilingDCEL = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => (i + 3 * j) % 13 == 0)
 
-    /** <img src="file:../../../../../resources/uniform6.svg"/> */
-    val result = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => (i + 3 * j) % 13 == 0)
+  it should "find an uniform 6 tiling" in {
     allAssert(
-      result.uniformityTree.sizeLeaves shouldBe 6,
-      result.innerFaces.size shouldBe 131
+      uniformity6.uniformityTree.sizeLeaves shouldBe 6,
+      uniformity6.innerFaces.size shouldBe 131
     )
   }
 
@@ -102,41 +104,193 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
     )
   }
 
-  it should "find another issue" in {
+  behavior of "TilingUniformity.uniformityTreeUncompressed"
 
-    /** <img src="file:../../../../../resources/uniform_issue.svg"/> */
-    val result =
-      TilingBuilder.createHoledTriangleNet(18, 18)((i, j) => (i - j) % 3 == 0)
-        .maybeAddRegularPolygon(VertexId("V79"), VertexId("V60"), RegularPolygon(3)).value
-        .maybeAddRegularPolygon(VertexId("V60"), VertexId("V42"), RegularPolygon(3)).value
-        .maybeAddRegularPolygon(VertexId("V65"), VertexId("V83"), RegularPolygon(3)).value
-        .maybeAddRegularPolygon(VertexId("V83"), VertexId("V82"), RegularPolygon(3)).value
-        .maybeAddRegularPolygon(VertexId("V48"), VertexId("V49"), RegularPolygon(3)).value
-        .maybeAddRegularPolygon(VertexId("V49"), VertexId("V68"), RegularPolygon(3)).value
-        .maybeAddRegularPolygon(VertexId("V88"), VertexId("V69"), RegularPolygon(3)).value
-        .maybeAddRegularPolygon(VertexId("V69"), VertexId("V51"), RegularPolygon(3)).value
-        .maybeAddRegularPolygon(VertexId("V74"), VertexId("V92"), RegularPolygon(3)).value
-        .maybeAddRegularPolygon(VertexId("V92"), VertexId("V91"), RegularPolygon(3)).value
-        .maybeAddRegularPolygon(VertexId("V99"), VertexId("V100"), RegularPolygon(3)).value
-        .maybeAddRegularPolygon(VertexId("V100"), VertexId("V119"), RegularPolygon(3)).value
-        .maybeAddRegularPolygon(VertexId("V139"), VertexId("V120"), RegularPolygon(3)).value
-        .maybeAddRegularPolygon(VertexId("V120"), VertexId("V102"), RegularPolygon(3)).value
-        .maybeAddRegularPolygon(VertexId("V125"), VertexId("V143"), RegularPolygon(3)).value
-        .maybeAddRegularPolygon(VertexId("V143"), VertexId("V142"), RegularPolygon(3)).value
-        .maybeAddRegularPolygon(VertexId("V108"), VertexId("V109"), RegularPolygon(3)).value
-        .maybeAddRegularPolygon(VertexId("V109"), VertexId("V128"), RegularPolygon(3)).value
-        .maybeAddRegularPolygon(VertexId("V148"), VertexId("V129"), RegularPolygon(3)).value
-        .maybeAddRegularPolygon(VertexId("V129"), VertexId("V111"), RegularPolygon(3)).value
-        .maybeAddRegularPolygon(VertexId("V176"), VertexId("V194"), RegularPolygon(3)).value
-        .maybeAddRegularPolygon(VertexId("V194"), VertexId("V193"), RegularPolygon(3)).value
+  it should "find at distance 0" in {
 
-//    println(result.toSVG())
-//    println(result.uniformityTree)
-//    val d = result.getDcelAtVertex(VertexId("V105"), 2).value
-//    println(d.toSVG())
-    allAssert(
-//      TilingValidation.validate(d) shouldBe Right(()),
-      result.uniformityTree.sizeLeaves shouldBe 37,
-      result.innerFaces.size shouldBe 119
-    )
+    uniformity6.uniformityTreeUncompressed(Option(0)) shouldBe
+      Branch(
+        List(),
+        List(
+          Branch(
+            List("V12", "V13", "V14", "V15", "V16", "V17", "V22", "V39", "V49", "V62", "V72", "V87", "V88", "V89"),
+            List()
+          ),
+          Branch(
+            List("V18", "V19", "V29", "V32", "V33", "V43", "V52", "V59", "V68", "V73", "V74", "V78", "V79", "V82", "V84", "V85", "V86"),
+            List()
+          )
+        )
+      )
+  }
+
+  it should "find at distance 1" in {
+
+    uniformity6.uniformityTreeUncompressed(Option(1)) shouldBe
+      Branch(
+        List(),
+        List(
+          Branch(
+            List("V12", "V13", "V14", "V15", "V16", "V17", "V22", "V39", "V49", "V62", "V72", "V87", "V88", "V89"),
+            List(
+              Branch(
+                List("V23", "V64"),
+                List()
+              ),
+              Branch(
+                List("V24", "V53", "V58", "V65"),
+                List()
+              ),
+              Branch(
+                List("V48", "V63"),
+                List()
+              )
+            )
+          ),
+          Branch(
+            List("V18", "V19", "V29", "V32", "V33", "V43", "V52", "V59", "V68", "V73", "V74", "V78", "V79", "V82", "V84", "V85", "V86"),
+            List(
+              Branch(
+                List("V25", "V38"),
+                List()
+              ),
+              Branch(
+                List("V26", "V44", "V67"),
+                List()
+              ),
+              Branch(
+                List("V27", "V34", "V75", "V77"),
+                List()
+              )
+            )
+          )
+        )
+      )
+  }
+
+  it should "find at distance 2" in {
+
+    uniformity6.uniformityTreeUncompressed(Option(2)) shouldBe
+      Branch(
+        List(),
+        List(
+          Branch(
+            List("V12", "V13", "V14", "V15", "V16", "V17", "V22", "V39", "V49", "V62", "V72", "V87", "V88", "V89"),
+            List(
+              Branch(
+                List("V23", "V64"),
+                List(
+                  Leaf(List("V47", "V54", "V57"))
+                )
+              ),
+              Branch(
+                List("V24", "V53", "V58", "V65"),
+                List(
+                  Branch(
+                    List(),
+                    List()
+                  )
+                )
+              ),
+              Branch(
+                List("V48", "V63"),
+                List(
+                  Leaf(List("V55", "V56"))
+                )
+              )
+            )
+          ),
+          Branch(
+            List("V18", "V19", "V29", "V32", "V33", "V43", "V52", "V59", "V68", "V73", "V74", "V78", "V79", "V82", "V84", "V85", "V86"),
+            List(
+              Branch(
+                List("V25", "V38"),
+                List(
+                  Leaf(List("V45", "V66"))
+                )
+              ),
+              Branch(
+                List("V26", "V44", "V67"),
+                List(
+                  Leaf(List("V37"))
+                )
+              ),
+              Branch(
+                List("V27", "V34", "V75", "V77"),
+                List(
+                  Leaf(List("V36"))
+                )
+              )
+            )
+          )
+        )
+      )
+  }
+
+  it should "find at distance 3" in {
+
+    uniformity6.uniformityTreeUncompressed(Option(3)) shouldBe
+      Branch(
+        List(),
+        List(
+          Branch(
+            List("V12", "V13", "V14", "V15", "V16", "V17", "V22", "V39", "V49", "V62", "V72", "V87", "V88", "V89"),
+            List(
+              Branch(
+                List("V23", "V64"),
+                List(
+                  Leaf(List("V47", "V54", "V57"))
+                )
+              ),
+              Branch(
+                List("V24", "V53", "V58", "V65"),
+                List(
+                  Branch(
+                    List(),
+                    List(
+                      Leaf(List("V46"))
+                    )
+                  )
+                )
+              ),
+              Branch(
+                List("V48", "V63"),
+                List(
+                  Leaf(List("V55", "V56"))
+                )
+              )
+            )
+          ),
+          Branch(
+            List("V18", "V19", "V29", "V32", "V33", "V43", "V52", "V59", "V68", "V73", "V74", "V78", "V79", "V82", "V84", "V85", "V86"),
+            List(
+              Branch(
+                List("V25", "V38"),
+                List(
+                  Leaf(
+                    List("V45", "V66"))
+                )
+              ),
+              Branch(
+                List("V26", "V44", "V67"),
+                List(
+                  Leaf(List("V37"))
+                )
+              ),
+              Branch(
+                List("V27", "V34", "V75", "V77"),
+                List(
+                  Leaf(List("V36"))
+                )
+              )
+            )
+          )
+        )
+      )
+  }
+
+  it should "find at distance 4" in {
+
+    uniformity6.uniformityTreeUncompressed(Option(4)) shouldEqual
+      uniformity6.uniformityTreeUncompressed(Option(3))
   }
