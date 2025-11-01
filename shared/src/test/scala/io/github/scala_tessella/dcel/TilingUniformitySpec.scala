@@ -74,16 +74,15 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
   /** <img src="file:../../../../../resources/uniform6.svg"/> */
   val uniformity6: TilingDCEL = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => (i + 3 * j) % 13 == 0)
 
-  it should "find an uniform 6 tiling" in {
+  it should "find an uniform 6 tiling" in
     allAssert(
       uniformity6.uniformityTree.sizeLeaves shouldBe 6,
       uniformity6.innerFaces.size shouldBe 131
     )
-  }
 
-  it should "find an issue" in {
+  it should "find that 3.3.6.6.i has uniformity 5" in {
 
-    /** <img src="file:../../../../../resources/uniform_issue.svg"/> */
+    /** <img src="file:../../../../../resources/uniform5_3.3.6.6.i.svg"/> */
     val result =
       TilingBuilder.createHoledTriangleNet(9, 11)((i, j) => (i - j) % 3 == 0)
         .maybeAddRegularPolygon(VertexId("V24"), VertexId("V25"), RegularPolygon(3)).value
@@ -108,17 +107,48 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
 
   it should "find at distance 0" in {
 
-    uniformity6.uniformityTreeUncompressed(Option(0)) shouldBe
+    uniformity6.uniformityTreeUncompressed(Option(0)).compress(_ ::: _) shouldBe
       Branch(
         List(),
         List(
-          Branch(
-            List("V12", "V13", "V14", "V15", "V16", "V17", "V22", "V39", "V49", "V62", "V72", "V87", "V88", "V89"),
-            List()
+          Leaf(
+            List(
+              "V12",
+              "V13",
+              "V14",
+              "V15",
+              "V16",
+              "V17",
+              "V22",
+              "V39",
+              "V49",
+              "V62",
+              "V72",
+              "V87",
+              "V88",
+              "V89"
+            )
           ),
-          Branch(
-            List("V18", "V19", "V29", "V32", "V33", "V43", "V52", "V59", "V68", "V73", "V74", "V78", "V79", "V82", "V84", "V85", "V86"),
-            List()
+          Leaf(
+            List(
+              "V18",
+              "V19",
+              "V29",
+              "V32",
+              "V33",
+              "V43",
+              "V52",
+              "V59",
+              "V68",
+              "V73",
+              "V74",
+              "V78",
+              "V79",
+              "V82",
+              "V84",
+              "V85",
+              "V86"
+            )
           )
         )
       )
@@ -126,42 +156,24 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
 
   it should "find at distance 1" in {
 
-    uniformity6.uniformityTreeUncompressed(Option(1)) shouldBe
+    uniformity6.uniformityTreeUncompressed(Option(1)).compress(_ ::: _) shouldBe
       Branch(
         List(),
         List(
           Branch(
             List("V12", "V13", "V14", "V15", "V16", "V17", "V22", "V39", "V49", "V62", "V72", "V87", "V88", "V89"),
             List(
-              Branch(
-                List("V23", "V64"),
-                List()
-              ),
-              Branch(
-                List("V24", "V53", "V58", "V65"),
-                List()
-              ),
-              Branch(
-                List("V48", "V63"),
-                List()
-              )
+              Leaf(List("V23", "V64")),
+              Leaf(List("V24", "V53", "V58", "V65")),
+              Leaf(List("V48", "V63"))
             )
           ),
           Branch(
             List("V18", "V19", "V29", "V32", "V33", "V43", "V52", "V59", "V68", "V73", "V74", "V78", "V79", "V82", "V84", "V85", "V86"),
             List(
-              Branch(
-                List("V25", "V38"),
-                List()
-              ),
-              Branch(
-                List("V26", "V44", "V67"),
-                List()
-              ),
-              Branch(
-                List("V27", "V34", "V75", "V77"),
-                List()
-              )
+              Leaf(List("V25", "V38")),
+              Leaf(List("V26", "V44", "V67")),
+              Leaf(List("V27", "V34", "V75", "V77"))
             )
           )
         )
@@ -170,57 +182,24 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
 
   it should "find at distance 2" in {
 
-    uniformity6.uniformityTreeUncompressed(Option(2)) shouldBe
+    uniformity6.uniformityTreeUncompressed(Option(2)).compress(_ ::: _) shouldBe
       Branch(
         List(),
         List(
           Branch(
             List("V12", "V13", "V14", "V15", "V16", "V17", "V22", "V39", "V49", "V62", "V72", "V87", "V88", "V89"),
             List(
-              Branch(
-                List("V23", "V64"),
-                List(
-                  Leaf(List("V47", "V54", "V57"))
-                )
-              ),
-              Branch(
-                List("V24", "V53", "V58", "V65"),
-                List(
-                  Branch(
-                    List(),
-                    List()
-                  )
-                )
-              ),
-              Branch(
-                List("V48", "V63"),
-                List(
-                  Leaf(List("V55", "V56"))
-                )
-              )
+              Leaf(List("V23", "V64", "V47", "V54", "V57")),
+              Leaf(List("V24", "V53", "V58", "V65")),
+              Leaf(List("V48", "V63", "V55", "V56"))
             )
           ),
           Branch(
             List("V18", "V19", "V29", "V32", "V33", "V43", "V52", "V59", "V68", "V73", "V74", "V78", "V79", "V82", "V84", "V85", "V86"),
             List(
-              Branch(
-                List("V25", "V38"),
-                List(
-                  Leaf(List("V45", "V66"))
-                )
-              ),
-              Branch(
-                List("V26", "V44", "V67"),
-                List(
-                  Leaf(List("V37"))
-                )
-              ),
-              Branch(
-                List("V27", "V34", "V75", "V77"),
-                List(
-                  Leaf(List("V36"))
-                )
-              )
+              Leaf(List("V25", "V38", "V45", "V66")),
+              Leaf(List("V26", "V44", "V67", "V37")),
+              Leaf(List("V27", "V34", "V75", "V77", "V36"))
             )
           )
         )
@@ -229,60 +208,24 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
 
   it should "find at distance 3" in {
 
-    uniformity6.uniformityTreeUncompressed(Option(3)) shouldBe
+    uniformity6.uniformityTreeUncompressed(Option(3)).compress(_ ::: _) shouldBe
       Branch(
         List(),
         List(
           Branch(
             List("V12", "V13", "V14", "V15", "V16", "V17", "V22", "V39", "V49", "V62", "V72", "V87", "V88", "V89"),
             List(
-              Branch(
-                List("V23", "V64"),
-                List(
-                  Leaf(List("V47", "V54", "V57"))
-                )
-              ),
-              Branch(
-                List("V24", "V53", "V58", "V65"),
-                List(
-                  Branch(
-                    List(),
-                    List(
-                      Leaf(List("V46"))
-                    )
-                  )
-                )
-              ),
-              Branch(
-                List("V48", "V63"),
-                List(
-                  Leaf(List("V55", "V56"))
-                )
-              )
+              Leaf(List("V23", "V64", "V47", "V54", "V57")),
+              Leaf(List("V24", "V53", "V58", "V65", "V46")),
+              Leaf(List("V48", "V63", "V55", "V56"))
             )
           ),
           Branch(
             List("V18", "V19", "V29", "V32", "V33", "V43", "V52", "V59", "V68", "V73", "V74", "V78", "V79", "V82", "V84", "V85", "V86"),
             List(
-              Branch(
-                List("V25", "V38"),
-                List(
-                  Leaf(
-                    List("V45", "V66"))
-                )
-              ),
-              Branch(
-                List("V26", "V44", "V67"),
-                List(
-                  Leaf(List("V37"))
-                )
-              ),
-              Branch(
-                List("V27", "V34", "V75", "V77"),
-                List(
-                  Leaf(List("V36"))
-                )
-              )
+              Leaf(List("V25", "V38", "V45", "V66")),
+              Leaf(List("V26", "V44", "V67", "V37")),
+              Leaf(List("V27", "V34", "V75", "V77", "V36"))
             )
           )
         )
@@ -291,6 +234,6 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
 
   it should "find at distance 4" in {
 
-    uniformity6.uniformityTreeUncompressed(Option(4)) shouldEqual
-      uniformity6.uniformityTreeUncompressed(Option(3))
+    uniformity6.uniformityTreeUncompressed(Option(4)).compress(_ ::: _) shouldEqual
+      uniformity6.uniformityTreeUncompressed(Option(3)).compress(_ ::: _)
   }
