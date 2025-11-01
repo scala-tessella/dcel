@@ -4,6 +4,7 @@ import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.*
 import io.github.scala_tessella.dcel.geometry.{BigDecimalGeometry, BigLineSegment, BigPoint, BigRadian}
 import io.github.scala_tessella.dcel.structure.{FaceId, HalfEdge, Vertex, VertexId}
 import io.github.scala_tessella.dcel.{TilingDCEL, TilingError}
+import io.github.scala_tessella.dcel.TilingUniformity.scanUniformityTreeAlt
 import spire.implicits.*
 
 import scala.collection.mutable
@@ -557,6 +558,163 @@ object TilingSVG:
         faceIdsOnEdges = config.faceIdsOnEdges,
         showUniformity = config.showUniformity
       )
+
+    def toUniformityAnimation(
+        graphStyle: GraphStyle = GraphStyle(),
+        animationDuration: Double = 2.0,
+        pauseBetweenSteps: Double = 0.5
+    ): String =
+      val trees = tiling.scanUniformityTreeAlt
+      if trees.isEmpty then
+        return tiling.toSVG(graphStyle)
+
+      val totalSteps    = trees.length
+      val stepDuration  = animationDuration / totalSteps
+      val cycleDuration = animationDuration + pauseBetweenSteps
+
+      // Get all unique vertex IDs and create a stable color mapping
+      val allVertexIds = tiling.innerVertices.map(_.id).toSet
+
+      // For each step, determine which color class each vertex belongs to
+      val vertexToColorAtStep: Map[Int, Map[VertexId, Int]] =
+        trees.zipWithIndex.map { case (tree, stepIndex) =>
+          val leaves        = tree.flattenLeaves
+          val vertexToColor = leaves.zipWithIndex.flatMap { case (vertexIds, colorIndex) =>
+            vertexIds.map(vid => vid -> colorIndex)
+          }.toMap
+          stepIndex -> vertexToColor
+        }.toMap
+
+      // Generate the base SVG structure
+      val baseDoc    = tiling.toDoc(graphStyle.copy(showLabels = false))
+      val svgElement = baseDoc.root
+
+      // Extract viewBox and dimensions
+      val viewBox = svgElement.attribute("viewBox").getOrElse("")
+      val width   = svgElement.attribute("width").getOrElse("800")
+      val height  = svgElement.attribute("height").getOrElse("800")
+
+      // Start building the animated SVG
+      val sb = new StringBuilder()
+      sb.append(s"""<svg xmlns="http://www.w3.org/2000/svg" """)
+      sb.append(s"""viewBox="$viewBox" width="$width" height="$height">""")
+      sb.append("\n")
+
+      // Add a style section for the color palette
+      sb.append("  <style>\n")
+      val maxColors = trees.map(_.sizeLeaves).max
+      for colorIndex <- 0 until maxColors do
+        val color = graphStyle.palette.getColor(colorIndex)
+        sb.append(s"    .uniformity-$colorIndex { fill: $color; }\n")
+      sb.append("  </style>\n\n")
+
+      // Add defs section for animations
+      sb.append("  <defs>\n")
+
+      // Create keyframe animations for each possible color transition
+      val colorTransitions = (0 until maxColors).flatMap { fromColor =>
+
+        (0 until maxColors).map { toColor =>
+
+          (fromColor, toColor)
+        }
+      }.distinct
+
+      for (fromColor, toColor) <- colorTransitions do
+        sb.append(s"""    <animate id="anim-$fromColor-to-$toColor" attributeName="class" """)
+        sb.append(s"""from="uniformity-$fromColor" to="uniformity-$toColor" """)
+        sb.append(s"""dur="${stepDuration}s" fill="freeze"/>\n""")
+
+      sb.append("  </defs>\n\n")
+
+      // Add the base tiling geometry (edges and faces) from the base document
+      val baseChildren = svgElement.child.filterNot(node =>
+        node.label == "g" && node.attribute("id").exists(_.startsWith("vertices"))
+      )
+
+      for child <- baseChildren do
+        sb.append("  ")
+        sb.append(child.toString.replaceAll("\n", "\n  "))
+        sb.append("\n")
+
+      // Add animated uniformity dots for each vertex
+      sb.append("\n  <!-- Animated Uniformity Vertices -->\n")
+      sb.append(s"""  <g id="vertices-uniformity-animated" stroke="none">""")
+      sb.append("\n")
+
+      for vertex <- tiling.innerVertices do
+        val vid    = vertex.id
+        val coords = vertex.coords
+        val x      = coords.x
+        val y      = -coords.y // Flip Y for SVG coordinate system
+
+        // Determine initial color
+        val initialColor = vertexToColorAtStep.get(0).flatMap(_.get(vid)).getOrElse(0)
+
+        sb.append(s"""    <circle cx="$x" cy="$y" r="${graphStyle.vertexRadius}" """)
+        sb.append(s"""class="uniformity-$initialColor">""")
+        sb.append("\n")
+
+        // Add animation sequence
+        for stepIndex <- 0 until totalSteps do
+          val currentColor = vertexToColorAtStep.get(stepIndex).flatMap(_.get(vid)).getOrElse(0)
+          val nextColor    = if stepIndex < totalSteps - 1 then
+            vertexToColorAtStep.get(stepIndex + 1).flatMap(_.get(vid)).getOrElse(currentColor)
+          else
+            currentColor
+
+          if currentColor != nextColor then
+            val beginTime = stepIndex * stepDuration
+            sb.append(s"""      <animate attributeName="class" """)
+            sb.append(s"""from="uniformity-$currentColor" to="uniformity-$nextColor" """)
+            sb.append(s"""begin="${beginTime}s" dur="${stepDuration}s" fill="freeze"/>""")
+            sb.append("\n")
+
+        // Loop the animation
+        sb.append(s"""      <animate attributeName="class" """)
+        sb.append(s"""to="uniformity-${initialColor}" """)
+        sb.append(s"""begin="${cycleDuration}s" dur="0.01s" fill="freeze"/>""")
+        sb.append("\n")
+
+        // Restart animation
+        sb.append(s"""      <set attributeName="class" to="uniformity-${initialColor}" """)
+        sb.append(s"""begin="${cycleDuration}s"/>""")
+        sb.append("\n")
+
+        sb.append("    </circle>\n")
+
+      sb.append("  </g>\n")
+
+      // Add distance label that updates
+      sb.append("\n  <!-- Distance Label -->\n")
+      val labelX = viewBox.split(" ").lift(0).flatMap(_.toDoubleOption).getOrElse(0.0) + 10
+      val labelY = viewBox.split(" ").lift(1).flatMap(_.toDoubleOption).getOrElse(0.0) + 20
+
+      sb.append(s"""  <text x="$labelX" y="$labelY" font-family="Arial" font-size="14" fill="black">""")
+      sb.append("\n")
+      sb.append(s"""    Distance: <tspan id="distance-value">0</tspan>""")
+      sb.append("\n")
+
+      for stepIndex <- 0 until totalSteps do
+        val beginTime = stepIndex * stepDuration
+        sb.append(s"""    <set attributeName="textContent" to="Distance: $stepIndex" """)
+        sb.append(s"""begin="${beginTime}s" fill="freeze"/>""")
+        sb.append("\n")
+
+      sb.append(s"""    <set attributeName="textContent" to="Distance: 0" """)
+      sb.append(s"""begin="${cycleDuration}s"/>""")
+      sb.append("\n")
+
+      sb.append("  </text>\n")
+
+      // Add restart animation for infinite loop
+      sb.append(s"""\n  <animate attributeName="visibility" from="visible" to="visible" """)
+      sb.append(s"""dur="${cycleDuration}s" repeatCount="indefinite"/>""")
+      sb.append("\n")
+
+      sb.append("</svg>")
+
+      sb.toString
 
     /** Serializes the complete structure of a [[TilingDCEL]] into XML metadata, which can be embedded within
       * an SVG. This metadata includes all vertices, half-edges, and faces, along with their properties and
