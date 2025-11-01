@@ -577,86 +577,41 @@ object TilingSVG:
       val stepDuration = animationDuration / totalSteps
       val cycleDuration = animationDuration + pauseBetweenSteps
 
-      // Get all unique vertex IDs and create a stable color mapping
-      val allVertexIds = tiling.innerVertices.map(_.id).toSet
-
-      // For each step, determine which color class each vertex belongs to
+      // Build per-step vertex->colorIndex map
       val vertexToColorAtStep: Map[Int, Map[VertexId, Int]] =
         trees.zipWithIndex.map { case (tree, stepIndex) =>
           val leaves = tree.flattenLeaves
-          val vertexToColor = leaves.zipWithIndex.flatMap { case (vertexIds, colorIndex) =>
+          val m = leaves.zipWithIndex.flatMap { case (vertexIds, colorIndex) =>
             vertexIds.map(vid => vid -> colorIndex)
           }.toMap
-          stepIndex -> vertexToColor
+          stepIndex -> m
         }.toMap
 
-      // Color palette (reuse from createVertexElements)
+      // Color palette
       def uniformColorMap: Map[Int, String] =
         Map(
-          0 -> "yellow",
-          1 -> "orange",
-          2 -> "violet",
-          3 -> "green",
-          4 -> "brown",
-          5 -> "pink",
-          6 -> "deeppink",
-          7 -> "darkkhaki",
-          8 -> "blueviolet",
-          9 -> "lime",
-          10 -> "lightgreen",
-          11 -> "lightblue",
-          12 -> "lightcoral",
-          13 -> "lightseagreen",
-          14 -> "lightskyblue",
-          15 -> "lightsalmon",
-          16 -> "yellowgreen",
-          17 -> "lightgoldenrodyellow",
-          18 -> "lightgray",
-          19 -> "slategray",
-          20 -> "crimson",
-          21 -> "tomato",
-          22 -> "goldenrod",
-          23 -> "darkorange",
-          24 -> "olive",
-          25 -> "seagreen",
-          26 -> "teal",
-          27 -> "steelblue",
-          28 -> "royalblue",
-          29 -> "navy",
-          30 -> "indigo",
-          31 -> "mediumvioletred",
-          32 -> "sienna",
-          33 -> "chocolate",
-          34 -> "peru",
-          35 -> "darkturquoise",
-          36 -> "cadetblue",
-          37 -> "mediumseagreen",
-          38 -> "cornflowerblue",
-          39 -> "darkmagenta",
-          40 -> "firebrick",
-          41 -> "darkgoldenrod",
-          42 -> "forestgreen",
-          43 -> "mediumaquamarine",
-          44 -> "darkcyan",
-          45 -> "dodgerblue",
-          46 -> "slateblue",
-          47 -> "orchid",
-          48 -> "darkslategray",
-          49 -> "maroon"
+          0 -> "yellow", 1 -> "orange", 2 -> "violet", 3 -> "green", 4 -> "brown",
+          5 -> "pink", 6 -> "deeppink", 7 -> "darkkhaki", 8 -> "blueviolet", 9 -> "lime",
+          10 -> "lightgreen", 11 -> "lightblue", 12 -> "lightcoral", 13 -> "lightseagreen", 14 -> "lightskyblue",
+          15 -> "lightsalmon", 16 -> "yellowgreen", 17 -> "lightgoldenrodyellow", 18 -> "lightgray", 19 -> "slategray",
+          20 -> "crimson", 21 -> "tomato", 22 -> "goldenrod", 23 -> "darkorange", 24 -> "olive",
+          25 -> "seagreen", 26 -> "teal", 27 -> "steelblue", 28 -> "royalblue", 29 -> "navy",
+          30 -> "indigo", 31 -> "mediumvioletred", 32 -> "sienna", 33 -> "chocolate", 34 -> "peru",
+          35 -> "darkturquoise", 36 -> "cadetblue", 37 -> "mediumseagreen", 38 -> "cornflowerblue", 39 -> "darkmagenta",
+          40 -> "firebrick", 41 -> "darkgoldenrod", 42 -> "forestgreen", 43 -> "mediumaquamarine", 44 -> "darkcyan",
+          45 -> "dodgerblue", 46 -> "slateblue", 47 -> "orchid", 48 -> "darkslategray", 49 -> "maroon"
         )
 
-      // Calculate viewBox
+      // ViewBox
       val vertices = tiling.vertices.map(_.coords)
       val viewBox = calculateViewBox(vertices, scale, padding)
       val (width, height) = viewBox.dimensions
 
-      // Start building the animated SVG
       val sb = new StringBuilder()
-      sb.append(s"""<svg xmlns="http://www.w3.org/2000/svg" """)
-      sb.append(s"""viewBox="${viewBox.formatted}" width="$width" height="$height">""")
+      sb.append(s"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox.formatted}" width="$width" height="$height">""")
       sb.append("\n")
 
-      // Add a style section for the color palette
+      // Styles
       sb.append("  <style>\n")
       val maxColors = trees.map(_.sizeLeaves).max
       for colorIndex <- 0 until maxColors do
@@ -664,80 +619,60 @@ object TilingSVG:
         sb.append(s"    .uniformity-$colorIndex { fill: $color; }\n")
       sb.append("  </style>\n\n")
 
-      // Add the base tiling geometry (edges)
+      // Edges
       sb.append("  <!-- Edges -->\n")
       sb.append(s"""  <g stroke="black" stroke-width="$strokeWidth">""")
       sb.append("\n")
-
       val edgeLines = createEdgeLines(tiling, scale)
-      for edge <- edgeLines do
-        sb.append("    ")
-        sb.append(edge.toString)
-        sb.append("\n")
-
+      edgeLines.foreach { e => sb.append("    ").append(e.toString).append("\n") }
       sb.append("  </g>\n\n")
 
-      // Add animated uniformity dots for each vertex
+      // Animated vertices (use JS-less SMIL with syncbase timing from ONE master clock)
+      // We create a hidden master animate that repeats indefinitely every cycleDuration,
+      // then each step begins at offsets from that clock, ensuring endless looping.
+      val masterId = "animClock"
+      sb.append(s"""  <rect width="0" height="0" visibility="hidden">""").append("\n"): Unit
+      sb.append(s"""    <animate id="$masterId" attributeName="x" from="0" to="0" dur="${cycleDuration}s" repeatCount="indefinite"/>""").append("\n"): Unit
+      sb.append("  </rect>\n\n")
+
+      // Animated vertices driven by master clock
       sb.append("  <!-- Animated Uniformity Vertices -->\n")
       sb.append(s"""  <g id="vertices-uniformity-animated" stroke="none">""")
       sb.append("\n")
 
       for vertex <- tiling.innerVertices do
         val vid = vertex.id
-        val coords = vertex.coords
-        val (x, y) = coords.toSvgCoords(scale)
+        val (x, y) = vertex.coords.toSvgCoords(scale)
+        val colorSeqIdx = (0 until totalSteps).map(i => vertexToColorAtStep.get(i).flatMap(_.get(vid)).getOrElse(0))
+        val colorSeq = colorSeqIdx.map(ci => uniformColorMap.getOrElse(ci, "gray"))
 
-        // Colors per step for this vertex
-        val colorSequence = (0 until totalSteps).map { stepIndex =>
-          vertexToColorAtStep.get(stepIndex).flatMap(_.get(vid)).getOrElse(0)
-        }.map(c => uniformColorMap.getOrElse(c, "gray"))
+        sb.append(s"""    <circle cx="$x" cy="$y" r="$vertexRadius" fill="${colorSeq.head}">""").append("\n"): Unit
 
-        sb.append(s"""    <circle cx="$x" cy="$y" r="$vertexRadius" fill="${colorSequence.head}">""")
-        sb.append("\n")
+        // One <set> per step, each triggered by the master at the appropriate offset.
+        for i <- 0 until totalSteps do
+          val color = colorSeq(i)
+          val beginTime = i * stepDuration
+          sb.append(s"""      <set attributeName="fill" to="$color" begin="${masterId}.begin+${beginTime}s" dur="${stepDuration}s"/>""").append("\n")
 
-        // Chain <set> animations by id and event-begin, loop indefinitely
-        // Give each set an id that includes the vertex id to avoid collisions
-        for stepIndex <- 0 until totalSteps do
-          val color = colorSequence(stepIndex)
-          val thisId = s"v${vid.value}-s$stepIndex"
-          val nextIndex = (stepIndex + 1) % totalSteps
-          val nextId = s"v${vid.value}-s$nextIndex"
-
-          val beginAttr =
-            if stepIndex == 0 then s"0s;${s"$nextId".stripPrefix("#")}.end"
-            else s"${s"$nextId".stripPrefix("#")}.end"
-
-          sb.append(s"""      <set id="$thisId" attributeName="fill" to="$color" begin="$beginAttr" dur="${stepDuration}s"/>""")
-          sb.append("\n")
-
+        // Also set the fill at the start of each new cycle (Distance 0 state)
+        sb.append(s"""      <set attributeName="fill" to="${colorSeq.head}" begin="${masterId}.begin" dur="0.01s"/>""").append("\n"): Unit
         sb.append("    </circle>\n")
 
       sb.append("  </g>\n")
 
-      // Add distance label: chain visibility across steps
+      // Distance label driven by same master clock: multiple texts toggled at offsets
       sb.append("\n  <!-- Distance Label -->\n")
       val labelX = viewBox.minX + BigDecimal(10)
       val labelY = viewBox.minY + BigDecimal(20)
 
-      for stepIndex <- 0 until totalSteps do
-        val thisId = s"lbl-s$stepIndex"
-        val nextIndex = (stepIndex + 1) % totalSteps
-        val nextId = s"lbl-s$nextIndex"
-
-        val beginAttr =
-          if stepIndex == 0 then s"0s;${s"$nextId".stripPrefix("#")}.end"
-          else s"${s"$nextId".stripPrefix("#")}.end"
-
-        sb.append(s"""  <text x="${labelX.format}" y="${labelY.format}" font-family="Arial" font-size="14" fill="black" visibility="${if stepIndex == 0 then "visible" else "hidden"}">""")
-        sb.append("\n")
-        sb.append(s"""    Distance: $stepIndex""")
-        sb.append("\n")
-        sb.append(s"""    <set id="$thisId" attributeName="visibility" to="visible" begin="$beginAttr" dur="${stepDuration}s"/>""")
-        sb.append("\n")
+      for i <- 0 until totalSteps do
+        val beginTime = i * stepDuration
+        sb.append(s"""  <text x="${labelX.format}" y="${labelY.format}" font-family="Arial" font-size="14" fill="black" visibility="hidden">""").append("\n"): Unit
+        sb.append(s"""    Distance: $i""").append("\n"): Unit
+        sb.append(s"""    <set attributeName="visibility" to="visible" begin="${masterId}.begin+${beginTime}s" dur="${stepDuration}s"/>""").append("\n"): Unit
         sb.append("  </text>\n")
 
       sb.append("</svg>")
-
       sb.toString
 
     /** Serializes the complete structure of a [[TilingDCEL]] into XML metadata, which can be embedded within
