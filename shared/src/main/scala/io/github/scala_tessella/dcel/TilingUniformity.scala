@@ -300,3 +300,78 @@ object TilingUniformity:
         .toList
         .appended(last)
         .map(_.compress(_ ::: _))
+
+    def scanUniformityTreeAlt: List[Tree[List[VertexId]]] =
+      val boundaryVertexIds = tiling.boundaryVertices.map(_.id)
+
+      // Cache to store computed subtrees for each (key, maxDepth) pair
+      val cache = scala.collection.mutable.HashMap[(List[Int], Option[Int]), Tree[List[VertexId]]]()
+
+      // Build tree with memoization
+      def deepMap(
+          key: List[Int],
+          vertexIds: List[VertexId],
+          maxDistance: Option[Int]
+      ): TailRec[Tree[List[VertexId]]] =
+        val cacheKey = (key, maxDistance)
+        cache.get(cacheKey) match
+          case Some(cached) => done(cached)
+          case None         =>
+            val distance        = key.length
+            val centeredTilings = vertexIds.map(id => id -> tiling.getDcelAtVertex(id, distance).toOption.get)
+            val classes         = vertexIdClasses(centeredTilings)
+            val boundaryInfoMap = centeredTilings.map { case (vid, tiling) =>
+              vid -> tiling.boundaryVertices.map(_.id).toSet
+            }.toMap
+            val partitioned     = classes.map(_.partition { vertexId =>
+              val localBoundaryVertexIds = boundaryInfoMap(vertexId)
+              boundaryVertexIds.toSet.intersect(localBoundaryVertexIds).isEmpty
+            })
+
+            def iterate(
+                remaining: List[((List[VertexId], List[VertexId]), Int)],
+                accumulated: List[Tree[List[VertexId]]]
+            ): TailRec[List[Tree[List[VertexId]]]] =
+              if maxDistance.exists(_ < distance) then
+                done(accumulated.reverse)
+              else
+                remaining match
+                  case Nil                             => done(accumulated.reverse)
+                  case ((inner, stuck), index) :: tail =>
+                    val childKey = key :+ index
+                    if inner.nonEmpty then
+                      tailcall(deepMap(childKey, inner, maxDistance)).flatMap { childTree =>
+                        val updatedChild = childTree match
+                          case Leaf(_)                  => Leaf(stuck)
+                          case Branch(_, grandchildren) => Branch(stuck, grandchildren)
+                        iterate(tail, updatedChild :: accumulated)
+                      }
+                    else
+                      iterate(tail, Leaf(stuck) :: accumulated)
+
+            tailcall(iterate(partitioned.zipWithIndex, Nil)).map { children =>
+              val result = Branch(Nil, children)
+              cache.put(cacheKey, result): Unit
+              result
+            }
+
+      // First, compute the full tree without limits
+      val fullTree       = deepMap(Nil, tiling.innerVertices.map(_.id), None).result
+      val fullCompressed = fullTree.compress(_ ::: _)
+
+      // Now collect trees at each depth, reusing cached computations
+      val results  = scala.collection.mutable.ListBuffer.empty[Tree[List[VertexId]]]
+      var depth    = 0
+      var continue = true
+
+      while continue do
+        val treeAtDepth = deepMap(Nil, tiling.innerVertices.map(_.id), Some(depth)).result
+        val compressed  = treeAtDepth.compress(_ ::: _)
+        results += compressed
+
+        if compressed == fullCompressed then
+          continue = false
+        else
+          depth += 1
+
+      results.toList

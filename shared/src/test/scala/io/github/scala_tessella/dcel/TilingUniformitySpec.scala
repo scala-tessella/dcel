@@ -1,6 +1,6 @@
 package io.github.scala_tessella.dcel
 
-import io.github.scala_tessella.dcel.TilingUniformity.{scanUniformityTree, uniformityTreeUncompressed}
+import io.github.scala_tessella.dcel.TilingUniformity.*
 import io.github.scala_tessella.dcel.Tree.{Branch, Leaf}
 import io.github.scala_tessella.dcel.geometry.RegularPolygon
 import io.github.scala_tessella.dcel.structure.VertexId
@@ -337,11 +337,44 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
   }
 
   it should "scan uniformity at all distances" in {
-    uniformity6.scanUniformityTree.map(_.flattenLeaves) shouldEqual
+    uniformity6.scanUniformityTreeAlt.map(_.flattenLeaves) shouldEqual
       List(
         List(
-          List("V12", "V13", "V14", "V15", "V16", "V17", "V22", "V39", "V49", "V62", "V72", "V87", "V88", "V89"),
-          List("V18", "V19", "V29", "V32", "V33", "V43", "V52", "V59", "V68", "V73", "V74", "V78", "V79", "V82", "V84", "V85", "V86")
+          List(
+            "V12",
+            "V13",
+            "V14",
+            "V15",
+            "V16",
+            "V17",
+            "V22",
+            "V39",
+            "V49",
+            "V62",
+            "V72",
+            "V87",
+            "V88",
+            "V89"
+          ),
+          List(
+            "V18",
+            "V19",
+            "V29",
+            "V32",
+            "V33",
+            "V43",
+            "V52",
+            "V59",
+            "V68",
+            "V73",
+            "V74",
+            "V78",
+            "V79",
+            "V82",
+            "V84",
+            "V85",
+            "V86"
+          )
         ),
         List(
           List("V23", "V64"),
