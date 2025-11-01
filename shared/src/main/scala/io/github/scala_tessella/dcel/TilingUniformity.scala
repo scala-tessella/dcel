@@ -291,11 +291,12 @@ object TilingUniformity:
       deepMap(Nil, tiling.innerVertices.map(_.id)).result
 
     def scanUniformityTree: List[Tree[List[VertexId]]] =
-      val accumulated = scala.collection.mutable.ListBuffer.empty[Tree[List[VertexId]]]
       val last = uniformityTreeUncompressed()
-      var distance = 0
-      while (uniformityTreeUncompressed(Option(distance)) != last) {
-        accumulated += uniformityTreeUncompressed(Option(distance))
-        distance += 1
-      }
-      (accumulated.toList :+ last).map(_.compress(_ ::: _))
+
+      LazyList
+        .from(0)
+        .map(distance => uniformityTreeUncompressed(Some(distance)))
+        .takeWhile(_ != last)
+        .toList
+        .appended(last)
+        .map(_.compress(_ ::: _))
