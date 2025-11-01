@@ -4,7 +4,7 @@ import io.github.scala_tessella.dcel.Tree.*
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should
 
-class TreeSpec extends AnyFlatSpec with should.Matchers {
+class TreeSpec extends AnyFlatSpec with should.Matchers:
 
   val tree_ABCDEFG: Tree[Char] =
     Branch(
@@ -232,6 +232,40 @@ class TreeSpec extends AnyFlatSpec with should.Matchers {
           Leaf(21)
         )
       )
-
   }
-}
+
+  "Another tree with a branch without children" can "be shortened" in {
+    Branch(
+      1,
+      List(
+        Branch(
+          2,
+          List(
+            Branch(
+              3,
+              List(Leaf(4), Leaf(5))
+            ),
+            Branch(
+              6,
+              List(
+                Branch(
+                  7,
+                  List()
+                )
+              )
+            )
+          )
+        )
+      )
+    ).compress(_ + _) shouldBe
+      Branch(
+        3,
+        List(
+          Branch(
+            3,
+            List(Leaf(4), Leaf(5))
+          ),
+          Leaf(13)
+        )
+      )
+  }

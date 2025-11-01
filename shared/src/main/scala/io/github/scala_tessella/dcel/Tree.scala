@@ -218,6 +218,7 @@ enum Tree[A]:
       value => Leaf(value),
       (value, children) =>
         children match
+          case Nil                 => Leaf(value)
           case Leaf(v) :: Nil      => Leaf(fold(value, v))
           case Branch(v, c) :: Nil => Branch(fold(value, v), c)
           case _                   => Branch(value, children)
