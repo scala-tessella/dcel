@@ -560,6 +560,7 @@ object TilingSVG:
       )
 
 
+
     def toUniformityAnimation(
                                strokeWidth: Double = 1.0,
                                padding: Double = 20.0,
@@ -686,42 +687,52 @@ object TilingSVG:
         val coords = vertex.coords
         val (x, y) = coords.toSvgCoords(scale)
 
-        // Build the color sequence for this vertex across all steps
+        // Colors per step for this vertex
         val colorSequence = (0 until totalSteps).map { stepIndex =>
           vertexToColorAtStep.get(stepIndex).flatMap(_.get(vid)).getOrElse(0)
-        }
+        }.map(c => uniformColorMap.getOrElse(c, "gray"))
 
-        val initialColor = colorSequence.head
-
-        sb.append(s"""    <circle cx="$x" cy="$y" r="$vertexRadius" """)
-        sb.append(s"""fill="${uniformColorMap.getOrElse(initialColor, "gray")}">""")
+        sb.append(s"""    <circle cx="$x" cy="$y" r="$vertexRadius" fill="${colorSequence.head}">""")
         sb.append("\n")
 
-        // Use multiple <set> animations for discrete color changes
+        // Chain <set> animations by id and event-begin, loop indefinitely
+        // Give each set an id that includes the vertex id to avoid collisions
         for stepIndex <- 0 until totalSteps do
-          val color = uniformColorMap.getOrElse(colorSequence(stepIndex), "gray")
-          val beginTime = stepIndex * stepDuration
-          sb.append(s"""      <set attributeName="fill" to="$color" begin="${beginTime}s;${beginTime + cycleDuration}s" dur="${stepDuration}s"/>""")
+          val color = colorSequence(stepIndex)
+          val thisId = s"v${vid.value}-s$stepIndex"
+          val nextIndex = (stepIndex + 1) % totalSteps
+          val nextId = s"v${vid.value}-s$nextIndex"
+
+          val beginAttr =
+            if stepIndex == 0 then s"0s;${s"$nextId".stripPrefix("#")}.end"
+            else s"${s"$nextId".stripPrefix("#")}.end"
+
+          sb.append(s"""      <set id="$thisId" attributeName="fill" to="$color" begin="$beginAttr" dur="${stepDuration}s"/>""")
           sb.append("\n")
 
         sb.append("    </circle>\n")
 
       sb.append("  </g>\n")
 
-      // Add distance label that updates with multiple text elements
+      // Add distance label: chain visibility across steps
       sb.append("\n  <!-- Distance Label -->\n")
       val labelX = viewBox.minX + BigDecimal(10)
       val labelY = viewBox.minY + BigDecimal(20)
 
       for stepIndex <- 0 until totalSteps do
-        val beginTime = stepIndex * stepDuration
-        val visibility = if stepIndex == 0 then "visible" else "hidden"
+        val thisId = s"lbl-s$stepIndex"
+        val nextIndex = (stepIndex + 1) % totalSteps
+        val nextId = s"lbl-s$nextIndex"
 
-        sb.append(s"""  <text x="${labelX.format}" y="${labelY.format}" font-family="Arial" font-size="14" fill="black" visibility="$visibility">""")
+        val beginAttr =
+          if stepIndex == 0 then s"0s;${s"$nextId".stripPrefix("#")}.end"
+          else s"${s"$nextId".stripPrefix("#")}.end"
+
+        sb.append(s"""  <text x="${labelX.format}" y="${labelY.format}" font-family="Arial" font-size="14" fill="black" visibility="${if stepIndex == 0 then "visible" else "hidden"}">""")
         sb.append("\n")
         sb.append(s"""    Distance: $stepIndex""")
         sb.append("\n")
-        sb.append(s"""    <set attributeName="visibility" to="visible" begin="${beginTime}s;${beginTime + cycleDuration}s" dur="${stepDuration}s"/>""")
+        sb.append(s"""    <set id="$thisId" attributeName="visibility" to="visible" begin="$beginAttr" dur="${stepDuration}s"/>""")
         sb.append("\n")
         sb.append("  </text>\n")
 
