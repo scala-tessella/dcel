@@ -4,6 +4,7 @@ import io.github.scala_tessella.dcel.TilingUniformity.*
 import io.github.scala_tessella.dcel.Tree.{Branch, Leaf}
 import io.github.scala_tessella.dcel.geometry.RegularPolygon
 import io.github.scala_tessella.dcel.structure.VertexId
+import io.github.scala_tessella.dcel.conversion.TilingSVG.toUniformityAnimation
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -401,4 +402,9 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
           List("V27", "V34", "V75", "V77", "V36")
         )
       )
+  }
+
+  it should "pippo" in {
+    println(uniformity6.toUniformityAnimation())
+    true shouldBe true
   }
