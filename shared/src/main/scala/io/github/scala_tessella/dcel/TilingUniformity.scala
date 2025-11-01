@@ -289,3 +289,13 @@ object TilingUniformity:
 
       // Start from all inner vertices at the root
       deepMap(Nil, tiling.innerVertices.map(_.id)).result
+
+    def scanUniformityTree: List[Tree[List[VertexId]]] =
+      val accumulated = scala.collection.mutable.ListBuffer.empty[Tree[List[VertexId]]]
+      val last = uniformityTreeUncompressed()
+      var distance = 0
+      while (uniformityTreeUncompressed(Option(distance)) != last) {
+        accumulated += uniformityTreeUncompressed(Option(distance))
+        distance += 1
+      }
+      (accumulated.toList :+ last).map(_.compress(_ ::: _))

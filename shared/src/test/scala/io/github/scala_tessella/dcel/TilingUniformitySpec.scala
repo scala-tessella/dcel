@@ -1,6 +1,6 @@
 package io.github.scala_tessella.dcel
 
-import io.github.scala_tessella.dcel.TilingUniformity.uniformityTreeUncompressed
+import io.github.scala_tessella.dcel.TilingUniformity.{scanUniformityTree, uniformityTreeUncompressed}
 import io.github.scala_tessella.dcel.Tree.{Branch, Leaf}
 import io.github.scala_tessella.dcel.geometry.RegularPolygon
 import io.github.scala_tessella.dcel.structure.VertexId
@@ -161,7 +161,22 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
         List(),
         List(
           Branch(
-            List("V12", "V13", "V14", "V15", "V16", "V17", "V22", "V39", "V49", "V62", "V72", "V87", "V88", "V89"),
+            List(
+              "V12",
+              "V13",
+              "V14",
+              "V15",
+              "V16",
+              "V17",
+              "V22",
+              "V39",
+              "V49",
+              "V62",
+              "V72",
+              "V87",
+              "V88",
+              "V89"
+            ),
             List(
               Leaf(List("V23", "V64")),
               Leaf(List("V24", "V53", "V58", "V65")),
@@ -169,7 +184,25 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
             )
           ),
           Branch(
-            List("V18", "V19", "V29", "V32", "V33", "V43", "V52", "V59", "V68", "V73", "V74", "V78", "V79", "V82", "V84", "V85", "V86"),
+            List(
+              "V18",
+              "V19",
+              "V29",
+              "V32",
+              "V33",
+              "V43",
+              "V52",
+              "V59",
+              "V68",
+              "V73",
+              "V74",
+              "V78",
+              "V79",
+              "V82",
+              "V84",
+              "V85",
+              "V86"
+            ),
             List(
               Leaf(List("V25", "V38")),
               Leaf(List("V26", "V44", "V67")),
@@ -187,7 +220,22 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
         List(),
         List(
           Branch(
-            List("V12", "V13", "V14", "V15", "V16", "V17", "V22", "V39", "V49", "V62", "V72", "V87", "V88", "V89"),
+            List(
+              "V12",
+              "V13",
+              "V14",
+              "V15",
+              "V16",
+              "V17",
+              "V22",
+              "V39",
+              "V49",
+              "V62",
+              "V72",
+              "V87",
+              "V88",
+              "V89"
+            ),
             List(
               Leaf(List("V23", "V64", "V47", "V54", "V57")),
               Leaf(List("V24", "V53", "V58", "V65")),
@@ -195,7 +243,25 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
             )
           ),
           Branch(
-            List("V18", "V19", "V29", "V32", "V33", "V43", "V52", "V59", "V68", "V73", "V74", "V78", "V79", "V82", "V84", "V85", "V86"),
+            List(
+              "V18",
+              "V19",
+              "V29",
+              "V32",
+              "V33",
+              "V43",
+              "V52",
+              "V59",
+              "V68",
+              "V73",
+              "V74",
+              "V78",
+              "V79",
+              "V82",
+              "V84",
+              "V85",
+              "V86"
+            ),
             List(
               Leaf(List("V25", "V38", "V45", "V66")),
               Leaf(List("V26", "V44", "V67", "V37")),
@@ -213,7 +279,22 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
         List(),
         List(
           Branch(
-            List("V12", "V13", "V14", "V15", "V16", "V17", "V22", "V39", "V49", "V62", "V72", "V87", "V88", "V89"),
+            List(
+              "V12",
+              "V13",
+              "V14",
+              "V15",
+              "V16",
+              "V17",
+              "V22",
+              "V39",
+              "V49",
+              "V62",
+              "V72",
+              "V87",
+              "V88",
+              "V89"
+            ),
             List(
               Leaf(List("V23", "V64", "V47", "V54", "V57")),
               Leaf(List("V24", "V53", "V58", "V65", "V46")),
@@ -221,7 +302,25 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
             )
           ),
           Branch(
-            List("V18", "V19", "V29", "V32", "V33", "V43", "V52", "V59", "V68", "V73", "V74", "V78", "V79", "V82", "V84", "V85", "V86"),
+            List(
+              "V18",
+              "V19",
+              "V29",
+              "V32",
+              "V33",
+              "V43",
+              "V52",
+              "V59",
+              "V68",
+              "V73",
+              "V74",
+              "V78",
+              "V79",
+              "V82",
+              "V84",
+              "V85",
+              "V86"
+            ),
             List(
               Leaf(List("V25", "V38", "V45", "V66")),
               Leaf(List("V26", "V44", "V67", "V37")),
@@ -233,7 +332,40 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
   }
 
   it should "find at distance 4" in {
-
     uniformity6.uniformityTreeUncompressed(Option(4)).compress(_ ::: _) shouldEqual
       uniformity6.uniformityTreeUncompressed(Option(3)).compress(_ ::: _)
+  }
+
+  it should "scan uniformity at all distances" in {
+    uniformity6.scanUniformityTree.map(_.flattenLeaves) shouldEqual
+      List(
+        List(
+          List("V12", "V13", "V14", "V15", "V16", "V17", "V22", "V39", "V49", "V62", "V72", "V87", "V88", "V89"),
+          List("V18", "V19", "V29", "V32", "V33", "V43", "V52", "V59", "V68", "V73", "V74", "V78", "V79", "V82", "V84", "V85", "V86")
+        ),
+        List(
+          List("V23", "V64"),
+          List("V24", "V53", "V58", "V65"),
+          List("V48", "V63"),
+          List("V25", "V38"),
+          List("V26", "V44", "V67"),
+          List("V27", "V34", "V75", "V77")
+        ),
+        List(
+          List("V23", "V64", "V47", "V54", "V57"),
+          List("V24", "V53", "V58", "V65"),
+          List("V48", "V63", "V55", "V56"),
+          List("V25", "V38", "V45", "V66"),
+          List("V26", "V44", "V67", "V37"),
+          List("V27", "V34", "V75", "V77", "V36")
+        ),
+        List(
+          List("V23", "V64", "V47", "V54", "V57"),
+          List("V24", "V53", "V58", "V65", "V46"),
+          List("V48", "V63", "V55", "V56"),
+          List("V25", "V38", "V45", "V66"),
+          List("V26", "V44", "V67", "V37"),
+          List("V27", "V34", "V75", "V77", "V36")
+        )
+      )
   }
