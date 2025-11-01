@@ -686,62 +686,44 @@ object TilingSVG:
         val coords = vertex.coords
         val (x, y) = coords.toSvgCoords(scale)
 
-        // Determine initial color
-        val initialColor = vertexToColorAtStep.get(0).flatMap(_.get(vid)).getOrElse(0)
+        // Build the color sequence for this vertex across all steps
+        val colorSequence = (0 until totalSteps).map { stepIndex =>
+          vertexToColorAtStep.get(stepIndex).flatMap(_.get(vid)).getOrElse(0)
+        }
+
+        val initialColor = colorSequence.head
 
         sb.append(s"""    <circle cx="$x" cy="$y" r="$vertexRadius" """)
-        sb.append(s"""class="uniformity-$initialColor">""")
+        sb.append(s"""fill="${uniformColorMap.getOrElse(initialColor, "gray")}">""")
         sb.append("\n")
 
-        // Add animation sequence
+        // Use multiple <set> animations for discrete color changes
         for stepIndex <- 0 until totalSteps do
-          val currentColor = vertexToColorAtStep.get(stepIndex).flatMap(_.get(vid)).getOrElse(0)
-          val nextColor = if stepIndex < totalSteps - 1 then
-            vertexToColorAtStep.get(stepIndex + 1).flatMap(_.get(vid)).getOrElse(currentColor)
-          else
-            currentColor
-
-          if currentColor != nextColor then
-            val beginTime = stepIndex * stepDuration
-            sb.append(s"""      <animate attributeName="class" """)
-            sb.append(s"""from="uniformity-$currentColor" to="uniformity-$nextColor" """)
-            sb.append(s"""begin="${beginTime}s" dur="${stepDuration}s" fill="freeze"/>""")
-            sb.append("\n")
-
-        // Loop the animation
-        sb.append(s"""      <animate attributeName="class" """)
-        sb.append(s"""to="uniformity-$initialColor" """)
-        sb.append(s"""begin="${cycleDuration}s" dur="0.01s" fill="freeze"/>""")
-        sb.append("\n")
+          val color = uniformColorMap.getOrElse(colorSequence(stepIndex), "gray")
+          val beginTime = stepIndex * stepDuration
+          sb.append(s"""      <set attributeName="fill" to="$color" begin="${beginTime}s;${beginTime + cycleDuration}s" dur="${stepDuration}s"/>""")
+          sb.append("\n")
 
         sb.append("    </circle>\n")
 
       sb.append("  </g>\n")
 
-      // Add distance label that updates
+      // Add distance label that updates with multiple text elements
       sb.append("\n  <!-- Distance Label -->\n")
       val labelX = viewBox.minX + BigDecimal(10)
       val labelY = viewBox.minY + BigDecimal(20)
 
-      sb.append(s"""  <text x="${labelX.format}" y="${labelY.format}" font-family="Arial" font-size="14" fill="black">""")
-      sb.append("\n")
-
       for stepIndex <- 0 until totalSteps do
         val beginTime = stepIndex * stepDuration
-        sb.append(s"""    <set attributeName="textContent" to="Distance: $stepIndex" """)
-        sb.append(s"""begin="${beginTime}s" fill="freeze"/>""")
+        val visibility = if stepIndex == 0 then "visible" else "hidden"
+
+        sb.append(s"""  <text x="${labelX.format}" y="${labelY.format}" font-family="Arial" font-size="14" fill="black" visibility="$visibility">""")
         sb.append("\n")
-
-      sb.append(s"""    <set attributeName="textContent" to="Distance: 0" """)
-      sb.append(s"""begin="${cycleDuration}s"/>""")
-      sb.append("\n")
-
-      sb.append("  </text>\n")
-
-      // Add restart animation for infinite loop
-      sb.append(s"""\n  <animate attributeName="visibility" from="visible" to="visible" """)
-      sb.append(s"""dur="${cycleDuration}s" repeatCount="indefinite"/>""")
-      sb.append("\n")
+        sb.append(s"""    Distance: $stepIndex""")
+        sb.append("\n")
+        sb.append(s"""    <set attributeName="visibility" to="visible" begin="${beginTime}s;${beginTime + cycleDuration}s" dur="${stepDuration}s"/>""")
+        sb.append("\n")
+        sb.append("  </text>\n")
 
       sb.append("</svg>")
 
