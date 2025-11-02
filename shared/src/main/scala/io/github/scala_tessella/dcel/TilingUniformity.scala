@@ -271,8 +271,8 @@ object TilingUniformity:
             remaining match
               case Nil                             => done(accumulated.reverse)
               case ((inner, stuck), index) :: tail =>
-                val childKey = key :+ index
                 if inner.nonEmpty then
+                  val childKey = key :+ index
                   tailcall(deepMap(childKey, inner)).flatMap { childTree =>
                     val updatedChild = childTree match
                       case Leaf(_)                  => Leaf(stuck)
@@ -327,8 +327,8 @@ object TilingUniformity:
                 remaining match
                   case Nil                             => done(accumulated.reverse)
                   case ((inner, stuck), index) :: tail =>
-                    val childKey = key :+ index
                     if inner.nonEmpty then
+                      val childKey = key :+ index
                       tailcall(deepMap(childKey, inner, maxDistance)).flatMap { childTree =>
                         val updatedChild = childTree match
                           case Leaf(_)                  => Leaf(stuck)
