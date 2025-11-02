@@ -163,6 +163,56 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
 
   behavior of "TilingUniformity.uniformityTreeUncompressed"
 
+  it should "find at distance 0 uncompressed" in {
+    uniformity6.uniformityTreeUncompressed(Option(0)) shouldBe
+      Branch(
+        List(),
+        List(
+          Branch(
+            List(
+              "V12",
+              "V13",
+              "V14",
+              "V15",
+              "V16",
+              "V17",
+              "V22",
+              "V39",
+              "V49",
+              "V62",
+              "V72",
+              "V87",
+              "V88",
+              "V89"
+            ),
+            List()
+          ),
+          Branch(
+            List(
+              "V18",
+              "V19",
+              "V29",
+              "V32",
+              "V33",
+              "V43",
+              "V52",
+              "V59",
+              "V68",
+              "V73",
+              "V74",
+              "V78",
+              "V79",
+              "V82",
+              "V84",
+              "V85",
+              "V86"
+            ),
+            List()
+          )
+        )
+      )
+  }
+
   it should "find at distance 0" in {
     uniformity6.uniformityTreeUncompressed(Option(0)).compress(_ ::: _) shouldBe
       Branch(
