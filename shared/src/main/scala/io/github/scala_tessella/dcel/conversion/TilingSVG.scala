@@ -243,63 +243,61 @@ object TilingSVG:
         Some(polygonElem(points))
       case _                             => None
 
-  private def uniformColorMap: Map[Int, String]
-  =
-  Map(
-    0 -> "yellow",
-    1 -> "orange",
-    2 -> "violet",
-    3 -> "green",
-    4 -> "brown",
-    5 -> "pink",
-    6 -> "deeppink",
-    7 -> "darkkhaki",
-    8 -> "blueviolet",
-    9 -> "lime",
-    10 -> "lightgreen",
-    11 -> "lightblue",
-    12 -> "lightcoral",
-    13 -> "lightseagreen",
-    14 -> "lightskyblue",
-    15 -> "lightsalmon",
-    16 -> "yellowgreen",
-    17 -> "lightgoldenrodyellow",
-    18 -> "lightgray",
-    19 -> "slategray",
-    20 -> "crimson",
-    21 -> "tomato",
-    22 -> "goldenrod",
-    23 -> "darkorange",
-    24 -> "olive",
-    25 -> "seagreen",
-    26 -> "teal",
-    27 -> "steelblue",
-    28 -> "royalblue",
-    29 -> "navy",
-    30 -> "indigo",
-    31 -> "mediumvioletred",
-    32 -> "sienna",
-    33 -> "chocolate",
-    34 -> "peru",
-    35 -> "darkturquoise",
-    36 -> "cadetblue",
-    37 -> "mediumseagreen",
-    38 -> "cornflowerblue",
-    39 -> "darkmagenta",
-    40 -> "firebrick",
-    41 -> "darkgoldenrod",
-    42 -> "forestgreen",
-    43 -> "mediumaquamarine",
-    44 -> "darkcyan",
-    45 -> "dodgerblue",
-    46 -> "slateblue",
-    47 -> "orchid",
-    48 -> "darkslategray",
-    49 -> "maroon"
-  )
+  private def uniformColorMap: Map[Int, String] =
+    Map(
+      0  -> "yellow",
+      1  -> "orange",
+      2  -> "violet",
+      3  -> "green",
+      4  -> "brown",
+      5  -> "pink",
+      6  -> "deeppink",
+      7  -> "darkkhaki",
+      8  -> "blueviolet",
+      9  -> "lime",
+      10 -> "lightgreen",
+      11 -> "lightblue",
+      12 -> "lightcoral",
+      13 -> "lightseagreen",
+      14 -> "lightskyblue",
+      15 -> "lightsalmon",
+      16 -> "yellowgreen",
+      17 -> "lightgoldenrodyellow",
+      18 -> "lightgray",
+      19 -> "slategray",
+      20 -> "crimson",
+      21 -> "tomato",
+      22 -> "goldenrod",
+      23 -> "darkorange",
+      24 -> "olive",
+      25 -> "seagreen",
+      26 -> "teal",
+      27 -> "steelblue",
+      28 -> "royalblue",
+      29 -> "navy",
+      30 -> "indigo",
+      31 -> "mediumvioletred",
+      32 -> "sienna",
+      33 -> "chocolate",
+      34 -> "peru",
+      35 -> "darkturquoise",
+      36 -> "cadetblue",
+      37 -> "mediumseagreen",
+      38 -> "cornflowerblue",
+      39 -> "darkmagenta",
+      40 -> "firebrick",
+      41 -> "darkgoldenrod",
+      42 -> "forestgreen",
+      43 -> "mediumaquamarine",
+      44 -> "darkcyan",
+      45 -> "dodgerblue",
+      46 -> "slateblue",
+      47 -> "orchid",
+      48 -> "darkslategray",
+      49 -> "maroon"
+    )
 
   private def createVertexElements(tilingDCEL: TilingDCEL, config: SvgConfig): (Seq[Elem], Seq[Elem]) =
-
 
     val circles =
       if config.showUniformity then
@@ -561,41 +559,41 @@ object TilingSVG:
         showUniformity = config.showUniformity
       )
 
-
-
     def toUniformityAnimation(
-                               strokeWidth: Double = 1.0,
-                               padding: Double = 20.0,
-                               scale: Double = 50.0,
-                               vertexRadius: Double = 10.0,
-                               animationDuration: Double = 2.0,
-                               pauseBetweenSteps: Double = 0.5
-                             ): String =
+        strokeWidth: Double = 1.0,
+        padding: Double = 20.0,
+        scale: Double = 50.0,
+        vertexRadius: Double = 10.0,
+        animationDuration: Double = 2.0,
+        pauseBetweenSteps: Double = 0.5
+    ): String =
       val trees = tiling.scanUniformityTree
       if trees.isEmpty then
         return tiling.toScalableVectorGraphics(SvgOptions(strokeWidth, padding, scale))
 
-      val totalSteps = trees.length
-      val stepDuration = animationDuration / totalSteps
+      val totalSteps    = trees.length
+      val stepDuration  = animationDuration / totalSteps
       val cycleDuration = animationDuration + pauseBetweenSteps
 
       // Build per-step vertex->colorIndex map
       val vertexToColorAtStep: Map[Int, Map[VertexId, Int]] =
         trees.zipWithIndex.map { case (tree, stepIndex) =>
           val leaves = tree.flattenLeaves
-          val m = leaves.zipWithIndex.flatMap { case (vertexIds, colorIndex) =>
+          val m      = leaves.zipWithIndex.flatMap { case (vertexIds, colorIndex) =>
             vertexIds.map(vid => vid -> colorIndex)
           }.toMap
           stepIndex -> m
         }.toMap
 
       // ViewBox
-      val vertices = tiling.vertices.map(_.coords)
-      val viewBox = calculateViewBox(vertices, scale, padding)
+      val vertices        = tiling.vertices.map(_.coords)
+      val viewBox         = calculateViewBox(vertices, scale, padding)
       val (width, height) = viewBox.dimensions
 
       val sb = new StringBuilder()
-      sb.append(s"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox.formatted}" width="$width" height="$height">""")
+      sb.append(
+        s"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox.formatted}" width="$width" height="$height">"""
+      )
       sb.append("\n")
 
       // Styles
@@ -611,7 +609,10 @@ object TilingSVG:
       sb.append(s"""  <g stroke="black" stroke-width="$strokeWidth">""")
       sb.append("\n")
       val edgeLines = createEdgeLines(tiling, scale)
-      edgeLines.foreach { e => sb.append("    ").append(e.toString).append("\n") }
+      edgeLines.foreach { e =>
+
+        sb.append("    ").append(e.toString).append("\n")
+      }
       sb.append("  </g>\n\n")
 
       // Animated vertices (use JS-less SMIL with syncbase timing from ONE master clock)
@@ -619,7 +620,9 @@ object TilingSVG:
       // then each step begins at offsets from that clock, ensuring endless looping.
       val masterId = "animClock"
       sb.append(s"""  <rect width="0" height="0" visibility="hidden">""").append("\n"): Unit
-      sb.append(s"""    <animate id="$masterId" attributeName="x" from="0" to="0" dur="${cycleDuration}s" repeatCount="indefinite"/>""").append("\n"): Unit
+      sb.append(
+        s"""    <animate id="$masterId" attributeName="x" from="0" to="0" dur="${cycleDuration}s" repeatCount="indefinite"/>"""
+      ).append("\n"): Unit
       sb.append("  </rect>\n\n")
 
       // Animated vertices driven by master clock
@@ -628,21 +631,28 @@ object TilingSVG:
       sb.append("\n")
 
       for vertex <- tiling.innerVertices do
-        val vid = vertex.id
-        val (x, y) = vertex.coords.toSvgCoords(scale)
-        val colorSeqIdx = (0 until totalSteps).map(i => vertexToColorAtStep.get(i).flatMap(_.get(vid)).getOrElse(0))
-        val colorSeq = colorSeqIdx.map(ci => uniformColorMap.getOrElse(ci, "gray"))
+        val vid         = vertex.id
+        val (x, y)      = vertex.coords.toSvgCoords(scale)
+        val colorSeqIdx =
+          (0 until totalSteps).map(i => vertexToColorAtStep.get(i).flatMap(_.get(vid)).getOrElse(0))
+        val colorSeq    = colorSeqIdx.map(ci => uniformColorMap.getOrElse(ci, "gray"))
 
-        sb.append(s"""    <circle cx="$x" cy="$y" r="$vertexRadius" fill="${colorSeq.head}">""").append("\n"): Unit
+        sb.append(
+          s"""    <circle cx="$x" cy="$y" r="$vertexRadius" fill="${colorSeq.head}">"""
+        ).append("\n"): Unit
 
         // One <set> per step, each triggered by the master at the appropriate offset.
         for i <- 0 until totalSteps do
-          val color = colorSeq(i)
+          val color     = colorSeq(i)
           val beginTime = i * stepDuration
-          sb.append(s"""      <set attributeName="fill" to="$color" begin="${masterId}.begin+${beginTime}s" dur="${stepDuration}s"/>""").append("\n")
+          sb.append(
+            s"""      <set attributeName="fill" to="$color" begin="${masterId}.begin+${beginTime}s" dur="${stepDuration}s"/>"""
+          ).append("\n")
 
         // Also set the fill at the start of each new cycle (Distance 0 state)
-        sb.append(s"""      <set attributeName="fill" to="${colorSeq.head}" begin="${masterId}.begin" dur="0.01s"/>""").append("\n"): Unit
+        sb.append(
+          s"""      <set attributeName="fill" to="${colorSeq.head}" begin="${masterId}.begin" dur="0.01s"/>"""
+        ).append("\n"): Unit
         sb.append("    </circle>\n")
 
       sb.append("  </g>\n")
@@ -654,9 +664,13 @@ object TilingSVG:
 
       for i <- 0 until totalSteps do
         val beginTime = i * stepDuration
-        sb.append(s"""  <text x="${labelX.format}" y="${labelY.format}" font-family="Arial" font-size="14" fill="black" visibility="hidden">""").append("\n"): Unit
+        sb.append(
+          s"""  <text x="${labelX.format}" y="${labelY.format}" font-family="Arial" font-size="14" fill="black" visibility="hidden">"""
+        ).append("\n"): Unit
         sb.append(s"""    Distance: $i""").append("\n"): Unit
-        sb.append(s"""    <set attributeName="visibility" to="visible" begin="${masterId}.begin+${beginTime}s" dur="${stepDuration}s"/>""").append("\n"): Unit
+        sb.append(
+          s"""    <set attributeName="visibility" to="visible" begin="${masterId}.begin+${beginTime}s" dur="${stepDuration}s"/>"""
+        ).append("\n"): Unit
         sb.append("  </text>\n")
 
       sb.append("</svg>")
