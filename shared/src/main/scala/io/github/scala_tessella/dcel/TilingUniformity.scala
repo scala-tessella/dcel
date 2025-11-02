@@ -291,17 +291,6 @@ object TilingUniformity:
       deepMap(Nil, tiling.innerVertices.map(_.id)).result
 
     def scanUniformityTree: List[Tree[List[VertexId]]] =
-      val last = uniformityTreeUncompressed()
-
-      LazyList
-        .from(0)
-        .map(distance => uniformityTreeUncompressed(Some(distance)))
-        .takeWhile(_ != last)
-        .toList
-        .appended(last)
-        .map(_.compress(_ ::: _))
-
-    def scanUniformityTreeAlt: List[Tree[List[VertexId]]] =
       val boundaryVertexIds = tiling.boundaryVertices.map(_.id)
 
       // Cache to store computed subtrees for each (key, maxDepth) pair

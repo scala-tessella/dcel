@@ -4,7 +4,7 @@ import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.*
 import io.github.scala_tessella.dcel.geometry.{BigDecimalGeometry, BigLineSegment, BigPoint, BigRadian}
 import io.github.scala_tessella.dcel.structure.{FaceId, HalfEdge, Vertex, VertexId}
 import io.github.scala_tessella.dcel.{TilingDCEL, TilingError}
-import io.github.scala_tessella.dcel.TilingUniformity.scanUniformityTreeAlt
+import io.github.scala_tessella.dcel.TilingUniformity.scanUniformityTree
 import spire.implicits.*
 
 import scala.collection.mutable
@@ -571,7 +571,7 @@ object TilingSVG:
                                animationDuration: Double = 2.0,
                                pauseBetweenSteps: Double = 0.5
                              ): String =
-      val trees = tiling.scanUniformityTreeAlt
+      val trees = tiling.scanUniformityTree
       if trees.isEmpty then
         return tiling.toScalableVectorGraphics(SvgOptions(strokeWidth, padding, scale))
 

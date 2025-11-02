@@ -361,8 +361,18 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
       uniformity6.uniformityTreeUncompressed(Option(3)).compress(_ ::: _)
   }
 
-  it should "scan uniformity at all distances" in {
-    uniformity6.scanUniformityTreeAlt.map(_.flattenLeaves) shouldEqual
+  behavior of "TilingDCEL.scanUniformityTreeAlt"
+
+  it should "efficiently scan uniformity at all distances" in {
+    uniformity6.scanUniformityTree shouldEqual
+      (0 to 3).toList.map { distance =>
+
+        uniformity6.uniformityTreeUncompressed(Option(distance)).compress(_ ::: _)
+      }
+  }
+
+  it should "scan uniformity leaves at all distances" in {
+    uniformity6.scanUniformityTree.map(_.flattenLeaves) shouldEqual
       List(
         List(
           List(
