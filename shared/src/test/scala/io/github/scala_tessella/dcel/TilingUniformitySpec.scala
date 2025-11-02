@@ -259,6 +259,14 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
           )
         )
       )
+    uniformity6.uniformityTreeUncompressedAlt(Option(0)).compress(_ ::: _) shouldBe
+      Branch(
+        List(),
+        List(
+          Leaf(List("V12", "V13", "V14", "V15", "V16", "V17", "V22", "V39", "V49", "V62", "V72", "V87", "V88", "V89", "V23", "V64", "V47", "V54", "V57", "V24", "V53", "V58", "V65", "V46", "V48", "V63", "V55", "V56")),
+          Leaf(List("V18", "V19", "V29", "V32", "V33", "V43", "V52", "V59", "V68", "V73", "V74", "V78", "V79", "V82", "V84", "V85", "V86", "V25", "V38", "V45", "V66", "V26", "V44", "V67", "V37", "V27", "V34", "V75", "V77", "V36"))
+        )
+      )
   }
 
   it should "find at distance 1" in {
@@ -317,6 +325,28 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
           )
         )
       )
+    uniformity6.uniformityTreeUncompressedAlt(Option(1)).compress(_ ::: _) shouldBe
+      Branch(
+        List(),
+        List(
+          Branch(
+            List("V12", "V13", "V14", "V15", "V16", "V17", "V22", "V39", "V49", "V62", "V72", "V87", "V88", "V89"),
+            List(
+              Leaf(List("V23", "V64", "V47", "V54", "V57")),
+              Leaf(List("V24", "V53", "V58", "V65", "V46")),
+              Leaf(List("V48", "V63", "V55", "V56"))
+            )
+          ),
+          Branch(
+            List("V18", "V19", "V29", "V32", "V33", "V43", "V52", "V59", "V68", "V73", "V74", "V78", "V79", "V82", "V84", "V85", "V86"),
+            List(
+              Leaf(List("V25", "V38", "V45", "V66")),
+              Leaf(List("V26", "V44", "V67", "V37")),
+              Leaf(List("V27", "V34", "V75", "V77", "V36"))
+            )
+          )
+        )
+      )
   }
 
   it should "find at distance 2" in {
@@ -367,6 +397,28 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
               "V85",
               "V86"
             ),
+            List(
+              Leaf(List("V25", "V38", "V45", "V66")),
+              Leaf(List("V26", "V44", "V67", "V37")),
+              Leaf(List("V27", "V34", "V75", "V77", "V36"))
+            )
+          )
+        )
+      )
+    uniformity6.uniformityTreeUncompressedAlt(Option(2)).compress(_ ::: _) shouldBe
+      Branch(
+        List(),
+        List(
+          Branch(
+            List("V12", "V13", "V14", "V15", "V16", "V17", "V22", "V39", "V49", "V62", "V72", "V87", "V88", "V89"),
+            List(
+              Leaf(List("V23", "V64", "V47", "V54", "V57")),
+              Leaf(List("V24", "V53", "V58", "V65", "V46")),
+              Leaf(List("V48", "V63", "V55", "V56"))
+            )
+          ),
+          Branch(
+            List("V18", "V19", "V29", "V32", "V33", "V43", "V52", "V59", "V68", "V73", "V74", "V78", "V79", "V82", "V84", "V85", "V86"),
             List(
               Leaf(List("V25", "V38", "V45", "V66")),
               Leaf(List("V26", "V44", "V67", "V37")),
@@ -433,6 +485,33 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
           )
         )
       )
+    uniformity6.uniformityTreeUncompressedAlt(Option(3)).compress(_ ::: _) shouldBe
+      Branch(
+        List(),
+        List(
+          Branch(
+            List("V12", "V13", "V14", "V15", "V16", "V17", "V22", "V39", "V49", "V62", "V72", "V87", "V88", "V89"),
+            List(
+              Leaf(List("V23", "V64", "V47", "V54", "V57")),
+              Leaf(List("V24", "V53", "V58", "V65", "V46")),
+              Leaf(List("V48", "V63", "V55", "V56"))
+            )
+          ),
+          Branch(
+            List("V18", "V19", "V29", "V32", "V33", "V43", "V52", "V59", "V68", "V73", "V74", "V78", "V79", "V82", "V84", "V85", "V86"),
+            List(
+              Leaf(List("V25", "V38", "V45", "V66")),
+              Leaf(List("V26", "V44", "V67", "V37")),
+              Leaf(List("V27", "V34", "V75", "V77", "V36"))
+            )
+          )
+        )
+      )
+  }
+
+  it should "find at distance 2 alt" in {
+    uniformity6.uniformityTreeUncompressedAlt(Option(2)).compress(_ ::: _) shouldEqual
+      uniformity6.uniformityTreeUncompressedAlt(Option(1)).compress(_ ::: _)
   }
 
   it should "find at distance 4" in {
