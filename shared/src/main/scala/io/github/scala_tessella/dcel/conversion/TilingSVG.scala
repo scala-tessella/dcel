@@ -610,6 +610,7 @@ object TilingSVG:
       sb.append("\n")
       val edgeLines = createEdgeLines(tiling, scale)
       edgeLines.foreach { e =>
+
         sb.append("    ").append(e.toString).append("\n")
       }
       sb.append("  </g>\n\n")
@@ -631,10 +632,10 @@ object TilingSVG:
         ).append("\n"): Unit
 
         // Build keyTimes: allocate time proportionally, hold last value during pause
-        val stepTimes = (0 until totalSteps).map(i => f"${i * stepDuration / cycleDuration}%.4f")
+        val stepTimes   = (0 until totalSteps).map(i => f"${i * stepDuration / cycleDuration}%.4f")
         val endAnimTime = f"${animationDuration / cycleDuration}%.4f"
-        val keyTimes = (stepTimes :+ endAnimTime :+ "1").mkString(";")
-        val values = (colorSeq :+ colorSeq.last :+ colorSeq.head).mkString(";")
+        val keyTimes    = (stepTimes :+ endAnimTime :+ "1").mkString(";")
+        val values      = (colorSeq :+ colorSeq.last :+ colorSeq.head).mkString(";")
 
         sb.append(
           s"""      <animate attributeName="fill" values="$values" keyTimes="$keyTimes" dur="${cycleDuration}s" repeatCount="indefinite" calcMode="discrete"/>"""
@@ -650,19 +651,68 @@ object TilingSVG:
 
       // Multiple overlapping text elements, each visible during its step
       for i <- 0 until totalSteps do
-        val stepTimes = (0 until totalSteps).map(j => f"${j * stepDuration / cycleDuration}%.4f")
-        val endAnimTime = f"${animationDuration / cycleDuration}%.4f"
-        val keyTimes = (stepTimes :+ endAnimTime :+ "1").mkString(";")
+        val stepTimes   = (0 until totalSteps).map(j =>
+          f"${
+              j * stepDuration / cycleDuration
+            }%.4f"
+        )
+        val endAnimTime = f"${
+            animationDuration / cycleDuration
+          }%.4f"
+        val keyTimes    = (stepTimes :+ endAnimTime :+ "1").mkString(";")
 
-        val visValues = (0 until totalSteps).map(j => if j == i then "visible" else "hidden") :+ "hidden" :+ "hidden"
+        val visValues        =
+          (0 until totalSteps).map(j => if j == i then "visible" else "hidden") :+ "hidden" :+ "hidden"
         val visibilityValues = visValues.mkString(";")
 
         sb.append(
-          s"""  <text x="${labelX.format}" y="${labelY.format}" font-family="Arial" font-size="14" fill="black" visibility="hidden">"""
+          s"""  <text x="${
+              labelX.format
+            }" y="${
+              labelY.format
+            }" font-family="Arial" font-size="14" fill="black" visibility="hidden">"""
         ).append("\n"): Unit
         sb.append(s"""    Distance: $i""").append("\n"): Unit
         sb.append(
-          s"""    <animate attributeName="visibility" values="$visibilityValues" keyTimes="$keyTimes" dur="${cycleDuration}s" repeatCount="indefinite" calcMode="discrete"/>"""
+          s"""    <animate attributeName="visibility" values="$visibilityValues" keyTimes="$keyTimes" dur="${
+              cycleDuration
+            }s" repeatCount="indefinite" calcMode="discrete"/>"""
+        ).append("\n"): Unit
+        sb.append("  </text>\n")
+
+      // Classes label
+      sb.append("\n  <!-- Classes Label -->\n")
+      val classesLabelY = viewBox.minY + BigDecimal(35)
+
+      for i <- 0 until totalSteps do
+        val stepTimes   = (0 until totalSteps).map(j =>
+          f"${
+              j * stepDuration / cycleDuration
+            }%.4f"
+        )
+        val endAnimTime = f"${
+            animationDuration / cycleDuration
+          }%.4f"
+        val keyTimes    = (stepTimes :+ endAnimTime :+ "1").mkString(";")
+
+        val visValues        =
+          (0 until totalSteps).map(j => if j == i then "visible" else "hidden") :+ "hidden" :+ "hidden"
+        val visibilityValues = visValues.mkString(";")
+
+        val numClasses = trees(i).sizeLeaves
+
+        sb.append(
+          s"""  <text x="${
+              labelX.format
+            }" y="${
+              classesLabelY.format
+            }" font-family="Arial" font-size="14" fill="black" visibility="hidden">"""
+        ).append("\n"): Unit
+        sb.append(s"""    Classes: $numClasses""").append("\n"): Unit
+        sb.append(
+          s"""    <animate attributeName="visibility" values="$visibilityValues" keyTimes="$keyTimes" dur="${
+              cycleDuration
+            }s" repeatCount="indefinite" calcMode="discrete"/>"""
         ).append("\n"): Unit
         sb.append("  </text>\n")
 
