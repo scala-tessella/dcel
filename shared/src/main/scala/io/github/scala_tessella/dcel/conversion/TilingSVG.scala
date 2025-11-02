@@ -621,29 +621,42 @@ object TilingSVG:
       sb.append("\n")
 
       for vertex <- tiling.innerVertices do
-        val vid         = vertex.id
-        val (x, y)      = vertex.coords.toSvgCoords(scale)
+        val vid = vertex.id
+        val (x, y) = vertex.coords.toSvgCoords(scale)
         val colorSeqIdx =
           (0 until totalSteps).map(i => vertexToColorAtStep.get(i).flatMap(_.get(vid)).getOrElse(0))
-        val colorSeq    = colorSeqIdx.map(ci => uniformColorMap.getOrElse(ci, "gray"))
+        val colorSeq = colorSeqIdx.map(ci => uniformColorMap.getOrElse(ci, "gray"))
+
+        // Determine visibility at each step: visible if vertex is in the tree at that distance
+        val visibilitySeq = (0 until totalSteps).map { i =>
+          val verticesAtStep = trees(i).flattenLeaves.flatten.toSet
+          if verticesAtStep.contains(vid) then "visible" else "hidden"
+        }
 
         sb.append(
-          s"""    <circle cx="$x" cy="$y" r="$vertexRadius" fill="${colorSeq.head}">"""
+          s"""    <circle cx="$x" cy="$y" r="$vertexRadius" fill="${colorSeq.head}" visibility="${visibilitySeq.head}">"""
         ).append("\n"): Unit
 
         // Build keyTimes: allocate time proportionally, hold last value during pause
-        val stepTimes   = (0 until totalSteps).map(i => f"${i * stepDuration / cycleDuration}%.4f")
+        val stepTimes = (0 until totalSteps).map(i => f"${i * stepDuration / cycleDuration}%.4f")
         val endAnimTime = f"${animationDuration / cycleDuration}%.4f"
-        val keyTimes    = (stepTimes :+ endAnimTime :+ "1").mkString(";")
-        val values      = (colorSeq :+ colorSeq.last :+ colorSeq.head).mkString(";")
+        val keyTimes = (stepTimes :+ endAnimTime :+ "1").mkString(";")
 
+        // Color animation
+        val values = (colorSeq :+ colorSeq.last :+ colorSeq.head).mkString(";")
         sb.append(
           s"""      <animate attributeName="fill" values="$values" keyTimes="$keyTimes" dur="${cycleDuration}s" repeatCount="indefinite" calcMode="discrete"/>"""
         ).append("\n"): Unit
+
+        // Visibility animation
+        val visValues = (visibilitySeq :+ visibilitySeq.last :+ visibilitySeq.head).mkString(";")
+        sb.append(
+          s"""      <animate attributeName="visibility" values="$visValues" keyTimes="$keyTimes" dur="${cycleDuration}s" repeatCount="indefinite" calcMode="discrete"/>"""
+        ).append("\n"): Unit
+
         sb.append("    </circle>\n")
 
       sb.append("  </g>\n")
-
       // Vertex labels (reusing logic from createVertexElements)
       sb.append("\n  <!-- Vertex Labels -->\n")
       sb.append(s"""  <g font-size="${(strokeWidth * 8).toInt}" fill="darkblue">""")
