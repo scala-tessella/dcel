@@ -75,11 +75,35 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
   /** <img src="file:../../../../../resources/uniform6.svg"/> */
   val uniformity6: TilingDCEL = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => (i + 3 * j) % 13 == 0)
 
-  it should "find an uniform 6 tiling" in
+  it should "find an uniform 6 tiling" in {
+    val tree = uniformity6.uniformityTree
     allAssert(
-      uniformity6.uniformityTree.sizeLeaves shouldBe 6,
-      uniformity6.innerFaces.size shouldBe 131
+      tree.sizeLeaves shouldBe 6,
+      uniformity6.innerFaces.size shouldBe 131,
+      tree shouldBe
+        Branch(
+          List(),
+          List(
+            Branch(
+              List("V12", "V13", "V14", "V15", "V16", "V17", "V22", "V39", "V49", "V62", "V72", "V87", "V88", "V89"),
+              List(
+                Leaf(List("V23", "V64", "V47", "V54", "V57")),
+                Leaf(List("V24", "V53", "V58", "V65", "V46")),
+                Leaf(List("V48", "V63", "V55", "V56"))
+              )
+            ),
+            Branch(
+              List("V18", "V19", "V29", "V32", "V33", "V43", "V52", "V59", "V68", "V73", "V74", "V78", "V79", "V82", "V84", "V85", "V86"),
+              List(
+                Leaf(List("V25", "V38", "V45", "V66")),
+                Leaf(List("V26", "V44", "V67", "V37")),
+                Leaf(List("V27", "V34", "V75", "V77", "V36"))
+              )
+            )
+          )
+        )
     )
+  }
 
   it should "find that 3.3.6.6.i has uniformity 5" in {
 
