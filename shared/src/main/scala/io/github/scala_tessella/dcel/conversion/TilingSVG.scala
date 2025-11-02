@@ -644,6 +644,19 @@ object TilingSVG:
 
       sb.append("  </g>\n")
 
+      // Vertex labels (reusing logic from createVertexElements)
+      sb.append("\n  <!-- Vertex Labels -->\n")
+      sb.append(s"""  <g font-size="${(strokeWidth * 8).toInt}" fill="darkblue">""")
+      sb.append("\n")
+
+      for vertex <- tiling.innerVertices do
+        val point = vertex.coords.scaled(scale).flippedY
+        val x = (point.x + strokeWidth * 2.5).format
+        val y = (point.y - strokeWidth * 2.5).format
+        sb.append(s"""    <text x="$x" y="$y">${vertex.id.value}</text>""").append("\n")
+
+      sb.append("  </g>\n")
+
       // Distance label - single text with animated content
       sb.append("\n  <!-- Distance Label -->\n")
       val labelX = viewBox.minX + BigDecimal(10)
