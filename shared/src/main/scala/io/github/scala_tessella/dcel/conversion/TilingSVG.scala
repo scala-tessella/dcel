@@ -621,11 +621,11 @@ object TilingSVG:
       sb.append("\n")
 
       for vertex <- tiling.innerVertices do
-        val vid = vertex.id
-        val (x, y) = vertex.coords.toSvgCoords(scale)
+        val vid         = vertex.id
+        val (x, y)      = vertex.coords.toSvgCoords(scale)
         val colorSeqIdx =
           (0 until totalSteps).map(i => vertexToColorAtStep.get(i).flatMap(_.get(vid)).getOrElse(0))
-        val colorSeq = colorSeqIdx.map(ci => uniformColorMap.getOrElse(ci, "gray"))
+        val colorSeq    = colorSeqIdx.map(ci => uniformColorMap.getOrElse(ci, "gray"))
 
         // Determine visibility at each step: visible if vertex is in the tree at that distance
         val visibilitySeq = (0 until totalSteps).map { i =>
@@ -638,9 +638,9 @@ object TilingSVG:
         ).append("\n"): Unit
 
         // Build keyTimes: allocate time proportionally, hold last value during pause
-        val stepTimes = (0 until totalSteps).map(i => f"${i * stepDuration / cycleDuration}%.4f")
+        val stepTimes   = (0 until totalSteps).map(i => f"${i * stepDuration / cycleDuration}%.4f")
         val endAnimTime = f"${animationDuration / cycleDuration}%.4f"
-        val keyTimes = (stepTimes :+ endAnimTime :+ "1").mkString(";")
+        val keyTimes    = (stepTimes :+ endAnimTime :+ "1").mkString(";")
 
         // Color animation
         val values = (colorSeq :+ colorSeq.last :+ colorSeq.head).mkString(";")
@@ -664,8 +664,8 @@ object TilingSVG:
 
       for vertex <- tiling.innerVertices do
         val point = vertex.coords.scaled(scale).flippedY
-        val x = (point.x + strokeWidth * 2.5).format
-        val y = (point.y - strokeWidth * 2.5).format
+        val x     = (point.x + strokeWidth * 2.5).format
+        val y     = (point.y - strokeWidth * 2.5).format
         sb.append(s"""    <text x="$x" y="$y">${vertex.id.value}</text>""").append("\n")
 
       sb.append("  </g>\n")
