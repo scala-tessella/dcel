@@ -610,22 +610,11 @@ object TilingSVG:
       sb.append("\n")
       val edgeLines = createEdgeLines(tiling, scale)
       edgeLines.foreach { e =>
-
         sb.append("    ").append(e.toString).append("\n")
       }
       sb.append("  </g>\n\n")
 
-      // Animated vertices (use JS-less SMIL with syncbase timing from ONE master clock)
-      // We create a hidden master animate that repeats indefinitely every cycleDuration,
-      // then each step begins at offsets from that clock, ensuring endless looping.
-      val masterId = "animClock"
-      sb.append(s"""  <rect width="0" height="0" visibility="hidden">""").append("\n"): Unit
-      sb.append(
-        s"""    <animate id="$masterId" attributeName="x" from="0" to="0" dur="${cycleDuration}s" repeatCount="indefinite"/>"""
-      ).append("\n"): Unit
-      sb.append("  </rect>\n\n")
-
-      // Animated vertices driven by master clock
+      // Animated vertices
       sb.append("  <!-- Animated Uniformity Vertices -->\n")
       sb.append(s"""  <g id="vertices-uniformity-animated" stroke="none">""")
       sb.append("\n")
@@ -641,35 +630,39 @@ object TilingSVG:
           s"""    <circle cx="$x" cy="$y" r="$vertexRadius" fill="${colorSeq.head}">"""
         ).append("\n"): Unit
 
-        // One <set> per step, each triggered by the master at the appropriate offset.
-        for i <- 0 until totalSteps do
-          val color     = colorSeq(i)
-          val beginTime = i * stepDuration
-          sb.append(
-            s"""      <set attributeName="fill" to="$color" begin="${masterId}.begin+${beginTime}s" dur="${stepDuration}s"/>"""
-          ).append("\n")
+        // Build keyTimes: allocate time proportionally, hold last value during pause
+        val stepTimes = (0 until totalSteps).map(i => f"${i * stepDuration / cycleDuration}%.4f")
+        val endAnimTime = f"${animationDuration / cycleDuration}%.4f"
+        val keyTimes = (stepTimes :+ endAnimTime :+ "1").mkString(";")
+        val values = (colorSeq :+ colorSeq.last :+ colorSeq.head).mkString(";")
 
-        // Also set the fill at the start of each new cycle (Distance 0 state)
         sb.append(
-          s"""      <set attributeName="fill" to="${colorSeq.head}" begin="${masterId}.begin" dur="0.01s"/>"""
+          s"""      <animate attributeName="fill" values="$values" keyTimes="$keyTimes" dur="${cycleDuration}s" repeatCount="indefinite" calcMode="discrete"/>"""
         ).append("\n"): Unit
         sb.append("    </circle>\n")
 
       sb.append("  </g>\n")
 
-      // Distance label driven by same master clock: multiple texts toggled at offsets
+      // Distance label - single text with animated content
       sb.append("\n  <!-- Distance Label -->\n")
       val labelX = viewBox.minX + BigDecimal(10)
       val labelY = viewBox.minY + BigDecimal(20)
 
+      // Multiple overlapping text elements, each visible during its step
       for i <- 0 until totalSteps do
-        val beginTime = i * stepDuration
+        val stepTimes = (0 until totalSteps).map(j => f"${j * stepDuration / cycleDuration}%.4f")
+        val endAnimTime = f"${animationDuration / cycleDuration}%.4f"
+        val keyTimes = (stepTimes :+ endAnimTime :+ "1").mkString(";")
+
+        val visValues = (0 until totalSteps).map(j => if j == i then "visible" else "hidden") :+ "hidden" :+ "hidden"
+        val visibilityValues = visValues.mkString(";")
+
         sb.append(
           s"""  <text x="${labelX.format}" y="${labelY.format}" font-family="Arial" font-size="14" fill="black" visibility="hidden">"""
         ).append("\n"): Unit
         sb.append(s"""    Distance: $i""").append("\n"): Unit
         sb.append(
-          s"""    <set attributeName="visibility" to="visible" begin="${masterId}.begin+${beginTime}s" dur="${stepDuration}s"/>"""
+          s"""    <animate attributeName="visibility" values="$visibilityValues" keyTimes="$keyTimes" dur="${cycleDuration}s" repeatCount="indefinite" calcMode="discrete"/>"""
         ).append("\n"): Unit
         sb.append("  </text>\n")
 
