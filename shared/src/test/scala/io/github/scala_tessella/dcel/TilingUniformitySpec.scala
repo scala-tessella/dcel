@@ -164,7 +164,6 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
   behavior of "TilingUniformity.uniformityTreeUncompressed"
 
   it should "find at distance 0" in {
-
     uniformity6.uniformityTreeUncompressed(Option(0)).compress(_ ::: _) shouldBe
       Branch(
         List(),
@@ -213,7 +212,6 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
   }
 
   it should "find at distance 1" in {
-
     uniformity6.uniformityTreeUncompressed(Option(1)).compress(_ ::: _) shouldBe
       Branch(
         List(),
@@ -272,7 +270,6 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
   }
 
   it should "find at distance 2" in {
-
     uniformity6.uniformityTreeUncompressed(Option(2)).compress(_ ::: _) shouldBe
       Branch(
         List(),
@@ -331,7 +328,6 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
   }
 
   it should "find at distance 3" in {
-
     uniformity6.uniformityTreeUncompressed(Option(3)).compress(_ ::: _) shouldBe
       Branch(
         List(),
