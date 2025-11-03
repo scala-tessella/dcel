@@ -16,8 +16,8 @@ object TilingEquivalency:
   /** Group the elements in classes of equivalent TilingDCEL. Uses boundary-only comparison for efficiency in
     * uniformity calculations.
     */
-  def groupByBoundaryEquivalency[A](centeredTilings: List[(A, TilingDCEL)]): List[List[A]] =
-    centeredTilings
+  def groupByBoundaryEquivalency[A](associatedTilings: List[(A, TilingDCEL)]): List[List[A]] =
+    associatedTilings
       .foldLeft(List.empty[(TilingDCEL, List[A])]) { case (classes, (elem, tiling)) =>
         classes.indexWhere { case (representative, _) =>
           tiling.isBoundaryEquivalentTo(representative)
