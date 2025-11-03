@@ -1,6 +1,6 @@
 package io.github.scala_tessella.dcel
 
-import io.github.scala_tessella.dcel.TilingUniformity.vertexIdClasses
+import io.github.scala_tessella.dcel.TilingEquivalency.groupByBoundaryEquivalency
 import io.github.scala_tessella.ring_seq.RingSeq.*
 
 object TilingSymmetry:
@@ -17,10 +17,11 @@ object TilingSymmetry:
 
     /** Boundary vertices mapped to DCELs equivalency classes */
     private def boundaryVertexClasses: Vector[Int] =
-      val boundaryVertexIds = tiling.boundaryVertices.map(_.id)
-      val centeredTilings = boundaryVertexIds.toList.map(vertexId => (vertexId, tiling.getDcelAtVertex(vertexId).toOption.get))
-      val vertexIdClassAssociation = vertexIdClasses(centeredTilings).zipWithIndex.flatMap {
-        case (classes, i) => classes.map(classId => (classId, i))
+      val boundaryVertexIds        = tiling.boundaryVertices.map(_.id)
+      val centeredTilings          =
+        boundaryVertexIds.toList.map(vertexId => (vertexId, tiling.getDcelAtVertex(vertexId).toOption.get))
+      val vertexIdClassAssociation = groupByBoundaryEquivalency(centeredTilings).zipWithIndex.flatMap {
+        case (classes, index) => classes.map(classId => (classId, index))
       }.toMap
       boundaryVertexIds.map(vertexIdClassAssociation)
 

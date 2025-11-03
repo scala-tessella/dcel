@@ -1,33 +1,12 @@
 package io.github.scala_tessella.dcel
 
-import io.github.scala_tessella.dcel.TilingEquivalency.isBoundaryEquivalentTo
+import io.github.scala_tessella.dcel.TilingEquivalency.groupByBoundaryEquivalency
 import io.github.scala_tessella.dcel.Tree.*
 import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
 
 import scala.util.control.TailCalls.{TailRec, done, tailcall}
 
 object TilingUniformity:
-
-  /** Group the ids of the vertices in classes of equivalent TilingDCEL. Uses boundary-only comparison for
-    * efficiency in uniformity calculations.
-    */
-  def vertexIdClasses(centeredTilings: List[(VertexId, TilingDCEL)]): List[List[VertexId]] =
-    centeredTilings
-      .foldLeft(List.empty[(TilingDCEL, List[VertexId])]) { case (classes, (vertexId, tiling)) =>
-        classes.indexWhere { case (representative, _) =>
-          tiling.isBoundaryEquivalentTo(representative)
-        } match
-          case -1 =>
-            // No equivalent class found, create a new one
-            classes :+ (tiling, List(vertexId))
-          case i  =>
-            // Found an equivalent class at index i, add vertexId to it
-            val (representative, vertexIds) = classes(i)
-            classes.updated(i, (representative, vertexId :: vertexIds))
-      }
-      .map { case (_, vertexIds) =>
-        vertexIds.reverse
-      }
 
   extension (tiling: TilingDCEL)
 
@@ -251,7 +230,7 @@ object TilingUniformity:
         //      centeredTilings.filter((_, tiling) => TilingValidation.validate(tiling).isLeft).foreach((id, tiling) =>
         //        println(s"Invalid tiling for vertex $id at distance $distance")
         //      )
-        val classes         = vertexIdClasses(centeredTilings)
+        val classes         = groupByBoundaryEquivalency(centeredTilings)
         val boundaryInfoMap = centeredTilings.map { case (vid, tiling) =>
           vid -> tiling.boundaryVertices.map(_.id).toSet
         }.toMap
@@ -301,7 +280,7 @@ object TilingUniformity:
         //      centeredTilings.filter((_, tiling) => TilingValidation.validate(tiling).isLeft).foreach((id, tiling) =>
         //        println(s"Invalid tiling for vertex $id at distance $distance")
         //      )
-        val classes         = vertexIdClasses(centeredTilings)
+        val classes         = groupByBoundaryEquivalency(centeredTilings)
         val boundaryInfoMap = centeredTilings.map { case (vid, tiling) =>
           vid -> tiling.boundaryVertices.map(_.id).toSet
         }.toMap
@@ -357,33 +336,33 @@ object TilingUniformity:
         val cacheKey = (key, maxDistance)
         cache.get(cacheKey) match
           case Some(cached) => done(cached)
-          case None =>
-            val distance = key.length
+          case None         =>
+            val distance        = key.length
             val centeredTilings = vertexIds.map(id => id -> tiling.getDcelAtVertex(id, distance).toOption.get)
-            val classes = vertexIdClasses(centeredTilings)
+            val classes         = groupByBoundaryEquivalency(centeredTilings)
             val boundaryInfoMap = centeredTilings.map { case (vid, tiling) =>
               vid -> tiling.boundaryVertices.map(_.id).toSet
             }.toMap
-            val partitioned = classes.map(_.partition { vertexId =>
+            val partitioned     = classes.map(_.partition { vertexId =>
               val localBoundaryVertexIds = boundaryInfoMap(vertexId)
               boundaryVertexIds.toSet.intersect(localBoundaryVertexIds).isEmpty
             })
 
             def iterate(
-                         remaining: List[((List[VertexId], List[VertexId]), Int)],
-                         accumulated: List[Tree[List[VertexId]]]
-                       ): TailRec[List[Tree[List[VertexId]]]] =
+                remaining: List[((List[VertexId], List[VertexId]), Int)],
+                accumulated: List[Tree[List[VertexId]]]
+            ): TailRec[List[Tree[List[VertexId]]]] =
               if maxDistance.exists(_ < distance) then
                 done(accumulated.reverse)
               else
                 remaining match
-                  case Nil => done(accumulated.reverse)
+                  case Nil                             => done(accumulated.reverse)
                   case ((inner, stuck), index) :: tail =>
                     if inner.nonEmpty then
                       val childKey = key :+ index
                       tailcall(deepMap(childKey, inner, maxDistance)).flatMap { childTree =>
                         val updatedChild = childTree match
-                          case Leaf(_) => Leaf(stuck)
+                          case Leaf(_)                  => Leaf(stuck)
                           case Branch(_, grandchildren) => Branch(stuck, grandchildren)
                         iterate(tail, updatedChild :: accumulated)
                       }
@@ -397,17 +376,17 @@ object TilingUniformity:
             }
 
       // First, compute the full tree without limits
-      val fullTree = deepMap(Nil, tiling.innerVertices.map(_.id), None).result
+      val fullTree       = deepMap(Nil, tiling.innerVertices.map(_.id), None).result
       val fullCompressed = fullTree.compress(_ ::: _)
 
       // Now collect trees at each depth, reusing cached computations
-      val results = scala.collection.mutable.ListBuffer.empty[Tree[List[VertexId]]]
-      var depth = 0
+      val results  = scala.collection.mutable.ListBuffer.empty[Tree[List[VertexId]]]
+      var depth    = 0
       var continue = true
 
       while continue do
         val treeAtDepth = deepMap(Nil, tiling.innerVertices.map(_.id), Some(depth)).result
-        val compressed = treeAtDepth.compress(_ ::: _)
+        val compressed  = treeAtDepth.compress(_ ::: _)
         results += compressed
 
         if compressed == fullCompressed then
@@ -435,7 +414,7 @@ object TilingUniformity:
           case None         =>
             val distance        = key.length
             val centeredTilings = vertexIds.map(id => id -> tiling.getDcelAtVertex(id, distance).toOption.get)
-            val classes         = vertexIdClasses(centeredTilings)
+            val classes         = groupByBoundaryEquivalency(centeredTilings)
             val boundaryInfoMap = centeredTilings.map { case (vid, tiling) =>
               vid -> tiling.boundaryVertices.map(_.id).toSet
             }.toMap

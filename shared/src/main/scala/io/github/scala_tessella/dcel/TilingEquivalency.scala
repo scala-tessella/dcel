@@ -5,13 +5,34 @@ import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint}
 import io.github.scala_tessella.dcel.structure.{Face, HalfEdge, Vertex}
 import io.github.scala_tessella.ring_seq.RingSeq.rotationsAndReflections
 
-import scala.Ordering.Implicits._
+import scala.Ordering.Implicits.*
 import scala.collection.mutable
 
 object TilingEquivalency:
 
   private def toMultiset[T](list: List[T]): Map[T, Int] =
     list.groupMapReduce(identity)(_ => 1)(_ + _)
+
+  /** Group the elements in classes of equivalent TilingDCEL. Uses boundary-only comparison for efficiency in
+    * uniformity calculations.
+    */
+  def groupByBoundaryEquivalency[A](centeredTilings: List[(A, TilingDCEL)]): List[List[A]] =
+    centeredTilings
+      .foldLeft(List.empty[(TilingDCEL, List[A])]) { case (classes, (elem, tiling)) =>
+        classes.indexWhere { case (representative, _) =>
+          tiling.isBoundaryEquivalentTo(representative)
+        } match
+          case -1 =>
+            // No equivalent class found, create a new one
+            classes :+ (tiling, List(elem))
+          case i  =>
+            // Found an equivalent class at index i, add vertexId to it
+            val (representative, elems) = classes(i)
+            classes.updated(i, (representative, elem :: elems))
+      }
+      .map { case (_, vertexIds) =>
+        vertexIds.reverse
+      }
 
   extension (tiling: TilingDCEL)
 

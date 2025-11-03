@@ -40,7 +40,7 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
       .maybeAddRegularPolygonToBoundary(V2, RegularPolygon(4)).value
       .maybeAddRegularPolygonToBoundary(VertexId("V8"), RegularPolygon(4)).value
       .maybeAddRegularPolygonToBoundary(VertexId("V11"), RegularPolygon(6)).value
-    
+
     bench.boundaryRotationalSymmetry shouldBe 1
   }
 
@@ -91,7 +91,7 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
       .maybeAddRegularPolygonToBoundary(V2, RegularPolygon(4)).value
       .maybeAddRegularPolygonToBoundary(VertexId("V8"), RegularPolygon(4)).value
       .maybeAddRegularPolygonToBoundary(VertexId("V11"), RegularPolygon(6)).value
-    
+
     bench.boundaryReflectionalSymmetry shouldBe 1
   }
 
@@ -114,9 +114,9 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
   behavior of "TilingSymmetry with complex configurations"
 
   it should "handle tilings with holes" in {
-    val net = TilingBuilder.createRhombusNet(3, 6)
+    val net       = TilingBuilder.createRhombusNet(3, 6)
     val holeInNet = net.deleteEdge(VertexId("V14"), VertexId("V15")).value
-    
+
     allAssert(
       holeInNet.boundaryRotationalSymmetry shouldBe 2,
       holeInNet.boundaryReflectionalSymmetry shouldBe 2
