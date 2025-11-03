@@ -30,8 +30,8 @@ object TilingEquivalency:
             val (representative, elems) = classes(i)
             classes.updated(i, (representative, elem :: elems))
       }
-      .map { case (_, vertexIds) =>
-        vertexIds.reverse
+      .map { case (_, elems) =>
+        elems.reverse
       }
 
   extension (tiling: TilingDCEL)
