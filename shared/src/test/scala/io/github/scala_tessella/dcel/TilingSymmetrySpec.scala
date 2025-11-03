@@ -1,7 +1,7 @@
 package io.github.scala_tessella.dcel
 
 import io.github.scala_tessella.dcel.TilingDeletion.deleteEdge
-import io.github.scala_tessella.dcel.TilingSymmetry.{boundaryReflectionalSymmetry, boundaryRotationalSymmetry}
+import io.github.scala_tessella.dcel.TilingSymmetry.*
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, RegularPolygon}
 import io.github.scala_tessella.dcel.structure.VertexId
 import org.scalatest.flatspec.AnyFlatSpec
@@ -27,12 +27,12 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
     emptyTiling.boundaryRotationalSymmetry shouldBe 1
   }
 
-  it should "return correct symmetry for a two-triangle tiling" in {
+  it should "return correct rotational symmetry for a two-triangle tiling" in {
     val twoTriangles = triangle.maybeAddRegularPolygonToBoundary(V1, RegularPolygon(3)).value
     twoTriangles.boundaryRotationalSymmetry shouldBe 2
   }
 
-  it should "return correct symmetry for bench configuration" in {
+  it should "return correct rotational symmetry for bench configuration" in {
     val bench = hexagon
       .maybeAddRegularPolygonToBoundary(V1, RegularPolygon(3)).value
       .maybeAddRegularPolygonToBoundary(V2, RegularPolygon(3)).value
@@ -44,12 +44,18 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
     bench.boundaryRotationalSymmetry shouldBe 1
   }
 
-  it should "return correct symmetry for a square net" in {
+  it should "return correct rotational symmetry for a square net" in {
     val net = TilingBuilder.createRhombusNet(3, 3)
     net.boundaryRotationalSymmetry shouldBe 4
   }
 
-  it should "return correct symmetry for a rhombi net" in {
+  it should "return correct rotational symmetry for a holed square net" in {
+    val net = TilingBuilder.createRhombusNet(3, 3).deleteEdge(V2, VertexId("V6")).value
+    net.boundaryRotationalSymmetry shouldBe 4
+    net.boundaryVerticesRotationalSymmetry shouldBe 1
+  }
+
+  it should "return correct rotational symmetry for a rhombi net" in {
     val net = TilingBuilder.createRhombusNet(3, 3, AngleDegree(60))
     net.boundaryRotationalSymmetry shouldBe 2
   }
@@ -72,12 +78,12 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
     emptyTiling.boundaryReflectionalSymmetry shouldBe 0
   }
 
-  it should "return correct symmetry for a two-triangle tiling" in {
+  it should "return correct reflectional symmetry for a two-triangle tiling" in {
     val twoTriangles = triangle.maybeAddRegularPolygonToBoundary(V1, RegularPolygon(3)).value
     twoTriangles.boundaryReflectionalSymmetry shouldBe 2
   }
 
-  it should "return correct symmetry for bench configuration" in {
+  it should "return correct reflectional symmetry for bench configuration" in {
     val bench = hexagon
       .maybeAddRegularPolygonToBoundary(V1, RegularPolygon(3)).value
       .maybeAddRegularPolygonToBoundary(V2, RegularPolygon(3)).value
@@ -89,12 +95,18 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
     bench.boundaryReflectionalSymmetry shouldBe 1
   }
 
-  it should "return correct symmetry for a symmetric square net" in {
+  it should "return correct reflectional symmetry for a square net of same width and height" in {
     val net = TilingBuilder.createRhombusNet(3, 3)
     net.boundaryReflectionalSymmetry shouldBe 4
   }
 
-  it should "return correct symmetry for an asymmetric square net" in {
+  it should "return correct reflectional symmetry for a holed square net" in {
+    val net = TilingBuilder.createRhombusNet(3, 3).deleteEdge(V2, VertexId("V6")).value
+    net.boundaryReflectionalSymmetry shouldBe 4
+    net.boundaryVerticesReflectionalSymmetry shouldBe 0
+  }
+
+  it should "return correct reflectional symmetry for a square net of different width and height" in {
     val net = TilingBuilder.createRhombusNet(3, 4)
     net.boundaryReflectionalSymmetry shouldBe 2
   }

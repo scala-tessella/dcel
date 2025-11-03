@@ -11,7 +11,7 @@ object TilingUniformity:
   /** Group the ids of the vertices in classes of equivalent TilingDCEL. Uses boundary-only comparison for
     * efficiency in uniformity calculations.
     */
-  private def vertexIdClasses(centeredTilings: List[(VertexId, TilingDCEL)]): List[List[VertexId]] =
+  def vertexIdClasses(centeredTilings: List[(VertexId, TilingDCEL)]): List[List[VertexId]] =
     centeredTilings
       .foldLeft(List.empty[(TilingDCEL, List[VertexId])]) { case (classes, (vertexId, tiling)) =>
         classes.indexWhere { case (representative, _) =>
