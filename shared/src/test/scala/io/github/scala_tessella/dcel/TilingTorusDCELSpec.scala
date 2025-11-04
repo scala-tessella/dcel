@@ -30,6 +30,14 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
     TilingTorusValidation.validate(torus).isRight shouldBe true
   }
 
+  behavior of "TilingTorusDCEL.build4x1Triangles"
+
+  it should "be valid according to TilingTorusValidation" in {
+    val torus = TilingTorusDCEL.build4x1Triangles()
+    println(TilingTorusValidation.validate(torus))
+    TilingTorusValidation.validate(torus).isRight shouldBe true
+  }
+
   behavior of "TilingTorusDCEL.findVertex/findFace"
 
   it should "find existing vertices and faces" in {

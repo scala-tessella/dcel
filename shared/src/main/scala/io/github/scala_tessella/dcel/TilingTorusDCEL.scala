@@ -261,3 +261,80 @@ object TilingTorusDCEL:
 
     // Construct without extra validation logic here
     TilingTorusDCEL(vertices, halfEdges, faces)
+
+  // Build a 4x1 triangle tiling on a torus:
+  // - 2 vertices (V1,V2)
+  // - 4 faces (F1..F4)
+  // - 12 half-edges
+  // Interpretation: on the plane, 4 equilateral triangles around a single apex,
+  // wrapped so opposite sides/vertices identify to two vertices on the torus.
+  def build4x1Triangles(): TilingTorusDCEL =
+    // Vertices
+    val v1 = Vertex(VertexId("V1"), BigPoint(0, 0))
+    val v2 = Vertex(VertexId("V2"), BigPoint(1, 0))
+    val vertices = List(v1, v2)
+
+    // Faces (four triangles around the torus)
+    val f1 = Face(FaceId("F1"))
+    val f2 = Face(FaceId("F2"))
+    val f3 = Face(FaceId("F3"))
+    val f4 = Face(FaceId("F4"))
+
+    // For each face, create a 3-cycle with origins alternating between v1 and v2.
+    // Each oriented edge is v1->v2 or v2->v1 (since only two vertices exist after identification).
+    val e = Array(
+      // F1 cycle
+      HalfEdge(v1), HalfEdge(v2), HalfEdge(v1),
+      // F2 cycle
+      HalfEdge(v2), HalfEdge(v1), HalfEdge(v2),
+      // F3 cycle
+      HalfEdge(v1), HalfEdge(v2), HalfEdge(v1),
+      // F4 cycle
+      HalfEdge(v2), HalfEdge(v1), HalfEdge(v2)
+    )
+
+    // Helper to link a triangle cycle i, i+1, i+2
+    def linkTri(i: Int): Unit =
+      e(i + 0).linkWith(e(i + 1))
+      e(i + 1).linkWith(e(i + 2))
+      e(i + 2).linkWith(e(i + 0))
+
+    // Link face cycles (each face has 3 half-edges)
+    linkTri(0) // F1: e0,e1,e2
+    linkTri(3) // F2: e3,e4,e5
+    linkTri(6) // F3: e6,e7,e8
+    linkTri(9) // F4: e9,e10,e11
+
+    // Assign incident faces and set outerComponent
+    List(0, 1, 2).foreach(i => e(i).incidentFace = Some(f1))
+    List(3, 4, 5).foreach(i => e(i).incidentFace = Some(f2))
+    List(6, 7, 8).foreach(i => e(i).incidentFace = Some(f3))
+    List(9, 10, 11).foreach(i => e(i).incidentFace = Some(f4))
+    f1.outerComponent = Some(e(0))
+    f2.outerComponent = Some(e(3))
+    f3.outerComponent = Some(e(6))
+    f4.outerComponent = Some(e(9))
+
+    // Set interior angles (equilateral triangle corners: 60°)
+    val sixty = AngleDegree(60)
+    e.foreach(_.angle = Some(sixty))
+
+    // Twins: pair opposite-directed copies so each undirected class appears exactly twice.
+    // We pair F1 with F3 and F2 with F4, index-wise, to keep symmetry and ensure closed vertex orbits.
+    // F1 (0,1,2) ↔ F3 (6,7,8)
+    e(0).twinWith(e(7)) // v1->v2 ↔ v2->v1
+    e(1).twinWith(e(6)) // v2->v1 ↔ v1->v2
+    e(2).twinWith(e(8)) // v1->v2 ↔ v1->v2 (parallel class across faces; directions differ via next/prev)
+    // F2 (3,4,5) ↔ F4 (9,10,11)
+    e(3).twinWith(e(10)) // v2->v1 ↔ v1->v2
+    e(4).twinWith(e(9)) // v1->v2 ↔ v2->v1
+    e(5).twinWith(e(11)) // v2->v1 ↔ v2->v1 (parallel class across faces)
+
+    // Leaving edges (must originate at the vertex)
+    v1.leaving = Some(e(0)) // origin v1
+    v2.leaving = Some(e(1)) // origin v2
+
+    val faces = List(f1, f2, f3, f4)
+    val halfEdges = e.toList
+
+    TilingTorusDCEL(vertices, halfEdges, faces)
