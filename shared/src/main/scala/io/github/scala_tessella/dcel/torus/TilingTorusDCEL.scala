@@ -210,6 +210,18 @@ final case class TilingTorusDCEL private (
          |$lonRing2
          |$lonRing3""".stripMargin
 
+    // Vertex ID labels (optional)
+    val vertexLabels =
+      if opt.showVertexIds then
+        vertices.map { v =>
+          val (x, y) = vProj(v)
+          // slight offset for readability
+          val dx = 6.0
+          val dy = -6.0
+          s"""<text x="${x + dx}" y="${y + dy}" font-size="10" fill="darkblue">${v.id.value}</text>"""
+        }.mkString("\n           |")
+      else ""
+
     s"""<svg xmlns="http://www.w3.org/2000/svg" width="${opt.imgWidth}" height="${opt.imgHeight}" viewBox="0 0 ${opt.imgWidth} ${opt.imgHeight}">
        |<g>
        |<!-- Wireframe -->
@@ -220,6 +232,8 @@ final case class TilingTorusDCEL private (
        |$surfacePaths
        |<!-- Chord lines -->
        |$chordLines
+       |<!-- Vertex labels -->
+       |$vertexLabels
        |</g>
        |</svg>""".stripMargin
 
@@ -260,6 +274,7 @@ object TilingTorusDCEL:
       faceStroke: String = "#888",
       faceStrokeWidth: Double = 1.0,
       faceFill: String = "none",
+      showVertexIds: Boolean = false,
       // camera
       camDist: Double = 600.0,     // distance of camera from origin along -Z
       yawDeg: Double = -30.0,      // rotation around Z
