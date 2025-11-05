@@ -1,5 +1,6 @@
 package io.github.scala_tessella.dcel
 
+import io.github.scala_tessella.dcel.TilingTorusDCEL.TorusSvg3DOptions
 import io.github.scala_tessella.dcel.structure.{FaceId, VertexId}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -46,7 +47,6 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
     TilingTorusValidation.validate(torus).isRight shouldBe true
   }
 
-
   behavior of "TilingTorusDCEL.findVertex/findFace"
 
   it should "find existing vertices and faces" in {
@@ -70,3 +70,15 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
       torus.findFace(FaceId("FX")).isLeft shouldBe true
     )
   }
+
+  behavior of "TilingTorusDCEL.toSVG3D"
+
+  it should "draw" in {
+    val torus = TilingTorusDCEL.build2x1Hexagons()
+    println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = 0.25, vScale = 0.25)))
+    allAssert(
+      torus.findVertex(VertexId("VX")).isLeft shouldBe true,
+      torus.findFace(FaceId("FX")).isLeft shouldBe true
+    )
+  }
+

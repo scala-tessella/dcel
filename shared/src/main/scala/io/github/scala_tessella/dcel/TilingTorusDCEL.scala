@@ -90,6 +90,108 @@ final case class TilingTorusDCEL private (
       vertex <- findVertex(vertexId)
     yield getInnerAnglesAtVertexUnsafe(vertexId)
 
+  // Render the tiling edges in 3D torus as SVG paths
+  def toSVG3D(
+      options: TilingTorusDCEL.TorusSvg3DOptions = TilingTorusDCEL.TorusSvg3DOptions()
+  ): String =
+    val opt = options
+
+    // Precompute projected positions for vertices
+    val vProj = vertices.map { v =>
+      val p2 = TilingTorusDCEL.projectOnTorus(v.coords, opt)
+      v -> p2
+    }.toMap
+
+    // Edge set: draw each undirected edge once; use origin id ordering to deduplicate
+    val edges = halfEdges
+      .flatMap(_.endpointsAsVertices)
+      .map { case (a, b) =>
+        if a.id.value <= b.id.value then (a, b) else (b, a)
+      }
+      .distinct
+
+    val edgePaths = edges.map { case (va, vb) =>
+      val (x1, y1) = vProj(va)
+      val (x2, y2) = vProj(vb)
+      s"""<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${opt.stroke}" stroke-width="${opt.strokeWidth}"/>"""
+    }.mkString("\n        ")
+
+    // Optionally draw face outlines as polygons (project each vertex on the face loop)
+    val facePolys = faces.flatMap { f =>
+
+      f.getVertices match
+        case Left(_)     => None
+        case Right(ring) =>
+          val pts = ring.map(vProj)
+          val d   = pts.map { case (x, y) =>
+            s"$x,$y"
+          }.mkString(" ")
+          Some(
+            s"""<polygon points="$d" fill="${opt.faceFill}" stroke="${opt.faceStroke}" stroke-width="${opt.faceStrokeWidth}"/>"""
+          )
+    }.mkString("\n        ")
+
+    // --- Torus wireframe ---
+    def ringPath(points: Seq[(Double, Double)], stroke: String, width: Double, dash: String = "2,3"): String =
+      if points.isEmpty then ""
+      else
+        val d = points.map { case (x, y) => s"$x,$y" }.mkString(" ")
+        s"""<polyline points="$d" fill="none" stroke="$stroke" stroke-width="$width" stroke-dasharray="$dash"/>"""
+
+    // Sample N points along a constant-(u or v) ring
+    def sampleRing(constUV: Double, constantIsU: Boolean, samples: Int): Seq[(Double, Double)] =
+      val n = samples max 8
+      (0 until n).map { i =>
+        val t = i.toDouble / n
+        val u = if constantIsU then constUV else t
+        val v = if constantIsU then t else constUV
+        val pos3d = TilingTorusDCEL.torusParam(u, v, opt.majorRadius, opt.minorRadius)
+        TilingTorusDCEL.rotateAndProject(pos3d, opt.yawDeg, opt.pitchDeg, opt.rollDeg, opt.camDist, opt.imgWidth, opt.imgHeight)
+      } :+ // close the loop
+        {
+          val u = if constantIsU then constUV else 0.0
+          val v = if constantIsU then 0.0 else constUV
+          val pos3d = TilingTorusDCEL.torusParam(u, v, opt.majorRadius, opt.minorRadius)
+          TilingTorusDCEL.rotateAndProject(pos3d, opt.yawDeg, opt.pitchDeg, opt.rollDeg, opt.camDist, opt.imgWidth, opt.imgHeight)
+        }
+
+    // Choose a few rings
+    val samplesPerRing = 128
+    val wireStroke = "red"
+    val wireWidth = 0.8
+
+    // Extreme latitude rings (v = 0 outer, v = 0.5 inner)
+    val outerRing = ringPath(sampleRing(0.0, constantIsU = false, samplesPerRing), wireStroke, wireWidth)
+    val innerRing = ringPath(sampleRing(0.5, constantIsU = false, samplesPerRing), wireStroke, wireWidth)
+
+    // Additional latitude rings (e.g., v = 0.25, 0.75)
+    val latRing1 = ringPath(sampleRing(0.25, constantIsU = false, samplesPerRing), wireStroke, wireWidth)
+    val latRing2 = ringPath(sampleRing(0.75, constantIsU = false, samplesPerRing), wireStroke, wireWidth)
+
+    // A few longitude rings (constant u)
+    val lonRing0 = ringPath(sampleRing(0.00, constantIsU = true, samplesPerRing), wireStroke, wireWidth)
+    val lonRing1 = ringPath(sampleRing(0.25, constantIsU = true, samplesPerRing), wireStroke, wireWidth)
+    val lonRing2 = ringPath(sampleRing(0.50, constantIsU = true, samplesPerRing), wireStroke, wireWidth)
+    val lonRing3 = ringPath(sampleRing(0.75, constantIsU = true, samplesPerRing), wireStroke, wireWidth)
+
+    val wireframe =
+      s"""$outerRing
+         |$innerRing
+         |$latRing1
+         |$latRing2
+         |$lonRing0
+         |$lonRing1
+         |$lonRing2
+         |$lonRing3""".stripMargin
+
+    s"""<svg xmlns="http://www.w3.org/2000/svg" width="${opt.imgWidth}" height="${opt.imgHeight}" viewBox="0 0 ${opt.imgWidth} ${opt.imgHeight}">
+       |<g>
+       |$wireframe
+       |$facePolys
+       |$edgePaths
+       |</g>
+       |</svg>""".stripMargin
+
 object TilingTorusDCEL:
 
   // Private internal constructor that bypasses validation
@@ -115,6 +217,91 @@ object TilingTorusDCEL:
       halfEdges = List.empty,
       faces = List.empty
     )
+
+  // 3D SVG options
+  final case class TorusSvg3DOptions(
+      majorRadius: Double = 150.0, // R
+      minorRadius: Double = 60.0,  // r
+      imgWidth: Int = 600,
+      imgHeight: Int = 600,
+      stroke: String = "#333",
+      strokeWidth: Double = 1.5,
+      faceStroke: String = "#888",
+      faceStrokeWidth: Double = 1.0,
+      faceFill: String = "none",
+      // camera
+      camDist: Double = 600.0,     // distance of camera from origin along -Z
+      yawDeg: Double = -30.0,      // rotation around Z
+      pitchDeg: Double = 25.0,     // rotation around X
+      rollDeg: Double = 0.0,       // rotation around Y
+      // how to interpret 2D coords as torus parameters
+      // coords are assumed to be in a unit square tile grid, we map x,y to u,v in [0,1] via scaling
+      uScale: Double = 1.0,
+      vScale: Double = 1.0
+  )
+
+  // Convert (u,v) in [0,1]x[0,1] to torus (x,y,z) with radii (R,r)
+  private def torusParam(u: Double, v: Double, R: Double, r: Double): (Double, Double, Double) =
+    val U = 2.0 * Math.PI * u
+    val V = 2.0 * Math.PI * v
+    val x = (R + r * Math.cos(V)) * Math.cos(U)
+    val y = (R + r * Math.cos(V)) * Math.sin(U)
+    val z = r * Math.sin(V)
+    (x, y, z)
+
+  // Basic 3D rotations (yaw Z, pitch X, roll Y) then simple perspective projection
+  private def rotateAndProject(
+      p: (Double, Double, Double),
+      yaw: Double,
+      pitch: Double,
+      roll: Double,
+      camDist: Double,
+      width: Int,
+      height: Int
+  ): (Double, Double) =
+    val (x0, y0, z0) = p
+
+    // Angles in radians
+    val ya = Math.toRadians(yaw)
+    val pa = Math.toRadians(pitch)
+    val ra = Math.toRadians(roll)
+
+    // Rot Z (yaw)
+    val x1 = x0 * Math.cos(ya) - y0 * Math.sin(ya)
+    val y1 = x0 * Math.sin(ya) + y0 * Math.cos(ya)
+    val z1 = z0
+
+    // Rot X (pitch)
+    val x2 = x1
+    val y2 = y1 * Math.cos(pa) - z1 * Math.sin(pa)
+    val z2 = y1 * Math.sin(pa) + z1 * Math.cos(pa)
+
+    // Rot Y (roll)
+    val x3 = x2 * Math.cos(ra) + z2 * Math.sin(ra)
+    val y3 = y2
+    val z3 = -x2 * Math.sin(ra) + z2 * Math.cos(ra)
+
+    // Perspective: camera at (0,0,camDist), looking toward origin
+    val denom = (camDist - z3) max 1e-6
+    val px    = (x3 * camDist) / denom
+    val py    = (y3 * camDist) / denom
+
+    // Shift to image center
+    (px + width / 2.0, py + height / 2.0)
+
+  // Map vertex coords (x,y) to normalized (u,v) in [0,1]. If your coords are already 0..1, keep uScale/vScale=1
+  private def toUV(p: BigPoint, uScale: Double, vScale: Double): (Double, Double) =
+    ((p.x.toDouble * uScale) % 1.0 + 1.0) % 1.0 -> (((p.y.toDouble * vScale) % 1.0 + 1.0) % 1.0) match
+      case (u, v) => (u, v)
+
+  // Compute 2D projected point from BigPoint coords on torus
+  private def projectOnTorus(
+      p: BigPoint,
+      opt: TorusSvg3DOptions
+  ): (Double, Double) =
+    val (u, v) = toUV(p, opt.uScale, opt.vScale)
+    val pos3d  = torusParam(u, v, opt.majorRadius, opt.minorRadius)
+    rotateAndProject(pos3d, opt.yawDeg, opt.pitchDeg, opt.rollDeg, opt.camDist, opt.imgWidth, opt.imgHeight)
 
   // Build a 1x1 square tiling on a torus: 1 face, 1 vertex, 4 half-edges (two parallel undirected loops)
   def build1x1Square(): TilingTorusDCEL =
@@ -270,8 +457,8 @@ object TilingTorusDCEL:
   // wrapped so opposite sides/vertices identify to two vertices on the torus.
   def build4x1Triangles(): TilingTorusDCEL =
     // Vertices
-    val v1 = Vertex(VertexId("V1"), BigPoint(0, 0))
-    val v2 = Vertex(VertexId("V2"), BigPoint(1, 0))
+    val v1       = Vertex(VertexId("V1"), BigPoint(0, 0))
+    val v2       = Vertex(VertexId("V2"), BigPoint(1, 0))
     val vertices = List(v1, v2)
 
     // Faces (four triangles around the torus)
@@ -284,13 +471,21 @@ object TilingTorusDCEL:
     // Each oriented edge is v1->v2 or v2->v1 (since only two vertices exist after identification).
     val e = Array(
       // F1 cycle
-      HalfEdge(v1), HalfEdge(v2), HalfEdge(v1),
+      HalfEdge(v1),
+      HalfEdge(v2),
+      HalfEdge(v1),
       // F2 cycle
-      HalfEdge(v2), HalfEdge(v1), HalfEdge(v2),
+      HalfEdge(v2),
+      HalfEdge(v1),
+      HalfEdge(v2),
       // F3 cycle
-      HalfEdge(v1), HalfEdge(v2), HalfEdge(v1),
+      HalfEdge(v1),
+      HalfEdge(v2),
+      HalfEdge(v1),
       // F4 cycle
-      HalfEdge(v2), HalfEdge(v1), HalfEdge(v2)
+      HalfEdge(v2),
+      HalfEdge(v1),
+      HalfEdge(v2)
     )
 
     // Helper to link a triangle cycle i, i+1, i+2
@@ -322,19 +517,19 @@ object TilingTorusDCEL:
     // Twins: pair opposite-directed copies so each undirected class appears exactly twice.
     // We pair F1 with F3 and F2 with F4, index-wise, to keep symmetry and ensure closed vertex orbits.
     // F1 (0,1,2) ↔ F3 (6,7,8)
-    e(0).twinWith(e(7)) // v1->v2 ↔ v2->v1
-    e(1).twinWith(e(6)) // v2->v1 ↔ v1->v2
-    e(2).twinWith(e(8)) // v1->v2 ↔ v1->v2 (parallel class across faces; directions differ via next/prev)
+    e(0).twinWith(e(7))  // v1->v2 ↔ v2->v1
+    e(1).twinWith(e(6))  // v2->v1 ↔ v1->v2
+    e(2).twinWith(e(8))  // v1->v2 ↔ v1->v2 (parallel class across faces; directions differ via next/prev)
     // F2 (3,4,5) ↔ F4 (9,10,11)
     e(3).twinWith(e(10)) // v2->v1 ↔ v1->v2
-    e(4).twinWith(e(9)) // v1->v2 ↔ v2->v1
+    e(4).twinWith(e(9))  // v1->v2 ↔ v2->v1
     e(5).twinWith(e(11)) // v2->v1 ↔ v2->v1 (parallel class across faces)
 
     // Leaving edges (must originate at the vertex)
     v1.leaving = Some(e(0)) // origin v1
     v2.leaving = Some(e(1)) // origin v2
 
-    val faces = List(f1, f2, f3, f4)
+    val faces     = List(f1, f2, f3, f4)
     val halfEdges = e.toList
 
     TilingTorusDCEL(vertices, halfEdges, faces)
