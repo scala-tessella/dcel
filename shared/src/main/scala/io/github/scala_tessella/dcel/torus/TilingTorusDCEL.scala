@@ -109,20 +109,30 @@ final case class TilingTorusDCEL private (
       if x > 0.5 then x -= 1.0
       x
 
-    // Sample a torus-surface path between two points (u0,v0) -> (u1,v1), following the shortest wrap in each param
-    def sampleEdgeCurve(p0: BigPoint, p1: BigPoint, samples: Int): Seq[(Double, Double)] =
+    // Sample a torus-surface path between two points along the chosen wrap (du,dv).
+    // If samples < 8 we clamp to 8 to keep it smooth.
+    def sampleEdgeCurveWithDelta(
+        p0: BigPoint,
+        p1: BigPoint,
+        du: Double,
+        dv: Double,
+        samples: Int
+    ): Seq[(Double, Double)] =
       val (u0, v0) = TilingTorusDCEL.toUV(p0, opt.uScale, opt.vScale)
-      val (u1, v1) = TilingTorusDCEL.toUV(p1, opt.uScale, opt.vScale)
-      val du       = wrapDelta(u1 - u0)
-      val dv       = wrapDelta(v1 - v0)
-      val n        = samples max 8
+      val n = samples max 8
       (0 to n).map { i =>
-        val t  = i.toDouble / n
-        val u  = u0 + du * t
-        val v  = v0 + dv * t
-        val P  = TilingTorusDCEL.torusParam(u, v, opt.majorRadius, opt.minorRadius)
+        val t = i.toDouble / n
+        val u = u0 + du * t
+        val v = v0 + dv * t
+        val P = TilingTorusDCEL.torusParam(u, v, opt.majorRadius, opt.minorRadius)
         TilingTorusDCEL.rotateAndProject(P, opt.yawDeg, opt.pitchDeg, opt.rollDeg, opt.camDist, opt.imgWidth, opt.imgHeight)
       }
+
+    // Convenience: shortest wrap deltas between two (u,v) points
+    def shortestWrapDelta(p0: BigPoint, p1: BigPoint): (Double, Double) =
+      val (u0, v0) = TilingTorusDCEL.toUV(p0, opt.uScale, opt.vScale)
+      val (u1, v1) = TilingTorusDCEL.toUV(p1, opt.uScale, opt.vScale)
+      (wrapDelta(u1 - u0), wrapDelta(v1 - v0))
 
     // Edge set: draw each undirected edge once; use origin id ordering to deduplicate
     val undirectedEdges = halfEdges
@@ -142,17 +152,47 @@ final case class TilingTorusDCEL private (
     val curveStrokeW    = Math.max(1.0, opt.strokeWidth - 0.3)
     val samplesPerCurve = 64
 
-    val surfacePaths = undirectedEdges.map { case (va, vb) =>
-      val pts = sampleEdgeCurve(va.coords, vb.coords, samplesPerCurve)
-      val d   = pts.map { case (x, y) => s"$x,$y" }.mkString(" ")
-      s"""<polyline points="$d" fill="none" stroke="$curveStroke" stroke-width="$curveStrokeW"/>"""
+    // For pairs that appear twice (two distinct undirected edges between same vertices),
+    // draw both complementary wraps: the shortest and its exact complement so the two cover the full ellipse.
+    val edgeMultiplicity: Map[(Vertex, Vertex), Int] =
+      halfEdges
+        .flatMap(_.endpointsAsVertices)
+        .map { case (a, b) => if a.id.value <= b.id.value then (a, b) else (b, a) }
+        .groupBy(identity)
+        .view.mapValues(_.size).toMap
+
+    // Helper: exact complementary delta to travel the other half of the torus ellipse
+    inline def complementDelta(d: Double): Double =
+      if d > 0 then d - 1.0
+      else if d < 0 then d + 1.0
+      else 0.0
+
+    val surfacePaths = undirectedEdges.flatMap { case (va, vb) =>
+      val mult = edgeMultiplicity.getOrElse((va, vb), 1)
+      val (duS, dvS) = shortestWrapDelta(va.coords, vb.coords)
+      // shortest half
+      val pts1 = sampleEdgeCurveWithDelta(va.coords, vb.coords, duS, dvS, samplesPerCurve)
+      val d1 = pts1.map { case (x, y) => s"$x,$y" }.mkString(" ")
+      val first = s"""<polyline points="$d1" fill="none" stroke="$curveStroke" stroke-width="$curveStrokeW"/>"""
+      if mult >= 2 then
+        // exact complementary half: ensures two paths partition the full closed ellipse
+        val duC = complementDelta(duS)
+        val dvC = complementDelta(dvS)
+        val pts2 = sampleEdgeCurveWithDelta(va.coords, vb.coords, duC, dvC, samplesPerCurve)
+        val d2 = pts2.map { case (x, y) => s"$x,$y" }.mkString(" ")
+        Seq(
+          first,
+          s"""<polyline points="$d2" fill="none" stroke="$curveStroke" stroke-width="$curveStrokeW"/>"""
+        )
+      else
+        Seq(first)
     }.mkString("\n        ")
 
     // Face outlines as polygons (optional)
     val facePolys = faces.flatMap { f =>
       f.getVertices.toOption.map { ring =>
         val pts = ring.map(v => vProj(v))
-        val d   = pts.map { case (x, y) => s"$x,$y" }.mkString(" ")
+        val d = pts.map { case (x, y) => s"$x,$y" }.mkString(" ")
         s"""<polygon points="$d" fill="${opt.faceFill}" stroke="${opt.faceStroke}" stroke-width="${opt.faceStrokeWidth}"/>"""
       }
     }.mkString("\n        ")

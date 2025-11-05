@@ -78,9 +78,18 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
 
   behavior of "TilingTorusDCEL.toSVG3D"
 
+  it should "draw a 2x2 square net on a torus" in {
+    val torus = TilingTorusDCEL.buildSquareNet(2, 2)
+    println(torus.toSVG3D(TorusSvg3DOptions().copy(showVertexIds = true)))
+    allAssert(
+      torus.findVertex(VertexId("VX")).isLeft shouldBe true,
+      torus.findFace(FaceId("FX")).isLeft shouldBe true
+    )
+  }
+
   it should "draw a 3x3 square net on a torus" in {
     val torus = TilingTorusDCEL.buildSquareNet(3, 3)
-    println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = 1, vScale = 1)))
+    println(torus.toSVG3D(TorusSvg3DOptions().copy(showVertexIds = true)))
     allAssert(
       torus.findVertex(VertexId("VX")).isLeft shouldBe true,
       torus.findFace(FaceId("FX")).isLeft shouldBe true
@@ -89,7 +98,7 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
 
   it should "draw a 4x4 square net on a torus" in {
     val torus = TilingTorusDCEL.buildSquareNet(4, 4)
-    println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = 1, vScale = 1)))
+    println(torus.toSVG3D())
     allAssert(
       torus.findVertex(VertexId("VX")).isLeft shouldBe true,
       torus.findFace(FaceId("FX")).isLeft shouldBe true
@@ -98,11 +107,19 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
 
   it should "draw a 8x8 square net on a torus" in {
     val torus = TilingTorusDCEL.buildSquareNet(8, 8)
-    println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = 1, vScale = 1)))
+    println(torus.toSVG3D())
     allAssert(
       torus.findVertex(VertexId("VX")).isLeft shouldBe true,
       torus.findFace(FaceId("FX")).isLeft shouldBe true
     )
   }
 
+  it should "draw a triangle net on a torus" in {
+    val torus = TilingTorusDCEL.build4x1Triangles()
+    println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = 1, vScale = 1)))
+    allAssert(
+      torus.findVertex(VertexId("VX")).isLeft shouldBe true,
+      torus.findFace(FaceId("FX")).isLeft shouldBe true
+    )
+  }
 
