@@ -28,7 +28,7 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
   behavior of "TilingTorusDCEL.build1x1Square"
 
   it should "be valid according to TilingTorusValidation" in {
-    val torus = TilingTorusDCEL.build1x1Square()
+    val torus  = TilingTorusDCEL.build1x1Square()
     TilingTorusValidation.validate(torus).isRight shouldBe true
     val torus2 = TilingTorusDCEL.buildSquareNet(1, 1)
     TilingTorusValidation.validate(torus2).isRight shouldBe true
@@ -37,7 +37,7 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
   behavior of "TilingTorusDCEL.build4x1Triangles"
 
   it should "be valid according to TilingTorusValidation" in {
-    val torus = TilingTorusDCEL.build4x1Triangles()
+    val torus  = TilingTorusDCEL.build4x1Triangles()
 //    println(TilingTorusValidation.validate(torus))
     TilingTorusValidation.validate(torus).isRight shouldBe true
     val torus2 = TilingTorusDCEL.buildSquareNet(2, 2)
@@ -135,6 +135,15 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
   it should "draw a 8x8 square net on a torus" in {
     val torus = TilingTorusDCEL.buildSquareNet(8, 8)
     println(torus.toSVG3D())
+    allAssert(
+      torus.findVertex(VertexId("VX")).isLeft shouldBe true,
+      torus.findFace(FaceId("FX")).isLeft shouldBe true
+    )
+  }
+
+  it should "draw a 1x2 triangle net on a torus" in {
+    val torus = TilingTorusDCEL.buildTriangleNet(1, 2)
+    println(torus.toSVG3D(TorusSvg3DOptions().copy(showVertexIds = true)))
     allAssert(
       torus.findVertex(VertexId("VX")).isLeft shouldBe true,
       torus.findFace(FaceId("FX")).isLeft shouldBe true
