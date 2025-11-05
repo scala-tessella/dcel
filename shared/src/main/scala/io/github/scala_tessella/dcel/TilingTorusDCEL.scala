@@ -449,6 +449,102 @@ object TilingTorusDCEL:
     // Construct without extra validation logic here
     TilingTorusDCEL(vertices, halfEdges, faces)
 
+  def buildSquareNet(width: Int, height: Int): TilingTorusDCEL =
+    // width = number of squares along U direction
+    // height = number of squares along V direction
+    if width <= 0 || height <= 0 then
+      return TilingTorusDCEL.empty
+
+    // Vertices on torus are identified modulo the grid, so only width*height distinct vertices
+    // Place them on [0,1]x[0,1] lattice
+    val verts =
+      Array.tabulate(height, width) { (j, i) =>
+        val id = VertexId(s"V${j * width + i + 1}")
+        val pos = BigPoint(BigDecimal(i) / width, BigDecimal(j) / height)
+        Vertex(id, pos)
+      }
+
+    val vertices = verts.flatten.toList
+
+    // Faces: one per cell (width*height)
+    val faces: Array[Array[Face]] =
+      Array.tabulate(height, width) { (j, i) =>
+        Face(FaceId(s"F${j * width + i + 1}"))
+      }
+
+    // Helpers to wrap indices on torus
+    inline def wrapX(i: Int): Int = (i % width + width) % width
+
+    inline def wrapY(j: Int): Int = (j % height + height) % height
+
+    // For each face create 4 half-edges CCW:
+    // e0: (i,j)   -> (i+1,j)
+    // e1: (i+1,j) -> (i+1,j+1)
+    // e2: (i+1,j+1)->(i,j+1)
+    // e3: (i,j+1) -> (i,j)
+    // We store the directed edges in arrays to wire twins afterwards.
+    val e0 = Array.ofDim[HalfEdge](height, width)
+    val e1 = Array.ofDim[HalfEdge](height, width)
+    val e2 = Array.ofDim[HalfEdge](height, width)
+    val e3 = Array.ofDim[HalfEdge](height, width)
+
+    // Create and assign incident faces + angles
+    val rightAngle = AngleDegree(90)
+    for j <- 0 until height; i <- 0 until width do
+      val v00 = verts(j)(i)
+      val v10 = verts(j)(wrapX(i + 1))
+      val v11 = verts(wrapY(j + 1))(wrapX(i + 1))
+      val v01 = verts(wrapY(j + 1))(i)
+
+      e0(j)(i) = HalfEdge(v00)
+      e1(j)(i) = HalfEdge(v10)
+      e2(j)(i) = HalfEdge(v11)
+      e3(j)(i) = HalfEdge(v01)
+
+      // Link CCW
+      e0(j)(i).linkWith(e1(j)(i))
+      e1(j)(i).linkWith(e2(j)(i))
+      e2(j)(i).linkWith(e3(j)(i))
+      e3(j)(i).linkWith(e0(j)(i))
+
+      // Incident face and angle
+      val f = faces(j)(i)
+      e0(j)(i).incidentFace = Some(f)
+      e1(j)(i).incidentFace = Some(f)
+      e2(j)(i).incidentFace = Some(f)
+      e3(j)(i).incidentFace = Some(f)
+      faces(j)(i).outerComponent = Some(e0(j)(i))
+
+      e0(j)(i).angle = Some(rightAngle)
+      e1(j)(i).angle = Some(rightAngle)
+      e2(j)(i).angle = Some(rightAngle)
+      e3(j)(i).angle = Some(rightAngle)
+
+    // Twin wiring
+    // Horizontal undirected edges are shared between (i,j) right-edge e0 and (i+1,j) left-edge e2 of the left neighbor.
+    // Vertical undirected edges are shared between (i,j) top-edge e1 and (i,j+1) bottom-edge e3 of the bottom neighbor.
+    for j <- 0 until height; i <- 0 until width do
+      // Horizontal pair: current e0 (i,j) with left-neighbor e2 (i-1,j)
+      val iL = wrapX(i - 1)
+      e0(j)(i).twinWith(e2(j)(iL))
+
+      // Vertical pair: current e1 (i,j) with bottom-neighbor e3 (i,j-1)
+      val jB = wrapY(j - 1)
+      e1(j)(i).twinWith(e3(jB)(i))
+
+    // Set leaving edge on each vertex: pick one incident (prefer e0 starting at that vertex if exists)
+    // Each vertex (i,j) is origin of edges e0(i,j) and e3(i-1,j) after wrapping;
+    // choose e0(i,j) as leaving for convenience.
+    for j <- 0 until height; i <- 0 until width do
+      verts(j)(i).leaving = Some(e0(j)(i))
+
+    val halfEdges =
+      (for j <- 0 until height; i <- 0 until width yield
+        List(e0(j)(i), e1(j)(i), e2(j)(i), e3(j)(i))
+        ).flatten.toList
+
+    TilingTorusDCEL(vertices, halfEdges, faces.flatten.toList)
+
   // Build a 4x1 triangle tiling on a torus:
   // - 2 vertices (V1,V2)
   // - 4 faces (F1..F4)
