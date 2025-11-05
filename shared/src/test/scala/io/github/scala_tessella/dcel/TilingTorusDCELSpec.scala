@@ -19,7 +19,7 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
 
   it should "be valid according to TilingTorusValidation" in {
     val torus = TilingTorusDCEL.build2x2Squares()
-    println(TilingTorusValidation.validate(torus))
+//    println(TilingTorusValidation.validate(torus))
     TilingTorusValidation.validate(torus).isRight shouldBe true
   }
 
@@ -34,9 +34,18 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
 
   it should "be valid according to TilingTorusValidation" in {
     val torus = TilingTorusDCEL.build4x1Triangles()
+//    println(TilingTorusValidation.validate(torus))
+    TilingTorusValidation.validate(torus).isRight shouldBe true
+  }
+
+  behavior of "TilingTorusDCEL.build2x1Hexagons"
+
+  it should "be valid according to TilingTorusValidation" in {
+    val torus = TilingTorusDCEL.build2x1Hexagons()
     println(TilingTorusValidation.validate(torus))
     TilingTorusValidation.validate(torus).isRight shouldBe true
   }
+
 
   behavior of "TilingTorusDCEL.findVertex/findFace"
 
