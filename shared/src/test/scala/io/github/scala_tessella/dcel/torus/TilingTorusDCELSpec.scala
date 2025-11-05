@@ -82,8 +82,9 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
     val torus = TilingTorusDCEL.buildSquareNet(1, 1)
     println(torus.toSVG3D(TorusSvg3DOptions().copy(showVertexIds = true)))
     allAssert(
-      torus.findVertex(VertexId("VX")).isLeft shouldBe true,
-      torus.findFace(FaceId("FX")).isLeft shouldBe true
+      torus.vertices.size shouldBe 1,
+      torus.faces.size shouldBe 1,
+      torus.halfEdges.size shouldBe 4
     )
   }
 
@@ -91,8 +92,9 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
     val torus = TilingTorusDCEL.buildSquareNet(1, 2)
     println(torus.toSVG3D(TorusSvg3DOptions().copy(showVertexIds = true)))
     allAssert(
-      torus.findVertex(VertexId("VX")).isLeft shouldBe true,
-      torus.findFace(FaceId("FX")).isLeft shouldBe true
+      torus.vertices.size shouldBe 2,
+      torus.faces.size shouldBe 2,
+      torus.halfEdges.size shouldBe 8
     )
   }
 
@@ -100,8 +102,9 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
     val torus = TilingTorusDCEL.buildSquareNet(2, 1)
     println(torus.toSVG3D(TorusSvg3DOptions().copy(showVertexIds = true)))
     allAssert(
-      torus.findVertex(VertexId("VX")).isLeft shouldBe true,
-      torus.findFace(FaceId("FX")).isLeft shouldBe true
+      torus.vertices.size shouldBe 2,
+      torus.faces.size shouldBe 2,
+      torus.halfEdges.size shouldBe 8
     )
   }
 
@@ -109,8 +112,9 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
     val torus = TilingTorusDCEL.buildSquareNet(2, 2)
     println(torus.toSVG3D(TorusSvg3DOptions().copy(showVertexIds = true)))
     allAssert(
-      torus.findVertex(VertexId("VX")).isLeft shouldBe true,
-      torus.findFace(FaceId("FX")).isLeft shouldBe true
+      torus.vertices.size shouldBe 4,
+      torus.faces.size shouldBe 4,
+      torus.halfEdges.size shouldBe 16
     )
   }
 
@@ -118,8 +122,9 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
     val torus = TilingTorusDCEL.buildSquareNet(3, 3)
     println(torus.toSVG3D(TorusSvg3DOptions().copy(showVertexIds = true)))
     allAssert(
-      torus.findVertex(VertexId("VX")).isLeft shouldBe true,
-      torus.findFace(FaceId("FX")).isLeft shouldBe true
+      torus.vertices.size shouldBe 9,
+      torus.faces.size shouldBe 9,
+      torus.halfEdges.size shouldBe 36
     )
   }
 
@@ -127,8 +132,9 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
     val torus = TilingTorusDCEL.buildSquareNet(4, 4)
     println(torus.toSVG3D())
     allAssert(
-      torus.findVertex(VertexId("VX")).isLeft shouldBe true,
-      torus.findFace(FaceId("FX")).isLeft shouldBe true
+      torus.vertices.size shouldBe 16,
+      torus.faces.size shouldBe 16,
+      torus.halfEdges.size shouldBe 64
     )
   }
 
@@ -136,8 +142,9 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
     val torus = TilingTorusDCEL.buildSquareNet(8, 8)
     println(torus.toSVG3D())
     allAssert(
-      torus.findVertex(VertexId("VX")).isLeft shouldBe true,
-      torus.findFace(FaceId("FX")).isLeft shouldBe true
+      torus.vertices.size shouldBe 64,
+      torus.faces.size shouldBe 64,
+      torus.halfEdges.size shouldBe 256
     )
   }
 
@@ -145,8 +152,9 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
     val torus = TilingTorusDCEL.buildTriangleNet(1, 2)
     println(torus.toSVG3D(TorusSvg3DOptions().copy(showVertexIds = true)))
     allAssert(
-      torus.findVertex(VertexId("VX")).isLeft shouldBe true,
-      torus.findFace(FaceId("FX")).isLeft shouldBe true
+      torus.vertices.size shouldBe 2,
+      torus.faces.size shouldBe 4,
+      torus.halfEdges.size shouldBe 12
     )
   }
 
@@ -154,8 +162,9 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
     val torus = TilingTorusDCEL.buildTriangleNet(2, 2)
     println(torus.toSVG3D(TorusSvg3DOptions().copy(showVertexIds = true)))
     allAssert(
-      torus.findVertex(VertexId("VX")).isLeft shouldBe true,
-      torus.findFace(FaceId("FX")).isLeft shouldBe true
+      torus.vertices.size shouldBe 4,
+      torus.faces.size shouldBe 8,
+      torus.halfEdges.size shouldBe 24
     )
   }
 
@@ -163,8 +172,39 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
     val torus = TilingTorusDCEL.buildTriangleNet(4, 4)
     println(torus.toSVG3D(TorusSvg3DOptions().copy(showVertexIds = true)))
     allAssert(
-      torus.findVertex(VertexId("VX")).isLeft shouldBe true,
-      torus.findFace(FaceId("FX")).isLeft shouldBe true
+      torus.vertices.size shouldBe 16,
+      torus.faces.size shouldBe 32,
+      torus.halfEdges.size shouldBe 96
+    )
+  }
+
+  it should "draw a 1x2 hexagon net on a torus" in {
+    val torus = TilingTorusDCEL.buildHexagonNet(1, 2)
+    println(torus.toSVG3D(TorusSvg3DOptions().copy(showVertexIds = true)))
+    allAssert(
+      torus.vertices.size shouldBe 4,
+      torus.faces.size shouldBe 2,
+      torus.halfEdges.size shouldBe 12
+    )
+  }
+
+  it should "draw a 2x2 hexagon net on a torus" in {
+    val torus = TilingTorusDCEL.buildHexagonNet(2, 2)
+    println(torus.toSVG3D(TorusSvg3DOptions().copy(showVertexIds = true)))
+    allAssert(
+      torus.vertices.size shouldBe 8,
+      torus.faces.size shouldBe 4,
+      torus.halfEdges.size shouldBe 24
+    )
+  }
+
+  it should "draw a 4x4 hexagon net on a torus" in {
+    val torus = TilingTorusDCEL.buildHexagonNet(4, 4)
+    println(torus.toSVG3D(TorusSvg3DOptions().copy(showVertexIds = true)))
+    allAssert(
+      torus.vertices.size shouldBe 32,
+      torus.faces.size shouldBe 16,
+      torus.halfEdges.size shouldBe 96
     )
   }
 
