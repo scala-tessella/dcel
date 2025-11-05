@@ -787,119 +787,107 @@ object TilingTorusDCEL:
       return TilingTorusDCEL.empty
 
     import scala.collection.mutable
-
-    // Regular hexagon: interior angles all 120°
     val oneTwenty = AngleDegree(120)
 
-    // Use three global unit directions g0,g1,g2 separated by 60°:
-    // h0=0°, h1=60°, h2=120°
-    // This matches the planar builder math so coordinates distribute on [0,1]x[0,1] when scaled later.
+    // Global directions (0°, 60°, 120°)
     val h0 = BigDecimal(0)
-    val h1 = BigDecimal(Math.PI) / 3 // 60°
-    val h2 = BigDecimal(2) * BigDecimal(Math.PI) / 3 // 120°
-
-    val g0x = spire.math.cos(h0)
+    val h1 = BigDecimal(Math.PI) / 3
+    val h2 = BigDecimal(2) * BigDecimal(Math.PI) / 3
+    val g0x = spire.math.cos(h0);
     val g0y = spire.math.sin(h0)
-    val g1x = spire.math.cos(h1)
+    val g1x = spire.math.cos(h1);
     val g1y = spire.math.sin(h1)
-    val g2x = spire.math.cos(h2)
+    val g2x = spire.math.cos(h2);
     val g2y = spire.math.sin(h2)
 
-    // Corner triples for a hexagon (same as planar builder)
+    // Hex corner triples (CCW): 0, g0, g0+g1, g0+g1+g2, g1+g2, g2
     val cornerTriples: Array[(Int, Int, Int)] =
-      Array(
-        (0, 0, 0),
-        (1, 0, 0),
-        (1, 1, 0),
-        (1, 1, 1),
-        (0, 1, 1),
-        (0, 0, 1)
-      )
+      Array((0, 0, 0), (1, 0, 0), (1, 1, 0), (1, 1, 1), (0, 1, 1), (0, 0, 1))
 
-    // Grid translations: T1=g0+g1, T2=g1+g2  => base(i,j)=(i, i+j, j)
+    // Cell base in triple coords: i*(g0+g1) + j*(g1+g2) = (i, i+j, j)
     inline def baseTriple(i: Int, j: Int): (Int, Int, Int) = (i, i + j, j)
 
-    inline def addTriples(a: (Int, Int, Int), b: (Int, Int, Int)): (Int, Int, Int) =
-      (a._1 + b._1, a._2 + b._2, a._3 + b._3)
+    inline def addT(a: (Int, Int, Int), b: (Int, Int, Int)) = (a._1 + b._1, a._2 + b._2, a._3 + b._3)
 
-    // Convert integer triple (n0,n1,n2) to coordinates n0*g0+n1*g1+n2*g2, then normalize to unit torus
+    // Torus lattice periods in triple basis:
+    // P1 = width*(g0+g1) = (width, width, 0)
+    // P2 = height*(g1+g2) = (0, height, height)
+    inline def floorDiv(a: Int, b: Int): Int =
+      val q = a / b
+      if a % b < 0 then q - 1 else q
+
+    inline def modTripleToFundamental(n0: Int, n1: Int, n2: Int): (Int, Int, Int) =
+      // Reduce along P1 to bring n0 into [0,width)
+      val k1 = floorDiv(n0, width)
+      val r0 = n0 - k1 * width
+      val r1 = n1 - k1 * width
+      val r2 = n2
+      // Reduce along P2 to bring r2 into [0,height)
+      val k2 = floorDiv(r2, height)
+      val s0 = r0
+      val s1 = r1 - k2 * height
+      val s2 = r2 - k2 * height
+      (s0, s1, s2)
+
+    // Triple → coordinates
     def tripleToPoint(n0: Int, n1: Int, n2: Int): BigPoint =
       val x = BigDecimal(n0) * g0x + BigDecimal(n1) * g1x + BigDecimal(n2) * g2x
       val y = BigDecimal(n0) * g0y + BigDecimal(n1) * g1y + BigDecimal(n2) * g2y
       BigPoint(x, y)
 
-    // Unique vertices by triple
+    // Unique vertices by canonicalized triple
     val vertexByTriple = mutable.Map[(Int, Int, Int), Vertex]()
-    var vertexCounter = 1
+    var vCount = 1
 
-    def getOrCreateVertexByTriple(key: (Int, Int, Int)): Vertex =
-      vertexByTriple.getOrElseUpdate(
-        key, {
-          val (n0, n1, n2) = key
-          val v = Vertex(VertexId(s"V$vertexCounter"), tripleToPoint(n0, n1, n2))
-          vertexCounter += 1
-          v
-        }
-      )
+    def vOfRaw(key: (Int, Int, Int)): Vertex =
+      vertexByTriple.getOrElseUpdate(key, {
+        val (a, b, c) = key
+        val v = Vertex(VertexId(s"V$vCount"), tripleToPoint(a, b, c))
+        vCount += 1
+        v
+      })
 
-    // Faces grid
-    val faces: Array[Array[Face]] =
-      Array.tabulate(height, width) { (j, i) =>
-        Face(FaceId(s"F${j * width + i + 1}"))
-      }
+    def vOf(n0: Int, n1: Int, n2: Int): Vertex =
+      vOfRaw(modTripleToFundamental(n0, n1, n2))
 
-    // Half-edges per face (6)
-    val e = Array.ofDim[Array[HalfEdge]](height, width)
+    // Unique directed half-edges with automatic twin creation
+    val halfEdgeByDir = mutable.Map[(Vertex, Vertex), HalfEdge]()
+
+    def he(v1: Vertex, v2: Vertex): HalfEdge =
+      halfEdgeByDir.getOrElseUpdate((v1, v2), {
+        val e1 = HalfEdge(v1)
+        val e2 = HalfEdge(v2)
+        e1.twinWith(e2)
+        halfEdgeByDir((v2, v1)) = e2
+        e1
+      })
+
+    // Faces
+    val faces = Array.tabulate(height, width) { (j, i) => Face(FaceId(s"F${j * width + i + 1}")) }
+
+    // Build faces; edges deduped; vertices canonicalized to torus fundamental domain
     for j <- 0 until height; i <- 0 until width do
-      val b = baseTriple(i, j)
-      val cornerKeys = (0 until 6).map(k => addTriples(b, cornerTriples(k))).toArray
-      val corners = cornerKeys.map(getOrCreateVertexByTriple)
-      val edgesCCW = Array.tabulate(6)(k => HalfEdge(corners(k)))
-
-      // Link 6-cycle CCW
-      var k = 0
-      while k < 6 do
-        edgesCCW(k).linkWith(edgesCCW((k + 1) % 6))
-        k += 1
-
-      // Assign face and angle
       val f = faces(j)(i)
-      edgesCCW.foreach { he =>
-        he.incidentFace = Some(f)
-        he.angle = Some(oneTwenty)
+      val b = baseTriple(i, j)
+      val keys = (0 until 6).map(k => addT(b, cornerTriples(k)))
+      val vs = keys.map { case (a, b, c) => vOf(a, b, c) }.toArray
+      val ring = (0 until 6).toList.map(k => he(vs(k), vs((k + 1) % 6)))
+
+      // Link cycle and set angles
+      ring.indices.foreach(k => ring(k).linkWith(ring((k + 1) % 6)))
+      ring.foreach { e =>
+        e.incidentFace = Some(f)
+        e.angle = Some(oneTwenty)
       }
-      f.outerComponent = Some(edgesCCW(0))
-      e(j)(i) = edgesCCW
-
-    // Torus index wrapping
-    inline def wrapX(i: Int): Int = (i % width + width) % width
-
-    inline def wrapY(j: Int): Int = (j % height + height) % height
-
-    // Twin wiring across the three edge classes
-    // Use the usual honeycomb neighbor relations for the chosen corner indexing:
-    // Pairings chosen so each undirected class appears exactly twice overall.
-    for j <- 0 until height; i <- 0 until width do
-      val cur = e(j)(i)
-
-      // Class along g0 (horizontal): edge 0 with neighbor's edge 3 (left cell)
-      cur(0).twinWith(e(j)(wrapX(i - 1))(3))
-
-      // Class along g1: edge 1 with neighbor's edge 4 (cell below)
-      cur(1).twinWith(e(wrapY(j - 1))(i)(4))
-
-      // Class along g2: edge 2 with neighbor's edge 5 (cell below-right)
-      cur(2).twinWith(e(wrapY(j - 1))(wrapX(i + 1))(5))
+      f.outerComponent = Some(ring.head)
 
     // Leaving edge per vertex
-    val allHalfEdges = (for j <- 0 until height; i <- 0 until width yield e(j)(i).toList).flatten.toList
-    vertexByTriple.values.foreach { v =>
-      if v.leaving.isEmpty then
-        allHalfEdges.find(_.origin eq v).foreach(he => v.leaving = Some(he))
-    }
+    val allVertices = vertexByTriple.values.toList
+    val allHalfEdges = halfEdgeByDir.values.toList
+    allVertices.foreach(v => v.leaving = allHalfEdges.find(_.origin eq v))
 
-    // Done
-    TilingTorusDCEL(vertexByTriple.values.toList, allHalfEdges, faces.flatten.toList)
+    // Expect: vertices = 2*width*height, faces = width*height, half-edges = 6*faces
+    TilingTorusDCEL(allVertices, allHalfEdges, faces.flatten.toList)
 
   // Build a 4x1 triangle tiling on a torus:
   // - 2 vertices (V1,V2)
