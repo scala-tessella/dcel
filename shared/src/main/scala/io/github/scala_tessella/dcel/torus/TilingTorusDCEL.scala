@@ -212,9 +212,13 @@ final case class TilingTorusDCEL private (
 
     s"""<svg xmlns="http://www.w3.org/2000/svg" width="${opt.imgWidth}" height="${opt.imgHeight}" viewBox="0 0 ${opt.imgWidth} ${opt.imgHeight}">
        |<g>
+       |<!-- Wireframe -->
        |$wireframe
+       |<!-- Face polygons -->
        |$facePolys
+       |<!-- Surface paths -->
        |$surfacePaths
+       |<!-- Chord lines -->
        |$chordLines
        |</g>
        |</svg>""".stripMargin
