@@ -1,8 +1,9 @@
-package io.github.scala_tessella.dcel
+package io.github.scala_tessella.dcel.torus
 
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint}
 import io.github.scala_tessella.dcel.structure.*
-import io.github.scala_tessella.dcel.TilingTorusValidation.validate
+import io.github.scala_tessella.dcel.torus.TilingTorusValidation.validate
+import io.github.scala_tessella.dcel.{NotFoundError, TilingError}
 
 /** Represents the entire tiling structure as a container for its components.
   *

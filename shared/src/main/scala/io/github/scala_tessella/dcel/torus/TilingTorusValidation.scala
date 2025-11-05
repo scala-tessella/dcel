@@ -1,5 +1,6 @@
-package io.github.scala_tessella.dcel
+package io.github.scala_tessella.dcel.torus
 
+import io.github.scala_tessella.dcel.TilingError
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, SimplePolygon}
 
 import scala.collection.mutable

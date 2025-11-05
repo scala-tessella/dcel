@@ -1,6 +1,7 @@
-package io.github.scala_tessella.dcel
+package io.github.scala_tessella.dcel.torus
 
-import io.github.scala_tessella.dcel.TilingTorusDCEL.TorusSvg3DOptions
+import io.github.scala_tessella.dcel.TilingTestHelpers
+import io.github.scala_tessella.dcel.torus.TilingTorusDCEL.TorusSvg3DOptions
 import io.github.scala_tessella.dcel.structure.{FaceId, VertexId}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
