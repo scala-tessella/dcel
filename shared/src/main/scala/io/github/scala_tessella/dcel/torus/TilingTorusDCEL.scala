@@ -777,7 +777,7 @@ object TilingTorusDCEL:
 
     // Return structure
     TilingTorusDCEL(vertices, allHE, faces.iterator.flatMap(_.iterator.flatMap(_.iterator)).toList)
-    
+
   // Build a 4x1 triangle tiling on a torus:
   // - 2 vertices (V1,V2)
   // - 4 faces (F1..F4)
@@ -943,5 +943,3 @@ object TilingTorusDCEL:
     val halfEdges = f1Edges ++ f2Edges
 
     TilingTorusDCEL(vertices, halfEdges, faces)
-
-  
