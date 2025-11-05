@@ -148,8 +148,8 @@ final case class TilingTorusDCEL private (
     }.mkString("\n        ")
 
     // Surface-following curves (sampled paths on the torus)
-    val curveStroke     = "#1e90ff"
-    val curveStrokeW    = Math.max(1.0, opt.strokeWidth - 0.3)
+    val curveStroke = "#1e90ff"
+    val curveStrokeW = Math.max(1.0, opt.strokeWidth - 0.3)
     val samplesPerCurve = 64
 
     // For pairs that appear twice (two distinct undirected edges between same vertices),
@@ -167,25 +167,51 @@ final case class TilingTorusDCEL private (
       else if d < 0 then d + 1.0
       else 0.0
 
+    // Helper: draw a full ring (circle) at fixed u or fixed v passing through (u0,v0)
+    def ringAt(u0: Double, v0: Double, constantIsU: Boolean, samples: Int): String =
+      val n = samples max 32
+      val pts =
+        (0 until n).map { i =>
+          val t = i.toDouble / n
+          val u = if constantIsU then u0 else t
+          val v = if constantIsU then t else v0
+          val P = TilingTorusDCEL.torusParam(u, v, opt.majorRadius, opt.minorRadius)
+          TilingTorusDCEL.rotateAndProject(P, opt.yawDeg, opt.pitchDeg, opt.rollDeg, opt.camDist, opt.imgWidth, opt.imgHeight)
+        } :+ {
+          val u = if constantIsU then u0 else 0.0
+          val v = if constantIsU then 0.0 else v0
+          val P = TilingTorusDCEL.torusParam(u, v, opt.majorRadius, opt.minorRadius)
+          TilingTorusDCEL.rotateAndProject(P, opt.yawDeg, opt.pitchDeg, opt.rollDeg, opt.camDist, opt.imgWidth, opt.imgHeight)
+        }
+      val d = pts.map { case (x, y) => s"$x,$y" }.mkString(" ")
+      s"""<polyline points="$d" fill="none" stroke="$curveStroke" stroke-width="$curveStrokeW"/>"""
+
     val surfacePaths = undirectedEdges.flatMap { case (va, vb) =>
       val mult = edgeMultiplicity.getOrElse((va, vb), 1)
-      val (duS, dvS) = shortestWrapDelta(va.coords, vb.coords)
-      // shortest half
-      val pts1 = sampleEdgeCurveWithDelta(va.coords, vb.coords, duS, dvS, samplesPerCurve)
-      val d1 = pts1.map { case (x, y) => s"$x,$y" }.mkString(" ")
-      val first = s"""<polyline points="$d1" fill="none" stroke="$curveStroke" stroke-width="$curveStrokeW"/>"""
-      if mult >= 2 then
-        // exact complementary half: ensures two paths partition the full closed ellipse
-        val duC = complementDelta(duS)
-        val dvC = complementDelta(dvS)
-        val pts2 = sampleEdgeCurveWithDelta(va.coords, vb.coords, duC, dvC, samplesPerCurve)
-        val d2 = pts2.map { case (x, y) => s"$x,$y" }.mkString(" ")
-        Seq(
-          first,
-          s"""<polyline points="$d2" fill="none" stroke="$curveStroke" stroke-width="$curveStrokeW"/>"""
-        )
+
+      if va eq vb then
+        // Self-loop(s): draw great circles on torus parameter axes through the vertex (u0,v0).
+        val (u0, v0) = TilingTorusDCEL.toUV(va.coords, opt.uScale, opt.vScale)
+        val ringU = ringAt(u0, v0, constantIsU = true, samplesPerCurve)
+        if mult >= 2 then
+          val ringV = ringAt(u0, v0, constantIsU = false, samplesPerCurve)
+          Seq(ringU, ringV)
+        else
+          Seq(ringU)
       else
-        Seq(first)
+        // Normal pair of distinct vertices
+        val (duS, dvS) = shortestWrapDelta(va.coords, vb.coords)
+        val pts1 = sampleEdgeCurveWithDelta(va.coords, vb.coords, duS, dvS, samplesPerCurve)
+        val d1 = pts1.map { case (x, y) => s"$x,$y" }.mkString(" ")
+        val first = s"""<polyline points="$d1" fill="none" stroke="$curveStroke" stroke-width="$curveStrokeW"/>"""
+        if mult >= 2 then
+          val duC = complementDelta(duS)
+          val dvC = complementDelta(dvS)
+          val pts2 = sampleEdgeCurveWithDelta(va.coords, vb.coords, duC, dvC, samplesPerCurve)
+          val d2 = pts2.map { case (x, y) => s"$x,$y" }.mkString(" ")
+          Seq(first, s"""<polyline points="$d2" fill="none" stroke="$curveStroke" stroke-width="$curveStrokeW"/>""")
+        else
+          Seq(first)
     }.mkString("\n        ")
 
     // Face outlines as polygons (optional)
