@@ -77,6 +77,15 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
 
   behavior of "TilingTorusDCEL.toSVG3D"
 
+  it should "draw a 3x3 square net on a torus" in {
+    val torus = TilingTorusDCEL.buildSquareNet(3, 3)
+    println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = 1, vScale = 1)))
+    allAssert(
+      torus.findVertex(VertexId("VX")).isLeft shouldBe true,
+      torus.findFace(FaceId("FX")).isLeft shouldBe true
+    )
+  }
+
   it should "draw a 4x4 square net on a torus" in {
     val torus = TilingTorusDCEL.buildSquareNet(4, 4)
     println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = 1, vScale = 1)))

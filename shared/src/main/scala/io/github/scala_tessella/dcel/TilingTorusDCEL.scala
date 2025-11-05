@@ -102,33 +102,58 @@ final case class TilingTorusDCEL private (
       v -> p2
     }.toMap
 
-    // Edge set: draw each undirected edge once; use origin id ordering to deduplicate
-    val edges = halfEdges
-      .flatMap(_.endpointsAsVertices)
-      .map { case (a, b) =>
-        if a.id.value <= b.id.value then (a, b) else (b, a)
+    // Helper: unwrap delta in [0,1) to shortest signed step in (-0.5, 0.5]
+    def wrapDelta(d: Double): Double =
+      var x = d - Math.floor(d) // [0,1)
+      if x > 0.5 then x -= 1.0
+      x
+
+    // Sample a torus-surface path between two points (u0,v0) -> (u1,v1), following the shortest wrap in each param
+    def sampleEdgeCurve(p0: BigPoint, p1: BigPoint, samples: Int): Seq[(Double, Double)] =
+      val (u0, v0) = TilingTorusDCEL.toUV(p0, opt.uScale, opt.vScale)
+      val (u1, v1) = TilingTorusDCEL.toUV(p1, opt.uScale, opt.vScale)
+      val du       = wrapDelta(u1 - u0)
+      val dv       = wrapDelta(v1 - v0)
+      val n        = samples max 8
+      (0 to n).map { i =>
+        val t  = i.toDouble / n
+        val u  = u0 + du * t
+        val v  = v0 + dv * t
+        val P  = TilingTorusDCEL.torusParam(u, v, opt.majorRadius, opt.minorRadius)
+        TilingTorusDCEL.rotateAndProject(P, opt.yawDeg, opt.pitchDeg, opt.rollDeg, opt.camDist, opt.imgWidth, opt.imgHeight)
       }
+
+    // Edge set: draw each undirected edge once; use origin id ordering to deduplicate
+    val undirectedEdges = halfEdges
+      .flatMap(_.endpointsAsVertices)
+      .map { case (a, b) => if a.id.value <= b.id.value then (a, b) else (b, a) }
       .distinct
 
-    val edgePaths = edges.map { case (va, vb) =>
+    // Straight chords (existing look)
+    val chordLines = undirectedEdges.map { case (va, vb) =>
       val (x1, y1) = vProj(va)
       val (x2, y2) = vProj(vb)
-      s"""<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${opt.stroke}" stroke-width="${opt.strokeWidth}"/>"""
+      s"""<line x1="$x1" y1="$y1" x2="$x2" y2="$y2" stroke="${opt.stroke}" stroke-width="${opt.strokeWidth}"/>"""
     }.mkString("\n        ")
 
-    // Optionally draw face outlines as polygons (project each vertex on the face loop)
-    val facePolys = faces.flatMap { f =>
+    // Surface-following curves (sampled paths on the torus)
+    val curveStroke     = "#1e90ff"
+    val curveStrokeW    = Math.max(1.0, opt.strokeWidth - 0.3)
+    val samplesPerCurve = 64
 
-      f.getVertices match
-        case Left(_)     => None
-        case Right(ring) =>
-          val pts = ring.map(vProj)
-          val d   = pts.map { case (x, y) =>
-            s"$x,$y"
-          }.mkString(" ")
-          Some(
-            s"""<polygon points="$d" fill="${opt.faceFill}" stroke="${opt.faceStroke}" stroke-width="${opt.faceStrokeWidth}"/>"""
-          )
+    val surfacePaths = undirectedEdges.map { case (va, vb) =>
+      val pts = sampleEdgeCurve(va.coords, vb.coords, samplesPerCurve)
+      val d   = pts.map { case (x, y) => s"$x,$y" }.mkString(" ")
+      s"""<polyline points="$d" fill="none" stroke="$curveStroke" stroke-width="$curveStrokeW"/>"""
+    }.mkString("\n        ")
+
+    // Face outlines as polygons (optional)
+    val facePolys = faces.flatMap { f =>
+      f.getVertices.toOption.map { ring =>
+        val pts = ring.map(v => vProj(v))
+        val d   = pts.map { case (x, y) => s"$x,$y" }.mkString(" ")
+        s"""<polygon points="$d" fill="${opt.faceFill}" stroke="${opt.faceStroke}" stroke-width="${opt.faceStrokeWidth}"/>"""
+      }
     }.mkString("\n        ")
 
     // --- Torus wireframe ---
@@ -188,7 +213,8 @@ final case class TilingTorusDCEL private (
        |<g>
        |$wireframe
        |$facePolys
-       |$edgePaths
+       |$surfacePaths
+       |$chordLines
        |</g>
        |</svg>""".stripMargin
 
