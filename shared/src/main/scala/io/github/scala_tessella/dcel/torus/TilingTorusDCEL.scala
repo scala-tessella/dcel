@@ -657,6 +657,127 @@ object TilingTorusDCEL:
 
     TilingTorusDCEL(vertices, halfEdges, faces.flatten.toList)
 
+  def buildTriangleNet(width: Int, height: Int): TilingTorusDCEL =
+    // width, height define the rhombus grid; each rhombus is split into two equilateral triangles.
+    if width <= 0 || height <= 0 || height % 2 == 1then
+      return TilingTorusDCEL.empty
+
+    // Geometry for equilateral grid in [0,1]x[0,1] (torus wraps):
+    // Horizontal step dx and vertical step dy so that each small cell is a unit rhombus
+    // with 60° angles when seen as two glued equilateral triangles.
+    val dx = BigDecimal(1.0) / width
+    val dy = (BigDecimal(Math.sqrt(3)) / 2.0) / height
+
+    // Lattice vertices arranged in a "staggered" hex/triangular grid:
+    // row j has a horizontal offset of (j parity)*dx/2
+    val verts =
+      Array.tabulate(height, width) { (j, i) =>
+        val offset = if (j & 1) == 1 then dx / 2 else BigDecimal(0)
+        val x = (BigDecimal(i) * dx + offset) % 1
+        val y = (BigDecimal(j) * dy) % 1
+        val id = VertexId(s"V${j * width + i + 1}")
+        Vertex(id, BigPoint(x, y))
+      }
+
+    val vertices = verts.flatten.toList
+
+    // Each rhombus (cell) will be split into two equilateral triangles.
+    // For a cell (i,j), define its 4 corners:
+    // A = (i,   j)
+    // B = (i+1, j)
+    // C = (i,   j+1)
+    // D = (i+1, j+1)
+    // Even rows use diagonal A->D, odd rows use diagonal B->C.
+    inline def wrapX(i: Int): Int = (i % width + width) % width
+
+    inline def wrapY(j: Int): Int = (j % height + height) % height
+
+    // Faces: 2 per cell
+    val faces =
+      Array.tabulate(height, width, 2) { (j, i, k) =>
+        val idx = j * width * 2 + i * 2 + k + 1
+        Face(FaceId(s"F$idx"))
+      }
+
+    // Angles at equilateral triangle corners
+    val sixty = AngleDegree(60)
+
+    // For each cell we create 6 half-edges (two triangles, 3 edges each), link cycles CCW, set faces and angles.
+    // We only set next/prev and incidentFace now; twins will be wired after across adjacency.
+    case class TriHE(a: HalfEdge, b: HalfEdge, c: HalfEdge)
+    val triHEs = Array.ofDim[TriHE](height, width, 2)
+
+    def makeFace(v0: Vertex, v1: Vertex, v2: Vertex, face: Face): TriHE =
+      val e0 = HalfEdge(v0)
+      val e1 = HalfEdge(v1)
+      val e2 = HalfEdge(v2)
+      e0.linkWith(e1)
+      e1.linkWith(e2)
+      e2.linkWith(e0)
+      e0.incidentFace = Some(face)
+      e1.incidentFace = Some(face)
+      e2.incidentFace = Some(face)
+      face.outerComponent = Some(e0)
+      e0.angle = Some(sixty)
+      e1.angle = Some(sixty)
+      e2.angle = Some(sixty)
+      TriHE(e0, e1, e2)
+
+    for j <- 0 until height; i <- 0 until width do
+      val A = verts(j)(i)
+      val B = verts(j)(wrapX(i + 1))
+      val C = verts(wrapY(j + 1))(i)
+      val D = verts(wrapY(j + 1))(wrapX(i + 1))
+
+      val evenRow = (j & 1) == 0
+
+      // Two triangles per cell, CCW orientation
+      if evenRow then
+        // Diagonal A->D: triangles (A,B,D) and (A,D,C)
+        triHEs(j)(i)(0) = makeFace(A, B, D, faces(j)(i)(0)) // ABD
+        triHEs(j)(i)(1) = makeFace(A, D, C, faces(j)(i)(1)) // ADC
+      else
+        // Diagonal B->C: triangles (A,B,C) and (B,D,C)
+        triHEs(j)(i)(0) = makeFace(A, B, C, faces(j)(i)(0)) // ABC
+        triHEs(j)(i)(1) = makeFace(B, D, C, faces(j)(i)(1)) // BDC
+
+    // Collect all half-edges for twin wiring
+    val allHE: List[HalfEdge] =
+      (for j <- 0 until height; i <- 0 until width; k <- 0 until 2 yield
+        val t = triHEs(j)(i)(k)
+        List(t.a, t.b, t.c)
+        ).flatten.toList
+
+    // Build map from directed edge (originId,destId) -> list of half-edges
+    // Endpoints inferred from 'next' relation: destination of e is e.next.origin
+    def destOf(e: HalfEdge): Vertex = e.next.get.origin
+
+    val buckets =
+      allHE.groupBy(e => (e.origin.id.value, destOf(e).id.value))
+
+    // Twins: for each directed pair, the twin is the opposite directed edge if present
+    def keyOpp(k: (String, String)) = (k._2, k._1)
+
+    for
+      (k, list) <- buckets
+      opp <- buckets.get(keyOpp(k))
+    do
+      // pair elements one-by-one (handles wrapping: there should be same multiplicity)
+      val n = Math.min(list.size, opp.size)
+      var idx = 0
+      while idx < n do
+        val e1 = list(idx)
+        val e2 = opp(idx)
+        if e1.twin.isEmpty && e2.twin.isEmpty then e1.twinWith(e2)
+        idx += 1
+
+    // Leaving edge per vertex: pick any incident we created; prefer the first seen
+    val byVertex = allHE.groupBy(_.origin)
+    byVertex.foreach { case (v, es) => if v.leaving.isEmpty then v.leaving = Some(es.head) }
+
+    // Return structure
+    TilingTorusDCEL(vertices, allHE, faces.iterator.flatMap(_.iterator.flatMap(_.iterator)).toList)
+    
   // Build a 4x1 triangle tiling on a torus:
   // - 2 vertices (V1,V2)
   // - 4 faces (F1..F4)
@@ -822,3 +943,5 @@ object TilingTorusDCEL:
     val halfEdges = f1Edges ++ f2Edges
 
     TilingTorusDCEL(vertices, halfEdges, faces)
+
+  
