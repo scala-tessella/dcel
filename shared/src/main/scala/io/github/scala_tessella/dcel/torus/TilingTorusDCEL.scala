@@ -1,11 +1,11 @@
 package io.github.scala_tessella.dcel.torus
 
+import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.ACCURACY
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint}
 import io.github.scala_tessella.dcel.structure.*
 import io.github.scala_tessella.dcel.torus.TilingTorusValidation.validate
-import io.github.scala_tessella.dcel.{NotFoundError, TilingError}
-
-import spire.implicits.BigDecimalIsTrig
+import io.github.scala_tessella.dcel.{NotFoundError, TilingDCEL, TilingError}
+import spire.implicits.*
 
 /** Represents the entire tiling structure as a container for its components.
   *
@@ -92,6 +92,118 @@ final case class TilingTorusDCEL private (
     for
       vertex <- findVertex(vertexId)
     yield getInnerAnglesAtVertexUnsafe(vertexId)
+
+  def toTilingDCEL: Either[TilingError, TilingDCEL] =
+    // keep only unit-length edges (and their twins)
+    val unitPairs: Set[(Vertex, Vertex)] =
+      halfEdges.flatMap(_.endpointsAsVertices).collect {
+        case (a, b) if spire.math.abs(a.coords.distanceTo(b.coords) - 1.0) <= ACCURACY => (a, b)
+      }.toSet
+
+    // Build new half-edges only for allowed pairs, preserving incidence, next/prev and angles by copying structure.
+    // We need fresh HalfEdge instances so we can wire a planar DCEL (with an outer face).
+    val newEdgeByOld = scala.collection.mutable.Map[HalfEdge, HalfEdge]()
+
+    def allow(e: HalfEdge): Boolean =
+      e.endpointsAsVertices.exists { (a, b) => unitPairs.contains((a, b)) }
+
+    // Create fresh edges for allowed ones, keep same origin to reuse vertices as-is
+    halfEdges.foreach { e =>
+      if allow(e) then
+        newEdgeByOld(e) = HalfEdge(e.origin)
+    }
+
+    // Re-wire twins, next, prev, incident face, angle for the retained edges, but only if the referenced edge was retained too.
+    newEdgeByOld.foreach { case (oldE, newE) =>
+      // twin
+      oldE.twin.foreach { t =>
+        newEdgeByOld.get(t).foreach { nt =>
+          if newE.twin.isEmpty && nt.twin.isEmpty then newE.twinWith(nt)
+        }
+      }
+      // next/prev (keep only if target exists)
+      oldE.next.flatMap(newEdgeByOld.get).foreach(ne => newE.linkWith(ne))
+      oldE.prev.flatMap(newEdgeByOld.get).foreach(pe => pe.linkWith(newE))
+
+      // incident face and angle (inner faces only for now)
+      newE.angle = oldE.angle
+    }
+
+    // Build inner faces from retained edges by walking each face cycle that survived fully.
+    // We keep faces whose outerComponent (or any edge) has been retained and forms a closed cycle in the new graph.
+    val visited = scala.collection.mutable.Set[HalfEdge]()
+    val newInnerFaces = scala.collection.mutable.ListBuffer[Face]()
+    val allNewEdges = newEdgeByOld.values.toList
+
+    def tryBuildFace(start: HalfEdge): Option[Face] =
+      // follow next pointers; ensure we come back to start without gaps
+      var curr = start
+      val ring = scala.collection.mutable.ListBuffer[HalfEdge]()
+      val seen = scala.collection.mutable.Set[HalfEdge]()
+      while !seen.contains(curr) && curr.next.isDefined do
+        ring += curr
+        seen += curr
+        curr = curr.next.get
+      if curr eq start then
+        val f = Face(FaceId(java.util.UUID.randomUUID().toString))
+        ring.foreach { e =>
+          e.incidentFace = Some(f)
+        }
+        f.outerComponent = Some(start)
+        Some(f)
+      else None
+
+    allNewEdges.foreach { e =>
+      if !visited.contains(e) then
+        val cycle = e.faceTraversalUnsafe()
+        cycle.foreach(visited.add)
+        // Confirm closure
+        if cycle.nonEmpty && cycle.last.next.contains(cycle.head) then
+          // Ensure every edge in cycle currently has no face assigned
+          if cycle.forall(_.incidentFace.isEmpty) then
+            tryBuildFace(e).foreach(newInnerFaces += _)
+    }
+
+    // Now build boundary (outer face) by taking all half-edges not assigned to any inner face.
+    val boundaryEdges = allNewEdges.filter(_.incidentFace.isEmpty)
+
+    val outer = Face.outer
+
+    if boundaryEdges.nonEmpty then
+      // order boundary as a path/cycle and link it; there might be multiple components, connect each
+      val remaining = scala.collection.mutable.Set.from(boundaryEdges)
+      var outerComponentSet = false
+
+      while remaining.nonEmpty do
+        val seed = remaining.head
+        // try to order this boundary component
+        val component = {
+          val ordered = remaining.toList.orderBoundary
+          if ordered.nonEmpty then ordered else List(seed)
+        }
+        // link the component in cycle if possible
+        component.linkInCycle()
+        component.foreach { e =>
+          e.incidentFace = Some(outer)
+          // boundary edges do not have interior angle; reuse any existing angle or leave None
+        }
+        if !outerComponentSet && component.nonEmpty then
+          outer.outerComponent = Some(component.head)
+          outerComponentSet = true
+        remaining --= component
+
+    // assign a leaving edge per vertex if missing
+    vertices.foreach { v =>
+      if v.leaving.isEmpty then
+        v.leaving = allNewEdges.find(_.origin eq v)
+    }
+
+    TilingDCEL.fromUntrusted(
+      vertices = vertices,
+      halfEdges = allNewEdges,
+      innerFaces = newInnerFaces.toList,
+      outerFace = outer
+    )
 
   // Render the tiling edges in 3D torus as SVG paths
   def toSVG3D(

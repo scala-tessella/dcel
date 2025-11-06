@@ -208,6 +208,26 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
     )
   }
 
+  it should "draw a 16x4 triangle net on a torus" in {
+    val torus = TilingTorusDCEL.buildTriangleNet(16, 4)
+    println(torus.toSVG3D(TorusSvg3DOptions().copy(showVertexIds = true)))
+    allAssert(
+      torus.vertices.size shouldBe 64,
+      torus.faces.size shouldBe 128,
+      torus.halfEdges.size shouldBe 384
+    )
+  }
+
+  it should "draw a 4x16 triangle net on a torus" in {
+    val torus = TilingTorusDCEL.buildTriangleNet(4, 16)
+    println(torus.toSVG3D(TorusSvg3DOptions().copy(showVertexIds = true)))
+    allAssert(
+      torus.vertices.size shouldBe 64,
+      torus.faces.size shouldBe 128,
+      torus.halfEdges.size shouldBe 384
+    )
+  }
+
   it should "draw a 1x2 hexagon net on a torus" in {
     val torus = TilingTorusDCEL.buildHexagonNet(1, 2)
     println(torus.toSVG3D(TorusSvg3DOptions().copy(showVertexIds = true)))
@@ -257,3 +277,13 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
       torus.findFace(FaceId("FX")).isLeft shouldBe true
     )
   }
+
+  behavior of "TilingTorusDCEL.toTilingDCEL"
+
+  it should "be converted" in {
+    val tiling = TilingTorusDCEL.buildSquareNet(4, 4).toTilingDCEL
+    println(tiling)
+    tiling.isRight shouldBe true
+  }
+
+
