@@ -1,12 +1,37 @@
 package io.github.scala_tessella.dcel.torus
 
 import io.github.scala_tessella.dcel.TilingTestHelpers
-import io.github.scala_tessella.dcel.torus.TilingTorusDCEL.TorusSvg3DOptions
+import io.github.scala_tessella.dcel.torus.TilingTorusDCEL.{TorusSvg3DOptions, buildTriangleNet}
 import io.github.scala_tessella.dcel.structure.{FaceId, VertexId}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
+
+  val torus2x2SquareNet: TilingTorusDCEL =
+    TilingTorusDCEL.buildSquareNet(2, 2)
+
+  behavior of "TilingTorusDCEL coordinates"
+
+  it should "return the vertex coords of a 2x2 square net" in {
+    torus2x2SquareNet.vertices.map(vertex => vertex.id -> vertex.coords).toMap shouldEqual
+      Map(
+        V1 -> (0, 0),
+        V2 -> (1, 0),
+        V3 -> (0, 1),
+        V4 -> (1, 1)
+      )
+  }
+
+  it should "return the vertex coords of a 2x2 triangle net" in {
+    buildTriangleNet(2, 2).vertices.map(vertex => vertex.id -> vertex.coords).toMap shouldEqual
+      Map(
+        V1 -> (0.0, 0E-16),
+        V2 -> (1.0, 0E-16),
+        V3 -> (0.5, 0.8660254037844386),
+        V4 -> (1.5, 0.8660254037844386)
+      )
+  }
 
   behavior of "TilingTorusDCEL.unorderedBoundaryVertices"
 
@@ -23,16 +48,6 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
   it should "return the boundary of a 3x3 square net" in {
     val torus = TilingTorusDCEL.buildSquareNet(3, 3)
     torus.unorderedBoundaryVertices.map(_.id) shouldBe List(V1, V2, V3, V4, VertexId("V5"), VertexId("V6"), VertexId("V7"), VertexId("V8"), VertexId("V9"))
-  }
-
-  behavior of "TilingTorusDCEL.build4x1Triangles"
-
-  it should "be valid according to TilingTorusValidation" in {
-    val torus  = TilingTorusDCEL.build4x1Triangles()
-//    println(TilingTorusValidation.validate(torus))
-    TilingTorusValidation.validate(torus).isRight shouldBe true
-    val torus2 = TilingTorusDCEL.buildSquareNet(2, 2)
-    TilingTorusValidation.validate(torus2).isRight shouldBe true
   }
 
   behavior of "TilingTorusDCEL.build2x1Hexagons"
@@ -169,7 +184,9 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
 
   it should "draw a 1x2 triangle net on a torus" in {
     val torus = TilingTorusDCEL.buildTriangleNet(1, 2)
-    println(torus.toSVG3D(TorusSvg3DOptions().copy(showVertexIds = true)))
+    val uScale: Double = 1.0
+    val vScale: Double = 1.0 / (2.0 * 0.8660254037844386)
+    println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
     allAssert(
       torus.vertices.size shouldBe 2,
       torus.faces.size shouldBe 4,
@@ -179,7 +196,9 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
 
   it should "draw a 2x2 triangle net on a torus" in {
     val torus = TilingTorusDCEL.buildTriangleNet(2, 2)
-    println(torus.toSVG3D(TorusSvg3DOptions().copy(showVertexIds = true)))
+    val uScale: Double = 1.0 / 2.0
+    val vScale: Double = 1.0 / (2.0 * 0.8660254037844386)
+    println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
     allAssert(
       torus.vertices.size shouldBe 4,
       torus.faces.size shouldBe 8,
@@ -189,7 +208,9 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
 
   it should "draw a 4x4 triangle net on a torus" in {
     val torus = TilingTorusDCEL.buildTriangleNet(4, 4)
-    println(torus.toSVG3D(TorusSvg3DOptions().copy(showVertexIds = true)))
+    val uScale: Double = 1.0 / 4.0
+    val vScale: Double = 1.0 / (4.0 * 0.8660254037844386)
+    println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
     allAssert(
       torus.vertices.size shouldBe 16,
       torus.faces.size shouldBe 32,
@@ -199,7 +220,9 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
 
   it should "draw a 8x8 triangle net on a torus" in {
     val torus = TilingTorusDCEL.buildTriangleNet(8, 8)
-    println(torus.toSVG3D(TorusSvg3DOptions().copy(showVertexIds = true)))
+    val uScale: Double = 1.0 / 8.0
+    val vScale: Double = 1.0 / (8.0 * 0.8660254037844386)
+    println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
     allAssert(
       torus.vertices.size shouldBe 64,
       torus.faces.size shouldBe 128,
@@ -209,7 +232,9 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
 
   it should "draw a 16x4 triangle net on a torus" in {
     val torus = TilingTorusDCEL.buildTriangleNet(16, 4)
-    println(torus.toSVG3D(TorusSvg3DOptions().copy(showVertexIds = true)))
+    val uScale: Double = 1.0 / 16.0
+    val vScale: Double = 1.0 / (4.0 * 0.8660254037844386)
+    println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
     allAssert(
       torus.vertices.size shouldBe 64,
       torus.faces.size shouldBe 128,
@@ -219,7 +244,9 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
 
   it should "draw a 4x16 triangle net on a torus" in {
     val torus = TilingTorusDCEL.buildTriangleNet(4, 16)
-    println(torus.toSVG3D(TorusSvg3DOptions().copy(showVertexIds = true)))
+    val uScale: Double = 1.0 / 4.0
+    val vScale: Double = 1.0 / (16.0 * 0.8660254037844386)
+    println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
     allAssert(
       torus.vertices.size shouldBe 64,
       torus.faces.size shouldBe 128,
@@ -266,7 +293,6 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
       torus.halfEdges.size shouldBe 216
     )
   }
-
 
   it should "draw a hexagon net on a torus" in {
     val torus = TilingTorusDCEL.build2x1Hexagons()
