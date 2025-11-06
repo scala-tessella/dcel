@@ -93,6 +93,25 @@ final case class TilingTorusDCEL private (
       vertex <- findVertex(vertexId)
     yield getInnerAnglesAtVertexUnsafe(vertexId)
 
+  /** Finds boundary of the tiling.
+   *
+   * @return
+   * A List of Vertices forming the perimeter
+   */
+  def unorderedBoundaryVertices: List[Vertex] =
+    // filter the vertices that has distance > 1 with at least one adjacent vertex
+    vertices.filter { vertex =>
+      val incident = vertex.incidentEdgesUnsafe
+      incident.exists { halfEdge =>
+        val adjacent = halfEdge.next.map(_.origin).get
+        // destination of e is next.origin // consider wrap-around: boundary if any neighbor is farther than unit within tolerance
+        println(s"${vertex.id} ${adjacent.id} ${vertex.coords.distanceTo(adjacent.coords)}")
+        (vertex.coords.distanceTo(adjacent.coords) - 1.0).abs > ACCURACY
+      }
+    } match
+      case Nil => vertices
+      case boundary => boundary
+
   def toTilingDCEL: Either[TilingError, TilingDCEL] =
     // keep only unit-length edges (and their twins)
     val unitPairs: Set[(Vertex, Vertex)] =
@@ -529,152 +548,6 @@ object TilingTorusDCEL:
     val pos3d  = torusParam(u, v, opt.majorRadius, opt.minorRadius)
     rotateAndProject(pos3d, opt.yawDeg, opt.pitchDeg, opt.rollDeg, opt.camDist, opt.imgWidth, opt.imgHeight)
 
-  // Build a 1x1 square tiling on a torus: 1 face, 1 vertex, 4 half-edges (two parallel undirected loops)
-  def build1x1Square(): TilingTorusDCEL =
-    // Single vertex
-    val v1       = Vertex(VertexId("V1"), BigPoint(0, 0))
-    val vertices = List(v1)
-
-    // Single face
-    val f1 = Face(FaceId("F1"))
-
-    // Four half-edges, all originating at V1
-    // Interpret them as the boundary CCW cycle of the single square face:
-    // e0: V1->V1 (east), e1: V1->V1 (north), e2: V1->V1 (west), e3: V1->V1 (south)
-    val e0 = HalfEdge(v1)
-    val e1 = HalfEdge(v1)
-    val e2 = HalfEdge(v1)
-    val e3 = HalfEdge(v1)
-
-    // Link the face cycle: e0 -> e1 -> e2 -> e3 -> e0
-    e0.linkWith(e1)
-    e1.linkWith(e2)
-    e2.linkWith(e3)
-    e3.linkWith(e0)
-
-    // Set incident face and outer component
-    e0.incidentFace = Some(f1)
-    e1.incidentFace = Some(f1)
-    e2.incidentFace = Some(f1)
-    e3.incidentFace = Some(f1)
-    f1.outerComponent = Some(e0)
-
-    // Set interior angles (square corners)
-    val rightAngle = AngleDegree(90)
-    e0.angle = Some(rightAngle)
-    e1.angle = Some(rightAngle)
-    e2.angle = Some(rightAngle)
-    e3.angle = Some(rightAngle)
-
-    // Twins: two undirected parallel edges at V1
-    // Pair (e0 <-> e2) and (e1 <-> e3), giving two distinct V1↔V1 edge classes
-    e0.twinWith(e2)
-    e1.twinWith(e3)
-
-    // Leaving edge for the vertex
-    v1.leaving = Some(e0)
-
-    val faces     = List(f1)
-    val halfEdges = List(e0, e1, e2, e3)
-
-    // Construct without extra validation logic here
-    TilingTorusDCEL(vertices, halfEdges, faces)
-
-  // Build a 2x2 square tiling on a torus: 4 faces, 4 vertices, 16 half-edges
-  def build2x2Squares(): TilingTorusDCEL =
-    // Vertices
-    val v1       = Vertex(VertexId("V1"), BigPoint(0, 0))
-    val v2       = Vertex(VertexId("V2"), BigPoint(1, 0))
-    val v3       = Vertex(VertexId("V3"), BigPoint(0, 1))
-    val v4       = Vertex(VertexId("V4"), BigPoint(1, 1))
-    val vertices = List(v1, v2, v3, v4)
-
-    // Faces
-    val f1 = Face(FaceId("F1"))
-    val f2 = Face(FaceId("F2"))
-    val f3 = Face(FaceId("F3"))
-    val f4 = Face(FaceId("F4"))
-
-    // Create all half-edges (only origin is required in constructor)
-    val he = Array(
-      HalfEdge(v1),
-      HalfEdge(v2),
-      HalfEdge(v4),
-      HalfEdge(v3), // F1 cycle (e1..e4)
-      HalfEdge(v2),
-      HalfEdge(v1),
-      HalfEdge(v3),
-      HalfEdge(v4), // F2 cycle (e5..e8)
-      HalfEdge(v3),
-      HalfEdge(v4),
-      HalfEdge(v2),
-      HalfEdge(v1), // F3 cycle (e9..e12)
-      HalfEdge(v4),
-      HalfEdge(v3),
-      HalfEdge(v1),
-      HalfEdge(v2) // F4 cycle (e13..e16)
-    )
-
-    // Helper to set next/prev within a cycle
-    def linkCycle(i0: Int, i1: Int, i2: Int, i3: Int): Unit =
-      he(i0).linkWith(he(i1))
-      he(i1).linkWith(he(i2))
-      he(i2).linkWith(he(i3))
-      he(i3).linkWith(he(i0))
-
-    // Link per-face cycles (counter-clockwise)
-    linkCycle(0, 1, 2, 3)     // F1: v1->v2->v4->v3
-    linkCycle(4, 5, 6, 7)     // F2: v2->v1->v3->v4
-    linkCycle(8, 9, 10, 11)   // F3: v3->v4->v2->v1
-    linkCycle(12, 13, 14, 15) // F4: v4->v3->v1->v2
-
-    // Assign incident faces and set face outerComponent
-    def setFace(face: Face, indices: (Int, Int, Int, Int)): Unit =
-      val (i0, i1, i2, i3) = indices
-      he(i0).incidentFace = Some(face)
-      he(i1).incidentFace = Some(face)
-      he(i2).incidentFace = Some(face)
-      he(i3).incidentFace = Some(face)
-      face.outerComponent = Some(he(i0))
-
-    setFace(f1, (0, 1, 2, 3))
-    setFace(f2, (4, 5, 6, 7))
-    setFace(f3, (8, 9, 10, 11))
-    setFace(f4, (12, 13, 14, 15))
-
-    // Set corner angles (all squares: 90 degrees)
-    val rightAngle = AngleDegree(90)
-    he.foreach(_.angle = Some(rightAngle))
-
-    // Twins: pair opposite-directed copies across diagonal faces (F1↔F3, F2↔F4)
-    // v1<->v2
-    he(0).twinWith(he(10)) // F1 v1->v2  ↔ F3 v2->v1
-    he(14).twinWith(he(4)) // F4 v1->v2  ↔ F2 v2->v1
-
-    // v2<->v4
-    he(1).twinWith(he(9))  // F1 v2->v4  ↔ F3 v4->v2
-    he(15).twinWith(he(7)) // F4 v4->v2  ↔ F2 v2->v4
-
-    // v4<->v3
-    he(2).twinWith(he(8))  // F1 v4->v3  ↔ F3 v3->v4
-    he(12).twinWith(he(6)) // F4 v4->v3  ↔ F2 v3->v4
-
-    // v3<->v1
-    he(3).twinWith(he(11)) // F1 v3->v1  ↔ F3 v1->v3
-    he(13).twinWith(he(5)) // F4 v3->v1  ↔ F2 v1->v3
-
-    // Leaving edges: one per vertex, originating at that vertex
-    v1.leaving = Some(he(0)) // v1->v2
-    v2.leaving = Some(he(1)) // v2->v4
-    v3.leaving = Some(he(3)) // v3->v1
-    v4.leaving = Some(he(2)) // v4->v3
-
-    val faces     = List(f1, f2, f3, f4)
-    val halfEdges = he.toList
-
-    // Construct without extra validation logic here
-    TilingTorusDCEL(vertices, halfEdges, faces)
-
   def buildSquareNet(width: Int, height: Int): TilingTorusDCEL =
     // width = number of squares along U direction
     // height = number of squares along V direction
@@ -686,7 +559,7 @@ object TilingTorusDCEL:
     val verts =
       Array.tabulate(height, width) { (j, i) =>
         val id = VertexId(s"V${j * width + i + 1}")
-        val pos = BigPoint(BigDecimal(i) / width, BigDecimal(j) / height)
+        val pos = BigPoint(BigDecimal(i), BigDecimal(j))
         Vertex(id, pos)
       }
 
