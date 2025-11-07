@@ -4,6 +4,7 @@ import io.github.scala_tessella.dcel.TilingTestHelpers
 import io.github.scala_tessella.dcel.geometry.BigPoint
 import io.github.scala_tessella.dcel.structure.VertexId
 import io.github.scala_tessella.dcel.torus.TilingTorusBuilder.*
+import io.github.scala_tessella.dcel.torus.TilingTorusDCEL.TorusSvg3DOptions
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -56,6 +57,104 @@ class TilingTorusBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHe
         "V8" -> List("V9", "V5", "V7", V2),
         "V9" -> List("V7", "V6", "V8", V3)
       )
+  }
+
+  it should "create a 1x1 square net on a torus" in {
+    val torus = createSquareNet(1, 1)
+    println(torus.toSVG3D(TorusSvg3DOptions().copy(showVertexIds = true)))
+    allAssert(
+      torus.vertices.size shouldBe 1,
+      torus.faces.size shouldBe 1,
+      torus.halfEdges.size shouldBe 4
+    )
+  }
+
+  it should "create a 1x2 square net on a torus" in {
+    val torus = createSquareNet(1, 2)
+    println(torus.toSVG3D(TorusSvg3DOptions().copy(showVertexIds = true)))
+    allAssert(
+      torus.vertices.size shouldBe 2,
+      torus.faces.size shouldBe 2,
+      torus.halfEdges.size shouldBe 8
+    )
+  }
+
+  it should "create a 2x1 square net on a torus" in {
+    val torus = createSquareNet(2, 1)
+    println(torus.toSVG3D(TorusSvg3DOptions().copy(showVertexIds = true)))
+    allAssert(
+      torus.vertices.size shouldBe 2,
+      torus.faces.size shouldBe 2,
+      torus.halfEdges.size shouldBe 8
+    )
+  }
+
+  it should "create a 2x2 square net on a torus" in {
+    val torus = createSquareNet(2, 2)
+    val scale: Double = 1.0 / 2.0
+    println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = scale, vScale = scale, showVertexIds = true)))
+    allAssert(
+      torus.vertices.size shouldBe 4,
+      torus.faces.size shouldBe 4,
+      torus.halfEdges.size shouldBe 16
+    )
+  }
+
+  it should "create a 3x3 square net on a torus" in {
+    val torus = createSquareNet(3, 3)
+    val scale: Double = 1.0 / 3.0
+    println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = scale, vScale = scale, showVertexIds = true)))
+    allAssert(
+      torus.vertices.size shouldBe 9,
+      torus.faces.size shouldBe 9,
+      torus.halfEdges.size shouldBe 36
+    )
+  }
+
+  it should "create a 4x4 square net on a torus" in {
+    val torus = createSquareNet(4, 4)
+    val scale: Double = 1.0 / 4.0
+    println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = scale, vScale = scale, showVertexIds = true)))
+    allAssert(
+      torus.vertices.size shouldBe 16,
+      torus.faces.size shouldBe 16,
+      torus.halfEdges.size shouldBe 64
+    )
+  }
+
+  it should "create a 8x8 square net on a torus" in {
+    val torus = createSquareNet(8, 8)
+    val scale: Double = 1.0 / 8.0
+    println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = scale, vScale = scale, showVertexIds = true)))
+    allAssert(
+      torus.vertices.size shouldBe 64,
+      torus.faces.size shouldBe 64,
+      torus.halfEdges.size shouldBe 256
+    )
+  }
+
+  it should "create a 16x4 square net on a torus" in {
+    val torus = createSquareNet(16, 4)
+    val uScale: Double = 1.0 / 16.0
+    val vScale: Double = 1.0 / 4.0
+    println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
+    allAssert(
+      torus.vertices.size shouldBe 64,
+      torus.faces.size shouldBe 64,
+      torus.halfEdges.size shouldBe 256
+    )
+  }
+
+  it should "create a 4x16 square net on a torus" in {
+    val torus = createSquareNet(4, 16)
+    val uScale: Double = 1.0 / 4.0
+    val vScale: Double = 1.0 / 16.0
+    println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
+    allAssert(
+      torus.vertices.size shouldBe 64,
+      torus.faces.size shouldBe 64,
+      torus.halfEdges.size shouldBe 256
+    )
   }
 
   behavior of "TilingTorusBuilder.createTriangleNet"
@@ -118,6 +217,78 @@ class TilingTorusBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHe
         "V15" -> List("V11", "V14", V3, V4, "V16", "V12"),
         "V16" -> List("V9", "V12", "V15", V4, V1, "V13")
       )
+  }
+
+  it should "create a 1x2 triangle net on a torus" in {
+    val torus = createTriangleNet(1, 2)
+    val uScale: Double = 1.0
+    val vScale: Double = 1.0 / (2.0 * 0.8660254037844386)
+    println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
+    allAssert(
+      torus.vertices.size shouldBe 2,
+      torus.faces.size shouldBe 4,
+      torus.halfEdges.size shouldBe 12
+    )
+  }
+
+  it should "create a 2x2 triangle net on a torus" in {
+    val torus = createTriangleNet(2, 2)
+    val uScale: Double = 1.0 / 2.0
+    val vScale: Double = 1.0 / (2.0 * 0.8660254037844386)
+    println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
+    allAssert(
+      torus.vertices.size shouldBe 4,
+      torus.faces.size shouldBe 8,
+      torus.halfEdges.size shouldBe 24
+    )
+  }
+
+  it should "create a 4x4 triangle net on a torus" in {
+    val torus = createTriangleNet(4, 4)
+    val uScale: Double = 1.0 / 4.0
+    val vScale: Double = 1.0 / (4.0 * 0.8660254037844386)
+    println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
+    allAssert(
+      torus.vertices.size shouldBe 16,
+      torus.faces.size shouldBe 32,
+      torus.halfEdges.size shouldBe 96
+    )
+  }
+
+  it should "create a 8x8 triangle net on a torus" in {
+    val torus = createTriangleNet(8, 8)
+    val uScale: Double = 1.0 / 8.0
+    val vScale: Double = 1.0 / (8.0 * 0.8660254037844386)
+    println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
+    allAssert(
+      torus.vertices.size shouldBe 64,
+      torus.faces.size shouldBe 128,
+      torus.halfEdges.size shouldBe 384
+    )
+  }
+
+  it should "create a 16x4 triangle net on a torus" in {
+    val torus = createTriangleNet(16, 4)
+    val uScale: Double = 1.0 / 16.0
+    val vScale: Double = 1.0 / (4.0 * 0.8660254037844386)
+    println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
+    allAssert(
+      torus.vertices.size shouldBe 64,
+      torus.faces.size shouldBe 128,
+      torus.halfEdges.size shouldBe 384
+    )
+  }
+
+  it should "create a 4x16 triangle net on a torus" in {
+    val torus = createTriangleNet(4, 16)
+    val uScale: Double = 1.0 / 4.0
+    val vScale: Double = 1.0 / (16.0 * 0.8660254037844386)
+    println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
+    allAssert(
+      torus.vertices.size shouldBe 64,
+      torus.faces.size shouldBe 128,
+      torus.halfEdges.size shouldBe 384
+    )
   }
 
   behavior of "TilingTorusBuilder.createHexagonNet"
@@ -238,3 +409,64 @@ class TilingTorusBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHe
         "V23" -> List("V28", "V22", "V20")
       )
   }
+
+  it should "create a 1x2 hexagon net on a torus" in {
+    val torus = createHexagonNet(1, 2)
+    val uScale: Double = 1.0 / 1.5
+    val vScale: Double = 1.0 / (4 * 0.8660254037844386)
+    println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
+    allAssert(
+      torus.vertices.size shouldBe 4,
+      torus.faces.size shouldBe 2,
+      torus.halfEdges.size shouldBe 8
+    )
+  }
+
+  it should "create a 2x2 hexagon net on a torus" in {
+    val torus = createHexagonNet(2, 2)
+    val uScale: Double = 1.0 / 3.0
+    val vScale: Double = 1.0 / (4 * 0.8660254037844386)
+    println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
+    allAssert(
+      torus.vertices.size shouldBe 8,
+      torus.faces.size shouldBe 4,
+      torus.halfEdges.size shouldBe 24
+    )
+  }
+
+  it should "create a 4x4 hexagon net on a torus" in {
+    val torus = createHexagonNet(4, 4)
+    val uScale: Double = 1.0 / 6.0
+    val vScale: Double = 1.0 / (8 * 0.8660254037844386)
+    println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
+    allAssert(
+      torus.vertices.size shouldBe 32,
+      torus.faces.size shouldBe 16,
+      torus.halfEdges.size shouldBe 96
+    )
+  }
+
+  it should "create a 6x6 hexagon net on a torus" in {
+    val torus = createHexagonNet(6, 6)
+    val uScale: Double = 1.0 / 9.0
+    val vScale: Double = 1.0 / (12 * 0.8660254037844386)
+    println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
+    allAssert(
+      torus.vertices.size shouldBe 72,
+      torus.faces.size shouldBe 36,
+      torus.halfEdges.size shouldBe 216
+    )
+  }
+
+  it should "create a 12x4 hexagon net on a torus" in {
+    val torus = createHexagonNet(12, 4)
+    val uScale: Double = 1.0 / 18.0
+    val vScale: Double = 1.0 / (8 * 0.8660254037844386)
+    println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
+    allAssert(
+      torus.vertices.size shouldBe 96,
+      torus.faces.size shouldBe 48,
+      torus.halfEdges.size shouldBe 288
+    )
+  }
+
