@@ -171,14 +171,14 @@ object TilingTorusBuilder:
       val A = verts(j)(i)
       val B = verts(j)(wrapX(i + 1))
 
-      val jNext = wrapY(j + 1)
+      val jNext       = wrapY(j + 1)
       val nextRowEven = (jNext & 1) == 0
 
       // Adjust horizontal index for top vertices based on stagger pattern
       // When going from even to odd row: vertices shift right by 0.5
       //   Most cells use same column i, but at left edge (i=0) we wrap to i-1
       // When going from odd to even row: vertices shift left by 0.5, so we want next column i+1
-      val iTop = if evenRow && !nextRowEven then
+      val iTop      = if evenRow && !nextRowEven then
         wrapX(i - 1) // Even to odd: shift left by one to account for the stagger
       else if !evenRow && nextRowEven then
         wrapX(i + 1) // Odd to even: shift right by one

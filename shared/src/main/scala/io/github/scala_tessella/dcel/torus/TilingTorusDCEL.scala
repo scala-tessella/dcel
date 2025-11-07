@@ -103,8 +103,7 @@ final case class TilingTorusDCEL private (
     vertices.filter { vertex =>
 
       vertex.adjacentVerticesUnsafe.exists { adjacent =>
-        // destination of e is next.origin // consider wrap-around: boundary if any neighbor is farther than unit within tolerance
-        println(s"${vertex.id} ${adjacent.id} ${vertex.coords.distanceTo(adjacent.coords)}")
+
         (vertex.coords.distanceTo(adjacent.coords) - 1.0).abs > ACCURACY
       }
     } match
