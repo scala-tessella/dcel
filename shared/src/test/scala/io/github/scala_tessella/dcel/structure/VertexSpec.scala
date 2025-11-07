@@ -1,9 +1,9 @@
 package io.github.scala_tessella.dcel.structure
 
-import io.github.scala_tessella.dcel.{TilingBuilder, TilingDCEL, TilingTestHelpers}
+import io.github.scala_tessella.dcel.{TilingBuilder, TilingTestHelpers}
 import io.github.scala_tessella.dcel.geometry.BigPoint
 import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
-import io.github.scala_tessella.dcel.torus.TilingTorusDCEL
+import io.github.scala_tessella.dcel.torus.TilingTorusBuilder
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -337,12 +337,15 @@ class VertexSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "compute all adjacent vertices" in {
     val tiling = TilingBuilder.createRhombusNet(2, 2)
-    tiling.vertices.map { v => v.id -> v.adjacentVerticesUnsafe.map(_.id) }.toMap shouldEqual
+    tiling.vertices.map { v =>
+
+      v.id -> v.adjacentVerticesUnsafe.map(_.id)
+    }.toMap shouldEqual
       Map(
-        V1 -> List(V2, V4),
-        V2 -> List(V3, V1, "V5"),
-        V3 -> List("V6", V2),
-        V4 -> List("V5", V1, "V7"),
+        V1   -> List(V2, V4),
+        V2   -> List(V3, V1, "V5"),
+        V3   -> List("V6", V2),
+        V4   -> List("V5", V1, "V7"),
         "V5" -> List("V6", V2, V4, "V8"),
         "V6" -> List("V9", V3, "V5"),
         "V7" -> List("V8", V4),
@@ -352,13 +355,16 @@ class VertexSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   }
 
   it should "compute all adjacent vertices in a torus" in {
-    val torus = TilingTorusDCEL.buildSquareNet(3, 3)
-    torus.vertices.map { v => v.id -> v.adjacentVerticesUnsafe.map(_.id) }.toMap shouldEqual
+    val torus = TilingTorusBuilder.createSquareNet(3, 3)
+    torus.vertices.map { v =>
+
+      v.id -> v.adjacentVerticesUnsafe.map(_.id)
+    }.toMap shouldEqual
       Map(
-        V1 -> List(V2, "V7", V3, V4),
-        V2 -> List(V3, "V8", V1, "V5"),
-        V3 -> List(V1, "V9", V2, "V6"),
-        V4 -> List("V5", V1, "V6", "V7"),
+        V1   -> List(V2, "V7", V3, V4),
+        V2   -> List(V3, "V8", V1, "V5"),
+        V3   -> List(V1, "V9", V2, "V6"),
+        V4   -> List("V5", V1, "V6", "V7"),
         "V5" -> List("V6", V2, V4, "V8"),
         "V6" -> List(V4, V3, "V5", "V9"),
         "V7" -> List("V8", V4, "V9", V1),
