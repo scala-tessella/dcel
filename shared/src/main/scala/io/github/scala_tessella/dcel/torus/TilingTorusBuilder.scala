@@ -22,8 +22,26 @@ object TilingTorusBuilder:
 
   private def setLeavingEdges(vertices: Iterable[Vertex], halfEdges: Iterable[HalfEdge]): Unit =
     val byV = halfEdges.groupBy(_.origin)
-    byV.foreach { case (v, es) => if v.leaving.isEmpty then v.leaving = Some(es.head) }
+    byV.foreach { case (v, es) =>
+      if v.leaving.isEmpty then v.leaving = Some(es.head)
+    }
 
+  /** Build a toroidal DCEL of an axis-aligned square grid of size width × height.
+    *
+    * Topology:
+    *   - Faces: width*height quads, each with 4 half-edges oriented CCW.
+    *   - Edges: opposite sides of the rectangle are glued (torus). Twins are wired accordingly.
+    *   - Vertices: placed on an integer lattice; indices wrap modulo width/height.
+    *
+    * @param width
+    *   number of squares along the U (x) direction; must be > 0
+    * @param height
+    *   number of squares along the V (y) direction; must be > 0
+    *
+    * @return
+    *   - A TilingTorusDCEL with right angles (90°) on each corner.
+    *   - TilingTorusDCEL.empty if the input is invalid.
+    */
   def createSquareNet(width: Int, height: Int): TilingTorusDCEL =
     // width = number of squares along U direction
     // height = number of squares along V direction
@@ -44,6 +62,7 @@ object TilingTorusBuilder:
     // Faces: one per cell (width*height)
     val faces: Array[Array[Face]] =
       Array.tabulate(height, width) { (j, i) =>
+
         Face(FaceId(s"F${j * width + i + 1}"))
       }
 
@@ -87,10 +106,26 @@ object TilingTorusBuilder:
 
     val halfEdges =
       (for j <- 0 until height; i <- 0 until width
-        yield List(e0(j)(i), e1(j)(i), e2(j)(i), e3(j)(i))).flatten.toList
+      yield List(e0(j)(i), e1(j)(i), e2(j)(i), e3(j)(i))).flatten.toList
 
     TilingTorusDCEL(vertices, halfEdges, faces.flatten.toList)
 
+  /** Build a toroidal DCEL of an equilateral triangular tiling derived from a staggered rhombus grid.
+    *
+    * Topology and geometry:
+    *   - Cells: each rectangular cell (in the staggered grid) is split into two CCW triangles.
+    *   - Row staggering: odd rows are horizontally offset by dx/2; indices wrap on both axes.
+    *   - Twins: computed by pairing opposite directed edges using origin/destination buckets.
+    *
+    * @param width
+    *   number of rhombi per row; must be > 0
+    * @param height
+    *   number of rows; must be > 0 and even (to close the torus with staggering)
+    *
+    * @return
+    *   - A TilingTorusDCEL with 60° angles on triangle corners.
+    *   - TilingTorusDCEL.empty if the input is invalid.
+    */
   def createTriangleNet(width: Int, height: Int): TilingTorusDCEL =
     // width, height define the rhombus grid; each rhombus is split into two equilateral triangles.
     if width <= 0 || height <= 0 || height % 2 == 1 then
@@ -195,6 +230,22 @@ object TilingTorusBuilder:
 
     TilingTorusDCEL(vertices, allHE, faces.iterator.flatMap(_.iterator.flatMap(_.iterator)).toList)
 
+  /** Build a toroidal DCEL of a regular hexagonal tiling (each face is a hexagon).
+    *
+    * Construction:
+    *   - Uses axial-like triple coordinates aligned with global directions 0°, 60°, 120°.
+    *   - Vertices are canonicalized into a fundamental domain via lattice periods to enforce torus wrapping.
+    *   - Directed half-edges are deduplicated per (origin, destination) and automatically twinned.
+    *
+    * @param width
+    *   number of hexagons along U direction; must be > 0
+    * @param height
+    *   number of hexagons along V direction; must be > 0 and even (for consistent wrapping)
+    *
+    * @return
+    *   - A TilingTorusDCEL with 120° angles at each hex corner.
+    *   - TilingTorusDCEL.empty if the input is invalid.
+    */
   def createHexagonNet(width: Int, height: Int): TilingTorusDCEL =
     // width = number of hexagons along U direction
     // height = number of hexagons along V direction
@@ -214,7 +265,7 @@ object TilingTorusBuilder:
     val cornerTriples: Array[(Int, Int, Int)] =
       Array((0, 0, 0), (1, 0, 0), (1, 1, 0), (1, 1, 1), (0, 1, 1), (0, 0, 1))
 
-    inline def baseTriple(i: Int, j: Int): (Int, Int, Int) = (i, i + j, j)
+    inline def baseTriple(i: Int, j: Int): (Int, Int, Int)  = (i, i + j, j)
     inline def addT(a: (Int, Int, Int), b: (Int, Int, Int)) = (a._1 + b._1, a._2 + b._2, a._3 + b._3)
 
     inline def floorDiv(a: Int, b: Int): Int =
@@ -267,6 +318,7 @@ object TilingTorusBuilder:
       )
 
     val faces = Array.tabulate(height, width) { (j, i) =>
+
       Face(FaceId(s"F${j * width + i + 1}"))
     }
 
@@ -274,7 +326,9 @@ object TilingTorusBuilder:
       val f    = faces(j)(i)
       val b    = baseTriple(i, j)
       val keys = (0 until 6).map(k => addT(b, cornerTriples(k)))
-      val vs   = keys.map { case (a, b, c) => vOf(a, b, c) }.toArray
+      val vs   = keys.map { case (a, b, c) =>
+        vOf(a, b, c)
+      }.toArray
       val ring = (0 until 6).toList.map(k => he(vs(k), vs((k + 1) % 6)))
 
       // Link cycle + set face/angles
