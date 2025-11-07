@@ -128,12 +128,8 @@ object TilingTorusBuilder:
     val vertices = verts.flatten.toList
 
     // Each rhombus (cell) will be split into two equilateral triangles.
-    // For a cell (i,j), define its 4 corners:
-    // A = (i,   j)
-    // B = (i+1, j)
-    // C = (i,   j+1)
-    // D = (i+1, j+1)
-    // Even rows use diagonal A->D, odd rows use diagonal B->C.
+    // For a cell (j,i), the 4 corners depend on whether the row is even or odd.
+    // Because of staggering, the rhombus corners shift differently.
     inline def wrapX(i: Int): Int = (i % width + width) % width
 
     inline def wrapY(j: Int): Int = (j % height + height) % height
@@ -170,12 +166,28 @@ object TilingTorusBuilder:
       TriHE(e0, e1, e2)
 
     for j <- 0 until height; i <- 0 until width do
+      val evenRow = (j & 1) == 0
+
       val A = verts(j)(i)
       val B = verts(j)(wrapX(i + 1))
-      val C = verts(wrapY(j + 1))(i)
-      val D = verts(wrapY(j + 1))(wrapX(i + 1))
 
-      val evenRow = (j & 1) == 0
+      val jNext = wrapY(j + 1)
+      val nextRowEven = (jNext & 1) == 0
+
+      // Adjust horizontal index for top vertices based on stagger pattern
+      // When going from even to odd row: vertices shift right by 0.5
+      //   Most cells use same column i, but at left edge (i=0) we wrap to i-1
+      // When going from odd to even row: vertices shift left by 0.5, so we want next column i+1
+      val iTop = if evenRow && !nextRowEven then
+        wrapX(i - 1) // Even to odd: shift left by one to account for the stagger
+      else if !evenRow && nextRowEven then
+        wrapX(i + 1) // Odd to even: shift right by one
+      else
+        i
+      val iTopRight = wrapX(iTop + 1)
+
+      val C = verts(jNext)(iTop)
+      val D = verts(jNext)(iTopRight)
 
       // Two triangles per cell, CCW orientation
       if evenRow then
