@@ -101,9 +101,7 @@ final case class TilingTorusDCEL private (
   def unorderedBoundaryVertices: List[Vertex] =
     // filter the vertices that has distance > 1 with at least one adjacent vertex
     vertices.filter { vertex =>
-      val incident = vertex.incidentEdgesUnsafe
-      incident.exists { halfEdge =>
-        val adjacent = halfEdge.next.map(_.origin).get
+      vertex.adjacentVerticesUnsafe.exists { adjacent =>
         // destination of e is next.origin // consider wrap-around: boundary if any neighbor is farther than unit within tolerance
         println(s"${vertex.id} ${adjacent.id} ${vertex.coords.distanceTo(adjacent.coords)}")
         (vertex.coords.distanceTo(adjacent.coords) - 1.0).abs > ACCURACY
@@ -620,16 +618,16 @@ object TilingTorusDCEL:
       e3(j)(i).angle = Some(rightAngle)
 
     // Twin wiring
-    // Horizontal undirected edges are shared between (i,j) right-edge e0 and (i+1,j) left-edge e2 of the left neighbor.
-    // Vertical undirected edges are shared between (i,j) top-edge e1 and (i,j+1) bottom-edge e3 of the bottom neighbor.
+    // Bottom edge e0 of cell (j,i) twins with top edge e2 of cell below (j-1,i)
+    // Right edge e1 of cell (j,i) twins with left edge e3 of cell to the right (j,i+1)
     for j <- 0 until height; i <- 0 until width do
-      // Horizontal pair: current e0 (i,j) with left-neighbor e2 (i-1,j)
-      val iL = wrapX(i - 1)
-      e0(j)(i).twinWith(e2(j)(iL))
-
-      // Vertical pair: current e1 (i,j) with bottom-neighbor e3 (i,j-1)
+      // Bottom edge: e0(j,i) twins with e2(j-1,i)
       val jB = wrapY(j - 1)
-      e1(j)(i).twinWith(e3(jB)(i))
+      e0(j)(i).twinWith(e2(jB)(i))
+
+      // Right edge: e1(j,i) twins with e3(j,i+1)
+      val iR = wrapX(i + 1)
+      e1(j)(i).twinWith(e3(j)(iR))
 
     // Set leaving edge on each vertex: pick one incident (prefer e0 starting at that vertex if exists)
     // Each vertex (i,j) is origin of edges e0(i,j) and e3(i-1,j) after wrapping;

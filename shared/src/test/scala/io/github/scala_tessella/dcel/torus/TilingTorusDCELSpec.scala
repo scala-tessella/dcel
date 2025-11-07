@@ -28,6 +28,22 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
       )
   }
 
+  it should "return the vertex coords of a 3x3 square net" in {
+    TilingTorusDCEL.buildSquareNet(3, 3).vertices.map(vertex => vertex.id -> vertex.coords).toMap shouldEqual
+      Map(
+        V1 -> BigPoint(0, 0),
+        V2 -> BigPoint(1, 0),
+        V3 -> BigPoint(2, 0),
+        V4 -> BigPoint(0, 1),
+        "V5" -> BigPoint(1, 1),
+        "V6" -> BigPoint(2, 1),
+        "V7" -> BigPoint(0, 2),
+        "V8" -> BigPoint(1, 2),
+        "V9" -> BigPoint(2, 2)
+      )
+  }
+
+
   it should "return the vertex coords of a 2x2 triangle net" in {
     buildTriangleNet(2, 2).vertices.map(vertex => vertex.id -> vertex.coords).toMap shouldEqual
       Map(
@@ -73,7 +89,6 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
       V2,
       V3,
       V4,
-      VertexId("V5"),
       VertexId("V6"),
       VertexId("V7"),
       VertexId("V8"),
