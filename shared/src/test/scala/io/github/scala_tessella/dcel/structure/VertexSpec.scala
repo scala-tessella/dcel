@@ -346,7 +346,7 @@ class VertexSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
         "V6" -> List("V9", V3, "V5"),
         "V7" -> List("V8", V4),
         "V8" -> List("V9", "V5", "V7"),
-        "V9" -> List("V8", "V6"),
+        "V9" -> List("V8", "V6")
       )
   }
 
