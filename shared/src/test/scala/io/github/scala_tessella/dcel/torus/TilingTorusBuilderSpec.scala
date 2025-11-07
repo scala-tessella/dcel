@@ -65,3 +65,26 @@ class TilingTorusBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHe
     ) shouldBe true
   }
 
+  behavior of "TilingTorusBuilder.createSquareNet"
+  
+  it should "compute all adjacent vertices in a torus" in {
+    val torus = TilingTorusBuilder.createSquareNet(3, 3)
+    torus.vertices.map { v =>
+
+      v.id -> v.adjacentVerticesUnsafe.map(_.id)
+    }.toMap shouldEqual
+      Map(
+        V1 -> List(V2, "V7", V3, V4),
+        V2 -> List(V3, "V8", V1, "V5"),
+        V3 -> List(V1, "V9", V2, "V6"),
+        V4 -> List("V5", V1, "V6", "V7"),
+        "V5" -> List("V6", V2, V4, "V8"),
+        "V6" -> List(V4, V3, "V5", "V9"),
+        "V7" -> List("V8", V4, "V9", V1),
+        "V8" -> List("V9", "V5", "V7", V2),
+        "V9" -> List("V7", "V6", "V8", V3)
+      )
+  }
+
+
+
