@@ -8,10 +8,10 @@ class BigLineSegmentSpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
   behavior of "BigLineSegment.unitPath"
 
-  val angles = Vector(90, 90, 150, 60, 150).map(AngleDegree(_))
+  val angles: Vector[AngleDegree] = Vector(90, 90, 150, 60, 150).map(AngleDegree(_))
 
   it should "find a path of unit length sides" in {
-    val start = BigLineSegment(BigPoint.origin, BigPoint(1, 0))
+    val start  = BigLineSegment(BigPoint.origin, BigPoint(1, 0))
     val result =
       List(
         BigPoint(0, 0),
@@ -24,7 +24,7 @@ class BigLineSegmentSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   }
 
   it should "find a path of unit length sides from an inverted start" in {
-    val start = BigLineSegment(BigPoint.origin, BigPoint(0, 1))
+    val start  = BigLineSegment(BigPoint.origin, BigPoint(0, 1))
     val result =
       List(
         BigPoint(0, 0),
@@ -35,5 +35,3 @@ class BigLineSegmentSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       )
     start.unitPath(angles).zip(result).forall(_.almostEquals(_)) shouldBe true
   }
-
-
