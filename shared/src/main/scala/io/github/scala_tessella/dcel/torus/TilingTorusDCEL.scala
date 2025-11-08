@@ -529,6 +529,9 @@ object TilingTorusDCEL:
       faces = List.empty
     )
 
+  def isTorusTilable(tiling: TilingDCEL): Boolean =
+    ???
+
   // 3D SVG options
   final case class TorusSvg3DOptions(
       majorRadius: Double = 150.0, // R

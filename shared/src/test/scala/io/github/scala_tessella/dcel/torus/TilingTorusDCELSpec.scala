@@ -1,6 +1,7 @@
 package io.github.scala_tessella.dcel.torus
 
-import io.github.scala_tessella.dcel.TilingTestHelpers
+import io.github.scala_tessella.dcel.geometry.RegularPolygon
+import io.github.scala_tessella.dcel.{TilingBuilder, TilingTestHelpers}
 import io.github.scala_tessella.dcel.torus.TilingTorusBuilder.*
 import io.github.scala_tessella.dcel.structure.{FaceId, VertexId}
 import org.scalatest.flatspec.AnyFlatSpec
@@ -65,3 +66,18 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
     println(tiling)
     tiling.isRight shouldBe true
   }
+
+  behavior of "TilingTorusDCEL.isTorusTilable"
+
+  it should "find tilable a square" in {
+    TilingTorusDCEL.isTorusTilable(TilingBuilder.createRegularPolygon(RegularPolygon(4))) shouldBe true
+  }
+
+  it should "find tilable a 4x4 square" in {
+    TilingTorusDCEL.isTorusTilable(TilingBuilder.createRhombusNet(4, 4)) shouldBe true
+  }
+
+  it should "find tilable a rectangle" in {
+    TilingTorusDCEL.isTorusTilable(TilingBuilder.createRhombusNet(10, 1)) shouldBe true
+  }
+
