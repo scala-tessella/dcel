@@ -184,6 +184,9 @@ final case class TilingDCEL private (
       case Some(startEdge) => startEdge.faceTraversal()
       case None            => Right(List.empty)
 
+  def boundarySimplePolygon: SimplePolygon =
+    SimplePolygon(boundaryEdges.map(_.angle.get.conjugate).toVector)
+
   /** Adds a regular polygon to the tiling along the outer boundary.
     *
     * Preconditions:
