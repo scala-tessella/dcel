@@ -531,7 +531,6 @@ object TilingTorusDCEL:
       faces = List.empty
     )
 
-
   def isTorusTilable(tiling: TilingDCEL): Boolean =
     if tiling.isEmpty then return false
 
@@ -540,60 +539,86 @@ object TilingTorusDCEL:
 
     val boundarySize = perimeter.size
 
-    // Boundary must be divisible by 4 for a parallelogram structure
-    if boundarySize < 4 || boundarySize % 2 != 0 then return false
+    // Must have at least 4 edges
+    if boundarySize < 4 then return false
 
-    // Try to find a valid parallelogram division
-    // We need to find a way to divide the boundary into 4 segments where:
-    // - Opposite pairs have the same total length (but individual pairs can differ)
-    // - The segments form a topologically valid parallelogram
-
-    // Try different division points
-    // For a parallelogram ABCD, we need corner points that divide the boundary
-    // into 4 paths: AB, BC, CD, DA where AB ≅ CD and BC ≅ DA (as paths)
-
-    // Helper: check if two edge sequences are congruent (same lengths in order)
-    def areCongruent(edges1: List[HalfEdge], edges2: List[HalfEdge]): Boolean =
-      if edges1.size != edges2.size then return false
-
-      val lengths1 = edges1.map(e => e.endpointsAsVertices match
-        case Some((v1, v2)) => v1.coords.distanceTo(v2.coords)
-        case None => BigDecimal(0)
-      )
-
-      val lengths2 = edges2.map(e => e.endpointsAsVertices match
-        case Some((v1, v2)) => v1.coords.distanceTo(v2.coords)
-        case None => BigDecimal(0)
-      )
-
-      lengths1.zip(lengths2).forall { case (l1, l2) =>
-        (l1 - l2).abs <= ACCURACY
+    // Helper: compute the displacement vector for a sequence of edges
+    def pathVector(edges: List[HalfEdge]): BigPoint =
+      edges.foldLeft(BigPoint.origin) { (acc, edge) =>
+        edge.endpointsAsVertices match
+          case Some((v1, v2)) => acc + (v2.coords - v1.coords)
+          case None => acc
       }
 
-    // Try different ways to split the boundary into 4 parts
-    // We look for indices (i, j) where i < j that define 4 segments
+    // Helper: check if two paths have opposite displacements
+    def haveOppositeVectors(edges1: List[HalfEdge], edges2: List[HalfEdge]): Boolean =
+      val vec1 = pathVector(edges1)
+      val vec2 = pathVector(edges2)
+      val sum = vec1 + vec2
+      sum.x.abs <= ACCURACY && sum.y.abs <= ACCURACY
+
+    // Helper: Check matching structure
+    def areCompatible(edges1: List[HalfEdge], edges2: List[HalfEdge]): Boolean =
+      if edges1.size != edges2.size then return false
+
+      // Check edge lengths match
+      val lengths1 = edges1.map { e =>
+        e.endpointsAsVertices.map { case (v1, v2) =>
+          v1.coords.distanceTo(v2.coords)
+        }.getOrElse(BigDecimal(0))
+      }
+
+      val lengths2 = edges2.map { e =>
+        e.endpointsAsVertices.map { case (v1, v2) =>
+          v1.coords.distanceTo(v2.coords)
+        }.getOrElse(BigDecimal(0))
+      }
+
+      lengths1.zip(lengths2).forall { case (l1, l2) => (l1 - l2).abs <= ACCURACY }
+
+    // Try different 4-corner divisions
+    // The key constraint: for a valid torus, we need EXACTLY 4 corners
+    // This means the boundary must be divisible into exactly 4 sides
     var result = false
     boundary:
       for
-        len1 <- 1 until boundarySize / 2
-        len2 <- 1 until (boundarySize - len1)
-        if len1 + len2 < boundarySize
+        i <- 1 until boundarySize - 2
+        j <- (i + 1) until boundarySize - 1
+        k <- (j + 1) until boundarySize
       do
-        val len3 = boundarySize - len1 - len2 - (boundarySize - len1 - len2 - len1)
-        val len4 = boundarySize - len1 - len2 - len3
-  
-        if len3 > 0 && len4 > 0 then
-          // Split boundary into 4 segments
-          val seg1 = perimeter.slice(0, len1)
-          val seg2 = perimeter.slice(len1, len1 + len2)
-          val seg3 = perimeter.slice(len1 + len2, len1 + len2 + len3)
-          val seg4 = perimeter.slice(len1 + len2 + len3, boundarySize)
-  
-          // Check if opposite segments are congruent
-          // seg1 should match seg3, seg2 should match seg4
-          if areCongruent(seg1, seg3) && areCongruent(seg2, seg4) then
-            result = true
-            boundary.break()
+        val seg1 = perimeter.slice(0, i)
+        val seg2 = perimeter.slice(i, j)
+        val seg3 = perimeter.slice(j, k)
+        val seg4 = perimeter.slice(k, boundarySize)
+
+        // Check parallelogram conditions
+        if haveOppositeVectors(seg1, seg3) && haveOppositeVectors(seg2, seg4) &&
+          areCompatible(seg1, seg3) && areCompatible(seg2, seg4) then
+          // Check the two pairs of vectors are NOT parallel
+          val vec1 = pathVector(seg1)
+          val vec2 = pathVector(seg2)
+
+          val crossProduct = vec1.x * vec2.y - vec1.y * vec2.x
+          if crossProduct.abs > ACCURACY then
+            // Final check: the 4 corners must form a proper parallelogram
+            // by checking that the angles at corners are supplementary
+            // Get the boundary angles at the 4 corner points
+            val corner1Angle = seg1.head.angle.get.conjugate
+            val corner2Angle = seg2.head.angle.get.conjugate
+            val corner3Angle = seg3.head.angle.get.conjugate
+            val corner4Angle = seg4.head.angle.get.conjugate
+
+//            println(s"  corner1Angle = $corner1Angle")
+//            println(s"  corner2Angle = $corner2Angle")
+//            println(s"  corner3Angle = $corner3Angle")
+//            println(s"  corner4Angle = $corner4Angle")
+            // For a parallelogram: opposite angles are equal, adjacent angles are supplementary (sum to 360°)
+            val sum12 = corner1Angle + corner2Angle
+            val sum34 = corner3Angle + corner4Angle
+            // Adjacent corners should have angles that sum to 360° for a valid parallelogram
+            if (sum12 + sum12).isFullCircle && (sum34 + sum34).isFullCircle then
+              result = true
+              boundary.break()
 
     result
 
