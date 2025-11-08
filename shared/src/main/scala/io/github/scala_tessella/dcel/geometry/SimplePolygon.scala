@@ -38,85 +38,74 @@ object SimplePolygon:
     def toAngles: Vector[AngleDegree] =
       angles
 
-    def isTorusTileable: Boolean =
-      if angles.isEmpty then return false
-
+    /** Checks if the polygon can tile a torus.
+      *
+      * A polygon can tile a torus if it is a "parallelo-gon": a polygon with an even number of sides that can
+      * be partitioned into pairs of opposite sides that are equal in length and parallel. For a simple
+      * polygon with unit-length edges, this condition is verified by checking the exterior turning angles.
+      *
+      * The boundary of the polygon must be divisible into four segments (A, B, C, D) of lengths (l1, l2, l1,
+      * l2) such that:
+      *   - Segments A and C are opposite and parallel (their turn sequences are anti-parallel).
+      *   - Segments B and D are opposite and parallel.
+      *
+      * This is checked for all possible rotations of the polygon and all valid partitions.
+      *
+      * @return
+      *   true if the polygon can tile a torus, false otherwise.
+      * @see
+      *   [[https://en.wikipedia.org/wiki/Parallelogon]]
+      */
+    def canTileTorus: Boolean =
       val n = angles.size
 
-      // Must have at least 4 edges and even count to split into opposite pairs
-      if n < 4 || (n % 2 != 0) then return false
-
-      val half = n / 2
-
-      // Quick guard: a regular n-gon (all angles equal) can tile a torus only if n = 4
-      val distinctAngles = angles.map(_.normalised.toRational).distinct
-      if distinctAngles.size == 1 then return n == 4
-
-      // Exterior turn at each vertex along the boundary (unit edges)
-      val turns: Vector[AngleDegree] = angles.map(a => AngleDegree(180) - a.normalised)
-
-      inline def eqWithin(a: AngleDegree, b: AngleDegree): Boolean =
-        val R360 = AngleDegree(360).toRational
-        val d    = ((a - b).toRational % R360 + R360) % R360
-        val md   = if d > R360 - d then R360 - d else d
-        md <= ACCURACY
-
-      def seqEq(xs: Vector[AngleDegree], ys: Vector[AngleDegree]): Boolean =
-        xs.length == ys.length && xs.indices.forall(i => eqWithin(xs(i), ys(i)))
-
-      def seqEqCyclic(xs: Vector[AngleDegree], ys: Vector[AngleDegree]): Boolean =
-        if xs.length != ys.length then false
-        else if xs.isEmpty then true
+      // Must have at least 4 sides and an even number of them to form opposite pairs.
+      if n < 4 || n % 2 != 0 then false
+      else
+        // Quick guard: a regular n-gon can tile a torus only if n=4 (a square).
+        if angles.map(_.normalised.toRational).distinct.size == 1 then n == 4
         else
-          val L = xs.length
-          var k = 0
-          while k < L do
-            var ok = true
-            var i  = 0
-            while i < L && ok do
-              if !eqWithin(xs(i), ys((i + k) % L)) then ok = false
-              i += 1
-            end while
-            if ok then return true
-            k += 1
-          end while
-          false
+          val half = n / 2
 
-      def seqEqRevCyclic(xs: Vector[AngleDegree], ys: Vector[AngleDegree]): Boolean =
-        val yr = ys.reverse
-        seqEqCyclic(xs, yr)
+          // Exterior turn at each vertex along the boundary (assuming unit edges).
+          val turns: Vector[AngleDegree] = angles.map(a => AngleDegree(180) - a.normalised)
 
-      def sliceCircular(start: Int, len: Int): Vector[AngleDegree] =
-        if len <= 0 then Vector.empty
-        else Vector.tabulate(len)(i => turns((start + i) % n))
+          // Compares two angles for equality within a small tolerance.
+          def anglesEq(a: AngleDegree, b: AngleDegree): Boolean =
+            val R360 = AngleDegree(360).toRational
+            val d    = ((a - b).toRational % R360 + R360) % R360
+            val md   = if d > R360 / 2 then R360 - d else d
+            md <= ACCURACY
 
-      // Try all rotations and possible splits l1 + l2 = half with l1,l2 >= 1
-      var s = 0
-      while s < n do
-        var l1 = 1
-        while l1 < half do
-          val l2    = half - l1
-          val A     = sliceCircular(s, l1)
-          val B     = sliceCircular(s + l1, l2)
-          val C     = sliceCircular(s + l1 + l2, l1)
-          val D     = sliceCircular(s + l1 + l2 + l1, l2)
+          // Checks if one sequence of turns is the negative of another (anti-parallel).
+          def areOpposite(xs: Vector[AngleDegree], ys: Vector[AngleDegree]): Boolean =
+            xs.length == ys.length && xs.lazyZip(ys).forall((x, y) => anglesEq(x, AngleDegree(-y.toRational)))
 
-          inline def neg(a: AngleDegree): AngleDegree = AngleDegree(0) - a
-          def seqEqOpp(xs: Vector[AngleDegree], ys: Vector[AngleDegree]): Boolean =
-            xs.length == ys.length && xs.indices.forall(i => eqWithin(xs(i), neg(ys(i))))
-          def seqEqOppRev(xs: Vector[AngleDegree], ys: Vector[AngleDegree]): Boolean =
-            val yr = ys.reverse
-            seqEqOpp(xs, yr)
+          // Slices the circular `turns` vector.
+          def circularSlice(start: Int, len: Int): Vector[AngleDegree] =
+            (0 until len).map(i => turns((start + i) % n)).toVector
 
-          val ac_bd =
-            (seqEqOpp(A, C) && seqEqOpp(B, D)) || (seqEqOppRev(A, C) && seqEqOppRev(B, D))
-          val ad_bc =
-            (seqEqOpp(A, D) && seqEqOpp(B, C)) || (seqEqOppRev(A, D) && seqEqOppRev(B, C))
-          if ac_bd || ad_bc then return true
+          // Iterate over all possible starting vertices `s` (rotations of the polygon)
+          // and all possible splits `l1` of a half-boundary.
+          (0 until n).exists { s =>
 
-          l1 += 1
-        end while
-        s += 1
-      end while
+            (1 until half).exists { l1 =>
+              val l2 = half - l1
 
-      false
+              // The four segments of the boundary.
+              val segA = circularSlice(s, l1)
+              val segB = circularSlice(s + l1, l2)
+              val segC = circularSlice(s + half, l1)
+              val segD = circularSlice(s + half + l1, l2)
+
+              // Case 1: A is opposite C, B is opposite D. This can be direct or reversed.
+              val ac_bd = (areOpposite(segA, segC) && areOpposite(segB, segD)) ||
+                (areOpposite(segA, segC.reverse) && areOpposite(segB, segD.reverse))
+
+              // Case 2: A is opposite D, B is opposite C. Requires l1 == l2 (checked by `areOpposite`).
+              val ad_bc = (areOpposite(segA, segD) && areOpposite(segB, segC)) ||
+                (areOpposite(segA, segD.reverse) && areOpposite(segB, segC.reverse))
+
+              ac_bd || ad_bc
+            }
+          }

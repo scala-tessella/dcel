@@ -70,47 +70,47 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       SimplePolygon.alphaSum(6).toRational shouldBe Rational(720)
     )
 
-  behavior of "SimplePolygon.isTorusTileable"
+  behavior of "SimplePolygon.canTileTorus"
 
   it should "be true for a square" in {
     val squareAngles = Vector.fill(4)(AngleDegree(90))
-    SimplePolygon(squareAngles).isTorusTileable shouldBe true
+    SimplePolygon(squareAngles).canTileTorus shouldBe true
   }
 
   it should "be false for a regular pentagon" in {
     val pentagonAngles =
       Vector.fill(5)(AngleDegree(108))
-    SimplePolygon(pentagonAngles).isTorusTileable shouldBe false
+    SimplePolygon(pentagonAngles).canTileTorus shouldBe false
   }
 
   it should "be true for a 2x2 square" in {
     val angles =
       Vector.fill(4)(Vector(AngleDegree(90), AngleDegree(180))).flatten
-    SimplePolygon(angles).isTorusTileable shouldBe true
+    SimplePolygon(angles).canTileTorus shouldBe true
   }
 
   it should "be false for a regular hexagon" in {
     val hexagonAngles =
       Vector.fill(6)(AngleDegree(120))
-    SimplePolygon(hexagonAngles).isTorusTileable shouldBe false
+    SimplePolygon(hexagonAngles).canTileTorus shouldBe false
   }
 
   it should "be true for a scale" in {
     val angles =
       Vector(90, 150, 120, 150, 90, 210, 60, 210).map(AngleDegree(_))
-    SimplePolygon(angles).isTorusTileable shouldBe true
+    SimplePolygon(angles).canTileTorus shouldBe true
   }
 
   it should "be true for a 1x2 rectangle" in {
     val angles =
       Vector.fill(2)(Vector(AngleDegree(90), AngleDegree(90), AngleDegree(180))).flatten
-    SimplePolygon(angles).isTorusTileable shouldBe true
+    SimplePolygon(angles).canTileTorus shouldBe true
   }
 
   it should "be true for a 2x1 parallelogram" in {
     val angles =
       Vector.fill(2)(Vector(AngleDegree(60), AngleDegree(120), AngleDegree(180))).flatten
-    SimplePolygon(angles).isTorusTileable shouldBe true
+    SimplePolygon(angles).canTileTorus shouldBe true
   }
 
   it should "be true for a 2 joined regular hexagons boundary" in {
@@ -122,7 +122,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
         AngleDegree(120),
         AngleDegree(240)
       )).flatten
-    SimplePolygon(angles).isTorusTileable shouldBe true
+    SimplePolygon(angles).canTileTorus shouldBe true
   }
 
   behavior of "RegularPolygon"
