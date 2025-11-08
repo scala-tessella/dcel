@@ -7,6 +7,8 @@ import io.github.scala_tessella.dcel.torus.TilingTorusValidation.validate
 import io.github.scala_tessella.dcel.{NotFoundError, TilingDCEL, TilingError}
 import spire.implicits.*
 
+import scala.util.boundary
+
 /** Represents the entire tiling structure as a container for its components.
   *
   * @param vertices
@@ -529,8 +531,71 @@ object TilingTorusDCEL:
       faces = List.empty
     )
 
+
   def isTorusTilable(tiling: TilingDCEL): Boolean =
-    ???
+    if tiling.isEmpty then return false
+
+    val perimeter = tiling.boundaryEdges
+    if perimeter.isEmpty then return false
+
+    val boundarySize = perimeter.size
+
+    // Boundary must be divisible by 4 for a parallelogram structure
+    if boundarySize < 4 || boundarySize % 2 != 0 then return false
+
+    // Try to find a valid parallelogram division
+    // We need to find a way to divide the boundary into 4 segments where:
+    // - Opposite pairs have the same total length (but individual pairs can differ)
+    // - The segments form a topologically valid parallelogram
+
+    // Try different division points
+    // For a parallelogram ABCD, we need corner points that divide the boundary
+    // into 4 paths: AB, BC, CD, DA where AB ≅ CD and BC ≅ DA (as paths)
+
+    // Helper: check if two edge sequences are congruent (same lengths in order)
+    def areCongruent(edges1: List[HalfEdge], edges2: List[HalfEdge]): Boolean =
+      if edges1.size != edges2.size then return false
+
+      val lengths1 = edges1.map(e => e.endpointsAsVertices match
+        case Some((v1, v2)) => v1.coords.distanceTo(v2.coords)
+        case None => BigDecimal(0)
+      )
+
+      val lengths2 = edges2.map(e => e.endpointsAsVertices match
+        case Some((v1, v2)) => v1.coords.distanceTo(v2.coords)
+        case None => BigDecimal(0)
+      )
+
+      lengths1.zip(lengths2).forall { case (l1, l2) =>
+        (l1 - l2).abs <= ACCURACY
+      }
+
+    // Try different ways to split the boundary into 4 parts
+    // We look for indices (i, j) where i < j that define 4 segments
+    var result = false
+    boundary:
+      for
+        len1 <- 1 until boundarySize / 2
+        len2 <- 1 until (boundarySize - len1)
+        if len1 + len2 < boundarySize
+      do
+        val len3 = boundarySize - len1 - len2 - (boundarySize - len1 - len2 - len1)
+        val len4 = boundarySize - len1 - len2 - len3
+  
+        if len3 > 0 && len4 > 0 then
+          // Split boundary into 4 segments
+          val seg1 = perimeter.slice(0, len1)
+          val seg2 = perimeter.slice(len1, len1 + len2)
+          val seg3 = perimeter.slice(len1 + len2, len1 + len2 + len3)
+          val seg4 = perimeter.slice(len1 + len2 + len3, boundarySize)
+  
+          // Check if opposite segments are congruent
+          // seg1 should match seg3, seg2 should match seg4
+          if areCongruent(seg1, seg3) && areCongruent(seg2, seg4) then
+            result = true
+            boundary.break()
+
+    result
 
   // 3D SVG options
   final case class TorusSvg3DOptions(

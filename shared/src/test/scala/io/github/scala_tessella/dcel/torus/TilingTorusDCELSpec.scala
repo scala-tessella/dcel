@@ -73,6 +73,14 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
     TilingTorusDCEL.isTorusTilable(TilingBuilder.createRegularPolygon(RegularPolygon(4))) shouldBe true
   }
 
+  it should "find NOT tilable a pentagon" in {
+    TilingTorusDCEL.isTorusTilable(TilingBuilder.createRegularPolygon(RegularPolygon(5))) shouldBe false
+  }
+
+  it should "find NOT tilable an hexagon" in {
+    TilingTorusDCEL.isTorusTilable(TilingBuilder.createRegularPolygon(RegularPolygon(6))) shouldBe false
+  }
+
   it should "find tilable a 4x4 square" in {
     TilingTorusDCEL.isTorusTilable(TilingBuilder.createRhombusNet(4, 4)) shouldBe true
   }
