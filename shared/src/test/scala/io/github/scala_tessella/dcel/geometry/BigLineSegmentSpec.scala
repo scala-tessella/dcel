@@ -36,7 +36,6 @@ class BigLineSegmentSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     start.unitPath(angles).zip(result).forall(_.almostEquals(_)) shouldBe true
   }
 
-
   it should "find a path of unit length sides from an inverted start" in {
     val start  = BigLineSegment(BigPoint.origin, BigPoint(0, 1))
     val result =
