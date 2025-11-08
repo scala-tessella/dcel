@@ -69,11 +69,15 @@ object BigLineSegment:
         // General case: segments cross each other in their interiors
         o1 != o2 && o3 != o4
 
-    /** Computes a list of points forming a polygonal path unit lenght segments based on the segment initial angle and orientation.
-     *
-     * @param angles a vector of AngleDegree, where each angle represents the interior angle of the polygon at each vertex
-     * @return a list of BigPoint representing the vertices of the computed path
-     */
+    /** Computes a list of points forming a polygonal path unit lenght segments based on the segment initial
+      * angle and orientation.
+      *
+      * @param angles
+      *   a vector of AngleDegree, where each angle represents the interior angle of the polygon at each
+      *   vertex
+      * @return
+      *   a list of BigPoint representing the vertices of the computed path
+      */
     def unitPath(angles: Vector[AngleDegree]): List[BigPoint] =
       val n            = angles.length
       // Start with V0 at the origin and V1
@@ -85,7 +89,7 @@ object BigLineSegment:
         val interiorAngle = angles(i)
         val turnAngle     = interiorAngle.supplement
         heading += turnAngle.toBigRadian
-        currentPoint = currentPoint.plus(BigPoint.fromPolar(1, heading))
+        currentPoint = currentPoint + BigPoint.fromPolar(1, heading)
         points.append(currentPoint)
 
       points.toList
