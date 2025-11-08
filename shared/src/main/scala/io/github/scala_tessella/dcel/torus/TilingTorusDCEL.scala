@@ -563,7 +563,7 @@ object TilingTorusDCEL:
       if edges1.size != edges2.size then return false
 
       def lengths(edges: List[HalfEdge]): List[BigDecimal] =
-        edges1.map { halfEdge =>
+        edges.map { halfEdge =>
 
           halfEdge.endpointsAsVertices.map { case (v1, v2) =>
             v1.coords.distanceTo(v2.coords)
