@@ -88,4 +88,3 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
   it should "find tilable a rectangle" in {
     TilingTorusDCEL.isTorusTilable(TilingBuilder.createRhombusNet(10, 1)) shouldBe true
   }
-

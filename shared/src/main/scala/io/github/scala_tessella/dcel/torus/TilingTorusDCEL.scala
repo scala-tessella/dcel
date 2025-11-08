@@ -545,36 +545,39 @@ object TilingTorusDCEL:
     // Helper: compute the displacement vector for a sequence of edges
     def pathVector(edges: List[HalfEdge]): BigPoint =
       edges.foldLeft(BigPoint.origin) { (acc, edge) =>
+
         edge.endpointsAsVertices match
           case Some((v1, v2)) => acc + (v2.coords - v1.coords)
-          case None => acc
+          case None           => acc
       }
 
     // Helper: check if two paths have opposite displacements
     def haveOppositeVectors(edges1: List[HalfEdge], edges2: List[HalfEdge]): Boolean =
       val vec1 = pathVector(edges1)
       val vec2 = pathVector(edges2)
-      val sum = vec1 + vec2
+      val sum  = vec1 + vec2
       sum.x.abs <= ACCURACY && sum.y.abs <= ACCURACY
 
     // Helper: Check matching structure
     def areCompatible(edges1: List[HalfEdge], edges2: List[HalfEdge]): Boolean =
       if edges1.size != edges2.size then return false
 
+      def lengths(edges: List[HalfEdge]): List[BigDecimal] =
+        edges1.map { halfEdge =>
+
+          halfEdge.endpointsAsVertices.map { case (v1, v2) =>
+            v1.coords.distanceTo(v2.coords)
+          }.getOrElse(BigDecimal(0))
+        }
+
       // Check edge lengths match
-      val lengths1 = edges1.map { e =>
-        e.endpointsAsVertices.map { case (v1, v2) =>
-          v1.coords.distanceTo(v2.coords)
-        }.getOrElse(BigDecimal(0))
-      }
+      val lengths1 = lengths(edges1)
 
-      val lengths2 = edges2.map { e =>
-        e.endpointsAsVertices.map { case (v1, v2) =>
-          v1.coords.distanceTo(v2.coords)
-        }.getOrElse(BigDecimal(0))
-      }
+      val lengths2 = lengths(edges2)
 
-      lengths1.zip(lengths2).forall { case (l1, l2) => (l1 - l2).abs <= ACCURACY }
+      lengths1.zip(lengths2).forall { case (l1, l2) =>
+        (l1 - l2).abs <= ACCURACY
+      }
 
     // Try different 4-corner divisions
     // The key constraint: for a valid torus, we need EXACTLY 4 corners
@@ -593,12 +596,13 @@ object TilingTorusDCEL:
 
         // Check parallelogram conditions
         if haveOppositeVectors(seg1, seg3) && haveOppositeVectors(seg2, seg4) &&
-          areCompatible(seg1, seg3) && areCompatible(seg2, seg4) then
+          areCompatible(seg1, seg3) && areCompatible(seg2, seg4)
+        then
           // Check the two pairs of vectors are NOT parallel
           val vec1 = pathVector(seg1)
           val vec2 = pathVector(seg2)
 
-          val crossProduct = vec1.x * vec2.y - vec1.y * vec2.x
+          val crossProduct = vec1.cross(vec2)
           if crossProduct.abs > ACCURACY then
             // Final check: the 4 corners must form a proper parallelogram
             // by checking that the angles at corners are supplementary

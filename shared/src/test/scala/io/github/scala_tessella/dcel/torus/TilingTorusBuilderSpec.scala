@@ -90,7 +90,7 @@ class TilingTorusBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHe
   }
 
   it should "create a 2x2 square net on a torus" in {
-    val torus = createSquareNet(2, 2)
+    val torus         = createSquareNet(2, 2)
     val scale: Double = 1.0 / 2.0
     println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = scale, vScale = scale, showVertexIds = true)))
     allAssert(
@@ -101,7 +101,7 @@ class TilingTorusBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHe
   }
 
   it should "create a 3x3 square net on a torus" in {
-    val torus = createSquareNet(3, 3)
+    val torus         = createSquareNet(3, 3)
     val scale: Double = 1.0 / 3.0
     println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = scale, vScale = scale, showVertexIds = true)))
     allAssert(
@@ -112,7 +112,7 @@ class TilingTorusBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHe
   }
 
   it should "create a 4x4 square net on a torus" in {
-    val torus = createSquareNet(4, 4)
+    val torus         = createSquareNet(4, 4)
     val scale: Double = 1.0 / 4.0
     println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = scale, vScale = scale, showVertexIds = true)))
     allAssert(
@@ -123,7 +123,7 @@ class TilingTorusBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHe
   }
 
   it should "create a 8x8 square net on a torus" in {
-    val torus = createSquareNet(8, 8)
+    val torus         = createSquareNet(8, 8)
     val scale: Double = 1.0 / 8.0
     println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = scale, vScale = scale, showVertexIds = true)))
     allAssert(
@@ -134,7 +134,7 @@ class TilingTorusBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHe
   }
 
   it should "create a 16x4 square net on a torus" in {
-    val torus = createSquareNet(16, 4)
+    val torus          = createSquareNet(16, 4)
     val uScale: Double = 1.0 / 16.0
     val vScale: Double = 1.0 / 4.0
     println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
@@ -146,7 +146,7 @@ class TilingTorusBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHe
   }
 
   it should "create a 4x16 square net on a torus" in {
-    val torus = createSquareNet(4, 16)
+    val torus          = createSquareNet(4, 16)
     val uScale: Double = 1.0 / 4.0
     val vScale: Double = 1.0 / 16.0
     println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
@@ -220,7 +220,7 @@ class TilingTorusBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHe
   }
 
   it should "create a 1x2 triangle net on a torus" in {
-    val torus = createTriangleNet(1, 2)
+    val torus          = createTriangleNet(1, 2)
     val uScale: Double = 1.0
     val vScale: Double = 1.0 / (2.0 * 0.8660254037844386)
     println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
@@ -232,7 +232,7 @@ class TilingTorusBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHe
   }
 
   it should "create a 2x2 triangle net on a torus" in {
-    val torus = createTriangleNet(2, 2)
+    val torus          = createTriangleNet(2, 2)
     val uScale: Double = 1.0 / 2.0
     val vScale: Double = 1.0 / (2.0 * 0.8660254037844386)
     println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
@@ -244,7 +244,7 @@ class TilingTorusBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHe
   }
 
   it should "create a 4x4 triangle net on a torus" in {
-    val torus = createTriangleNet(4, 4)
+    val torus          = createTriangleNet(4, 4)
     val uScale: Double = 1.0 / 4.0
     val vScale: Double = 1.0 / (4.0 * 0.8660254037844386)
     println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
@@ -256,7 +256,7 @@ class TilingTorusBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHe
   }
 
   it should "create a 8x8 triangle net on a torus" in {
-    val torus = createTriangleNet(8, 8)
+    val torus          = createTriangleNet(8, 8)
     val uScale: Double = 1.0 / 8.0
     val vScale: Double = 1.0 / (8.0 * 0.8660254037844386)
     println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
@@ -268,7 +268,7 @@ class TilingTorusBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHe
   }
 
   it should "create a 16x4 triangle net on a torus" in {
-    val torus = createTriangleNet(16, 4)
+    val torus          = createTriangleNet(16, 4)
     val uScale: Double = 1.0 / 16.0
     val vScale: Double = 1.0 / (4.0 * 0.8660254037844386)
     println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
@@ -280,7 +280,7 @@ class TilingTorusBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHe
   }
 
   it should "create a 4x16 triangle net on a torus" in {
-    val torus = createTriangleNet(4, 16)
+    val torus          = createTriangleNet(4, 16)
     val uScale: Double = 1.0 / 4.0
     val vScale: Double = 1.0 / (16.0 * 0.8660254037844386)
     println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
@@ -411,7 +411,7 @@ class TilingTorusBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHe
   }
 
   it should "create a 1x2 hexagon net on a torus" in {
-    val torus = createHexagonNet(1, 2)
+    val torus          = createHexagonNet(1, 2)
     val uScale: Double = 1.0 / 1.5
     val vScale: Double = 1.0 / (4 * 0.8660254037844386)
     println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
@@ -423,7 +423,7 @@ class TilingTorusBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHe
   }
 
   it should "create a 2x2 hexagon net on a torus" in {
-    val torus = createHexagonNet(2, 2)
+    val torus          = createHexagonNet(2, 2)
     val uScale: Double = 1.0 / 3.0
     val vScale: Double = 1.0 / (4 * 0.8660254037844386)
     println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
@@ -435,7 +435,7 @@ class TilingTorusBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHe
   }
 
   it should "create a 4x4 hexagon net on a torus" in {
-    val torus = createHexagonNet(4, 4)
+    val torus          = createHexagonNet(4, 4)
     val uScale: Double = 1.0 / 6.0
     val vScale: Double = 1.0 / (8 * 0.8660254037844386)
     println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
@@ -447,7 +447,7 @@ class TilingTorusBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHe
   }
 
   it should "create a 6x6 hexagon net on a torus" in {
-    val torus = createHexagonNet(6, 6)
+    val torus          = createHexagonNet(6, 6)
     val uScale: Double = 1.0 / 9.0
     val vScale: Double = 1.0 / (12 * 0.8660254037844386)
     println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
@@ -459,7 +459,7 @@ class TilingTorusBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHe
   }
 
   it should "create a 12x4 hexagon net on a torus" in {
-    val torus = createHexagonNet(12, 4)
+    val torus          = createHexagonNet(12, 4)
     val uScale: Double = 1.0 / 18.0
     val vScale: Double = 1.0 / (8 * 0.8660254037844386)
     println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
@@ -469,4 +469,3 @@ class TilingTorusBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHe
       torus.halfEdges.size shouldBe 288
     )
   }
-
