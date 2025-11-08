@@ -3,6 +3,8 @@ package io.github.scala_tessella.dcel.geometry
 import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.{IntersectionDetection, Orientation}
 import spire.implicits.*
 
+import scala.collection.mutable
+
 opaque type BigLineSegment = (p1: BigPoint, p2: BigPoint)
 
 object BigLineSegment:
@@ -66,6 +68,27 @@ object BigLineSegment:
         val (o1, o2, o3, o4) = orientations(that)
         // General case: segments cross each other in their interiors
         o1 != o2 && o3 != o4
+
+    /** Computes a list of points forming a polygonal path unit lenght segments based on the segment initial angle and orientation.
+     *
+     * @param angles a vector of AngleDegree, where each angle represents the interior angle of the polygon at each vertex
+     * @return a list of BigPoint representing the vertices of the computed path
+     */
+    def unitPath(angles: Vector[AngleDegree]): List[BigPoint] =
+      val n            = angles.length
+      // Start with V0 at the origin and V1
+      val points       = mutable.ListBuffer(p1, p2)
+      var currentPoint = p2
+      var heading      = p1.angleTo(p2)
+      // Calculate the positions of V2 through V(n-1)
+      for (i <- 1 until n - 1)
+        val interiorAngle = angles(i)
+        val turnAngle     = interiorAngle.supplement
+        heading += turnAngle.toBigRadian
+        currentPoint = currentPoint.plus(BigPoint.fromPolar(1, heading))
+        points.append(currentPoint)
+
+      points.toList
 
   extension (segments: Vector[BigLineSegment])
 

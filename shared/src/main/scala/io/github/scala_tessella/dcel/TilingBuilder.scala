@@ -3,6 +3,7 @@ package io.github.scala_tessella.dcel
 import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.*
 import io.github.scala_tessella.dcel.geometry.{
   AngleDegree,
+  BigLineSegment,
   BigPoint,
   BigRadian,
   RegularPolygon,
@@ -120,28 +121,13 @@ object TilingBuilder:
       outerFace = outerFace
     )
 
-  /** Calculates the coordinates of a polygon's vertices and validates that it's a closed polygon with the
-    * correct side lengths and angles.
-    */
+  /** Calculates the coordinates of a polygon's vertices */
   private[dcel] def calculateVertexPoints(
       angles: Vector[AngleDegree],
       p0: BigPoint = BigPoint.origin,
       p1: BigPoint = BigPoint(1, 0)
   ): List[BigPoint] =
-    val n            = angles.length
-    // Start with V0 at the origin and V1
-    val points       = mutable.ListBuffer(p0, p1)
-    var currentPoint = p1
-    var heading      = p0.angleTo(p1)
-    // Calculate the positions of V2 through V(n-1)
-    for (i <- 1 until n - 1)
-      val interiorAngle = angles(i)
-      val turnAngle     = interiorAngle.supplement
-      heading += turnAngle.toBigRadian
-      currentPoint = currentPoint.plus(BigPoint.fromPolar(1, heading))
-      points.append(currentPoint)
-
-    points.toList
+    BigLineSegment(p0, p1).unitPath(angles)
 
   /** Generates a grid of vertices for tessellation patterns.
     *
