@@ -612,10 +612,6 @@ object TilingTorusDCEL:
             val corner3Angle = seg3.head.angle.get.conjugate
             val corner4Angle = seg4.head.angle.get.conjugate
 
-//            println(s"  corner1Angle = $corner1Angle")
-//            println(s"  corner2Angle = $corner2Angle")
-//            println(s"  corner3Angle = $corner3Angle")
-//            println(s"  corner4Angle = $corner4Angle")
             // For a parallelogram: opposite angles are equal, adjacent angles are supplementary (sum to 360°)
             val sum12 = corner1Angle + corner2Angle
             val sum34 = corner3Angle + corner4Angle
