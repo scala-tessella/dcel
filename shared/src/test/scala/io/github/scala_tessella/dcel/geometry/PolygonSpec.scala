@@ -107,7 +107,13 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     SimplePolygon(angles).isTorusTileable shouldBe true
   }
 
-  it should "be true for a 2 joined hexagons bundary" in {
+  it should "be true for a 2x1 parallelogram" in {
+    val angles =
+      Vector.fill(2)(Vector(AngleDegree(60), AngleDegree(120), AngleDegree(180))).flatten
+    SimplePolygon(angles).isTorusTileable shouldBe true
+  }
+
+  it should "be true for a 2 joined regular hexagons boundary" in {
     val angles =
       Vector.fill(2)(Vector(
         AngleDegree(120),

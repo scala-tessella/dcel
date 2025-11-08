@@ -48,6 +48,10 @@ object SimplePolygon:
 
       val half = n / 2
 
+      // Quick guard: a regular n-gon (all angles equal) can tile a torus only if n = 4
+      val distinctAngles = angles.map(_.normalised.toRational).distinct
+      if distinctAngles.size == 1 then return n == 4
+
       // Exterior turn at each vertex along the boundary (unit edges)
       val turns: Vector[AngleDegree] = angles.map(a => AngleDegree(180) - a.normalised)
 
@@ -96,11 +100,20 @@ object SimplePolygon:
           val B     = sliceCircular(s + l1, l2)
           val C     = sliceCircular(s + l1 + l2, l1)
           val D     = sliceCircular(s + l1 + l2 + l1, l2)
+
+          inline def neg(a: AngleDegree): AngleDegree = AngleDegree(0) - a
+          def seqEqOpp(xs: Vector[AngleDegree], ys: Vector[AngleDegree]): Boolean =
+            xs.length == ys.length && xs.indices.forall(i => eqWithin(xs(i), neg(ys(i))))
+          def seqEqOppRev(xs: Vector[AngleDegree], ys: Vector[AngleDegree]): Boolean =
+            val yr = ys.reverse
+            seqEqOpp(xs, yr)
+
           val ac_bd =
-            (seqEqCyclic(A, C) && seqEqCyclic(B, D)) || (seqEqRevCyclic(A, C) && seqEqRevCyclic(B, D))
+            (seqEqOpp(A, C) && seqEqOpp(B, D)) || (seqEqOppRev(A, C) && seqEqOppRev(B, D))
           val ad_bc =
-            (seqEqCyclic(A, D) && seqEqCyclic(B, C)) || (seqEqRevCyclic(A, D) && seqEqRevCyclic(B, C))
+            (seqEqOpp(A, D) && seqEqOpp(B, C)) || (seqEqOppRev(A, D) && seqEqOppRev(B, C))
           if ac_bd || ad_bc then return true
+
           l1 += 1
         end while
         s += 1
