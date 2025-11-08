@@ -1,6 +1,7 @@
 package io.github.scala_tessella.dcel.geometry
 
 import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.ACCURACY
+import io.github.scala_tessella.ring_seq.RingSeq.sliceO
 
 opaque type SimplePolygon = Vector[AngleDegree]
 
@@ -83,7 +84,7 @@ object SimplePolygon:
 
           // Slices the circular `turns` vector.
           def circularSlice(start: Int, len: Int): Vector[AngleDegree] =
-            (0 until len).map(i => turns((start + i) % n)).toVector
+            turns.sliceO(start, start + len)
 
           // Iterate over all possible starting vertices `s` (rotations of the polygon)
           // and all possible splits `l1` of a half-boundary.
