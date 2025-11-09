@@ -41,13 +41,13 @@ object SimplePolygon:
 
     /** Checks if the polygon can tile a torus.
       *
-      * A polygon can tile a torus if it is a "parallelo-gon": a polygon with an even number of sides that can
+      * A polygon can tile a torus if it is a "parallelogon": a polygon with an even number of sides that can
       * be partitioned into pairs of opposite sides that are equal in length and parallel. For a simple
       * polygon with unit-length edges, this condition is verified by checking the exterior turning angles.
       *
       * The boundary of the polygon must be divisible into four segments (A, B, C, D) of lengths (l1, l2, l1,
       * l2) such that:
-      *   - Segments A and C are opposite and parallel (their turn sequences are anti-parallel).
+      *   - Segments A and C are opposite and parallel (their turn sequences are antiparallel).
       *   - Segments B and D are opposite and parallel.
       *
       * This is checked for all possible rotations of the polygon and all valid partitions.
@@ -78,7 +78,7 @@ object SimplePolygon:
             val md   = if d > R360 / 2 then R360 - d else d
             md <= ACCURACY
 
-          // Checks if one sequence of turns is the negative of another (anti-parallel).
+          // Checks if one sequence of turns is the negative of another (antiparallel).
           def areOpposite(xs: Vector[AngleDegree], ys: Vector[AngleDegree]): Boolean =
             xs.length == ys.length && xs.lazyZip(ys).forall((x, y) => anglesEq(x, AngleDegree(-y.toRational)))
 
@@ -99,13 +99,15 @@ object SimplePolygon:
               val segC = circularSlice(s + half, l1)
               val segD = circularSlice(s + half + l1, l2)
 
+              def oppositeCheck(oppositeA: Vector[AngleDegree], oppositeB: Vector[AngleDegree]) =
+                (areOpposite(segA, oppositeA) && areOpposite(segB, oppositeB)) ||
+                  (areOpposite(segA, oppositeA.reverse) && areOpposite(segB, oppositeB.reverse))
+                
               // Case 1: A is opposite C, B is opposite D. This can be direct or reversed.
-              val ac_bd = (areOpposite(segA, segC) && areOpposite(segB, segD)) ||
-                (areOpposite(segA, segC.reverse) && areOpposite(segB, segD.reverse))
+              val ac_bd = oppositeCheck(segC, segD)
 
               // Case 2: A is opposite D, B is opposite C. Requires l1 == l2 (checked by `areOpposite`).
-              val ad_bc = (areOpposite(segA, segD) && areOpposite(segB, segC)) ||
-                (areOpposite(segA, segD.reverse) && areOpposite(segB, segC.reverse))
+              val ad_bc = oppositeCheck(segD, segC)
 
               ac_bd || ad_bc
             }
