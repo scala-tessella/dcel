@@ -95,6 +95,12 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     SimplePolygon(angles).parallelogonIndices shouldBe Some((1, 3, 5, 7))
   }
 
+  it should "be found for a 3x3 square" in {
+    val angles =
+      Vector.fill(4)(Vector(AngleDegree(90), AngleDegree(180), AngleDegree(180))).flatten
+    SimplePolygon(angles).parallelogonIndices shouldBe Some((0, 3, 6, 9))
+  }
+
   it should "be found for a regular hexagon" in {
     val hexagonAngles =
       Vector.fill(6)(AngleDegree(120))
