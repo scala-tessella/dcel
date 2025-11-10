@@ -102,7 +102,7 @@ object SimplePolygon:
               def oppositeCheck(oppositeA: Vector[AngleDegree], oppositeB: Vector[AngleDegree]) =
                 (areOpposite(segA, oppositeA) && areOpposite(segB, oppositeB)) ||
                   (areOpposite(segA, oppositeA.reverse) && areOpposite(segB, oppositeB.reverse))
-                
+
               // Case 1: A is opposite C, B is opposite D. This can be direct or reversed.
               val ac_bd = oppositeCheck(segC, segD)
 
@@ -112,3 +112,6 @@ object SimplePolygon:
               ac_bd || ad_bc
             }
           }
+
+    def parallelogonIndices: Option[(Int, Int, Int, Int)] =
+      ???

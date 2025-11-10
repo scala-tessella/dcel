@@ -70,6 +70,67 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       SimplePolygon.alphaSum(6).toRational shouldBe Rational(720)
     )
 
+  behavior of "SimplePolygon.parallelogonIndices"
+
+  it should "be found for a square" in {
+    val squareAngles = Vector.fill(4)(AngleDegree(90))
+    SimplePolygon(squareAngles).parallelogonIndices shouldBe Some((0, 1, 2, 3))
+  }
+
+  it should "be found for a regular pentagon" in {
+    val pentagonAngles =
+      Vector.fill(5)(AngleDegree(108))
+    SimplePolygon(pentagonAngles).parallelogonIndices shouldBe None
+  }
+
+  it should "be found for a 2x2 square" in {
+    val angles =
+      Vector.fill(4)(Vector(AngleDegree(90), AngleDegree(180))).flatten
+    SimplePolygon(angles).parallelogonIndices shouldBe Some((0, 2, 4, 6))
+  }
+
+  it should "be found for a 2x2 square with shifted angles" in {
+    val angles =
+      Vector.fill(4)(Vector(AngleDegree(180), AngleDegree(90))).flatten
+    SimplePolygon(angles).parallelogonIndices shouldBe Some((1, 3, 5, 7))
+  }
+
+  it should "be found for a regular hexagon" in {
+    val hexagonAngles =
+      Vector.fill(6)(AngleDegree(120))
+    SimplePolygon(hexagonAngles).parallelogonIndices shouldBe None
+  }
+
+  it should "be found for a scale" in {
+    val angles =
+      Vector(90, 150, 120, 150, 90, 210, 60, 210).map(AngleDegree(_))
+    SimplePolygon(angles).parallelogonIndices shouldBe Some((0, 2, 4, 6))
+  }
+
+  it should "be found for a 1x2 rectangle" in {
+    val angles =
+      Vector.fill(2)(Vector(AngleDegree(90), AngleDegree(90), AngleDegree(180))).flatten
+    SimplePolygon(angles).parallelogonIndices shouldBe Some((0, 1, 3, 4))
+  }
+
+  it should "be found for a 2x1 parallelogram" in {
+    val angles =
+      Vector.fill(2)(Vector(AngleDegree(60), AngleDegree(120), AngleDegree(180))).flatten
+    SimplePolygon(angles).parallelogonIndices shouldBe Some((0, 1, 3, 4))
+  }
+
+  it should "be found for a 2 joined regular hexagons boundary" in {
+    val angles =
+      Vector.fill(2)(Vector(
+        AngleDegree(120),
+        AngleDegree(120),
+        AngleDegree(120),
+        AngleDegree(120),
+        AngleDegree(240)
+      )).flatten
+    SimplePolygon(angles).parallelogonIndices shouldBe Some((0, 1, 5, 6))
+  }
+
   behavior of "SimplePolygon.canTileTorus"
 
   it should "be true for a square" in {
