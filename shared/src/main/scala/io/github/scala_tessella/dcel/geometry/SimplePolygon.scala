@@ -112,4 +112,61 @@ object SimplePolygon:
           }
 
     def parallelogonIndices: Option[(Int, Int, Int, Int)] =
-      ???
+      val n = angles.size
+
+      // Must have at least 4 sides and an even number of them to form opposite pairs.
+      if n < 4 || n % 2 != 0 then None
+      else
+        // Quick guard: a regular n-gon can tile a torus only if n=4 (a square).
+        if angles.map(_.normalised.toRational).distinct.size == 1 then
+          if n == 4 then Some(0, 1, 2, 3) else None
+        else
+          val half = n / 2
+
+          // Exterior turn at each vertex along the boundary (assuming unit edges).
+          val turns: Vector[AngleDegree] = angles.map(a => AngleDegree(180) - a.normalised)
+
+          val areFitting: (AngleDegree, AngleDegree) => Boolean = (x, y) => x == AngleDegree(-y.toRational)
+
+          // Checks if one sequence of turns is the negative of another (antiparallel).
+          def areOpposite(xs: Vector[AngleDegree], ys: Vector[AngleDegree]): Boolean =
+            xs.length == ys.length
+              && (
+              xs.lazyZip(ys).forall(areFitting)
+                || (xs == ys && xs.drop(1).lazyZip(ys.dropRight(1)).forall(areFitting))
+              )
+
+          // Slices the circular `turns` vector.
+          def circularSlice(start: Int, len: Int): Vector[AngleDegree] =
+            turns.sliceO(start, start + len).tail
+
+          var result: Option[(Int, Int, Int, Int)] = None
+
+          // Iterate over all possible starting vertices `s` (rotations of the polygon)
+          // and all possible splits `l1` of a half-boundary.
+          (0 until n).exists { s =>
+
+            (1 until half).exists { l1 =>
+              val l2 = half - l1
+
+              //              println(s"s=$s, l1=$l1, l2=$l2")
+
+              // The four segments of the boundary.
+              val segA = circularSlice(s, l1)
+              val segB = circularSlice(s + l1, l2)
+              val segC = circularSlice(s + half, l1)
+              val segD = circularSlice(s + half + l1, l2)
+
+              //              println(s"segA=$segA, segB=$segB, segC=$segC, segD=$segD")
+
+              val ac_bd = // oppositeCheck(segC, segD)
+                (areOpposite(segA, segC) && areOpposite(segB, segD)) ||
+                  (areOpposite(segA, segC.reverse) && areOpposite(segB, segD.reverse))
+
+              //              println(s"ac_bd=$ac_bd")
+              if ac_bd then result = Some((s, s + l1, s + half, s + half + l1))
+              ac_bd
+            }
+          }: Unit
+
+          result
