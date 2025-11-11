@@ -192,6 +192,21 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     SimplePolygon(angles).canTileTorus shouldBe true
   }
 
+  it should "be true for a 2x2 joined regular hexagons boundary" in {
+    val angles =
+      Vector.fill(2)(Vector(
+        AngleDegree(120),
+        AngleDegree(120),
+        AngleDegree(120),
+        AngleDegree(240),
+        AngleDegree(120),
+        AngleDegree(120),
+        AngleDegree(240),
+      )).flatten
+    SimplePolygon(angles).canTileTorus shouldBe true
+  }
+
+
   behavior of "RegularPolygon"
 
   it should "be created with a valid number of sides" in
