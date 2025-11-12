@@ -130,11 +130,11 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       Vector.fill(2)(Vector(
         AngleDegree(120),
         AngleDegree(120),
+        AngleDegree(240),
         AngleDegree(120),
-        AngleDegree(120),
-        AngleDegree(240)
+        AngleDegree(120)
       )).flatten
-    SimplePolygon(angles).parallelogonIndices shouldBe Some((0, 1, 5, 6))
+    SimplePolygon(angles).parallelogonIndices shouldBe Some((0, 4, 5, 9))
   }
 
   behavior of "SimplePolygon.canTileTorus"
