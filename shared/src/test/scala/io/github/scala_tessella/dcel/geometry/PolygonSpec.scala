@@ -201,11 +201,10 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
         AngleDegree(240),
         AngleDegree(120),
         AngleDegree(120),
-        AngleDegree(240),
+        AngleDegree(240)
       )).flatten
     SimplePolygon(angles).canTileTorus shouldBe true
   }
-
 
   behavior of "RegularPolygon"
 

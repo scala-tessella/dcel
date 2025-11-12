@@ -81,41 +81,29 @@ object SimplePolygon:
           def areOpposite(xs: Vector[AngleDegree], ys: Vector[AngleDegree]): Boolean =
             xs.length == ys.length
               && (
-              xs.lazyZip(ys).forall(areFitting)
-                || (xs == ys && xs.length > 1 && xs.drop(1).lazyZip(ys.dropRight(1)).forall(areFitting))
+                xs.lazyZip(ys).forall(areFitting)
+                  || (xs == ys && xs.length > 1 && xs.drop(1).lazyZip(ys.dropRight(1)).forall(areFitting))
               )
 
           // Slices the circular `turns` vector.
           def circularSlice(start: Int, len: Int): Vector[AngleDegree] =
             turns.sliceO(start, start + len).tail
 
-          var result: Option[(Int, Int, Int, Int)] = None
-
           // Iterate over all possible starting vertices `s` (rotations of the polygon)
           // and all possible splits `l1` of a half-boundary.
-          (0 until n).exists { s =>
+          (0 until n).view.flatMap { s =>
 
-            (1 until half).exists { l1 =>
-              val l2 = half - l1
+            (1 until half).collectFirst {
+              case l1 if {
+                    val l2   = half - l1
+                    val segA = circularSlice(s, l1)
+                    val segB = circularSlice(s + l1, l2)
+                    val segC = circularSlice(s + half, l1)
+                    val segD = circularSlice(s + half + l1, l2)
 
-              //              println(s"s=$s, l1=$l1, l2=$l2")
-
-              // The four segments of the boundary.
-              val segA = circularSlice(s, l1)
-              val segB = circularSlice(s + l1, l2)
-              val segC = circularSlice(s + half, l1)
-              val segD = circularSlice(s + half + l1, l2)
-
-              //              println(s"segA=$segA, segB=$segB, segC=$segC, segD=$segD")
-
-              val ac_bd = // oppositeCheck(segC, segD)
-                (areOpposite(segA, segC) && areOpposite(segB, segD)) ||
-                  (areOpposite(segA, segC.reverse) && areOpposite(segB, segD.reverse))
-
-              //              println(s"ac_bd=$ac_bd")
-              if ac_bd then result = Some((s, s + l1, s + half, s + half + l1))
-              ac_bd
+                    (areOpposite(segA, segC) && areOpposite(segB, segD)) ||
+                    (areOpposite(segA, segC.reverse) && areOpposite(segB, segD.reverse))
+                  } =>
+                (s, s + l1, s + half, s + half + l1)
             }
-          }: Unit
-
-          result
+          }.headOption
