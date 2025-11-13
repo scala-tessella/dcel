@@ -66,3 +66,34 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
     println(tiling)
     tiling.isRight shouldBe true
   }
+
+  behavior of "TilingTorusDCEL.fromTilingDCEL"
+
+  it should "be converted from a 2x2 square" in {
+    val tilingDCEL = TilingBuilder.createRhombusNet(2, 2)
+    val result = TilingTorusDCEL.fromTilingDCEL(tilingDCEL)
+    println(result)
+    result.isRight shouldBe true
+  }
+
+  it should "be converted from a 3x3 square" in {
+    val tilingDCEL = TilingBuilder.createRhombusNet(3, 3)
+    val result = TilingTorusDCEL.fromTilingDCEL(tilingDCEL)
+    println(result)
+    result.isRight shouldBe true
+  }
+
+  it should "be converted from a 3x2 square" in {
+    val tilingDCEL = TilingBuilder.createRhombusNet(3, 2)
+    val result = TilingTorusDCEL.fromTilingDCEL(tilingDCEL)
+    println(result)
+    result.isRight shouldBe true
+  }
+
+  it should "be converted from a 2x1 hexagon" in {
+    val tilingDCEL = TilingBuilder.createHexagonNet(2, 1)
+//    println(tilingDCEL.toSVG())
+    val result = TilingTorusDCEL.fromTilingDCEL(tilingDCEL)
+    println(result)
+    result.isRight shouldBe true
+  }

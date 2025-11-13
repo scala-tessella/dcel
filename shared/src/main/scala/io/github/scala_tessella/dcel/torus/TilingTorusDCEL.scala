@@ -4,7 +4,7 @@ import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.ACCURACY
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint}
 import io.github.scala_tessella.dcel.structure.*
 import io.github.scala_tessella.dcel.torus.TilingTorusValidation.validate
-import io.github.scala_tessella.dcel.{NotFoundError, TilingDCEL, TilingError}
+import io.github.scala_tessella.dcel.{NotFoundError, TilingDCEL, TilingError, TopologyError}
 import spire.implicits.*
 
 /** Represents the entire tiling structure as a container for its components.
@@ -528,6 +528,66 @@ object TilingTorusDCEL:
       halfEdges = List.empty,
       faces = List.empty
     )
+
+  def fromTilingDCEL(tilingDCEL: TilingDCEL): Either[TilingError, TilingTorusDCEL] =
+    tilingDCEL.boundarySimplePolygon.parallelogonIndices match
+      case None => Left(TopologyError("TilingDCEL does not have a parallelogram boundary"))
+      case Some((i0, i1, i2, i3)) =>
+        val boundaryVertices = tilingDCEL.boundaryVertices
+//        println(boundaryVertices(i0))
+//        println(boundaryVertices(i1))
+//        println(boundaryVertices(i2))
+//        println(boundaryVertices(i3))
+        val boundaryVertexIds = boundaryVertices.map(_.id)
+        val double = boundaryVertexIds ++ boundaryVertexIds
+        val len = i1 - i0
+        val firstPass = (0 to len).foldLeft(Nil: List[(VertexId, VertexId)])((l, index) =>
+          boundaryVertexIds(i0 + index) -> boundaryVertexIds(i3 - index) :: l
+        )
+        val len2 = i2 - i1
+        // This contains the total number of pairs of vertices that need to be connected by half edges
+        val pairsAcrossBoundary = (0 to len2).foldLeft(firstPass)((l, index) =>
+          boundaryVertexIds(i1 + index) -> double(i3 + len2 - index) :: l
+        )
+//        println(firstPass)
+//        println(pairsAcrossBoundary)
+        // Now perform the actual wiring
+        // Get boundary edges - these are the edges incident to the outer face
+        val boundaryEdges = tilingDCEL.boundaryEdges
+
+        // Build a map from origin vertex to boundary edge
+        val boundaryEdgeByOrigin = boundaryEdges.map(e => e.origin -> e).toMap
+
+        // For each pair of opposite vertices, rewire their boundary edges' twins
+        pairsAcrossBoundary.foreach { case (vIdA, vIdB) =>
+          for
+            vA <- tilingDCEL.findVertexUnsafe(vIdA)
+            vB <- tilingDCEL.findVertexUnsafe(vIdB)
+            boundaryEdgeA <- boundaryEdgeByOrigin.get(vA)
+            boundaryEdgeB <- boundaryEdgeByOrigin.get(vB)
+            twinA <- boundaryEdgeA.twin
+            twinB <- boundaryEdgeB.twin
+          do
+            // The twins of boundary edges point inward
+            // Wire them together so they become twins across the torus seam
+            twinA.twinWith(twinB)
+        }
+
+        // Collect all non-boundary half-edges (those not incident to outer face)
+        val innerHalfEdges = tilingDCEL.halfEdges.filterNot(e =>
+          e.incidentFace.contains(tilingDCEL.outerFace)
+        )
+
+        // Update leaving edges for all vertices to ensure they point to inner edges
+        tilingDCEL.vertices.foreach { v =>
+          val leavingEdge = v.leaving.flatMap { e =>
+            if innerHalfEdges.contains(e) then Some(e)
+            else innerHalfEdges.find(_.origin == v)
+          }.orElse(innerHalfEdges.find(_.origin == v))
+          v.leaving = leavingEdge
+        }
+
+        fromUntrusted(tilingDCEL.vertices, innerHalfEdges, tilingDCEL.innerFaces)
 
   // 3D SVG options
   final case class TorusSvg3DOptions(
