@@ -658,7 +658,7 @@ object TilingTorusDCEL:
 
         // Inclusive circular slice: [s .. e] with wrap-around via e possibly >= n.
         def inclusiveSide(s: Int, e: Int): Vector[Int] =
-          val open = idxRing.sliceO(s, e) // includes s, excludes e (with circular semantics)
+          val open = idxRing.sliceO(s, e) // includes s, excludes e (circular)
           open :+ wrap(e) // add endpoint
 
         // Four parallelogon sides as inclusive arcs
@@ -735,7 +735,7 @@ object TilingTorusDCEL:
         val newVertices: List[Vertex] =
           repToVertex.values.toList
 
-        // ---- 4. Clone inner half-edges (drop outer-face half-edges) ----
+        // ---- 4. Clone inner half-edges (drop outer-face edges) ----
         val oldInnerEdges = tilingDCEL.halfEdges.filterNot(tilingDCEL.isBoundaryEdge)
         val edgeMap = mutable.HashMap.empty[HalfEdge, HalfEdge]
         val oldInnerEdgesS = oldInnerEdges.toSet
@@ -784,60 +784,52 @@ object TilingTorusDCEL:
           }
         }
 
-        // ---- 7. Wire twins for inner–inner edges (non-boundary) ----
-        oldInnerEdges.foreach { oe =>
-          val ne = edgeMap(oe)
-          oe.twin.foreach { ot =>
-            if oldInnerEdgesS.contains(ot) then
-              val nt = edgeMap(ot)
-              if ne.twin.isEmpty && nt.twin.isEmpty then
-                ne.twinWith(nt)
-          }
-        }
-
-        // ---- 8. Rewire boundary-inner edges between opposite sides ----
-        val boundaryInnerEdges = boundaryEdges.map(_.twin.get)
-
-        // Helper: get corresponding inner edge and its clone for a boundary index
-        def innerOldAt(idx: Int): HalfEdge =
-          boundaryInnerEdges(idx)
-
-        def innerNewAt(idx: Int): HalfEdge =
-          edgeMap(innerOldAt(idx))
-
-        val innerA = sideA.map(innerNewAt)
-        val innerB = sideB.map(innerNewAt)
-        val innerC = sideC.map(innerNewAt)
-        val innerD = sideD.map(innerNewAt)
-
-        // A <-> C (note: we already reversed C for vertex equivalence, but edges are oriented; we still pair by index)
-        innerA.zip(innerC).foreach { case (ea, ec) =>
-          // Overwrite any existing twin relation (should be none at this point)
-          ea.twin = None
-          ec.twin = None
-          ea.twinWith(ec)
-        }
-
-        // B <-> D
-        innerB.zip(innerD).foreach { case (eb, ed) =>
-          eb.twin = None
-          ed.twin = None
-          eb.twinWith(ed)
-        }
-
-        // ---- 9. Ensure each new vertex has a leaving edge ----
+        // ---- 7. Wire twins purely by endpoints in the NEW graph ----
+        // Use origin and destination = next.origin to define directed edge keys.
         val allNewEdges = edgeMap.values.toList
+
+        def destOf(e: HalfEdge): Option[Vertex] =
+          e.next.map(_.origin)
+
+        // Build buckets: (originId, destId) -> List[HalfEdge]
+        val buckets: Map[(String, String), List[HalfEdge]] =
+          allNewEdges
+            .flatMap { e =>
+              destOf(e).map { d =>
+                ((e.origin.id.value, d.id.value), e)
+              }
+            }
+            .groupBy(_._1)
+            .view
+            .mapValues(_.map(_._2))
+            .toMap
+
+        inline def keyOpp(k: (String, String)) = (k._2, k._1)
+
+        for
+          (k, list) <- buckets
+          opp <- buckets.get(keyOpp(k))
+        do
+          val n = Math.min(list.size, opp.size)
+          var i = 0
+          while i < n do
+            val e1 = list(i)
+            val e2 = opp(i)
+            if e1.twin.isEmpty && e2.twin.isEmpty then e1.twinWith(e2)
+            i += 1
+
+        // ---- 8. Ensure each new vertex has a leaving edge ----
         newVertices.foreach { v =>
           if v.leaving.isEmpty then
             v.leaving = allNewEdges.find(_.origin eq v)
         }
 
-        // ---- 10. Build the torus DCEL (only inner faces, no outer face) ----
+        // ---- 9. Build the torus DCEL (only inner faces, no outer face) ----
         val newFaces = faceMap.values.toList
 
-        println(s"newFaces: ${newFaces.size} $newFaces")
-        println(s"newVertices: ${newVertices.size} $newVertices")
-        println(s"allNewEdges: ${allNewEdges.size} $allNewEdges")
+//        println(s"newFaces: ${newFaces.size} $newFaces")
+//        println(s"newVertices: ${newVertices.size} $newVertices")
+//        println(s"allNewEdges: ${allNewEdges.size} $allNewEdges")
         fromUntrusted(
           vertices = newVertices,
           halfEdges = allNewEdges,
