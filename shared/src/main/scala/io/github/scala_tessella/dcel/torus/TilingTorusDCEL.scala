@@ -544,6 +544,7 @@ object TilingTorusDCEL:
         // Ids of the vertices that will not be part of the TilingTorusDCEL
         val deletableVertexIds = boundaryVertexIds.sliceO(i2, i0 + boundaryVertexIds.size + 1)
         println(s"deletableVertexIds: $deletableVertexIds")
+        // Vertices that will be part of the TilingTorusDCEL
         val remainingVertices = tilingDCEL.vertices.filterNot(vertex => deletableVertexIds.contains(vertex.id))
         println(s"remainingVertices: ${remainingVertices.size} $remainingVertices")
         println(s"remainingVertices leaving edges: ${remainingVertices.map(_.leaving)}")
@@ -561,11 +562,9 @@ object TilingTorusDCEL:
         println(s"newVertices: ${newVertices.size} $newVertices")
         println(s"newVertices leaving edges: ${newVertices.map(_.leaving)}")
 
-
-        val x = newVertices.filter(vertex => deletableVertexIds.contains(vertex.leaving.get.destination.get.id))
-        println(s"x: ${x.size} $x")
-
+        // convert vertexId to new vertex
         val toNewVertex: VertexId => Vertex = vertexId => newVertices.find(_.id == vertexId).get
+
 
         val double = boundaryVertexIds ++ boundaryVertexIds
         val len = i1 - i0
@@ -576,10 +575,10 @@ object TilingTorusDCEL:
         val len2 = i2 - i1
 
         // Map from deletable vertex ID to old vertex that substitutes it
-        val pairsAcrossBoundary = (0 until len2).foldLeft(firstPass)((l, index) =>
+        val substitutionMap = (0 until len2).foldLeft(firstPass)((l, index) =>
           double(i3 + len2 - index) -> toNewVertex(boundaryVertexIds(i1 + index)) :: l
-        ).reverse.toMap
-        println(s"substitution map: $pairsAcrossBoundary")
+        ).toMap
+        println(s"substitution map: $substitutionMap")
 
 
         // boundary edges that must be deleted together with their twins
@@ -587,24 +586,26 @@ object TilingTorusDCEL:
         val deletableBoundaryEdgesTwins = deletableBoundaryEdges.map(_.twin.get)
         println(s"boundaryVertexIds: $boundaryVertexIds")
         println(s"i0: $i0, i2: $i2")
-//        println(s"ring: $selectedRing")
-//        println(selected2)
         println(s"original total edges: ${tilingDCEL.halfEdges.size}")
         println(s"deletableBoundaryEdges: ${deletableBoundaryEdges.size} $deletableBoundaryEdges")
         println(s"deletableBoundaryEdgesTwins: ${deletableBoundaryEdgesTwins.size} $deletableBoundaryEdgesTwins")
 
-        val filtered = tilingDCEL.halfEdges.diff(deletableBoundaryEdges ++ deletableBoundaryEdgesTwins)
-        println(s"filtered: ${filtered.size} $filtered")
+        val remainingHalfEdges = tilingDCEL.halfEdges.diff(deletableBoundaryEdges ++ deletableBoundaryEdgesTwins)
+        println(s"remainingHalfEdges: ${remainingHalfEdges.size} $remainingHalfEdges")
 
-        val (toBeChanged, unchanged) = filtered.partition(e => deletableVertexIds.contains(e.origin.id) || deletableVertexIds.contains(e.twin.get.origin.id))
+        // split between edges that need a substitution and those that don't
+        val (toBeChanged, unchanged) = remainingHalfEdges.partition(e =>
+          deletableVertexIds.contains(e.origin.id) || deletableVertexIds.contains(e.twin.get.origin.id)
+        )
         println(s"toBeChanged: ${toBeChanged.size} $toBeChanged")
         println(s"unchanged: ${unchanged.size} $unchanged")
 
+        // create new edges plus twins with substitution
         val changed = toBeChanged.collect {
           case e if deletableVertexIds.contains(e.origin.id) =>
             val he =
               HalfEdge(
-                origin = pairsAcrossBoundary(e.origin.id),
+                origin = substitutionMap(e.origin.id),
                 twin = e.twin,
                 incidentFace = e.incidentFace,
                 next = e.next,
