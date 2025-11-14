@@ -543,7 +543,7 @@ object TilingTorusDCEL:
 
         // Ids of the vertices that will not be part of the TilingTorusDCEL
         val deletableVertexIds = boundaryVertexIds.sliceO(i2, i0 + boundaryVertexIds.size + 1)
-        println(s"deletable: $deletableVertexIds")
+        println(s"deletableVertexIds: $deletableVertexIds")
         val remainingVertices = tilingDCEL.vertices.filterNot(vertex => deletableVertexIds.contains(vertex.id))
         println(s"remainingVertices: ${remainingVertices.size} $remainingVertices")
         println(s"remainingVertices leaving edges: ${remainingVertices.map(_.leaving)}")
@@ -565,36 +565,35 @@ object TilingTorusDCEL:
         val x = newVertices.filter(vertex => deletableVertexIds.contains(vertex.leaving.get.destination.get.id))
         println(s"x: ${x.size} $x")
 
+        val toNewVertex: VertexId => Vertex = vertexId => newVertices.find(_.id == vertexId).get
 
         val double = boundaryVertexIds ++ boundaryVertexIds
         val len = i1 - i0
-        val start = boundaryVertexIds(i3) -> boundaryVertices(len)
+        val start = boundaryVertexIds(i3) -> toNewVertex(boundaryVertexIds(len))
         val firstPass = (1 to len).foldLeft(List(start))((l, index) =>
-          boundaryVertexIds(i3 - index) -> boundaryVertices(i0 + index) :: l
+          boundaryVertexIds(i3 - index) -> toNewVertex(boundaryVertexIds(i0 + index)) :: l
         )
         val len2 = i2 - i1
 
-        // This contains pairs of vertices, each pair need to be joined in one vertex
-        // The first vertex in each pair is the one that must remain, the second one is the one that must be removed
+        // Map from deletable vertex ID to old vertex that substitutes it
         val pairsAcrossBoundary = (0 until len2).foldLeft(firstPass)((l, index) =>
-          double(i3 + len2 - index) -> boundaryVertices(i1 + index) :: l
+          double(i3 + len2 - index) -> toNewVertex(boundaryVertexIds(i1 + index)) :: l
         ).reverse.toMap
-        println(pairsAcrossBoundary)
+        println(s"substitution map: $pairsAcrossBoundary")
 
 
-//        val selectedRing = boundaryVertexIds.sliceO(i2, i0 + boundaryVertexIds.size)
-//        val selected2 = tilingDCEL.boundaryEdges.slice(i0, i2)
-        val selected2Ring = tilingDCEL.boundaryEdges.sliceO(i2, i0 + tilingDCEL.boundaryEdges.size)
-        val selected2twins = selected2Ring.map(_.twin.get)
+        // boundary edges that must be deleted together with their twins
+        val deletableBoundaryEdges = tilingDCEL.boundaryEdges.sliceO(i2, i0 + tilingDCEL.boundaryEdges.size)
+        val deletableBoundaryEdgesTwins = deletableBoundaryEdges.map(_.twin.get)
         println(s"boundaryVertexIds: $boundaryVertexIds")
         println(s"i0: $i0, i2: $i2")
 //        println(s"ring: $selectedRing")
 //        println(selected2)
         println(s"original total edges: ${tilingDCEL.halfEdges.size}")
-        println(s"ring: ${selected2Ring.size} $selected2Ring")
-        println(s"ring twins: ${selected2twins.size} $selected2twins")
+        println(s"deletableBoundaryEdges: ${deletableBoundaryEdges.size} $deletableBoundaryEdges")
+        println(s"deletableBoundaryEdgesTwins: ${deletableBoundaryEdgesTwins.size} $deletableBoundaryEdgesTwins")
 
-        val filtered = tilingDCEL.halfEdges.diff(selected2Ring ++ selected2twins)
+        val filtered = tilingDCEL.halfEdges.diff(deletableBoundaryEdges ++ deletableBoundaryEdgesTwins)
         println(s"filtered: ${filtered.size} $filtered")
 
         val (toBeChanged, unchanged) = filtered.partition(e => deletableVertexIds.contains(e.origin.id) || deletableVertexIds.contains(e.twin.get.origin.id))
@@ -615,7 +614,7 @@ object TilingTorusDCEL:
             List(
               he,
               HalfEdge(
-                origin = e.twin.map(_.origin).get,
+                origin = toNewVertex(e.twin.map(_.origin.id).get),
                 twin = Some(he),
                 incidentFace = e.twin.flatMap(_.incidentFace),
                 next = e.twin.flatMap(_.next),
@@ -628,120 +627,11 @@ object TilingTorusDCEL:
         val newHalfEdges = unchanged ++ changed
         println(s"newHalfEdges: ${newHalfEdges.size} $newHalfEdges")
 
-//        val newVertices =
-//          tilingDCEL.vertices
-//            .filterNot(v => deletableVertexIds.contains(v.id))
-////            .map(v => if newHalfEdges.contains(v.leaving.get) then v
-////            else
-////              find(_.origin.id == v.id) match {
-////              case Some(edge) => v
-////              case None => throw Error("This should not happen")
-////            }))
-//        println(s"newVertices: ${newVertices.size} $newVertices")
-//        println(s"newVertices leaving edges: ${newVertices.map(_.leaving)}")
-
-
         fromUntrusted(
           vertices = newVertices,
           halfEdges = newHalfEdges,
           faces = tilingDCEL.innerFaces
         )
-
-
-//        ////val x = tilingDCEL.boundaryEdges.filter(
-//
-//        // Create a mapping from vertex ID to keep to vertex ID to remove
-//        val vertexMergeMap = pairsAcrossBoundary.toMap
-//        println(vertexMergeMap)
-//
-//        // Create a mapping from old vertex to new vertex (vertices to keep stay the same)
-//        val vertexMapping = scala.collection.mutable.HashMap[Vertex, Vertex]()
-//        tilingDCEL.vertices.foreach { v =>
-//          vertexMergeMap.get(v.id) match
-//            case Some(target) =>
-//              // This vertex should be merged into targetId
-//              val targetVertex = tilingDCEL.findVertexUnsafe(target.id).get
-//              vertexMapping(v) = targetVertex
-//            case None =>
-//              // This vertex stays as is
-//              vertexMapping(v) = v
-//        }
-//        println(vertexMapping)
-//
-//        // Clone vertices that are kept (not merged away), clearing their leaving edge references
-//        val keptVertices = tilingDCEL.vertices.filter(v => !vertexMergeMap.values.toSet.contains(v.id))
-//        println(keptVertices)
-//
-//        val newVertexMap = scala.collection.mutable.HashMap[VertexId, Vertex]()
-//        keptVertices.foreach { v =>
-//          val newV = Vertex(v.id, v.coords, leaving = None)
-//          newVertexMap(v.id) = newV
-//        }
-//
-//        // Clone half-edges, remapping their origins
-//        val newEdgeMap = scala.collection.mutable.HashMap[HalfEdge, HalfEdge]()
-//        tilingDCEL.halfEdges.filter(!tilingDCEL.isBoundaryEdge(_)).foreach { oldEdge =>
-//          val mappedOrigin = vertexMapping(oldEdge.origin)
-//          val newOrigin = newVertexMap(mappedOrigin.id)
-//          val newEdge = HalfEdge(newOrigin)
-//          newEdge.angle = oldEdge.angle
-//          newEdgeMap(oldEdge) = newEdge
-//        }
-//
-//        // Wire twins, next, prev
-//        newEdgeMap.foreach { case (oldEdge, newEdge) =>
-//          // Twin
-//          oldEdge.twin.foreach { oldTwin =>
-//            if !tilingDCEL.isBoundaryEdge(oldTwin) then
-//              newEdgeMap.get(oldTwin).foreach { newTwin =>
-//                if newEdge.twin.isEmpty && newTwin.twin.isEmpty then
-//                  newEdge.twinWith(newTwin)
-//              }
-//          }
-//
-//          // Next
-//          oldEdge.next.foreach { oldNext =>
-//            newEdgeMap.get(oldNext).foreach { newNext =>
-//              newEdge.linkWith(newNext)
-//            }
-//          }
-//        }
-//
-//        // Clone faces
-//        val newFaceMap = scala.collection.mutable.HashMap[FaceId, Face]()
-//        tilingDCEL.innerFaces.foreach { oldFace =>
-//          val newFace = Face(oldFace.id, outerComponent = None, innerComponents = Nil)
-//          newFaceMap(oldFace.id) = newFace
-//
-//          // Set outerComponent
-//          oldFace.outerComponent.foreach { oldEdge =>
-//            newEdgeMap.get(oldEdge).foreach { newEdge =>
-//              newFace.outerComponent = Some(newEdge)
-//            }
-//          }
-//
-//          // Update incident face for all edges in this face's cycle
-//          oldFace.outerComponent.foreach { startEdge =>
-//            val cycle = startEdge.faceTraversalUnsafe()
-//            cycle.foreach { oldEdge =>
-//              newEdgeMap.get(oldEdge).foreach { newEdge =>
-//                newEdge.incidentFace = Some(newFace)
-//              }
-//            }
-//          }
-//        }
-//
-//        // Set leaving edges for vertices
-//        newEdgeMap.values.foreach { edge =>
-//          if edge.origin.leaving.isEmpty then
-//            edge.origin.leaving = Some(edge)
-//        }
-//
-//        fromUntrusted(
-//          vertices = newVertexMap.values.toList,
-//          halfEdges = newEdgeMap.values.toList,
-//          faces = newFaceMap.values.toList
-//        )
 
   // 3D SVG options
   final case class TorusSvg3DOptions(
