@@ -64,8 +64,6 @@ object TilingTorusValidation:
         if !edgeSet.contains(twin) then
           errors += s"Edge from ${edge.origin.id} twin is not part of this tiling"
         else
-          if twin eq edge then
-            errors += s"Edge from ${edge.origin.id} has itself as twin"
           if !safeGet(
               twin.twin,
               s"Twin of edge from ${edge.origin.id} missing back-reference",
