@@ -31,18 +31,22 @@ object AngleDegree:
     def toBigRadian: BigRadian =
       BigRadian(BigDecimal(spire.math.pi) * (d / 180).toDouble)
 
+    /** Returns the angle (in degrees) >= 0 and < 360 */
     def normalised: AngleDegree =
       d.toRational.fmod(R360)
 
     def isFullCircle: Boolean =
       normalised == Rational(0)
 
+    /** Returns the angle (in degrees) that is -d. */
     def inverted: AngleDegree =
       -d
 
+    /** Returns the angle (in degrees) that is 360 - d. */
     def conjugate: AngleDegree =
       R360 - d
 
+    /** Returns the angle (in degrees) that is 180 - d. */
     def supplement: AngleDegree =
       R180 - d
 

@@ -73,9 +73,9 @@ object SimplePolygon:
           val half = n / 2
 
           // Exterior turn at each vertex along the boundary (assuming unit edges).
-          val turns: Vector[AngleDegree] = angles.map(a => AngleDegree(180) - a.normalised)
+          val turns: Vector[AngleDegree] = angles.map(_.normalised.supplement)
 
-          val areFitting: (AngleDegree, AngleDegree) => Boolean = (x, y) => x == AngleDegree(-y.toRational)
+          val areFitting: (AngleDegree, AngleDegree) => Boolean = _ == _.inverted
 
           // Checks if one sequence of turns is the negative of another (antiparallel).
           def areOpposite(xs: Vector[AngleDegree], ys: Vector[AngleDegree]): Boolean =
