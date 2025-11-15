@@ -45,6 +45,9 @@ final class HalfEdge(
   def destination: Option[Vertex] =
     twin.map(_.origin)
 
+  def isLoop: Option[Boolean] =
+    destination.map(_ == origin)
+    
   def endpointsAsVertices: Option[(Vertex, Vertex)] =
     destination.map(dest => (origin, dest))
 
