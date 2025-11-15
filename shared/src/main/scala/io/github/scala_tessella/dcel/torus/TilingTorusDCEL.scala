@@ -653,10 +653,8 @@ object TilingTorusDCEL:
 
         inline def wrap(idx: Int): Int = (idx % n + n) % n
 
-        // Index ring [0..n)
         val idxRing = (0 until n).toVector
 
-        // Inclusive circular slice: [s .. e] with wrap-around via e possibly >= n.
         def inclusiveSide(s: Int, e: Int): Vector[Int] =
           val open = idxRing.sliceO(s, e) // includes s, excludes e (circular)
           open :+ wrap(e) // add endpoint
@@ -670,7 +668,42 @@ object TilingTorusDCEL:
         if sideA.size != sideC.size || sideB.size != sideD.size then
           return Left(TopologyError("Parallelogram sides do not have matching lengths"))
 
-        // ---- 2. Union–find over boundary vertex IDs using index pairing ----
+        // ---- 2. Classify A↔C and B↔D from boundary angles ----
+        val boundaryAngles = tilingDCEL.boundarySimplePolygon.toAngles
+        val half = boundaryAngles.size / 2
+
+        val turns: Vector[AngleDegree] =
+          boundaryAngles.map(_.normalised.supplement)
+
+        val areFitting: (AngleDegree, AngleDegree) => Boolean =
+          (x, y) => x == y.inverted
+
+        def circularSlice(start: Int, len: Int): Vector[AngleDegree] =
+          // same slicing as in SimplePolygon.parallelogonIndices
+          turns.sliceO(start, start + len).tail
+
+        val l1 = (i1 - i0 + n) % n
+        val l2 = half - l1
+        val segA = circularSlice(i0, l1)
+        val segB = circularSlice(i0 + l1, l2)
+        val segC = circularSlice(i0 + half, l1)
+        val segD = circularSlice(i0 + half + l1, l2)
+
+        def areOppositeUnshifted(xs: Vector[AngleDegree], ys: Vector[AngleDegree]): Boolean =
+          xs.length == ys.length && xs.lazyZip(ys).forall(areFitting)
+
+        // Same “properly shifted by 1” as in SimplePolygon, but only that case
+        def areOppositeShifted(xs: Vector[AngleDegree], ys: Vector[AngleDegree]): Boolean =
+          xs.length == ys.length &&
+            xs == ys &&
+            xs.length > 1 &&
+            xs.drop(1).lazyZip(ys.dropRight(1)).forall(areFitting)
+
+        val shiftedAC = areOppositeShifted(segA, segC)
+        val shiftedBD = areOppositeShifted(segB, segD)
+        println(s"shiftedAC: $shiftedAC, shiftedBD: $shiftedBD")
+
+        // ---- 3. Union–find over boundary vertex IDs using index pairing ----
         import scala.collection.mutable
 
         val parent = mutable.HashMap.empty[VertexId, VertexId]
@@ -709,7 +742,7 @@ object TilingTorusDCEL:
           union(vb, vd)
         }
 
-        // ---- 3. Build new vertices, one per equivalence class ----
+        // ---- 4. Build new vertices, one per equivalence class ----
         val oldVertices = tilingDCEL.vertices
 
         // Representative -> new vertex
@@ -735,7 +768,7 @@ object TilingTorusDCEL:
         val newVertices: List[Vertex] =
           repToVertex.values.toList
 
-        // ---- 4. Clone inner half-edges (drop outer-face edges) ----
+        // ---- 5. Clone inner half-edges (drop outer-face edges) ----
         val oldInnerEdges = tilingDCEL.halfEdges.filterNot(tilingDCEL.isBoundaryEdge)
         val edgeMap = mutable.HashMap.empty[HalfEdge, HalfEdge]
         val oldInnerEdgesS = oldInnerEdges.toSet
@@ -748,7 +781,7 @@ object TilingTorusDCEL:
           edgeMap(e) = ne
         }
 
-        // ---- 5. Clone inner faces ----
+        // ---- 6. Clone inner faces ----
         val oldInnerFaces = tilingDCEL.innerFaces
         val faceMap = mutable.HashMap.empty[Face, Face]
 
@@ -756,7 +789,7 @@ object TilingTorusDCEL:
           faceMap(f) = Face(f.id)
         }
 
-        // ---- 6. Wire next/prev and incidentFace using the edge/face maps ----
+        // ---- 7. Wire next/prev and incidentFace using the edge/face maps ----
         oldInnerEdges.foreach { oe =>
           val ne = edgeMap(oe)
 
@@ -784,8 +817,7 @@ object TilingTorusDCEL:
           }
         }
 
-        // ---- 7. Wire twins purely by endpoints in the NEW graph ----
-        // Use origin and destination = next.origin to define directed edge keys.
+        // ---- 8. Wire twins purely by endpoints in the NEW graph ----
         val allNewEdges = edgeMap.values.toList
 
         def destOf(e: HalfEdge): Option[Vertex] =
@@ -810,21 +842,21 @@ object TilingTorusDCEL:
           (k, list) <- buckets
           opp <- buckets.get(keyOpp(k))
         do
-          val n = Math.min(list.size, opp.size)
+          val m = Math.min(list.size, opp.size)
           var i = 0
-          while i < n do
+          while i < m do
             val e1 = list(i)
             val e2 = opp(i)
             if e1.twin.isEmpty && e2.twin.isEmpty then e1.twinWith(e2)
             i += 1
 
-        // ---- 8. Ensure each new vertex has a leaving edge ----
+        // ---- 9. Ensure each new vertex has a leaving edge ----
         newVertices.foreach { v =>
           if v.leaving.isEmpty then
             v.leaving = allNewEdges.find(_.origin eq v)
         }
 
-        // ---- 9. Build the torus DCEL (only inner faces, no outer face) ----
+        // ---- 10. Build the torus DCEL (only inner faces, no outer face) ----
         val newFaces = faceMap.values.toList
 
 //        println(s"newFaces: ${newFaces.size} $newFaces")
