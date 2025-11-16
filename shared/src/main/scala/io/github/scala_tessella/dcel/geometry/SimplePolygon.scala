@@ -29,7 +29,7 @@ object SimplePolygon:
       val expectedAngleSum = alphaSum(n)
       if (angleSum - expectedAngleSum).toRational.abs > ACCURACY then
         throw new IllegalArgumentException(
-          f"The sum of interior angles is incorrect for a polygon with $n sides. Expected ${expectedAngleSum.toRational.toDouble}%.2f, but got ${angleSum.toRational.toDouble}%.2f."
+          f"The sum of interior angles is incorrect for a polygon with $n unit sides. Expected ${expectedAngleSum.toRational.toDouble}%.2f, but got ${angleSum.toRational.toDouble}%.2f."
         )
       else
         angles
@@ -39,6 +39,12 @@ object SimplePolygon:
     /** @return the underlying number of sides */
     def toAngles: Vector[AngleDegree] =
       angles
+
+    def multiplySidesBy(n: Int = 1): SimplePolygon =
+      if n < 1 then
+        throw new IllegalArgumentException("A simple polygon must have sides of at least unit length.")
+      else 
+        SimplePolygon(angles.flatMap(_ +: Vector.fill(n - 1)(AngleDegree(180))))
 
     /** Checks if the polygon can tile a torus.
       *

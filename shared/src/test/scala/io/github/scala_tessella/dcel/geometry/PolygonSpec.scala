@@ -70,6 +70,26 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       SimplePolygon.alphaSum(6).toRational shouldBe Rational(720)
     )
 
+  behavior of "SimplePolygon.multiplySidesBy"
+
+  val triangleAngles: Vector[AngleDegree] = Vector.fill(3)(AngleDegree(60))
+
+  it should "triplicate a triangle" in {
+    SimplePolygon(triangleAngles).multiplySidesBy(3) shouldBe
+      Vector(60, 180, 180, 60, 180, 180, 60, 180, 180).map(AngleDegree(_))
+  }
+
+  it should "remain the same when multiplied by one" in {
+    SimplePolygon(triangleAngles).multiplySidesBy(1) shouldBe
+      triangleAngles
+  }
+
+  it should "fail if factor is < 1" in {
+    the[IllegalArgumentException] thrownBy
+      SimplePolygon(triangleAngles).multiplySidesBy(0) should have message
+        "A simple polygon must have sides of at least unit length."
+  }
+
   behavior of "SimplePolygon.parallelogonIndices"
 
   it should "be found for a square" in {
