@@ -471,7 +471,7 @@ object TilingSVG:
           createSvgSection(
             "Vertex Labels",
             vertexLabels,
-            attrs("font-size" -> (strokeWidth * 8).toInt, "fill" -> "darkblue")
+            attrs("font-size" -> (strokeWidth * 8).toInt, "fill" -> "blue")
           )
         ).flatten
 
