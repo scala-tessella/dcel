@@ -82,7 +82,10 @@ object SimplePolygon:
       else
         // Quick guard: a regular n-gon can tile a torus only if n=4 (a square).
         if angles.map(_.normalised.toRational).distinct.size == 1 then
-          if n == 4 then Some(0, 1, 2, 3) else None
+          if n == 4 then
+            println(List(List(0, 1, 2, 3)))
+            Some(0, 1, 2, 3)
+          else None
         else
           val half = n / 2
 
@@ -129,8 +132,27 @@ object SimplePolygon:
                     val segC = circularSlice(s + half, l1)
                     val segD = circularSlice(s + half + l1, l2)
 
-                    (areOpposite(segA, segC).isDefined && areOpposite(segB, segD).isDefined) ||
-                    (areOpposite(segA, segC.reverse).isDefined && areOpposite(segB, segD.reverse).isDefined)
+                    def groupOpposite(start1: Int, len: Int, shift: Int): List[List[Int]] =
+                      val startOpposite = start1 + half
+                      println(s"start: $start1, len $len, startOpposite: $startOpposite, half: $half, shift")
+                      (start1 to start1 + len).map(i => List((startOpposite + len - i + start1) % n, i)).toList
+
+                    def equivalenceGroups(unmatched: List[List[Int]]): List[List[Int]] =
+                      (0 until n).foldLeft(unmatched)((groups, index) =>
+                        val (found, unfound) = groups.partition(_.contains(index))
+                        found.flatten.distinct :: unfound
+                      )
+
+                    if areOpposite(segA, segC).isDefined && areOpposite(segB, segD).isDefined then
+                      println(s"Found a matching pair of opposite sides at $s, $l1")
+                      val oppositeAC = groupOpposite(s, l1, 0)
+                      val oppositeBD = groupOpposite(s + l1, l2, 0)
+                      println(s"substition C -> A: $oppositeAC")
+                      println(s"substition D -> B: $oppositeBD")
+                      println(s"grouped: ${equivalenceGroups(oppositeAC ::: oppositeBD)}")
+
+                    areOpposite(segA, segC).isDefined && areOpposite(segB, segD).isDefined
+//                      || (areOpposite(segA, segC.reverse).isDefined && areOpposite(segB, segD.reverse).isDefined)
                   } =>
                 (s, s + l1, s + half, s + half + l1)
             }
