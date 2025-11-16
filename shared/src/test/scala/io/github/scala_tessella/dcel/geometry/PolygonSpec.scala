@@ -144,24 +144,16 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   }
 
   it should "be found for a 2 joined regular hexagons boundary multiplied by 2" in {
+    /** <img src="file:../../../../../../resources/simple/doubledJoinedHexs.svg"/> */
     val doubledJoinedHexs = twoJoinedHexs.multiplySidesBy(2)
     doubledJoinedHexs.parallelogonIndices shouldBe Some((0, 8, 10, 18))
   }
 
-  behavior of "SimplePolygon.canTileTorus"
-
   it should "be true for a 2x2 joined regular hexagons boundary" in {
-    val angles =
-      Vector.fill(2)(Vector(
-        AngleDegree(120),
-        AngleDegree(120),
-        AngleDegree(120),
-        AngleDegree(240),
-        AngleDegree(120),
-        AngleDegree(120),
-        AngleDegree(240)
-      )).flatten
-    SimplePolygon(angles).canTileTorus shouldBe true
+    /** <img src="file:../../../../../../resources/simple/fourJoinedHexs.svg"/> */
+    val fourJoinedHexs: SimplePolygon =
+      SimplePolygon(120, 120, 240, 120, 120, 240, 120, 120, 120, 240, 120, 120, 240, 120)
+    fourJoinedHexs.parallelogonIndices shouldBe Some((0, 3, 7, 10))
   }
 
   behavior of "RegularPolygon"
