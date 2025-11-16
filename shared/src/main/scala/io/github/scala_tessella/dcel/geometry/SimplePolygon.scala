@@ -91,9 +91,10 @@ object SimplePolygon:
 
           val areFitting: (AngleDegree, AngleDegree) => Boolean = _ == _.inverted
 
-          // Checks if one sequence of turns is the negative of another (antiparallel) when shifted by one element.
+          // Checks if one sequence of turns is the negative of another (antiparallel) when shifted by 1 or + elements.
           def areOppositeShifted(xs: Vector[AngleDegree], ys: Vector[AngleDegree]): Boolean =
-            xs == ys && xs.length > 1 && xs.drop(1).lazyZip(ys.dropRight(1)).forall(areFitting)
+            xs == ys && xs.length > 1 &&
+              (1 to (xs.length / 2)).exists(n => xs.drop(n).lazyZip(ys.dropRight(n)).forall(areFitting))
 
           // Checks if one sequence of turns is the negative of another (antiparallel).
           def areOpposite(xs: Vector[AngleDegree], ys: Vector[AngleDegree]): Boolean =
