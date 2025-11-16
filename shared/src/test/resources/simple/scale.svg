@@ -16,7 +16,7 @@
             <circle cx="-0" cy="-50" r="2.0"/>
         </g>
         <!-- Vertex Labels -->
-        <g font-size="8" fill="darkblue">
+        <g font-size="8" fill="blue">
             <text x="2.5" y="-2.5">0 - 90°</text>
             <text x="52.5" y="-2.5">1 - 150°</text>
             <text x="95.80127" y="-27.5">2 - 120°</text>
