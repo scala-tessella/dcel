@@ -47,7 +47,7 @@ final class HalfEdge(
 
   def isLoop: Option[Boolean] =
     destination.map(_ == origin)
-    
+
   def endpointsAsVertices: Option[(Vertex, Vertex)] =
     destination.map(dest => (origin, dest))
 

@@ -1,7 +1,13 @@
 package io.github.scala_tessella.dcel.conversion
 
 import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.*
-import io.github.scala_tessella.dcel.geometry.{BigDecimalGeometry, BigLineSegment, BigPoint, BigRadian}
+import io.github.scala_tessella.dcel.geometry.{
+  BigDecimalGeometry,
+  BigLineSegment,
+  BigPoint,
+  BigRadian,
+  SimplePolygon
+}
 import io.github.scala_tessella.dcel.structure.{FaceId, HalfEdge, Vertex, VertexId}
 import io.github.scala_tessella.dcel.{TilingDCEL, TilingError}
 import io.github.scala_tessella.dcel.TilingUniformity.scanUniformityTree
@@ -411,6 +417,72 @@ object TilingSVG:
 
           textAt(textX, textY, face.id.value)
       }
+
+  extension (simple: SimplePolygon)
+
+    def toScalableVectorG(
+        strokeWidth: Double = 1.0,
+        padding: Double = 30.0,
+        scale: Double = 50.0
+    ): String =
+      val svg: Elem =
+
+        val vertices        =
+          BigLineSegment(BigPoint.origin, BigPoint(1, 0)).unitPath(simple.toAngles)
+        val viewBox         = calculateViewBox(vertices, scale, padding)
+        val (width, height) = viewBox.dimensions
+
+        // Generate all elements
+        val boundaryPolygon =
+          val points = vertices.map { v =>
+            val (x, y) = v.toSvgCoords(scale)
+            s"$x,$y"
+          }.mkString(" ")
+          Some(polygonElem(points))
+
+        val (vertexCircles, vertexLabels) = // createVertexElements(tiling, config)
+          val circles =
+            vertices.map { v =>
+              val (cx, cy) = v.toSvgCoords(scale)
+              circleElem(cx, cy, (strokeWidth * 2).toString)
+            }
+
+          val labels = vertices.indices.map { index =>
+            val point = vertices(index).scaled(scale).flippedY
+            val x     = (point.x + strokeWidth * 2.5).format
+            val y     = (point.y - strokeWidth * 2.5).format
+            textAt(x, y, s"$index - ${simple.toAngles(index)}°")
+          }
+
+          (circles, labels)
+
+        // Build sections
+        val boundarySection = boundaryPolygon.map(polygon =>
+          createSvgSection(
+            "Boundary Highlight",
+            Seq(polygon),
+            attrs("stroke" -> "red", "stroke-width" -> strokeWidth * 3, "fill" -> "none")
+          )
+        ).getOrElse(NodeSeq.Empty)
+
+        val sections = List(
+          boundarySection,
+          createSvgSection("Vertices", vertexCircles, attrs("fill" -> "red")),
+          createSvgSection(
+            "Vertex Labels",
+            vertexLabels,
+            attrs("font-size" -> (strokeWidth * 8).toInt, "fill" -> "darkblue")
+          )
+        ).flatten
+
+        svgElem(
+          width = width.toString,
+          height = height.toString,
+          viewBox = viewBox.formatted,
+          children = Seq(gElem(sections))
+        )
+
+      new PrettyPrinter(120, 2).format(svg)
 
   extension (tiling: TilingDCEL)
 
