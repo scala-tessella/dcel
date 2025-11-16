@@ -94,6 +94,10 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "be found for a square" in {
     SimplePolygon(squareAngles).parallelogonIndices shouldBe Some((0, 1, 2, 3))
+    SimplePolygon(squareAngles).parallelogonEquivalences shouldBe
+      List(
+        List(0, 1, 2, 3)
+      )
   }
 
   it should "be found for a regular pentagon" in {
@@ -102,6 +106,12 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "be found for a 2x2 square" in {
     SimplePolygon(squareAngles).multiplySidesBy(2).parallelogonIndices shouldBe Some((0, 2, 4, 6))
+    SimplePolygon(squareAngles).multiplySidesBy(2).parallelogonEquivalences shouldBe
+      List(
+        List(7, 3),
+        List(6, 0, 2, 4),
+        List(5, 1)
+      )
   }
 
   it should "be found for a 2x2 square with shifted angles" in {

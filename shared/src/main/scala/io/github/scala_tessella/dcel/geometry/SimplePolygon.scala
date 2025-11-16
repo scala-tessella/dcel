@@ -38,11 +38,39 @@ object SimplePolygon:
   def apply(degrees: Int*): SimplePolygon =
     apply(degrees.map(AngleDegree(_)).toVector)
 
+  private val areFitting: (AngleDegree, AngleDegree) => Boolean = _ == _.inverted
+
+  /** Checks if one sequence of turns is the negative of another (antiparallel) when shifted by 1 or +
+    * elements.
+    *
+    * @return
+    *   Some(shift) if opposite, None otherwise
+    */
+  private def areOppositeShifted(xs: Vector[AngleDegree], ys: Vector[AngleDegree]): Option[Int] =
+    if xs != ys then None
+    else if xs.length <= 1 then None
+    else (1 to (xs.length / 2)).find(n => xs.drop(n).lazyZip(ys.dropRight(n)).forall(areFitting))
+
+  /** Checks if one sequence of turns is the negative of another (antiparallel).
+    *
+    * @return
+    *   Some(shift) if opposite, None otherwise
+    */
+
+  private def areOpposite(xs: Vector[AngleDegree], ys: Vector[AngleDegree]): Option[Int] =
+    if xs.size != ys.size then None
+    else if xs.lazyZip(ys).forall(areFitting) then Some(0)
+    else areOppositeShifted(xs, ys)
+
   extension (angles: SimplePolygon)
 
     /** @return the underlying number of sides */
     def toAngles: Vector[AngleDegree] =
       angles
+
+    /** Exterior turn at each vertex along the boundary */
+    def toTurns: Vector[AngleDegree] =
+      angles.map(_.normalised.supplement)
 
     def toSVG: String =
       angles.toScalableVectorG()
@@ -90,31 +118,7 @@ object SimplePolygon:
           val half = n / 2
 
           // Exterior turn at each vertex along the boundary (assuming unit edges).
-          val turns: Vector[AngleDegree] = angles.map(_.normalised.supplement)
-
-          val areFitting: (AngleDegree, AngleDegree) => Boolean = _ == _.inverted
-
-          /** Checks if one sequence of turns is the negative of another (antiparallel) when shifted by 1 or +
-            * elements.
-            *
-            * @return
-            *   Some(shift) if opposite, None otherwise
-            */
-          def areOppositeShifted(xs: Vector[AngleDegree], ys: Vector[AngleDegree]): Option[Int] =
-            if xs != ys then None
-            else if xs.length <= 1 then None
-            else (1 to (xs.length / 2)).find(n => xs.drop(n).lazyZip(ys.dropRight(n)).forall(areFitting))
-
-          /** Checks if one sequence of turns is the negative of another (antiparallel).
-            *
-            * @return
-            *   Some(shift) if opposite, None otherwise
-            */
-
-          def areOpposite(xs: Vector[AngleDegree], ys: Vector[AngleDegree]): Option[Int] =
-            if xs.size != ys.size then None
-            else if xs.lazyZip(ys).forall(areFitting) then Some(0)
-            else areOppositeShifted(xs, ys)
+          val turns: Vector[AngleDegree] = toTurns
 
           // Slices the circular `turns` vector.
           def circularSlice(start: Int, len: Int): Vector[AngleDegree] =
@@ -132,34 +136,59 @@ object SimplePolygon:
                     val segC = circularSlice(s + half, l1)
                     val segD = circularSlice(s + half + l1, l2)
 
-                    def groupOpposite(startFirst: Int, len: Int, shift: Int): List[List[Int]] =
-                      val startOpposite = startFirst + half
-                      println(s"start: $startFirst, len $len, startOpposite: $startOpposite, half: $half, shift")
-                      (0 to len).map(i => List((startOpposite + len - i + shift) % n, i + startFirst)).toList
-
-                    def equivalenceGroups(unmatched: List[List[Int]]): List[List[Int]] =
-                      (0 until n).foldLeft(unmatched)((groups, index) =>
-                        val (found, unfound) = groups.partition(_.contains(index))
-                        found.flatten.distinct :: unfound
-                      )
-
-                    val oppositionShiftAC = areOpposite(segA, segC)
-                    val oppositionShiftBD = areOpposite(segB, segD)
-
-                    if oppositionShiftAC.isDefined && oppositionShiftBD.isDefined then
-                      println(s"Found a matching pair of opposite sides at $s, $l1")
-                      val oppositeAC = groupOpposite(s, l1, oppositionShiftAC.get)
-                      val oppositeBD = groupOpposite(s + l1, l2, 0)
-                      println(s"groups A <-> C: $oppositeAC")
-                      println(s"groups B <-> D: $oppositeBD")
-                      println(s"grouped: ${equivalenceGroups(oppositeAC ::: oppositeBD)}")
-                      true
-                    else
-                      false
-
-//                    areOpposite(segA, segC).isDefined && areOpposite(segB, segD).isDefined
-//                      || (areOpposite(segA, segC.reverse).isDefined && areOpposite(segB, segD.reverse).isDefined)
+                    areOpposite(segA, segC).isDefined && areOpposite(segB, segD).isDefined
                   } =>
                 (s, s + l1, s + half, s + half + l1)
             }
           }.headOption
+
+    def parallelogonEquivalences: List[List[Int]] =
+      val n = angles.size
+
+      // Must have at least 4 sides and an even number of them to form opposite pairs.
+      if n < 4 || n % 2 != 0 then Nil
+      else
+        // Quick guard: a regular n-gon can tile a torus only if n=4 (a square).
+        if angles.map(_.normalised.toRational).distinct.size == 1 then
+          if n == 4 then
+            List(List(0, 1, 2, 3))
+          else Nil
+        else
+          val half = n / 2
+
+          // Exterior turn at each vertex along the boundary (assuming unit edges).
+          val turns: Vector[AngleDegree] = toTurns
+
+          // Slices the circular `turns` vector.
+          def circularSlice(start: Int, len: Int): Vector[AngleDegree] =
+            turns.sliceO(start, start + len).tail
+
+          val (s, s_l1, s_half, s_half_li) = parallelogonIndices.get
+          val l1                           = s_l1 - s
+          val l2                           = half - l1
+          val segA                         = circularSlice(s, s + l1)
+          val segB                         = circularSlice(s + l1, l2)
+          val segC                         = circularSlice(s + half, l1)
+          val segD                         = circularSlice(s + half + l1, l2)
+
+          def groupOpposite(startFirst: Int, len: Int, shift: Int): List[List[Int]] =
+            val startOpposite = startFirst + half
+            println(s"start: $startFirst, len $len, startOpposite: $startOpposite, half: $half, shift")
+            (0 to len).map(i => List((startOpposite + len - i + shift) % n, i + startFirst)).toList
+
+          def equivalenceGroups(unmatched: List[List[Int]]): List[List[Int]] =
+            (0 until n).foldLeft(unmatched)((groups, index) =>
+              val (found, unfound) = groups.partition(_.contains(index))
+              found.flatten.distinct :: unfound
+            )
+
+          val oppositionShiftAC = areOpposite(segA, segC)
+          val oppositionShiftBD = areOpposite(segB, segD)
+
+          val oppositeAC = groupOpposite(s, l1, oppositionShiftAC.get)
+          val oppositeBD = groupOpposite(s + l1, l2, 0)
+          println(s"groups A <-> C: $oppositeAC")
+          println(s"groups B <-> D: $oppositeBD")
+          val grouped    = equivalenceGroups(oppositeAC ::: oppositeBD)
+          println(s"grouped: $grouped")
+          grouped
