@@ -3,6 +3,7 @@ package io.github.scala_tessella.dcel.geometry
 import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.ACCURACY
 import io.github.scala_tessella.ring_seq.RingSeq.sliceO
 
+/** Unit simple polygon with the given ordered interior angles */
 opaque type SimplePolygon = Vector[AngleDegree]
 
 object SimplePolygon:
@@ -10,7 +11,7 @@ object SimplePolygon:
   def alphaSum(sides: Int): AngleDegree =
     AngleDegree(180) * (sides - 2)
 
-  /** Validates the list of interior angles for a simple polygon.
+  /** Validates the list of interior angles for a unit simple polygon.
     *
     * @param angles
     *   A list of interior angles in degrees.
