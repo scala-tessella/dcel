@@ -132,10 +132,10 @@ object SimplePolygon:
                     val segC = circularSlice(s + half, l1)
                     val segD = circularSlice(s + half + l1, l2)
 
-                    def groupOpposite(start1: Int, len: Int, shift: Int): List[List[Int]] =
-                      val startOpposite = start1 + half
-                      println(s"start: $start1, len $len, startOpposite: $startOpposite, half: $half, shift")
-                      (start1 to start1 + len).map(i => List((startOpposite + len - i + start1 + shift) % n, i)).toList
+                    def groupOpposite(startFirst: Int, len: Int, shift: Int): List[List[Int]] =
+                      val startOpposite = startFirst + half
+                      println(s"start: $startFirst, len $len, startOpposite: $startOpposite, half: $half, shift")
+                      (0 to len).map(i => List((startOpposite + len - i + shift) % n, i + startFirst)).toList
 
                     def equivalenceGroups(unmatched: List[List[Int]]): List[List[Int]] =
                       (0 until n).foldLeft(unmatched)((groups, index) =>
@@ -150,8 +150,8 @@ object SimplePolygon:
                       println(s"Found a matching pair of opposite sides at $s, $l1")
                       val oppositeAC = groupOpposite(s, l1, oppositionShiftAC.get)
                       val oppositeBD = groupOpposite(s + l1, l2, 0)
-                      println(s"substition C -> A: $oppositeAC")
-                      println(s"substition D -> B: $oppositeBD")
+                      println(s"groups A <-> C: $oppositeAC")
+                      println(s"groups B <-> D: $oppositeBD")
                       println(s"grouped: ${equivalenceGroups(oppositeAC ::: oppositeBD)}")
                       true
                     else
