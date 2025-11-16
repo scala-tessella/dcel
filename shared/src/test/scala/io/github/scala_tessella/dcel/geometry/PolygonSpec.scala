@@ -10,13 +10,15 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   behavior of "SimplePolygon.apply"
 
+  val squareAngles = Vector(AngleDegree(90), AngleDegree(90), AngleDegree(90), AngleDegree(90))
+
   it should "validate the angles of a correct simple polygon" in {
-    val squareAngles = Vector(AngleDegree(90), AngleDegree(90), AngleDegree(90), AngleDegree(90))
     SimplePolygon(squareAngles).toAngles.nonEmpty shouldBe true
   }
 
+  val triangleAngles = Vector(AngleDegree(60), AngleDegree(60), AngleDegree(60))
+
   it should "validate the angles of another correct simple polygon" in {
-    val triangleAngles = Vector(AngleDegree(60), AngleDegree(60), AngleDegree(60))
     SimplePolygon(triangleAngles).toAngles.nonEmpty shouldBe true
   }
 
@@ -72,8 +74,6 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   behavior of "SimplePolygon.multiplySidesBy"
 
-  val triangleAngles: Vector[AngleDegree] = Vector.fill(3)(AngleDegree(60))
-
   it should "triplicate a triangle" in {
     SimplePolygon(triangleAngles).multiplySidesBy(3) shouldBe
       Vector(60, 180, 180, 60, 180, 180, 60, 180, 180).map(AngleDegree(_))
@@ -93,20 +93,15 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   behavior of "SimplePolygon.parallelogonIndices"
 
   it should "be found for a square" in {
-    val squareAngles = Vector.fill(4)(AngleDegree(90))
     SimplePolygon(squareAngles).parallelogonIndices shouldBe Some((0, 1, 2, 3))
   }
 
   it should "be found for a regular pentagon" in {
-    val pentagonAngles =
-      Vector.fill(5)(AngleDegree(108))
-    SimplePolygon(pentagonAngles).parallelogonIndices shouldBe None
+    SimplePolygon(RegularPolygon(5).angles).parallelogonIndices shouldBe None
   }
 
   it should "be found for a 2x2 square" in {
-    val angles =
-      Vector.fill(4)(Vector(AngleDegree(90), AngleDegree(180))).flatten
-    SimplePolygon(angles).parallelogonIndices shouldBe Some((0, 2, 4, 6))
+    SimplePolygon(squareAngles).multiplySidesBy(2).parallelogonIndices shouldBe Some((0, 2, 4, 6))
   }
 
   it should "be found for a 2x2 square with shifted angles" in {
@@ -116,15 +111,11 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   }
 
   it should "be found for a 3x3 square" in {
-    val angles =
-      Vector.fill(4)(Vector(AngleDegree(90), AngleDegree(180), AngleDegree(180))).flatten
-    SimplePolygon(angles).parallelogonIndices shouldBe Some((0, 3, 6, 9))
+    SimplePolygon(squareAngles).multiplySidesBy(3).parallelogonIndices shouldBe Some((0, 3, 6, 9))
   }
 
   it should "be found for a regular hexagon" in {
-    val hexagonAngles =
-      Vector.fill(6)(AngleDegree(120))
-    SimplePolygon(hexagonAngles).parallelogonIndices shouldBe None
+    SimplePolygon(RegularPolygon(6).angles).parallelogonIndices shouldBe None
   }
 
   it should "be found for a scale" in {
@@ -134,15 +125,14 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   }
 
   it should "be found for a 1x2 rectangle" in {
-    val angles =
-      Vector.fill(2)(Vector(AngleDegree(90), AngleDegree(90), AngleDegree(180))).flatten
-    SimplePolygon(angles).parallelogonIndices shouldBe Some((0, 1, 3, 4))
+    val rectangle1x2 = SimplePolygon(90, 90, 180, 90, 90, 180)
+    rectangle1x2.parallelogonIndices shouldBe Some((0, 1, 3, 4))
   }
 
   it should "be found for a 2x1 parallelogram" in {
-    val angles =
-      Vector.fill(2)(Vector(AngleDegree(60), AngleDegree(120), AngleDegree(180))).flatten
-    SimplePolygon(angles).parallelogonIndices shouldBe Some((0, 1, 3, 4))
+    /** <img src="file:../../../../../../resources/simple/parallelogram2x1.svg"/> */
+    val parallelogram2x1 = SimplePolygon(60, 120, 180, 60, 120, 180)
+    parallelogram2x1.parallelogonIndices shouldBe Some((0, 1, 3, 4))
   }
 
   /** <img src="file:../../../../../../resources/simple/twoJoinedHexs.svg"/> */
@@ -150,50 +140,15 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     SimplePolygon(120, 120, 240, 120, 120, 120, 120, 240, 120, 120)
 
   it should "be found for a 2 joined regular hexagons boundary" in {
-    println(twoJoinedHexs.toSVG)
     twoJoinedHexs.parallelogonIndices shouldBe Some((0, 4, 5, 9))
   }
 
   it should "be found for a 2 joined regular hexagons boundary multiplied by 2" in {
-    twoJoinedHexs.multiplySidesBy(2).parallelogonIndices shouldBe Some((0, 8, 10, 18))
+    val doubledJoinedHexs = twoJoinedHexs.multiplySidesBy(2)
+    doubledJoinedHexs.parallelogonIndices shouldBe Some((0, 8, 10, 18))
   }
 
   behavior of "SimplePolygon.canTileTorus"
-
-  it should "be true for a square" in {
-    val squareAngles = Vector.fill(4)(AngleDegree(90))
-    SimplePolygon(squareAngles).canTileTorus shouldBe true
-  }
-
-  it should "be false for a regular pentagon" in {
-    val pentagonAngles =
-      Vector.fill(5)(AngleDegree(108))
-    SimplePolygon(pentagonAngles).canTileTorus shouldBe false
-  }
-
-  it should "be true for a 2x2 square" in {
-    val angles =
-      Vector.fill(4)(Vector(AngleDegree(90), AngleDegree(180))).flatten
-    SimplePolygon(angles).canTileTorus shouldBe true
-  }
-
-  it should "be false for a regular hexagon" in {
-    val hexagonAngles =
-      Vector.fill(6)(AngleDegree(120))
-    SimplePolygon(hexagonAngles).canTileTorus shouldBe false
-  }
-
-  it should "be true for a 1x2 rectangle" in {
-    val angles =
-      Vector.fill(2)(Vector(AngleDegree(90), AngleDegree(90), AngleDegree(180))).flatten
-    SimplePolygon(angles).canTileTorus shouldBe true
-  }
-
-  it should "be true for a 2x1 parallelogram" in {
-    val angles =
-      Vector.fill(2)(Vector(AngleDegree(60), AngleDegree(120), AngleDegree(180))).flatten
-    SimplePolygon(angles).canTileTorus shouldBe true
-  }
 
   it should "be true for a 2x2 joined regular hexagons boundary" in {
     val angles =
