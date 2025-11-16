@@ -145,16 +145,21 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     SimplePolygon(angles).parallelogonIndices shouldBe Some((0, 1, 3, 4))
   }
 
+  val hexagonsPairAngles: Vector[AngleDegree] =
+    Vector.fill(2)(Vector(
+      AngleDegree(120),
+      AngleDegree(120),
+      AngleDegree(240),
+      AngleDegree(120),
+      AngleDegree(120)
+    )).flatten
+
   it should "be found for a 2 joined regular hexagons boundary" in {
-    val angles =
-      Vector.fill(2)(Vector(
-        AngleDegree(120),
-        AngleDegree(120),
-        AngleDegree(240),
-        AngleDegree(120),
-        AngleDegree(120)
-      )).flatten
-    SimplePolygon(angles).parallelogonIndices shouldBe Some((0, 4, 5, 9))
+    SimplePolygon(hexagonsPairAngles).parallelogonIndices shouldBe Some((0, 4, 5, 9))
+  }
+
+  it should "be found for a 2 joined regular hexagons boundary multiplied by 2" in {
+    SimplePolygon(hexagonsPairAngles).multiplySidesBy(2).parallelogonIndices shouldBe Some((0, 8, 10, 18))
   }
 
   behavior of "SimplePolygon.canTileTorus"
