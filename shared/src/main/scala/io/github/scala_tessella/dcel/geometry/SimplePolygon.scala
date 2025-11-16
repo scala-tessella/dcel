@@ -166,7 +166,7 @@ object SimplePolygon:
           val (s, s_l1, s_half, s_half_li) = parallelogonIndices.get
           val l1                           = s_l1 - s
           val l2                           = half - l1
-          val segA                         = circularSlice(s, s + l1)
+          val segA                         = circularSlice(s, l1)
           val segB                         = circularSlice(s + l1, l2)
           val segC                         = circularSlice(s + half, l1)
           val segD                         = circularSlice(s + half + l1, l2)
@@ -174,13 +174,13 @@ object SimplePolygon:
           def groupOpposite(startFirst: Int, len: Int, shift: Int): List[List[Int]] =
             val startOpposite = startFirst + half
             println(s"start: $startFirst, len $len, startOpposite: $startOpposite, half: $half, shift")
-            (0 to len).map(i => List((startOpposite + len - i + shift) % n, i + startFirst)).toList
+            (0 to len).map(i => List((startOpposite + len - i + shift) % n, startFirst + i)).toList
 
           def equivalenceGroups(unmatched: List[List[Int]]): List[List[Int]] =
             (0 until n).foldLeft(unmatched)((groups, index) =>
               val (found, unfound) = groups.partition(_.contains(index))
               found.flatten.distinct :: unfound
-            )
+            ).map(_.sorted).sortBy(_.head)
 
           val oppositionShiftAC = areOpposite(segA, segC)
           val oppositionShiftBD = areOpposite(segB, segD)

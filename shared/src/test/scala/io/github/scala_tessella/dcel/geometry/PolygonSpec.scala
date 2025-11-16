@@ -111,9 +111,9 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       SimplePolygon(squareAngles).multiplySidesBy(2).parallelogonIndices shouldBe Some((0, 2, 4, 6)),
       SimplePolygon(squareAngles).multiplySidesBy(2).parallelogonEquivalences shouldBe
         List(
-          List(7, 3),
-          List(6, 0, 2, 4),
-          List(5, 1)
+          List(0, 2, 4, 6),
+          List(1, 5),
+          List(3, 7)
         )
     )
   }
@@ -121,9 +121,15 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   it should "be found for a 2x2 square with shifted angles" in {
     val angles =
       Vector.fill(4)(Vector(AngleDegree(180), AngleDegree(90))).flatten
-    SimplePolygon(angles).parallelogonIndices shouldBe Some((1, 3, 5, 7))
-    SimplePolygon(angles).parallelogonEquivalences shouldBe
-      List()
+    allAssert(
+      SimplePolygon(angles).parallelogonIndices shouldBe Some((1, 3, 5, 7)),
+      SimplePolygon(angles).parallelogonEquivalences shouldBe
+        List(
+          List(0, 4),
+          List(1, 3, 5, 7),
+          List(2, 6)
+        )
+    )
   }
 
   it should "be found for a 3x3 square" in {
@@ -131,11 +137,11 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       SimplePolygon(squareAngles).multiplySidesBy(3).parallelogonIndices shouldBe Some((0, 3, 6, 9)),
       SimplePolygon(squareAngles).multiplySidesBy(3).parallelogonEquivalences shouldBe
         List(
-          List(11, 4),
-          List(10, 5),
-          List(9, 0, 3, 6),
-          List(8, 1),
-          List(7, 2)
+          List(0, 3, 6, 9),
+          List(1, 8),
+          List(2, 7),
+          List(4, 11),
+          List(5, 10)
         )
     )
   }
