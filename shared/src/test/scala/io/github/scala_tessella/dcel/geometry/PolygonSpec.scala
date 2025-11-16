@@ -93,11 +93,13 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   behavior of "SimplePolygon.parallelogonIndices"
 
   it should "be found for a square" in {
-    SimplePolygon(squareAngles).parallelogonIndices shouldBe Some((0, 1, 2, 3))
-    SimplePolygon(squareAngles).parallelogonEquivalences shouldBe
+    allAssert(
+      SimplePolygon(squareAngles).parallelogonIndices shouldBe Some((0, 1, 2, 3)),
+      SimplePolygon(squareAngles).parallelogonEquivalences shouldBe
       List(
         List(0, 1, 2, 3)
       )
+    )
   }
 
   it should "be found for a regular pentagon" in {
@@ -105,23 +107,37 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   }
 
   it should "be found for a 2x2 square" in {
-    SimplePolygon(squareAngles).multiplySidesBy(2).parallelogonIndices shouldBe Some((0, 2, 4, 6))
-    SimplePolygon(squareAngles).multiplySidesBy(2).parallelogonEquivalences shouldBe
-      List(
-        List(7, 3),
-        List(6, 0, 2, 4),
-        List(5, 1)
-      )
+    allAssert(
+      SimplePolygon(squareAngles).multiplySidesBy(2).parallelogonIndices shouldBe Some((0, 2, 4, 6)),
+      SimplePolygon(squareAngles).multiplySidesBy(2).parallelogonEquivalences shouldBe
+        List(
+          List(7, 3),
+          List(6, 0, 2, 4),
+          List(5, 1)
+        )
+    )
   }
 
   it should "be found for a 2x2 square with shifted angles" in {
     val angles =
       Vector.fill(4)(Vector(AngleDegree(180), AngleDegree(90))).flatten
     SimplePolygon(angles).parallelogonIndices shouldBe Some((1, 3, 5, 7))
+    SimplePolygon(angles).parallelogonEquivalences shouldBe
+      List()
   }
 
   it should "be found for a 3x3 square" in {
-    SimplePolygon(squareAngles).multiplySidesBy(3).parallelogonIndices shouldBe Some((0, 3, 6, 9))
+    allAssert(
+      SimplePolygon(squareAngles).multiplySidesBy(3).parallelogonIndices shouldBe Some((0, 3, 6, 9)),
+      SimplePolygon(squareAngles).multiplySidesBy(3).parallelogonEquivalences shouldBe
+        List(
+          List(11, 4),
+          List(10, 5),
+          List(9, 0, 3, 6),
+          List(8, 1),
+          List(7, 2)
+        )
+    )
   }
 
   it should "be found for a regular hexagon" in {
