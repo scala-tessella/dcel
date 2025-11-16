@@ -1,5 +1,6 @@
 package io.github.scala_tessella.dcel.geometry
 
+import io.github.scala_tessella.dcel.conversion.TilingSVG.toScalableVectorG
 import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.ACCURACY
 import io.github.scala_tessella.ring_seq.RingSeq.sliceO
 
@@ -34,16 +35,22 @@ object SimplePolygon:
       else
         angles
 
+  def apply(degrees: Int*): SimplePolygon =
+    apply(degrees.map(AngleDegree(_)).toVector)
+
   extension (angles: SimplePolygon)
 
     /** @return the underlying number of sides */
     def toAngles: Vector[AngleDegree] =
       angles
 
+    def toSVG: String =
+      angles.toScalableVectorG()
+
     def multiplySidesBy(n: Int = 1): SimplePolygon =
       if n < 1 then
         throw new IllegalArgumentException("A simple polygon must have sides of at least unit length.")
-      else 
+      else
         SimplePolygon(angles.flatMap(_ +: Vector.fill(n - 1)(AngleDegree(180))))
 
     /** Checks if the polygon can tile a torus.
