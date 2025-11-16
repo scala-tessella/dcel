@@ -1,6 +1,6 @@
 package io.github.scala_tessella.dcel.geometry
 
-import io.github.scala_tessella.dcel.TilingTestHelpers
+import io.github.scala_tessella.dcel.{TilingBuilder, TilingTestHelpers}
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, RegularPolygon, SimplePolygon}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -87,7 +87,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   it should "fail if factor is < 1" in {
     the[IllegalArgumentException] thrownBy
       SimplePolygon(triangleAngles).multiplySidesBy(0) should have message
-        "A simple polygon must have sides of at least unit length."
+      "A simple polygon must have sides of at least unit length."
   }
 
   behavior of "SimplePolygon.parallelogonIndices"
@@ -128,9 +128,9 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   }
 
   it should "be found for a scale" in {
-    val angles =
-      Vector(90, 150, 120, 150, 90, 210, 60, 210).map(AngleDegree(_))
-    SimplePolygon(angles).parallelogonIndices shouldBe Some((0, 2, 4, 6))
+    /** <img src="file:../../../../../../resources/simple/scale.svg"/> */
+    val scale = SimplePolygon(90, 150, 120, 150, 90, 210, 60, 210)
+    scale.parallelogonIndices shouldBe Some((0, 2, 4, 6))
   }
 
   it should "be found for a 1x2 rectangle" in {
@@ -145,21 +145,17 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     SimplePolygon(angles).parallelogonIndices shouldBe Some((0, 1, 3, 4))
   }
 
-  val hexagonsPairAngles: Vector[AngleDegree] =
-    Vector.fill(2)(Vector(
-      AngleDegree(120),
-      AngleDegree(120),
-      AngleDegree(240),
-      AngleDegree(120),
-      AngleDegree(120)
-    )).flatten
+  /** <img src="file:../../../../../../resources/simple/twoJoinedHexs.svg"/> */
+  val twoJoinedHexs: SimplePolygon =
+    SimplePolygon(120, 120, 240, 120, 120, 120, 120, 240, 120, 120)
 
   it should "be found for a 2 joined regular hexagons boundary" in {
-    SimplePolygon(hexagonsPairAngles).parallelogonIndices shouldBe Some((0, 4, 5, 9))
+    println(twoJoinedHexs.toSVG)
+    twoJoinedHexs.parallelogonIndices shouldBe Some((0, 4, 5, 9))
   }
 
   it should "be found for a 2 joined regular hexagons boundary multiplied by 2" in {
-    SimplePolygon(hexagonsPairAngles).multiplySidesBy(2).parallelogonIndices shouldBe Some((0, 8, 10, 18))
+    twoJoinedHexs.multiplySidesBy(2).parallelogonIndices shouldBe Some((0, 8, 10, 18))
   }
 
   behavior of "SimplePolygon.canTileTorus"
@@ -187,12 +183,6 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     SimplePolygon(hexagonAngles).canTileTorus shouldBe false
   }
 
-  it should "be true for a scale" in {
-    val angles =
-      Vector(90, 150, 120, 150, 90, 210, 60, 210).map(AngleDegree(_))
-    SimplePolygon(angles).canTileTorus shouldBe true
-  }
-
   it should "be true for a 1x2 rectangle" in {
     val angles =
       Vector.fill(2)(Vector(AngleDegree(90), AngleDegree(90), AngleDegree(180))).flatten
@@ -202,18 +192,6 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   it should "be true for a 2x1 parallelogram" in {
     val angles =
       Vector.fill(2)(Vector(AngleDegree(60), AngleDegree(120), AngleDegree(180))).flatten
-    SimplePolygon(angles).canTileTorus shouldBe true
-  }
-
-  it should "be true for a 2 joined regular hexagons boundary" in {
-    val angles =
-      Vector.fill(2)(Vector(
-        AngleDegree(120),
-        AngleDegree(120),
-        AngleDegree(120),
-        AngleDegree(120),
-        AngleDegree(240)
-      )).flatten
     SimplePolygon(angles).canTileTorus shouldBe true
   }
 
