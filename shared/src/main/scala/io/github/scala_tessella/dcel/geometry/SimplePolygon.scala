@@ -91,15 +91,27 @@ object SimplePolygon:
 
           val areFitting: (AngleDegree, AngleDegree) => Boolean = _ == _.inverted
 
-          // Checks if one sequence of turns is the negative of another (antiparallel) when shifted by 1 or + elements.
-          def areOppositeShifted(xs: Vector[AngleDegree], ys: Vector[AngleDegree]): Boolean =
-            xs == ys && xs.length > 1 &&
-              (1 to (xs.length / 2)).exists(n => xs.drop(n).lazyZip(ys.dropRight(n)).forall(areFitting))
+          /** Checks if one sequence of turns is the negative of another (antiparallel) when shifted by 1 or +
+            * elements.
+            *
+            * @return
+            *   Some(shift) if opposite, None otherwise
+            */
+          def areOppositeShifted(xs: Vector[AngleDegree], ys: Vector[AngleDegree]): Option[Int] =
+            if xs != ys then None
+            else if xs.length <= 1 then None
+            else (1 to (xs.length / 2)).find(n => xs.drop(n).lazyZip(ys.dropRight(n)).forall(areFitting))
 
-          // Checks if one sequence of turns is the negative of another (antiparallel).
-          def areOpposite(xs: Vector[AngleDegree], ys: Vector[AngleDegree]): Boolean =
-            xs.length == ys.length
-              && (xs.lazyZip(ys).forall(areFitting) || areOppositeShifted(xs, ys))
+          /** Checks if one sequence of turns is the negative of another (antiparallel).
+            *
+            * @return
+            *   Some(shift) if opposite, None otherwise
+            */
+
+          def areOpposite(xs: Vector[AngleDegree], ys: Vector[AngleDegree]): Option[Int] =
+            if xs.size != ys.size then None
+            else if xs.lazyZip(ys).forall(areFitting) then Some(0)
+            else areOppositeShifted(xs, ys)
 
           // Slices the circular `turns` vector.
           def circularSlice(start: Int, len: Int): Vector[AngleDegree] =
@@ -117,8 +129,8 @@ object SimplePolygon:
                     val segC = circularSlice(s + half, l1)
                     val segD = circularSlice(s + half + l1, l2)
 
-                    (areOpposite(segA, segC) && areOpposite(segB, segD)) ||
-                    (areOpposite(segA, segC.reverse) && areOpposite(segB, segD.reverse))
+                    (areOpposite(segA, segC).isDefined && areOpposite(segB, segD).isDefined) ||
+                    (areOpposite(segA, segC.reverse).isDefined && areOpposite(segB, segD.reverse).isDefined)
                   } =>
                 (s, s + l1, s + half, s + half + l1)
             }
