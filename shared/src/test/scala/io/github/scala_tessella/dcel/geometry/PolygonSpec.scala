@@ -119,6 +119,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   }
 
   it should "be found for a scale" in {
+
     /** <img src="file:../../../../../../resources/simple/scale.svg"/> */
     val scale = SimplePolygon(90, 150, 120, 150, 90, 210, 60, 210)
     scale.parallelogonIndices shouldBe Some((0, 2, 4, 6))
@@ -130,6 +131,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   }
 
   it should "be found for a 2x1 parallelogram" in {
+
     /** <img src="file:../../../../../../resources/simple/parallelogram2x1.svg"/> */
     val parallelogram2x1 = SimplePolygon(60, 120, 180, 60, 120, 180)
     parallelogram2x1.parallelogonIndices shouldBe Some((0, 1, 3, 4))
@@ -144,12 +146,14 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   }
 
   it should "be found for a 2 joined regular hexagons boundary multiplied by 2" in {
+
     /** <img src="file:../../../../../../resources/simple/doubledJoinedHexs.svg"/> */
     val doubledJoinedHexs = twoJoinedHexs.multiplySidesBy(2)
     doubledJoinedHexs.parallelogonIndices shouldBe Some((0, 8, 10, 18))
   }
 
   it should "be true for a 2x2 joined regular hexagons boundary" in {
+
     /** <img src="file:../../../../../../resources/simple/fourJoinedHexs.svg"/> */
     val fourJoinedHexs: SimplePolygon =
       SimplePolygon(120, 120, 240, 120, 120, 240, 120, 120, 120, 240, 120, 120, 240, 120)
