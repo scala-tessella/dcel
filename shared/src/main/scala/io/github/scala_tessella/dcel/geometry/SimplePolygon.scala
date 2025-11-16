@@ -135,7 +135,7 @@ object SimplePolygon:
                     def groupOpposite(start1: Int, len: Int, shift: Int): List[List[Int]] =
                       val startOpposite = start1 + half
                       println(s"start: $start1, len $len, startOpposite: $startOpposite, half: $half, shift")
-                      (start1 to start1 + len).map(i => List((startOpposite + len - i + start1) % n, i)).toList
+                      (start1 to start1 + len).map(i => List((startOpposite + len - i + start1 + shift) % n, i)).toList
 
                     def equivalenceGroups(unmatched: List[List[Int]]): List[List[Int]] =
                       (0 until n).foldLeft(unmatched)((groups, index) =>
@@ -143,15 +143,21 @@ object SimplePolygon:
                         found.flatten.distinct :: unfound
                       )
 
-                    if areOpposite(segA, segC).isDefined && areOpposite(segB, segD).isDefined then
+                    val oppositionShiftAC = areOpposite(segA, segC)
+                    val oppositionShiftBD = areOpposite(segB, segD)
+
+                    if oppositionShiftAC.isDefined && oppositionShiftBD.isDefined then
                       println(s"Found a matching pair of opposite sides at $s, $l1")
-                      val oppositeAC = groupOpposite(s, l1, 0)
+                      val oppositeAC = groupOpposite(s, l1, oppositionShiftAC.get)
                       val oppositeBD = groupOpposite(s + l1, l2, 0)
                       println(s"substition C -> A: $oppositeAC")
                       println(s"substition D -> B: $oppositeBD")
                       println(s"grouped: ${equivalenceGroups(oppositeAC ::: oppositeBD)}")
+                      true
+                    else
+                      false
 
-                    areOpposite(segA, segC).isDefined && areOpposite(segB, segD).isDefined
+//                    areOpposite(segA, segC).isDefined && areOpposite(segB, segD).isDefined
 //                      || (areOpposite(segA, segC.reverse).isDefined && areOpposite(segB, segD.reverse).isDefined)
                   } =>
                 (s, s + l1, s + half, s + half + l1)
