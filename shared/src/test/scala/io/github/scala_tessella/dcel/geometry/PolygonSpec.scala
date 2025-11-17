@@ -212,9 +212,11 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
     /** <img src="file:../../../../../../resources/simple/doubledJoinedHexs.svg"/> */
     val doubledJoinedHexs = twoJoinedHexs.multiplySidesBy(2)
-    doubledJoinedHexs.parallelogonIndices shouldBe Some((0, 8, 10, 18))
-    doubledJoinedHexs.parallelogonEquivalences shouldBe
-      List()
+    allAssert(
+      doubledJoinedHexs.parallelogonIndices shouldBe Some((0, 8, 10, 18)),
+      doubledJoinedHexs.parallelogonEquivalences shouldBe
+        List()
+    )
   }
 
   it should "be true for a 2x2 joined regular hexagons boundary" in {
