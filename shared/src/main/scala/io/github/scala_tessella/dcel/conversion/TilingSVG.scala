@@ -451,7 +451,7 @@ object TilingSVG:
             val point = vertices(index).scaled(scale).flippedY
             val x     = (point.x + strokeWidth * 2.5).format
             val y     = (point.y - strokeWidth * 2.5).format
-            textAt(x, y, s"$index - ${simple.toAngles(index)}°")
+            textAt(x, y, s"$index") // - ${simple.toAngles(index)}°")
           }
 
           (circles, labels)
