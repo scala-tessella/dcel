@@ -2,6 +2,8 @@ package io.github.scala_tessella.dcel.geometry
 
 import io.github.scala_tessella.dcel.TilingTestHelpers
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, RegularPolygon, SimplePolygon}
+import io.github.scala_tessella.ring_seq.RingSeq.rotationsAndReflections
+import org.scalatest.Assertion
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import spire.math.*
@@ -130,18 +132,24 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     )
   }
 
-  it should "be found for a 3x3 square" in
+  def checkIndicesForAllRotationsAndReflections(simple: SimplePolygon): Assertion =
+    simple.toAngles.rotationsAndReflections.distinct.forall(SimplePolygon(_).parallelogonIndices.isDefined) shouldBe true
+
+  it should "be found for a 3x3 square" in {
+    val square3x3 = SimplePolygon(squareAngles).multiplySidesBy(3)
     allAssert(
-      SimplePolygon(squareAngles).multiplySidesBy(3).parallelogonIndices shouldBe Some((0, 3, 6, 9)),
-      SimplePolygon(squareAngles).multiplySidesBy(3).parallelogonEquivalences shouldBe
+      square3x3.parallelogonIndices shouldBe Some((0, 3, 6, 9)),
+      square3x3.parallelogonEquivalences shouldBe
         List(
           List(0, 3, 6, 9),
           List(1, 8),
           List(2, 7),
           List(4, 11),
           List(5, 10)
-        )
+        ),
+      checkIndicesForAllRotationsAndReflections(square3x3)
     )
+  }
 
   it should "be found for a regular hexagon" in {
     SimplePolygon(RegularPolygon(6).angles).parallelogonIndices shouldBe None
@@ -158,7 +166,8 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           List(0, 2, 4, 6),
           List(1, 5),
           List(3, 7)
-        )
+        ),
+      checkIndicesForAllRotationsAndReflections(scale)
     )
   }
 
@@ -170,7 +179,8 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
         List(
           List(0, 1, 3, 4),
           List(2, 5)
-        )
+        ),
+      checkIndicesForAllRotationsAndReflections(rectangle1x2)
     )
   }
 
@@ -184,7 +194,8 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
         List(
           List(0, 1, 3, 4),
           List(2, 5)
-        )
+        ),
+      checkIndicesForAllRotationsAndReflections(parallelogram2x1)
     )
   }
 
@@ -201,7 +212,8 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           List(1, 5, 9),
           List(2, 8),
           List(3, 7)
-        )
+        ),
+      checkIndicesForAllRotationsAndReflections(twoJoinedHexs)
     )
 
   it should "be found for a 2 joined regular hexagons boundary multiplied by 2" in {
@@ -221,7 +233,8 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           List(6, 14),
           List(7, 13),
           List(9, 19)
-        )
+        ),
+      checkIndicesForAllRotationsAndReflections(doubledJoinedHexs)
     )
   }
 
@@ -240,7 +253,8 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           List(3, 7, 11),
           List(5, 13),
           List(6, 12)
-        )
+        ),
+      checkIndicesForAllRotationsAndReflections(fourJoinedHexs)
     )
   }
 
@@ -259,7 +273,8 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           List(3, 7, 11),
           List(5, 13),
           List(6, 12)
-        )
+        ),
+      checkIndicesForAllRotationsAndReflections(carved)
     )
   }
 

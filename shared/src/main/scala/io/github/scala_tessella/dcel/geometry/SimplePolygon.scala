@@ -174,9 +174,9 @@ object SimplePolygon:
 
           def groupOpposite(startFirst: Int, len: Int, shift: Int): List[List[Int]] =
             val startOpposite = startFirst + half
-            println(
-              s"\nstart: $startFirst, len $len, startOpposite: $startOpposite, half: $half, shift: $shift"
-            )
+//            println(
+//              s"\nstart: $startFirst, len $len, startOpposite: $startOpposite, half: $half, shift: $shift"
+//            )
             (0 to len).map(i =>
               val reverse = len - i + shift
               val added   =
