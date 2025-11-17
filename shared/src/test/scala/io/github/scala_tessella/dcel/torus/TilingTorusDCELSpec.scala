@@ -71,10 +71,14 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
   behavior of "TilingTorusDCEL.fromTilingDCEL"
 
   it should "be converted from a 1x1 square" in {
-    val tilingDCEL = TilingBuilder.createRegularPolygon(RegularPolygon(4))
-    val result = TilingTorusDCEL.fromTilingDCEL(tilingDCEL)
+    val tilingDCEL    = TilingBuilder.createRegularPolygon(RegularPolygon(4))
+    val result        = TilingTorusDCEL.fromTilingDCEL(tilingDCEL)
     val scale: Double = 1.0 / 1.0
-    println(result.value.toSVG3D(TorusSvg3DOptions().copy(uScale = scale, vScale = scale, showVertexIds = true)))
+    println(result.value.toSVG3D(TorusSvg3DOptions().copy(
+      uScale = scale,
+      vScale = scale,
+      showVertexIds = true
+    )))
     allAssert(
       result.isRight shouldBe true,
       result.value.faces.size shouldBe 1,
@@ -85,10 +89,14 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
   }
 
   it should "be converted from a 2x2 square" in {
-    val tilingDCEL = TilingBuilder.createRhombusNet(2, 2)
-    val result = TilingTorusDCEL.fromTilingDCEL(tilingDCEL)
+    val tilingDCEL    = TilingBuilder.createRhombusNet(2, 2)
+    val result        = TilingTorusDCEL.fromTilingDCEL(tilingDCEL)
     val scale: Double = 1.0 / 2.0
-    println(result.value.toSVG3D(TorusSvg3DOptions().copy(uScale = scale, vScale = scale, showVertexIds = true)))
+    println(result.value.toSVG3D(TorusSvg3DOptions().copy(
+      uScale = scale,
+      vScale = scale,
+      showVertexIds = true
+    )))
     allAssert(
       result.isRight shouldBe true,
       result.value.faces.size shouldBe 4,
@@ -99,10 +107,14 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
   }
 
   it should "be converted from a 3x3 square" in {
-    val tilingDCEL = TilingBuilder.createRhombusNet(3, 3)
-    val result = TilingTorusDCEL.fromTilingDCEL(tilingDCEL)
+    val tilingDCEL    = TilingBuilder.createRhombusNet(3, 3)
+    val result        = TilingTorusDCEL.fromTilingDCEL(tilingDCEL)
     val scale: Double = 1.0 / 3.0
-    println(result.value.toSVG3D(TorusSvg3DOptions().copy(uScale = scale, vScale = scale, showVertexIds = true)))
+    println(result.value.toSVG3D(TorusSvg3DOptions().copy(
+      uScale = scale,
+      vScale = scale,
+      showVertexIds = true
+    )))
     allAssert(
       result.isRight shouldBe true,
       result.value.faces.size shouldBe 9,
@@ -114,7 +126,7 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
 
   it should "be converted from a 3x2 square" in {
     val tilingDCEL = TilingBuilder.createRhombusNet(3, 2)
-    val result = TilingTorusDCEL.fromTilingDCEL(tilingDCEL)
+    val result     = TilingTorusDCEL.fromTilingDCEL(tilingDCEL)
     println(result)
     allAssert(
       result.isRight shouldBe true,
@@ -127,7 +139,7 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
 
   it should "be converted from a 2x1 hexagon" in {
     val tilingDCEL = TilingBuilder.createHexagonNet(2, 1)
-    val result = TilingTorusDCEL.fromTilingDCEL(tilingDCEL)
+    val result     = TilingTorusDCEL.fromTilingDCEL(tilingDCEL)
 //    val vScale: Double = 1.0 / 1.5
 //    val uScale: Double = 1.0 / (4 * 0.8660254037844386)
 //    println(result.value.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
@@ -141,16 +153,17 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
     )
   }
 
-//  it should "be converted from a 2x2 hexagon" in {
-//    val tilingDCEL = TilingBuilder.createHexagonNet(2, 2)
+  it should "be converted from a 2x2 hexagon" in {
+    val tilingDCEL = TilingBuilder.createHexagonNet(2, 2)
 //    println(tilingDCEL.vertices)
-//    val result = TilingTorusDCEL.fromTilingDCEL(tilingDCEL)
+    val result     = TilingTorusDCEL.fromTilingDCEL(tilingDCEL)
 //    val vScale: Double = 1.0 / (1.5 * 2)
 //    val uScale: Double = 1.0 / (4 * 0.8660254037844386)
 //    println(result.value.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
-//    result.isRight shouldBe true
-//  }
-//
+    println(result)
+    result.isRight shouldBe true
+  }
+
 //  it should "be converted from a 4x4 hexagon" in {
 //    val tilingDCEL = TilingBuilder.createHexagonNet(4, 4)
 //    println(tilingDCEL.vertices)

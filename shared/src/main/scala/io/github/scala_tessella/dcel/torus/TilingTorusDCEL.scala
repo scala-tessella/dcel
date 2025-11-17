@@ -639,11 +639,10 @@ object TilingTorusDCEL:
         )
 
   def fromTilingDCEL(tilingDCEL: TilingDCEL): Either[TilingError, TilingTorusDCEL] =
-    tilingDCEL.boundarySimplePolygon.parallelogonIndices match
-      case None =>
+    tilingDCEL.boundarySimplePolygon.parallelogonEquivalences match
+      case Nil =>
         Left(TopologyError("TilingDCEL does not have a parallelogram boundary"))
-
-      case Some((i0, i1, i2, i3)) =>
+      case indexGroups =>
         // ---- 1. Boundary vertices and indexed sides ----
         val boundaryVertices = tilingDCEL.boundaryVertices
         val boundaryEdges    = tilingDCEL.boundaryEdges
@@ -652,248 +651,164 @@ object TilingTorusDCEL:
           return Left(TopologyError("TilingDCEL has empty boundary"))
 
         val n = boundaryVertices.size
-        if n != boundaryEdges.size then
-          return Left(TopologyError("Boundary vertices/edges size mismatch"))
 
-        inline def wrap(idx: Int): Int = (idx % n + n) % n
+        // Map to boundary vertex IDs that will be substituted by the parallelogram boundary
+        val substitutionMapAlt = indexGroups.flatMap((_: @unchecked) match {
+          case index :: indexes => indexes.map(boundaryVertices(_).id -> boundaryVertices(index).id)
+        }).toMap
 
-        val idxRing = (0 until n).toVector
+        // Indices of the boundary vertices that are going to be substituted
+        val boundaryVertexIdsToBeDeleted = substitutionMapAlt.keys.toVector
 
-        def inclusiveSide(s: Int, e: Int): Vector[Int] =
-          val open = idxRing.sliceO(s, e) // includes s, excludes e (circular)
-          open :+ wrap(e) // add endpoint
+        // Indices of the boundary vertices that are going to substitute the deleted vertices
+        val boundaryVertexIdsToBeKept = substitutionMapAlt.keys.toSet
 
-        // Four parallelogon sides as inclusive arcs
-        // A: i0..i1, B: i1..i2, C: i2..i3, D: i3..i0
-        val sideA = inclusiveSide(i0, i1)
-        val sideB = inclusiveSide(i1, i2)
-        val sideC = inclusiveSide(i2, i3)
-        val sideD = inclusiveSide(i3, i0 + n)
-
-        if sideA.size != sideC.size || sideB.size != sideD.size then
-          return Left(TopologyError("Parallelogram sides do not have matching lengths"))
-
-        // ---- 2. Determine whether A↔C and B↔D are shifted by 1 (as in SimplePolygon.parallelogonIndices) ----
-        val boundaryAngles = tilingDCEL.boundarySimplePolygon.toAngles
-        val half           = boundaryAngles.size / 2
-
-        val turns: Vector[AngleDegree] =
-          boundaryAngles.map(_.normalised.supplement)
-
-        val areFitting: (AngleDegree, AngleDegree) => Boolean =
-          (x, y) => x == AngleDegree(-y.toRational)
-
-        def circularSlice(start: Int, len: Int): Vector[AngleDegree] =
-          turns.sliceO(start, start + len).tail
-
-        val l1   = (i1 - i0 + n) % n
-        val l2   = half - l1
-        val segA = circularSlice(i0, l1)
-        val segB = circularSlice(i0 + l1, l2)
-        val segC = circularSlice(i0 + half, l1)
-        val segD = circularSlice(i0 + half + l1, l2)
-
-        def areOppositeShifted(xs: Vector[AngleDegree], ys: Vector[AngleDegree]): Boolean =
-          xs.length == ys.length &&
-            xs == ys &&
-            xs.length > 1 &&
-            xs.drop(1).lazyZip(ys.dropRight(1)).forall(areFitting)
-
-        val shiftedAC = areOppositeShifted(segA, segC)
-        val shiftedBD = areOppositeShifted(segB, segD)
-        println(s"shiftedAC: $shiftedAC, shiftedBD: $shiftedBD")
-
-        // ---- 3. Union–find over boundary vertex IDs using side-based pairing (with optional shift) ----
-        import scala.collection.mutable
-
-        val parent = mutable.HashMap.empty[VertexId, VertexId]
-
-        def find(v: VertexId): VertexId =
-          parent.get(v) match
-            case None              =>
-              parent(v) = v
-              v
-            case Some(p) if p == v =>
-              v
-            case Some(p)           =>
-              val r = find(p)
-              parent(v) = r
-              r
-
-        def union(a: VertexId, b: VertexId): Unit =
-          val ra = find(a)
-          val rb = find(b)
-          if ra != rb then parent(ra) = rb
-
-        def vidAt(idx: Int): VertexId =
-          boundaryVertices(idx).id
-
-        inline def lastOpt(side: Vector[Int]): Option[Int] = side.lastOption
-
-        inline def headOpt(side: Vector[Int]): Option[Int] = side.headOption
-
-        // --- A ↔ C pairing ---
-        if !shiftedAC then
-          // Simple positional pairing A(i) <-> reverse(C)(i)
-          val cRev = sideC.reverse
-          sideA.zip(cRev).foreach { case (ia, ic) =>
-            union(vidAt(ia), vidAt(ic))
-          }
-        else
-          // Shifted case: extend with one vertex from adjacent sides D and B
-          // Aext = last(D) :: A, Cext = C :+ head(B)
-          val aExtIdxs = lastOpt(sideD).toList ++ sideA
-          val cExtIdxs = sideC ++ headOpt(sideB).toList
-          val cExtRev  = cExtIdxs.reverse
-          val len      = math.min(aExtIdxs.size, cExtRev.size)
-          (0 until len).foreach { i =>
-
-            union(vidAt(aExtIdxs(i)), vidAt(cExtRev(i)))
-          }
-
-        // --- B ↔ D pairing ---
-        if !shiftedBD then
-          // Simple positional pairing B(i) <-> reverse(D)(i)
-          val dRev = sideD.reverse
-          sideB.zip(dRev).foreach { case (ib, id) =>
-            union(vidAt(ib), vidAt(id))
-          }
-        else
-          // Shifted case: extend with one vertex from adjacent sides A and C
-          // Bext = last(A) :: B, Dext = D :+ head(C)
-          val bExtIdxs = lastOpt(sideA).toList ++ sideB
-          val dExtIdxs = sideD ++ headOpt(sideC).toList
-          val dExtRev  = dExtIdxs.reverse
-          val len      = math.min(bExtIdxs.size, dExtRev.size)
-          (0 until len).foreach { i =>
-
-            union(vidAt(bExtIdxs(i)), vidAt(dExtRev(i)))
-          }
-
-        // ---- 4. Build new vertices, one per equivalence class ----
+        // Each group in indexGroups is a list of boundary indices whose vertices
+        // should be identified (folded) into a single vertex.
+        //
+        // We choose the first index in each group as the representative, and
+        // map every other boundary vertex in that group to it.
+        val substitutionMap: Map[VertexId, VertexId] =
+          indexGroups.flatMap {
+            case repIdx :: others =>
+              val repId = boundaryVertices(repIdx).id
+              others.map { i =>
+                val vId = boundaryVertices(i).id
+                vId -> repId
+              }
+            case _ =>
+              // Should not happen: groups are non-empty by construction.
+              Nil
+          }.toMap
+          
+        println(s"substitutionMap: $substitutionMap")  
+        println(s"substitutionMapAlt: $substitutionMapAlt")
+        
+        // ---- 2. Build new vertices, one per equivalence class ----
         val oldVertices = tilingDCEL.vertices
-
+      
+        import scala.collection.mutable
+      
+        // Representative VertexId -> new Vertex
         val repToVertex = mutable.HashMap.empty[VertexId, Vertex]
-
+      
         def repOf(id: VertexId): VertexId =
-          parent.get(id).map(find).getOrElse(id)
-
+          substitutionMap.getOrElse(id, id)
+      
+        // First pass: create exactly one Vertex per representative id,
+        // using the coordinates of the first encountered original vertex in that class.
         oldVertices.foreach { v =>
           val r = repOf(v.id)
           if !repToVertex.contains(r) then
             repToVertex(r) = Vertex(r, v.coords)
         }
-
+      
+        // Mapping from every original vertex id to its new Vertex
         val newVertexOfId: Map[VertexId, Vertex] =
           oldVertices.map { v =>
-
             v.id -> repToVertex(repOf(v.id))
           }.toMap
-
+      
         val newVertices: List[Vertex] =
           repToVertex.values.toList
-
-        // ---- 5. Clone inner half-edges (drop outer-face edges) ----
-        val oldInnerEdges  = tilingDCEL.halfEdges.filterNot(tilingDCEL.isBoundaryEdge)
-        val edgeMap        = mutable.HashMap.empty[HalfEdge, HalfEdge]
-        val oldInnerEdgesS = oldInnerEdges.toSet
-
-        oldInnerEdges.foreach { e =>
+      
+        // ---- 3. Clone all half-edges (inner + boundary); drop outer-face incidence ----
+        val oldEdges = tilingDCEL.halfEdges
+        val edgeMap = mutable.HashMap.empty[HalfEdge, HalfEdge]
+      
+        oldEdges.foreach { e =>
           val newOrigin = newVertexOfId(e.origin.id)
-          val ne        = HalfEdge(newOrigin)
+          val ne = HalfEdge(newOrigin)
           ne.angle = e.angle
           edgeMap(e) = ne
         }
-
-        // ---- 6. Clone inner faces ----
+      
+        // ---- 4. Clone inner faces ----
         val oldInnerFaces = tilingDCEL.innerFaces
-        val faceMap       = mutable.HashMap.empty[Face, Face]
-
+        val faceMap = mutable.HashMap.empty[Face, Face]
+      
         oldInnerFaces.foreach { f =>
-
           faceMap(f) = Face(f.id)
         }
-
-        // ---- 7. Wire next/prev and incidentFace using the edge/face maps ----
-        oldInnerEdges.foreach { oe =>
+      
+        // ---- 5. Wire next/prev and incidentFace using the edge/face maps ----
+        val outerFace = tilingDCEL.outerFace
+      
+        oldEdges.foreach { oe =>
           val ne = edgeMap(oe)
-
-          oe.next.filter(oldInnerEdgesS.contains).foreach { on =>
-
+      
+          // next/prev always translated if present
+          oe.next.foreach { on =>
             ne.next = Some(edgeMap(on))
           }
-          oe.prev.filter(oldInnerEdgesS.contains).foreach { op =>
-
+          oe.prev.foreach { op =>
             ne.prev = Some(edgeMap(op))
           }
+      
+          // incident face: skip the outer face (torus has no outer face)
           oe.incidentFace.foreach { of =>
-            val nf = faceMap(of)
-            ne.incidentFace = Some(nf)
+            if of ne outerFace then
+              ne.incidentFace = Some(faceMap(of))
           }
         }
-
+      
+        // Set outerComponent for inner faces
         oldInnerFaces.foreach { of =>
           val nf = faceMap(of)
           of.outerComponent.foreach { startOld =>
-
-            if oldInnerEdgesS.contains(startOld) then
-              nf.outerComponent = Some(edgeMap(startOld))
+            nf.outerComponent = Some(edgeMap(startOld))
           }
         }
-
-        // ---- 8. Wire twins purely by endpoints in the NEW graph ----
+      
+        // ---- 6. Wire twins purely by endpoints in the NEW graph ----
+        //
+        // For each directed edge (origin -> destination) we bucket new half-edges
+        // by (originId, destId). Then we pair buckets for (a,b) with (b,a),
+        // wiring twins arbitrarily within each pair of buckets.
+        val dirBuckets =
+          mutable.HashMap.empty[(VertexId, VertexId), mutable.ArrayBuffer[HalfEdge]]
+      
+        edgeMap.values.foreach { e =>
+          e.next.foreach { n =>
+            val key = (e.origin.id, n.origin.id)
+            val buf = dirBuckets.getOrElseUpdate(key, mutable.ArrayBuffer.empty[HalfEdge])
+            buf += e
+          }
+        }
+      
+        dirBuckets.foreach { case ((o, d), buf) =>
+          val oppKey = (d, o)
+          dirBuckets.get(oppKey).foreach { oppBuf =>
+            val count = math.min(buf.size, oppBuf.size)
+            var i = 0
+            while i < count do
+              val e1 = buf(i)
+              val e2 = oppBuf(i)
+              if e1.twin.isEmpty && e2.twin.isEmpty then
+                e1.twinWith(e2)
+              i += 1
+          }
+        }
+      
+        // ---- 7. Ensure each new vertex has a leaving edge ----
         val allNewEdges = edgeMap.values.toList
-
-        def destOf(e: HalfEdge): Option[Vertex] =
-          e.next.map(_.origin)
-
-        val buckets: Map[(String, String), List[HalfEdge]] =
-          allNewEdges
-            .flatMap { e =>
-
-              destOf(e).map { d =>
-
-                ((e.origin.id.value, d.id.value), e)
-              }
-            }
-            .groupBy(_._1)
-            .view
-            .mapValues(_.map(_._2))
-            .toMap
-
-        inline def keyOpp(k: (String, String)) = (k._2, k._1)
-
-        for
-          (k, list) <- buckets
-          opp       <- buckets.get(keyOpp(k))
-        do
-          val m = Math.min(list.size, opp.size)
-          var i = 0
-          while i < m do
-            val e1 = list(i)
-            val e2 = opp(i)
-            if e1.twin.isEmpty && e2.twin.isEmpty then e1.twinWith(e2)
-            i += 1
-
-        // ---- 9. Ensure each new vertex has a leaving edge ----
         newVertices.foreach { v =>
-
           if v.leaving.isEmpty then
             v.leaving = allNewEdges.find(_.origin eq v)
         }
-
-        // ---- 10. Build the torus DCEL (only inner faces, no outer face) ----
+      
+        // ---- 8. Build the torus DCEL (only inner faces, no outer face) ----
         val newFaces = faceMap.values.toList
 
+        println(s"vertices: ${newVertices.size} $newVertices")
+        println(s"halfEdges: ${allNewEdges.size} $allNewEdges")
         println(s"newFaces: ${newFaces.size} $newFaces")
-        println(s"newVertices: ${newVertices.size} $newVertices")
-        println(s"allNewEdges: ${allNewEdges.size} $allNewEdges")
-//        fromUntrusted(
-//          vertices = newVertices,
-//          halfEdges = allNewEdges,
-//          faces = newFaces
-//        )
-        Right(TilingTorusDCEL(newVertices, allNewEdges, newFaces))
+//        println(s"newFaces outerComponent: ${newFaces.map(_.outerComponent)}")
+        fromUntrusted(
+          vertices = newVertices,
+          halfEdges = allNewEdges,
+          faces = newFaces
+        )
 
   // 3D SVG options
   final case class TorusSvg3DOptions(
