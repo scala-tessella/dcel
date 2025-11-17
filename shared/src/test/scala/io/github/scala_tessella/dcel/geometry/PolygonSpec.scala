@@ -135,6 +135,9 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   def checkIndicesForAllRotationsAndReflections(simple: SimplePolygon): Assertion =
     simple.toAngles.rotationsAndReflections.distinct.forall(SimplePolygon(_).parallelogonIndices.isDefined) shouldBe true
 
+  def checkEquivalencesForAllRotationsAndReflections(simple: SimplePolygon, expectedGroupsCount: Int): Assertion =
+    simple.toAngles.rotationsAndReflections.distinct.forall(SimplePolygon(_).parallelogonEquivalences.size == expectedGroupsCount) shouldBe true
+
   it should "be found for a 3x3 square" in {
     val square3x3 = SimplePolygon(squareAngles).multiplySidesBy(3)
     allAssert(
@@ -147,7 +150,8 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           List(4, 11),
           List(5, 10)
         ),
-      checkIndicesForAllRotationsAndReflections(square3x3)
+      checkIndicesForAllRotationsAndReflections(square3x3),
+      checkEquivalencesForAllRotationsAndReflections(square3x3, 5)
     )
   }
 
@@ -167,7 +171,8 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           List(1, 5),
           List(3, 7)
         ),
-      checkIndicesForAllRotationsAndReflections(scale)
+      checkIndicesForAllRotationsAndReflections(scale),
+      checkEquivalencesForAllRotationsAndReflections(scale, 3)
     )
   }
 
@@ -180,7 +185,8 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           List(0, 1, 3, 4),
           List(2, 5)
         ),
-      checkIndicesForAllRotationsAndReflections(rectangle1x2)
+      checkIndicesForAllRotationsAndReflections(rectangle1x2),
+      checkEquivalencesForAllRotationsAndReflections(rectangle1x2, 2)
     )
   }
 
@@ -195,7 +201,8 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           List(0, 1, 3, 4),
           List(2, 5)
         ),
-      checkIndicesForAllRotationsAndReflections(parallelogram2x1)
+      checkIndicesForAllRotationsAndReflections(parallelogram2x1),
+      checkEquivalencesForAllRotationsAndReflections(parallelogram2x1, 2)
     )
   }
 
@@ -213,7 +220,8 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           List(2, 8),
           List(3, 7)
         ),
-      checkIndicesForAllRotationsAndReflections(twoJoinedHexs)
+      checkIndicesForAllRotationsAndReflections(twoJoinedHexs),
+      checkEquivalencesForAllRotationsAndReflections(twoJoinedHexs, 4)
     )
 
   it should "be found for a 2 joined regular hexagons boundary multiplied by 2" in {
@@ -234,7 +242,8 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           List(7, 13),
           List(9, 19)
         ),
-      checkIndicesForAllRotationsAndReflections(doubledJoinedHexs)
+      checkIndicesForAllRotationsAndReflections(doubledJoinedHexs),
+      checkEquivalencesForAllRotationsAndReflections(doubledJoinedHexs, 9)
     )
   }
 
@@ -254,7 +263,8 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           List(5, 13),
           List(6, 12)
         ),
-      checkIndicesForAllRotationsAndReflections(fourJoinedHexs)
+      checkIndicesForAllRotationsAndReflections(fourJoinedHexs),
+      checkEquivalencesForAllRotationsAndReflections(fourJoinedHexs, 6)
     )
   }
 
@@ -274,7 +284,8 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           List(5, 13),
           List(6, 12)
         ),
-      checkIndicesForAllRotationsAndReflections(carved)
+      checkIndicesForAllRotationsAndReflections(carved),
+      checkEquivalencesForAllRotationsAndReflections(carved, 6)
     )
   }
 
