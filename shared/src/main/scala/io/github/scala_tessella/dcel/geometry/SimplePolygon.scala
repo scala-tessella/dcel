@@ -136,8 +136,8 @@ object SimplePolygon:
                     val segC = circularSlice(s + half, l1)
                     val segD = circularSlice(s + half + l1, l2)
 
-                    (areOpposite(segA, segC).isDefined && areOpposite(segB, segD).isDefined)
-                     || (areOpposite(segA, segC.reverse).isDefined && areOpposite(segB, segD.reverse).isDefined)
+                    (areOpposite(segA, segC).isDefined || areOpposite(segA, segC.reverse).isDefined)
+                    && (areOpposite(segB, segD).isDefined || areOpposite(segB, segD.reverse).isDefined)
                   } =>
                 (s, s + l1, s + half, s + half + l1)
             }
@@ -174,10 +174,12 @@ object SimplePolygon:
 
           def groupOpposite(startFirst: Int, len: Int, shift: Int): List[List[Int]] =
             val startOpposite = startFirst + half
-            println(s"\nstart: $startFirst, len $len, startOpposite: $startOpposite, half: $half, shift: $shift")
+            println(
+              s"\nstart: $startFirst, len $len, startOpposite: $startOpposite, half: $half, shift: $shift"
+            )
             (0 to len).map(i =>
               val reverse = len - i + shift
-              val added =
+              val added   =
                 if i < shift then reverse % len
                 else reverse
               List((startOpposite + added) % n, startFirst + i)
@@ -189,15 +191,18 @@ object SimplePolygon:
               found.flatten.distinct :: unfound
             ).map(_.sorted).sortBy(_.head)
 
-          val isStraight = areOpposite(segA, segC).isDefined && areOpposite(segB, segD).isDefined
+          val isACStraight = areOpposite(segA, segC).isDefined
+          val isBDStraight = areOpposite(segB, segD).isDefined
 
-          val oppositionShiftAC = areOpposite(segA, if isStraight then segC else segC.reverse)
-          val oppositionShiftBD = areOpposite(segB, if isStraight then segD else segD.reverse)
+          val oppositionShiftAC = areOpposite(segA, if isACStraight then segC else segC.reverse)
+          val oppositionShiftBD = areOpposite(segB, if isBDStraight then segD else segD.reverse)
 
-          val oppositeAC = groupOpposite(s, l1, oppositionShiftAC.get)
+          // @note: it works but unclear why
+          val oppositeAC =
+            groupOpposite(s, l1, if oppositionShiftBD.get == 0 then oppositionShiftAC.get else 0)
           val oppositeBD = groupOpposite(s + l1, l2, oppositionShiftBD.get)
-          println(s"groups A <-> C: $oppositeAC")
-          println(s"groups B <-> D: $oppositeBD")
+//          println(s"groups A <-> C: $oppositeAC")
+//          println(s"groups B <-> D: $oppositeBD")
           val grouped    = equivalenceGroups(oppositeAC ::: oppositeBD)
-          println(s"grouped: $grouped")
+//          println(s"grouped: $grouped")
           grouped

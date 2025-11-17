@@ -92,21 +92,20 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   behavior of "SimplePolygon.parallelogonIndices"
 
-  it should "be found for a square" in {
+  it should "be found for a square" in
     allAssert(
       SimplePolygon(squareAngles).parallelogonIndices shouldBe Some((0, 1, 2, 3)),
       SimplePolygon(squareAngles).parallelogonEquivalences shouldBe
-      List(
-        List(0, 1, 2, 3)
-      )
+        List(
+          List(0, 1, 2, 3)
+        )
     )
-  }
 
   it should "be found for a regular pentagon" in {
     SimplePolygon(RegularPolygon(5).angles).parallelogonIndices shouldBe None
   }
 
-  it should "be found for a 2x2 square" in {
+  it should "be found for a 2x2 square" in
     allAssert(
       SimplePolygon(squareAngles).multiplySidesBy(2).parallelogonIndices shouldBe Some((0, 2, 4, 6)),
       SimplePolygon(squareAngles).multiplySidesBy(2).parallelogonEquivalences shouldBe
@@ -116,7 +115,6 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           List(3, 7)
         )
     )
-  }
 
   it should "be found for a 2x2 square with shifted angles" in {
     val angles =
@@ -132,7 +130,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     )
   }
 
-  it should "be found for a 3x3 square" in {
+  it should "be found for a 3x3 square" in
     allAssert(
       SimplePolygon(squareAngles).multiplySidesBy(3).parallelogonIndices shouldBe Some((0, 3, 6, 9)),
       SimplePolygon(squareAngles).multiplySidesBy(3).parallelogonEquivalences shouldBe
@@ -144,7 +142,6 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           List(5, 10)
         )
     )
-  }
 
   it should "be found for a regular hexagon" in {
     SimplePolygon(RegularPolygon(6).angles).parallelogonIndices shouldBe None
@@ -195,7 +192,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   val twoJoinedHexs: SimplePolygon =
     SimplePolygon(120, 120, 240, 120, 120, 120, 120, 240, 120, 120)
 
-  it should "be found for a 2 joined regular hexagons boundary" in {
+  it should "be found for a 2 joined regular hexagons boundary" in
     allAssert(
       twoJoinedHexs.parallelogonIndices shouldBe Some((0, 4, 5, 9)),
       twoJoinedHexs.parallelogonEquivalences shouldBe
@@ -206,7 +203,6 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           List(3, 7)
         )
     )
-  }
 
   it should "be found for a 2 joined regular hexagons boundary multiplied by 2" in {
 
@@ -238,6 +234,12 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       fourJoinedHexs.parallelogonIndices shouldBe Some((0, 3, 7, 10)),
       fourJoinedHexs.parallelogonEquivalences shouldBe
         List(
+          List(0, 4, 10),
+          List(1, 9),
+          List(2, 8),
+          List(3, 7, 11),
+          List(5, 13),
+          List(6, 12)
         )
     )
   }
@@ -260,7 +262,6 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
         )
     )
   }
-
 
   behavior of "RegularPolygon"
 

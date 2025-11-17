@@ -532,9 +532,9 @@ object TilingTorusDCEL:
 
   def fromTilingDCELalt(tilingDCEL: TilingDCEL): Either[TilingError, TilingTorusDCEL] =
     tilingDCEL.boundarySimplePolygon.parallelogonIndices match
-      case None => Left(TopologyError("TilingDCEL does not have a parallelogram boundary"))
+      case None                   => Left(TopologyError("TilingDCEL does not have a parallelogram boundary"))
       case Some((i0, i1, i2, i3)) =>
-        val boundaryVertices = tilingDCEL.boundaryVertices
+        val boundaryVertices  = tilingDCEL.boundaryVertices
 //        println(boundaryVertices(i0))
 //        println(boundaryVertices(i1))
 //        println(boundaryVertices(i2))
@@ -545,16 +545,19 @@ object TilingTorusDCEL:
         val deletableVertexIds = boundaryVertexIds.sliceO(i2, i0 + boundaryVertexIds.size + 1)
         println(s"deletableVertexIds: $deletableVertexIds")
         // Vertices that will be part of the TilingTorusDCEL
-        val remainingVertices = tilingDCEL.vertices.filterNot(vertex => deletableVertexIds.contains(vertex.id))
+        val remainingVertices  =
+          tilingDCEL.vertices.filterNot(vertex => deletableVertexIds.contains(vertex.id))
         println(s"remainingVertices: ${remainingVertices.size} $remainingVertices")
         println(s"remainingVertices leaving edges: ${remainingVertices.map(_.leaving)}")
         // if a vertex has a leaving edge pointing to a deletable vertex, we need to correct it
-        val newVertices = remainingVertices.map(vertex =>
+        val newVertices        = remainingVertices.map(vertex =>
           if deletableVertexIds.contains(vertex.leaving.get.destination.get.id) then
             Vertex(
               vertex.id,
               vertex.coords,
-              leaving = tilingDCEL.halfEdges.find(edge => edge.origin.id == vertex.id && remainingVertices.contains(edge.twin.get.origin))
+              leaving = tilingDCEL.halfEdges.find(edge =>
+                edge.origin.id == vertex.id && remainingVertices.contains(edge.twin.get.origin)
+              )
             )
           else
             vertex
@@ -565,14 +568,13 @@ object TilingTorusDCEL:
         // convert vertexId to new vertex
         val toNewVertex: VertexId => Vertex = vertexId => newVertices.find(_.id == vertexId).get
 
-
-        val double = boundaryVertexIds ++ boundaryVertexIds
-        val len = i1 - i0
-        val start = boundaryVertexIds(i3) -> toNewVertex(boundaryVertexIds(len))
+        val double    = boundaryVertexIds ++ boundaryVertexIds
+        val len       = i1 - i0
+        val start     = boundaryVertexIds(i3) -> toNewVertex(boundaryVertexIds(len))
         val firstPass = (1 to len).foldLeft(List(start))((l, index) =>
           boundaryVertexIds(i3 - index) -> toNewVertex(boundaryVertexIds(i0 + index)) :: l
         )
-        val len2 = i2 - i1
+        val len2      = i2 - i1
 
         // Map from deletable vertex ID to old vertex that substitutes it
         val substitutionMap = (0 until len2).foldLeft(firstPass)((l, index) =>
@@ -580,17 +582,19 @@ object TilingTorusDCEL:
         ).toMap
         println(s"substitution map: $substitutionMap")
 
-
         // boundary edges that must be deleted together with their twins
-        val deletableBoundaryEdges = tilingDCEL.boundaryEdges.sliceO(i2, i0 + tilingDCEL.boundaryEdges.size)
+        val deletableBoundaryEdges      = tilingDCEL.boundaryEdges.sliceO(i2, i0 + tilingDCEL.boundaryEdges.size)
         val deletableBoundaryEdgesTwins = deletableBoundaryEdges.map(_.twin.get)
         println(s"boundaryVertexIds: $boundaryVertexIds")
         println(s"i0: $i0, i2: $i2")
         println(s"original total edges: ${tilingDCEL.halfEdges.size}")
         println(s"deletableBoundaryEdges: ${deletableBoundaryEdges.size} $deletableBoundaryEdges")
-        println(s"deletableBoundaryEdgesTwins: ${deletableBoundaryEdgesTwins.size} $deletableBoundaryEdgesTwins")
+        println(
+          s"deletableBoundaryEdgesTwins: ${deletableBoundaryEdgesTwins.size} $deletableBoundaryEdgesTwins"
+        )
 
-        val remainingHalfEdges = tilingDCEL.halfEdges.diff(deletableBoundaryEdges ++ deletableBoundaryEdgesTwins)
+        val remainingHalfEdges =
+          tilingDCEL.halfEdges.diff(deletableBoundaryEdges ++ deletableBoundaryEdgesTwins)
         println(s"remainingHalfEdges: ${remainingHalfEdges.size} $remainingHalfEdges")
 
         // split between edges that need a substitution and those that don't
@@ -601,7 +605,7 @@ object TilingTorusDCEL:
         println(s"unchanged: ${unchanged.size} $unchanged")
 
         // create new edges plus twins with substitution
-        val changed = toBeChanged.collect {
+        val changed      = toBeChanged.collect {
           case e if deletableVertexIds.contains(e.origin.id) =>
             val he =
               HalfEdge(
@@ -642,7 +646,7 @@ object TilingTorusDCEL:
       case Some((i0, i1, i2, i3)) =>
         // ---- 1. Boundary vertices and indexed sides ----
         val boundaryVertices = tilingDCEL.boundaryVertices
-        val boundaryEdges = tilingDCEL.boundaryEdges
+        val boundaryEdges    = tilingDCEL.boundaryEdges
 
         if boundaryVertices.isEmpty || boundaryEdges.isEmpty then
           return Left(TopologyError("TilingDCEL has empty boundary"))
@@ -660,39 +664,35 @@ object TilingTorusDCEL:
           open :+ wrap(e) // add endpoint
 
         // Four parallelogon sides as inclusive arcs
-        val sideA = inclusiveSide(i0, i1) // i0 .. i1
-        val sideB = inclusiveSide(i1, i2) // i1 .. i2
-        val sideC = inclusiveSide(i2, i3) // i2 .. i3
-        val sideD = inclusiveSide(i3, i0 + n) // i3 .. i0 (wrapped)
+        // A: i0..i1, B: i1..i2, C: i2..i3, D: i3..i0
+        val sideA = inclusiveSide(i0, i1)
+        val sideB = inclusiveSide(i1, i2)
+        val sideC = inclusiveSide(i2, i3)
+        val sideD = inclusiveSide(i3, i0 + n)
 
         if sideA.size != sideC.size || sideB.size != sideD.size then
           return Left(TopologyError("Parallelogram sides do not have matching lengths"))
 
-        // ---- 2. Classify A↔C and B↔D from boundary angles ----
+        // ---- 2. Determine whether A↔C and B↔D are shifted by 1 (as in SimplePolygon.parallelogonIndices) ----
         val boundaryAngles = tilingDCEL.boundarySimplePolygon.toAngles
-        val half = boundaryAngles.size / 2
+        val half           = boundaryAngles.size / 2
 
         val turns: Vector[AngleDegree] =
           boundaryAngles.map(_.normalised.supplement)
 
         val areFitting: (AngleDegree, AngleDegree) => Boolean =
-          (x, y) => x == y.inverted
+          (x, y) => x == AngleDegree(-y.toRational)
 
         def circularSlice(start: Int, len: Int): Vector[AngleDegree] =
-          // same slicing as in SimplePolygon.parallelogonIndices
           turns.sliceO(start, start + len).tail
 
-        val l1 = (i1 - i0 + n) % n
-        val l2 = half - l1
+        val l1   = (i1 - i0 + n) % n
+        val l2   = half - l1
         val segA = circularSlice(i0, l1)
         val segB = circularSlice(i0 + l1, l2)
         val segC = circularSlice(i0 + half, l1)
         val segD = circularSlice(i0 + half + l1, l2)
 
-        def areOppositeUnshifted(xs: Vector[AngleDegree], ys: Vector[AngleDegree]): Boolean =
-          xs.length == ys.length && xs.lazyZip(ys).forall(areFitting)
-
-        // Same “properly shifted by 1” as in SimplePolygon, but only that case
         def areOppositeShifted(xs: Vector[AngleDegree], ys: Vector[AngleDegree]): Boolean =
           xs.length == ys.length &&
             xs == ys &&
@@ -703,20 +703,19 @@ object TilingTorusDCEL:
         val shiftedBD = areOppositeShifted(segB, segD)
         println(s"shiftedAC: $shiftedAC, shiftedBD: $shiftedBD")
 
-        // ---- 3. Union–find over boundary vertex IDs using index pairing ----
+        // ---- 3. Union–find over boundary vertex IDs using side-based pairing (with optional shift) ----
         import scala.collection.mutable
 
         val parent = mutable.HashMap.empty[VertexId, VertexId]
 
-        // Make-set for any vertex we touch
         def find(v: VertexId): VertexId =
           parent.get(v) match
-            case None =>
+            case None              =>
               parent(v) = v
               v
             case Some(p) if p == v =>
               v
-            case Some(p) =>
+            case Some(p)           =>
               val r = find(p)
               parent(v) = r
               r
@@ -726,42 +725,68 @@ object TilingTorusDCEL:
           val rb = find(b)
           if ra != rb then parent(ra) = rb
 
-        // A <-> reversed C
-        val sideCRev = sideC.reverse
-        sideA.zip(sideCRev).foreach { case (ia, ic) =>
-          val va = boundaryVertices(ia).id
-          val vc = boundaryVertices(ic).id
-          union(va, vc)
-        }
+        def vidAt(idx: Int): VertexId =
+          boundaryVertices(idx).id
 
-        // B <-> reversed D
-        val sideDRev = sideD.reverse
-        sideB.zip(sideDRev).foreach { case (ib, id) =>
-          val vb = boundaryVertices(ib).id
-          val vd = boundaryVertices(id).id
-          union(vb, vd)
-        }
+        inline def lastOpt(side: Vector[Int]): Option[Int] = side.lastOption
+
+        inline def headOpt(side: Vector[Int]): Option[Int] = side.headOption
+
+        // --- A ↔ C pairing ---
+        if !shiftedAC then
+          // Simple positional pairing A(i) <-> reverse(C)(i)
+          val cRev = sideC.reverse
+          sideA.zip(cRev).foreach { case (ia, ic) =>
+            union(vidAt(ia), vidAt(ic))
+          }
+        else
+          // Shifted case: extend with one vertex from adjacent sides D and B
+          // Aext = last(D) :: A, Cext = C :+ head(B)
+          val aExtIdxs = lastOpt(sideD).toList ++ sideA
+          val cExtIdxs = sideC ++ headOpt(sideB).toList
+          val cExtRev  = cExtIdxs.reverse
+          val len      = math.min(aExtIdxs.size, cExtRev.size)
+          (0 until len).foreach { i =>
+
+            union(vidAt(aExtIdxs(i)), vidAt(cExtRev(i)))
+          }
+
+        // --- B ↔ D pairing ---
+        if !shiftedBD then
+          // Simple positional pairing B(i) <-> reverse(D)(i)
+          val dRev = sideD.reverse
+          sideB.zip(dRev).foreach { case (ib, id) =>
+            union(vidAt(ib), vidAt(id))
+          }
+        else
+          // Shifted case: extend with one vertex from adjacent sides A and C
+          // Bext = last(A) :: B, Dext = D :+ head(C)
+          val bExtIdxs = lastOpt(sideA).toList ++ sideB
+          val dExtIdxs = sideD ++ headOpt(sideC).toList
+          val dExtRev  = dExtIdxs.reverse
+          val len      = math.min(bExtIdxs.size, dExtRev.size)
+          (0 until len).foreach { i =>
+
+            union(vidAt(bExtIdxs(i)), vidAt(dExtRev(i)))
+          }
 
         // ---- 4. Build new vertices, one per equivalence class ----
         val oldVertices = tilingDCEL.vertices
 
-        // Representative -> new vertex
         val repToVertex = mutable.HashMap.empty[VertexId, Vertex]
 
         def repOf(id: VertexId): VertexId =
-          // If id was never in parent map, it is its own rep
           parent.get(id).map(find).getOrElse(id)
 
-        // For each original vertex, map its ID to the representative vertex
         oldVertices.foreach { v =>
           val r = repOf(v.id)
           if !repToVertex.contains(r) then
-            // Reuse coordinates of the first vertex in the class
             repToVertex(r) = Vertex(r, v.coords)
         }
 
         val newVertexOfId: Map[VertexId, Vertex] =
           oldVertices.map { v =>
+
             v.id -> repToVertex(repOf(v.id))
           }.toMap
 
@@ -769,23 +794,23 @@ object TilingTorusDCEL:
           repToVertex.values.toList
 
         // ---- 5. Clone inner half-edges (drop outer-face edges) ----
-        val oldInnerEdges = tilingDCEL.halfEdges.filterNot(tilingDCEL.isBoundaryEdge)
-        val edgeMap = mutable.HashMap.empty[HalfEdge, HalfEdge]
+        val oldInnerEdges  = tilingDCEL.halfEdges.filterNot(tilingDCEL.isBoundaryEdge)
+        val edgeMap        = mutable.HashMap.empty[HalfEdge, HalfEdge]
         val oldInnerEdgesS = oldInnerEdges.toSet
 
-        // First pass: create new edges with correct origin, copy angle only
         oldInnerEdges.foreach { e =>
           val newOrigin = newVertexOfId(e.origin.id)
-          val ne = HalfEdge(newOrigin)
+          val ne        = HalfEdge(newOrigin)
           ne.angle = e.angle
           edgeMap(e) = ne
         }
 
         // ---- 6. Clone inner faces ----
         val oldInnerFaces = tilingDCEL.innerFaces
-        val faceMap = mutable.HashMap.empty[Face, Face]
+        val faceMap       = mutable.HashMap.empty[Face, Face]
 
         oldInnerFaces.foreach { f =>
+
           faceMap(f) = Face(f.id)
         }
 
@@ -793,25 +818,24 @@ object TilingTorusDCEL:
         oldInnerEdges.foreach { oe =>
           val ne = edgeMap(oe)
 
-          // next
           oe.next.filter(oldInnerEdgesS.contains).foreach { on =>
+
             ne.next = Some(edgeMap(on))
           }
-          // prev
           oe.prev.filter(oldInnerEdgesS.contains).foreach { op =>
+
             ne.prev = Some(edgeMap(op))
           }
-          // incident face
           oe.incidentFace.foreach { of =>
             val nf = faceMap(of)
             ne.incidentFace = Some(nf)
           }
         }
 
-        // Set outerComponent for faces
         oldInnerFaces.foreach { of =>
           val nf = faceMap(of)
           of.outerComponent.foreach { startOld =>
+
             if oldInnerEdgesS.contains(startOld) then
               nf.outerComponent = Some(edgeMap(startOld))
           }
@@ -823,11 +847,12 @@ object TilingTorusDCEL:
         def destOf(e: HalfEdge): Option[Vertex] =
           e.next.map(_.origin)
 
-        // Build buckets: (originId, destId) -> List[HalfEdge]
         val buckets: Map[(String, String), List[HalfEdge]] =
           allNewEdges
             .flatMap { e =>
+
               destOf(e).map { d =>
+
                 ((e.origin.id.value, d.id.value), e)
               }
             }
@@ -840,7 +865,7 @@ object TilingTorusDCEL:
 
         for
           (k, list) <- buckets
-          opp <- buckets.get(keyOpp(k))
+          opp       <- buckets.get(keyOpp(k))
         do
           val m = Math.min(list.size, opp.size)
           var i = 0
@@ -852,6 +877,7 @@ object TilingTorusDCEL:
 
         // ---- 9. Ensure each new vertex has a leaving edge ----
         newVertices.foreach { v =>
+
           if v.leaving.isEmpty then
             v.leaving = allNewEdges.find(_.origin eq v)
         }
@@ -859,14 +885,15 @@ object TilingTorusDCEL:
         // ---- 10. Build the torus DCEL (only inner faces, no outer face) ----
         val newFaces = faceMap.values.toList
 
-//        println(s"newFaces: ${newFaces.size} $newFaces")
-//        println(s"newVertices: ${newVertices.size} $newVertices")
-//        println(s"allNewEdges: ${allNewEdges.size} $allNewEdges")
-        fromUntrusted(
-          vertices = newVertices,
-          halfEdges = allNewEdges,
-          faces = newFaces
-        )
+        println(s"newFaces: ${newFaces.size} $newFaces")
+        println(s"newVertices: ${newVertices.size} $newVertices")
+        println(s"allNewEdges: ${allNewEdges.size} $allNewEdges")
+//        fromUntrusted(
+//          vertices = newVertices,
+//          halfEdges = allNewEdges,
+//          faces = newFaces
+//        )
+        Right(TilingTorusDCEL(newVertices, allNewEdges, newFaces))
 
   // 3D SVG options
   final case class TorusSvg3DOptions(
