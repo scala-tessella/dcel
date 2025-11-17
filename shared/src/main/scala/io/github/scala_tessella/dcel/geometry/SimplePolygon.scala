@@ -136,7 +136,8 @@ object SimplePolygon:
                     val segC = circularSlice(s + half, l1)
                     val segD = circularSlice(s + half + l1, l2)
 
-                    areOpposite(segA, segC).isDefined && areOpposite(segB, segD).isDefined
+                    (areOpposite(segA, segC).isDefined && areOpposite(segB, segD).isDefined)
+                     || (areOpposite(segA, segC.reverse).isDefined && areOpposite(segB, segD.reverse).isDefined)
                   } =>
                 (s, s + l1, s + half, s + half + l1)
             }
@@ -173,7 +174,7 @@ object SimplePolygon:
 
           def groupOpposite(startFirst: Int, len: Int, shift: Int): List[List[Int]] =
             val startOpposite = startFirst + half
-            println(s"\nstart: $startFirst, len $len, startOpposite: $startOpposite, half: $half, shift")
+            println(s"\nstart: $startFirst, len $len, startOpposite: $startOpposite, half: $half, shift: $shift")
             (0 to len).map(i =>
               val reverse = len - i + shift
               val added =
@@ -188,11 +189,13 @@ object SimplePolygon:
               found.flatten.distinct :: unfound
             ).map(_.sorted).sortBy(_.head)
 
-          val oppositionShiftAC = areOpposite(segA, segC)
-          val oppositionShiftBD = areOpposite(segB, segD)
+          val isStraight = areOpposite(segA, segC).isDefined && areOpposite(segB, segD).isDefined
+
+          val oppositionShiftAC = areOpposite(segA, if isStraight then segC else segC.reverse)
+          val oppositionShiftBD = areOpposite(segB, if isStraight then segD else segD.reverse)
 
           val oppositeAC = groupOpposite(s, l1, oppositionShiftAC.get)
-          val oppositeBD = groupOpposite(s + l1, l2, 0)
+          val oppositeBD = groupOpposite(s + l1, l2, oppositionShiftBD.get)
           println(s"groups A <-> C: $oppositeAC")
           println(s"groups B <-> D: $oppositeBD")
           val grouped    = equivalenceGroups(oppositeAC ::: oppositeBD)

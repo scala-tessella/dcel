@@ -251,6 +251,12 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       carved.parallelogonIndices shouldBe Some((0, 3, 7, 10)),
       carved.parallelogonEquivalences shouldBe
         List(
+          List(0, 4, 10),
+          List(1, 9),
+          List(2, 8),
+          List(3, 7, 11),
+          List(5, 13),
+          List(6, 12)
         )
     )
   }
