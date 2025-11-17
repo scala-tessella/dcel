@@ -154,19 +154,41 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
     /** <img src="file:../../../../../../resources/simple/scale.svg"/> */
     val scale = SimplePolygon(90, 150, 120, 150, 90, 210, 60, 210)
-    scale.parallelogonIndices shouldBe Some((0, 2, 4, 6))
+    allAssert(
+      scale.parallelogonIndices shouldBe Some((0, 2, 4, 6)),
+      scale.parallelogonEquivalences shouldBe
+        List(
+          List(0, 2, 4, 6),
+          List(1, 5),
+          List(3, 7)
+        )
+    )
   }
 
   it should "be found for a 1x2 rectangle" in {
     val rectangle1x2 = SimplePolygon(90, 90, 180, 90, 90, 180)
-    rectangle1x2.parallelogonIndices shouldBe Some((0, 1, 3, 4))
+    allAssert(
+      rectangle1x2.parallelogonIndices shouldBe Some((0, 1, 3, 4)),
+      rectangle1x2.parallelogonEquivalences shouldBe
+        List(
+          List(0, 1, 3, 4),
+          List(2, 5)
+        )
+    )
   }
 
   it should "be found for a 2x1 parallelogram" in {
 
     /** <img src="file:../../../../../../resources/simple/parallelogram2x1.svg"/> */
     val parallelogram2x1 = SimplePolygon(60, 120, 180, 60, 120, 180)
-    parallelogram2x1.parallelogonIndices shouldBe Some((0, 1, 3, 4))
+    allAssert(
+      parallelogram2x1.parallelogonIndices shouldBe Some((0, 1, 3, 4)),
+      parallelogram2x1.parallelogonEquivalences shouldBe
+        List(
+          List(0, 1, 3, 4),
+          List(2, 5)
+        )
+    )
   }
 
   /** <img src="file:../../../../../../resources/simple/twoJoinedHexs.svg"/> */
@@ -174,7 +196,16 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     SimplePolygon(120, 120, 240, 120, 120, 120, 120, 240, 120, 120)
 
   it should "be found for a 2 joined regular hexagons boundary" in {
-    twoJoinedHexs.parallelogonIndices shouldBe Some((0, 4, 5, 9))
+    allAssert(
+      twoJoinedHexs.parallelogonIndices shouldBe Some((0, 4, 5, 9)),
+      twoJoinedHexs.parallelogonEquivalences shouldBe
+        List(
+          List(0, 4, 6),
+          List(1, 5, 9),
+          List(2, 8),
+          List(3, 7)
+        )
+    )
   }
 
   it should "be found for a 2 joined regular hexagons boundary multiplied by 2" in {
@@ -182,6 +213,8 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     /** <img src="file:../../../../../../resources/simple/doubledJoinedHexs.svg"/> */
     val doubledJoinedHexs = twoJoinedHexs.multiplySidesBy(2)
     doubledJoinedHexs.parallelogonIndices shouldBe Some((0, 8, 10, 18))
+    doubledJoinedHexs.parallelogonEquivalences shouldBe
+      List()
   }
 
   it should "be true for a 2x2 joined regular hexagons boundary" in {
@@ -189,7 +222,17 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     /** <img src="file:../../../../../../resources/simple/fourJoinedHexs.svg"/> */
     val fourJoinedHexs: SimplePolygon =
       SimplePolygon(120, 120, 240, 120, 120, 240, 120, 120, 120, 240, 120, 120, 240, 120)
-    fourJoinedHexs.parallelogonIndices shouldBe Some((0, 3, 7, 10))
+    allAssert(
+      fourJoinedHexs.parallelogonIndices shouldBe Some((0, 3, 7, 10)),
+      fourJoinedHexs.parallelogonEquivalences shouldBe
+        List(
+//          List(0, 3, 6, 8, 11),
+//          List(1, 7, 10),
+//          List(2, 9),
+//          List(4, 13),
+//          List(5, 12)
+        )
+    )
   }
 
   behavior of "RegularPolygon"
