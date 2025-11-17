@@ -173,8 +173,14 @@ object SimplePolygon:
 
           def groupOpposite(startFirst: Int, len: Int, shift: Int): List[List[Int]] =
             val startOpposite = startFirst + half
-            println(s"start: $startFirst, len $len, startOpposite: $startOpposite, half: $half, shift")
-            (0 to len).map(i => List((startOpposite + len - i + shift) % n, startFirst + i)).toList
+            println(s"\nstart: $startFirst, len $len, startOpposite: $startOpposite, half: $half, shift")
+            (0 to len).map(i =>
+              val reverse = len - i + shift
+              val added =
+                if i < shift then reverse % len
+                else reverse
+              List((startOpposite + added) % n, startFirst + i)
+            ).toList
 
           def equivalenceGroups(unmatched: List[List[Int]]): List[List[Int]] =
             (0 until n).foldLeft(unmatched)((groups, index) =>

@@ -215,7 +215,17 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     allAssert(
       doubledJoinedHexs.parallelogonIndices shouldBe Some((0, 8, 10, 18)),
       doubledJoinedHexs.parallelogonEquivalences shouldBe
-        List()
+        List(
+          List(0, 8, 12),
+          List(1, 11),
+          List(2, 10, 18),
+          List(3, 17),
+          List(4, 16),
+          List(5, 15),
+          List(6, 14),
+          List(7, 13),
+          List(9, 19)
+        )
     )
   }
 
@@ -228,11 +238,6 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       fourJoinedHexs.parallelogonIndices shouldBe Some((0, 3, 7, 10)),
       fourJoinedHexs.parallelogonEquivalences shouldBe
         List(
-//          List(0, 3, 6, 8, 11),
-//          List(1, 7, 10),
-//          List(2, 9),
-//          List(4, 13),
-//          List(5, 12)
         )
     )
   }
