@@ -242,6 +242,20 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     )
   }
 
+  it should "be true for a carved boundary" in {
+
+    /** <img src="file:../../../../../../resources/simple/carved.svg"/> */
+    val carved: SimplePolygon =
+      SimplePolygon(120, 180, 120, 180, 120, 240, 120, 60, 240, 180, 120, 120, 240, 120)
+    allAssert(
+      carved.parallelogonIndices shouldBe Some((0, 3, 7, 10)),
+      carved.parallelogonEquivalences shouldBe
+        List(
+        )
+    )
+  }
+
+
   behavior of "RegularPolygon"
 
   it should "be created with a valid number of sides" in
