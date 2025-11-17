@@ -467,7 +467,7 @@ object TilingSVG:
 
         val sections = List(
           boundarySection,
-          createSvgSection("Vertices", vertexCircles, attrs("fill" -> "red")),
+          createSvgSection("Vertices", vertexCircles, attrs("fill" -> "darkred")),
           createSvgSection(
             "Vertex Labels",
             vertexLabels,

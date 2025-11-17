@@ -5,7 +5,7 @@
             <polygon points="0,0 50,0 75,-43.30127 100,-86.60254 50,-86.60254 25,-43.30127"/>
         </g>
         <!-- Vertices -->
-        <g fill="red">
+        <g fill="darkred">
             <circle cx="0" cy="0" r="2.0"/>
             <circle cx="50" cy="0" r="2.0"/>
             <circle cx="75" cy="-43.30127" r="2.0"/>
