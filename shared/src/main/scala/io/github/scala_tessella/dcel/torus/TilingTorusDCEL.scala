@@ -119,7 +119,7 @@ final case class TilingTorusDCEL private (
       .filter(face =>
         val faceVertices = face.getVerticesUnsafe
         faceVertices.map(_.id.value).toSet.size == faceVertices.size
-          && faceVertices.map(_.coords).slidingO(2).forall(coords => coords.head.hasUnitDistanceTo(coords(1)))
+        && faceVertices.map(_.coords).slidingO(2).forall(coords => coords.head.hasUnitDistanceTo(coords(1)))
       )
       .distinctBy(_.getVerticesUnsafe.map(_.id.value).sorted)
 
@@ -130,15 +130,18 @@ final case class TilingTorusDCEL private (
     val calculatedCoords =
       facesWithIncorrectCoords.flatMap(face =>
         val coords = face.getVerticesUnsafe.map(_.coords)
-        coords.indices.toList.slidingO(2).find(pair => coords(pair.head).hasUnitDistanceTo(coords(pair(1)))) match
-          case Some(i0 :: i1 :: Nil) =>
-            val angles = face.anglesUnsafe.toVector
-            val points = BigLineSegment(coords(i0), coords(i1)).unitPath(angles)
-//            println(points)
-            points
-          case _ => throw new Error("No correct coords found")
+        val angles = face.anglesUnsafe.toVector
+        coords.indices.toList.slidingO(2)
+          .filter(pair => coords(pair.head).hasUnitDistanceTo(coords(pair(1))))
+          .flatMap(pair => BigLineSegment(coords(pair.head), coords(pair(1))).unitPath(angles))
       )
-    BigBox.fromPoints(calculatedCoords ::: vertices.map(_.coords))
+    val fullBox          = BigBox.fromPoints(calculatedCoords)
+    val correctBox       = BigBox.fromPoints(vertices.map(_.coords))
+    correctBox.enlargeMinMax(BigPoint(
+      fullBox.width - correctBox.width,
+      fullBox.height - correctBox.height
+    ).scaled(0.25))
+    ???
 
   def toTilingDCEL: Either[TilingError, TilingDCEL] =
     // keep only unit-length edges (and their twins)
@@ -272,14 +275,13 @@ final case class TilingTorusDCEL private (
   def toSVG3D(
       options: TilingTorusDCEL.TorusSvg3DOptions = TilingTorusDCEL.TorusSvg3DOptions()
   ): String =
-    val box = BigBox.fromPoints(vertices.map(_.coords))
-    val uScaleLocal = roundWithBigDecimal(1 / (box.width.toDouble + 1), 6)
-    val vScaleLocal = roundWithBigDecimal(1 / (box.height.toDouble + 1), 6)
-    println(s"width = $uScaleLocal, height = $vScaleLocal")
-    println(s"uScale = ${options.uScale}, vScale = ${options.vScale}")
+//    val box         = BigBox.fromPoints(vertices.map(_.coords))
+//    val uScaleLocal = roundWithBigDecimal(1 / (box.width.toDouble + 1), 6)
+//    val vScaleLocal = roundWithBigDecimal(1 / (box.height.toDouble + 1), 6)
+//    println(s"width = $uScaleLocal, height = $vScaleLocal")
+//    println(s"uScale = ${options.uScale}, vScale = ${options.vScale}")
 
-    val opt = options//.copy(uScale = uScaleLocal, vScale = vScaleLocal)
-
+    val opt = options // .copy(uScale = uScaleLocal, vScale = vScaleLocal)
 
     // Precompute projected positions for vertices
     val vProj = vertices.map { v =>
@@ -574,7 +576,7 @@ object TilingTorusDCEL:
 
   def fromTilingDCEL(tilingDCEL: TilingDCEL): Either[TilingError, TilingTorusDCEL] =
     tilingDCEL.boundarySimplePolygon.parallelogonEquivalences match
-      case Nil =>
+      case Nil         =>
         Left(TopologyError("TilingDCEL does not have a parallelogram boundary"))
       case indexGroups =>
         // ---- 1. Boundary vertices and indexed sides ----
@@ -591,10 +593,10 @@ object TilingTorusDCEL:
         // We choose the first index in each group as the representative, and
         // map every other boundary vertex in that group to it.
         val substitutionMap: Map[VertexId, VertexId] =
-          indexGroups.flatMap({
+          indexGroups.flatMap {
             case index :: tail => tail.map(boundaryVertices(_).id -> boundaryVertices(index).id)
             case Nil           => throw new Error("Should not happen: groups are non-empty by construction")
-          }).toMap
+          }.toMap
 
         // ---- 2. Build new vertices, one per equivalence class ----
         val oldVertices = tilingDCEL.vertices
@@ -618,6 +620,7 @@ object TilingTorusDCEL:
         // Mapping from every original vertex id to its new Vertex
         val newVertexOfId: Map[VertexId, Vertex] =
           oldVertices.map { v =>
+
             v.id -> repToVertex(repOf(v.id))
           }.toMap
 
@@ -628,24 +631,25 @@ object TilingTorusDCEL:
         //
         // After folding the boundary into a torus, there is no outer face.
         // We start from all half-edges whose incident face is NOT the outer face.
-        val outerFace = tilingDCEL.outerFace
+        val outerFace     = tilingDCEL.outerFace
         val oldInnerEdges = tilingDCEL.halfEdges.filterNot(tilingDCEL.isBoundaryEdge)
-        val edgeMap = mutable.HashMap.empty[HalfEdge, HalfEdge]
-        val innerSet = oldInnerEdges.toSet
+        val edgeMap       = mutable.HashMap.empty[HalfEdge, HalfEdge]
+        val innerSet      = oldInnerEdges.toSet
 
         // First pass: create new edges with correct origin, copy angle only
         oldInnerEdges.foreach { e =>
           val newOrigin = newVertexOfId(e.origin.id)
-          val ne = HalfEdge(newOrigin)
+          val ne        = HalfEdge(newOrigin)
           ne.angle = e.angle
           edgeMap(e) = ne
         }
 
         // ---- 4. Clone inner faces ----
         val oldInnerFaces = tilingDCEL.innerFaces
-        val faceMap = mutable.HashMap.empty[Face, Face]
+        val faceMap       = mutable.HashMap.empty[Face, Face]
 
         oldInnerFaces.foreach { f =>
+
           faceMap(f) = Face(f.id)
         }
 
@@ -655,14 +659,17 @@ object TilingTorusDCEL:
 
           // next/prev translated only if the neighbour is an inner edge
           oe.next.filter(innerSet.contains).foreach { on =>
+
             ne.next = Some(edgeMap(on))
           }
           oe.prev.filter(innerSet.contains).foreach { op =>
+
             ne.prev = Some(edgeMap(op))
           }
 
           // incident face: must be an inner face (by construction)
           oe.incidentFace.foreach { of =>
+
             if of ne outerFace then
               ne.incidentFace = Some(faceMap(of))
           }
@@ -672,6 +679,7 @@ object TilingTorusDCEL:
         oldInnerFaces.foreach { of =>
           val nf = faceMap(of)
           of.outerComponent.foreach { startOld =>
+
             if innerSet.contains(startOld) then
               nf.outerComponent = Some(edgeMap(startOld))
           }
@@ -686,6 +694,7 @@ object TilingTorusDCEL:
           mutable.HashMap.empty[(VertexId, VertexId), mutable.ArrayBuffer[HalfEdge]]
 
         edgeMap.values.foreach { e =>
+
           e.next.foreach { n =>
             val key = (e.origin.id, n.origin.id)
             val buf = dirBuckets.getOrElseUpdate(key, mutable.ArrayBuffer.empty[HalfEdge])
@@ -697,7 +706,7 @@ object TilingTorusDCEL:
           val oppKey = (d, o)
           dirBuckets.get(oppKey).foreach { oppBuf =>
             val count = math.min(buf.size, oppBuf.size)
-            var i = 0
+            var i     = 0
             while i < count do
               val e1 = buf(i)
               val e2 = oppBuf(i)
@@ -710,6 +719,7 @@ object TilingTorusDCEL:
         // ---- 7. Ensure each new vertex has a leaving edge ----
         val allNewEdges = edgeMap.values.toList
         newVertices.foreach { v =>
+
           if v.leaving.isEmpty then
             v.leaving = allNewEdges.find(_.origin eq v)
         }
