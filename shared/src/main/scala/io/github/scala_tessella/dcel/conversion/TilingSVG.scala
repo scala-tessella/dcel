@@ -335,7 +335,7 @@ object TilingSVG:
     val circles =
       vertices.map { v =>
         val (cx, cy) = v.coords.toSvgCoords(config.scale)
-        circleElem(cx, cy, (config.strokeWidth * 2).toString)
+        circleElem(cx, cy, (config.strokeWidth * 4).toString)
       }
 
     val labels = vertices.map { v =>
@@ -643,7 +643,7 @@ object TilingSVG:
         faceIdsOnEdges = config.faceIdsOnEdges,
         showUniformity = config.showUniformity
       )
-      
+
     def toTorusCheck: String =
       TilingTorusDCEL.fromTilingDCEL(tiling) match
         case Left(_) => ""
@@ -660,51 +660,51 @@ object TilingSVG:
               val vertices        = tiling.vertices.map(_.coords)
               val viewBox         = calculateViewBox(vertices, scale, padding)
               val (width, height) = viewBox.dimensions
-    
+
               // Generate all elements
               val edgeLines                               = createEdgeLines(tiling, scale)
-              val boundaryPolygon                         = createBoundaryElements(tiling, config)
+//              val boundaryPolygon                         = createBoundaryElements(tiling, config)
               val (vertexCircles, vertexLabels)           = createSimpleVertexElements(tiling.vertices, config)
               val (torusVertexCircles, torusVertexLabels) = createSimpleVertexElements(torus.vertices, config)
-              val faceLabels                              = createFaceLabels(tiling, config)
-    
+//              val faceLabels                              = createFaceLabels(tiling, config)
+
               // Build sections
-              val boundarySection = boundaryPolygon.map(polygon =>
-                createSvgSection(
-                  "Boundary Highlight",
-                  Seq(polygon),
-                  attrs("stroke" -> "red", "stroke-width" -> strokeWidth * 3, "fill" -> "none")
-                )
-              ).getOrElse(NodeSeq.Empty)
-    
+//              val boundarySection = boundaryPolygon.map(polygon =>
+//                createSvgSection(
+//                  "Boundary Highlight",
+//                  Seq(polygon),
+//                  attrs("stroke" -> "red", "stroke-width" -> strokeWidth * 3, "fill" -> "none")
+//                )
+//              ).getOrElse(NodeSeq.Empty)
+
               val sections = List(
                 createSvgSection("Edges", edgeLines, attrs("stroke" -> "black", "stroke-width" -> strokeWidth)),
-                boundarySection,
+//                boundarySection,
                 createSvgSection("Vertices", torusVertexCircles, attrs("fill" -> "red")),
                 createSvgSection(
                   "Vertex Labels",
                   torusVertexLabels,
                   attrs("font-size" -> (strokeWidth * 8).toInt, "fill" -> "darkblue")
                 ),
-                createSvgSection(
-                  "Face Labels",
-                  faceLabels,
-                  attrs(
-                    "font-size"         -> (strokeWidth * 6).toInt,
-                    "fill"              -> "green",
-                    "text-anchor"       -> "middle",
-                    "dominant-baseline" -> "middle"
-                  )
-                ),
+//                createSvgSection(
+//                  "Face Labels",
+//                  faceLabels,
+//                  attrs(
+//                    "font-size"         -> (strokeWidth * 6).toInt,
+//                    "fill"              -> "green",
+//                    "text-anchor"       -> "middle",
+//                    "dominant-baseline" -> "middle"
+//                  )
+//                ),
               ).flatten
-    
+
               svgElem(
                 width = width.toString,
                 height = height.toString,
                 viewBox = viewBox.formatted,
                 children = Seq(gElem(sections))
               )
-    
+
           new PrettyPrinter(120, 2).format(svg)
 
     def toUniformityAnimation(
