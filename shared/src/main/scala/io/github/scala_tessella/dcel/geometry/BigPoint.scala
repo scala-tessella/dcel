@@ -84,6 +84,9 @@ object BigPoint:
     /** Calculates the distance to another point. */
     def distanceTo(other: BigPoint): BigDecimal =
       BigLineSegment(point, other).length
+      
+    def hasUnitDistanceTo(other: BigPoint): Boolean =
+      (distanceTo(other) - BigDecimal(1.0)).abs <= ACCURACY  
 
     def scaled(scale: Double): BigPoint =
       (point.x * scale, point.y * scale)
