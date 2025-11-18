@@ -1,16 +1,11 @@
 package io.github.scala_tessella.dcel.conversion
 
 import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.*
-import io.github.scala_tessella.dcel.geometry.{
-  BigDecimalGeometry,
-  BigLineSegment,
-  BigPoint,
-  BigRadian,
-  SimplePolygon
-}
+import io.github.scala_tessella.dcel.geometry.{BigDecimalGeometry, BigLineSegment, BigPoint, BigRadian, SimplePolygon}
 import io.github.scala_tessella.dcel.structure.{FaceId, HalfEdge, Vertex, VertexId}
 import io.github.scala_tessella.dcel.{TilingDCEL, TilingError}
 import io.github.scala_tessella.dcel.TilingUniformity.scanUniformityTree
+import io.github.scala_tessella.dcel.torus.TilingTorusDCEL
 import spire.implicits.*
 
 import scala.collection.mutable
@@ -335,6 +330,24 @@ object TilingSVG:
 
     (circles, labels)
 
+  private def createSimpleVertexElements(vertices: List[Vertex], config: SvgConfig): (Seq[Elem], Seq[Elem]) =
+
+    val circles =
+      vertices.map { v =>
+        val (cx, cy) = v.coords.toSvgCoords(config.scale)
+        circleElem(cx, cy, (config.strokeWidth * 2).toString)
+      }
+
+    val labels = vertices.map { v =>
+      val point = v.coords.scaled(config.scale).flippedY
+      val x = (point.x + config.strokeWidth * 2.5).format
+      val y = (point.y - config.strokeWidth * 2.5).format
+      textAt(x, y, v.id.value)
+    }
+
+    (circles, labels)
+
+
   private def createFaceLabels(tilingDCEL: TilingDCEL, config: SvgConfig): Seq[Elem] =
     tilingDCEL.innerFaces.map { face =>
       val (x, y) = calculateCentroid(face.getVerticesUnsafe).toSvgCoords(config.scale)
@@ -630,6 +643,69 @@ object TilingSVG:
         faceIdsOnEdges = config.faceIdsOnEdges,
         showUniformity = config.showUniformity
       )
+      
+    def toTorusCheck: String =
+      TilingTorusDCEL.fromTilingDCEL(tiling) match
+        case Left(_) => ""
+        case Right(torus) =>
+          val svg: Elem =
+            if tiling.vertices.isEmpty then
+              svgElem("0", "0", "0 0 0 0", Seq.empty)
+            else
+
+              val config = toConfig(SvgOptions.apply())
+              val strokeWidth: Double = config.strokeWidth
+              val padding: Double = config.padding
+              val scale: Double = config.scale
+              val vertices        = tiling.vertices.map(_.coords)
+              val viewBox         = calculateViewBox(vertices, scale, padding)
+              val (width, height) = viewBox.dimensions
+    
+              // Generate all elements
+              val edgeLines                               = createEdgeLines(tiling, scale)
+              val boundaryPolygon                         = createBoundaryElements(tiling, config)
+              val (vertexCircles, vertexLabels)           = createSimpleVertexElements(tiling.vertices, config)
+              val (torusVertexCircles, torusVertexLabels) = createSimpleVertexElements(torus.vertices, config)
+              val faceLabels                              = createFaceLabels(tiling, config)
+    
+              // Build sections
+              val boundarySection = boundaryPolygon.map(polygon =>
+                createSvgSection(
+                  "Boundary Highlight",
+                  Seq(polygon),
+                  attrs("stroke" -> "red", "stroke-width" -> strokeWidth * 3, "fill" -> "none")
+                )
+              ).getOrElse(NodeSeq.Empty)
+    
+              val sections = List(
+                createSvgSection("Edges", edgeLines, attrs("stroke" -> "black", "stroke-width" -> strokeWidth)),
+                boundarySection,
+                createSvgSection("Vertices", torusVertexCircles, attrs("fill" -> "red")),
+                createSvgSection(
+                  "Vertex Labels",
+                  torusVertexLabels,
+                  attrs("font-size" -> (strokeWidth * 8).toInt, "fill" -> "darkblue")
+                ),
+                createSvgSection(
+                  "Face Labels",
+                  faceLabels,
+                  attrs(
+                    "font-size"         -> (strokeWidth * 6).toInt,
+                    "fill"              -> "green",
+                    "text-anchor"       -> "middle",
+                    "dominant-baseline" -> "middle"
+                  )
+                ),
+              ).flatten
+    
+              svgElem(
+                width = width.toString,
+                height = height.toString,
+                viewBox = viewBox.formatted,
+                children = Seq(gElem(sections))
+              )
+    
+          new PrettyPrinter(120, 2).format(svg)
 
     def toUniformityAnimation(
         strokeWidth: Double = 1.0,

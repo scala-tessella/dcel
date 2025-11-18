@@ -137,7 +137,7 @@ final case class TilingTorusDCEL private (
       )
     val fullBox          = BigBox.fromPoints(calculatedCoords)
     val correctBox       = BigBox.fromPoints(vertices.map(_.coords))
-    correctBox.enlargeMinMax(BigPoint(
+    val sub = correctBox.enlargeMinMax(BigPoint(
       fullBox.width - correctBox.width,
       fullBox.height - correctBox.height
     ).scaled(0.25))
