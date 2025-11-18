@@ -69,7 +69,7 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
 
   behavior of "TilingTorusDCEL.fromTilingDCEL"
 
-  it should "be converted from a 1x1 square" in {
+  it should "be converted from a square" in {
     val tilingDCEL    = TilingBuilder.createRegularPolygon(RegularPolygon(4))
     val result        = TilingTorusDCEL.fromTilingDCEL(tilingDCEL)
 //    val scale: Double = 1.0 / 1.0
@@ -252,5 +252,53 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
       result.value.vertices.size shouldBe 64,
       result.value.halfEdges.size shouldBe 192,
       result.value.halfEdges.exists(_.isLoop.get) shouldBe false
+    )
+  }
+
+  it should "be converted from a 1x1 triangle net" in {
+    val tilingDCEL = TilingBuilder.createTriangleNet(1, 1)
+    val result = TilingTorusDCEL.fromTilingDCEL(tilingDCEL)
+    allAssert(
+      result.isRight shouldBe true,
+      result.value.faces.size shouldBe 2,
+      result.value.faces.map(_.getVerticesUnsafe.map(_.id)) shouldBe
+        List(
+          List(V1, V1, V1),
+          List(V1, V1, V1)
+        ),
+      result.value.faces.map(_.anglesUnsafe) shouldBe
+        List(
+          List(60, 60, 60),
+          List(60, 60, 60)
+        ),
+      result.value.vertices.size shouldBe 1,
+      result.value.halfEdges.size shouldBe 6,
+      result.value.halfEdges.forall(_.isLoop.get) shouldBe true
+    )
+  }
+
+  it should "be converted from a 2x1 triangle net" in {
+    val tilingDCEL = TilingBuilder.createTriangleNet(2, 1)
+    val result = TilingTorusDCEL.fromTilingDCEL(tilingDCEL)
+    allAssert(
+      result.isRight shouldBe true,
+      result.value.faces.size shouldBe 4,
+      result.value.faces.map(_.getVerticesUnsafe.map(_.id)) shouldBe
+        List(
+          List(V1, "V5", V1),
+          List("V5", "V5", V1),
+          List("V5", V1, "V5"),
+          List(V1, V1, "V5")
+        ),
+      result.value.faces.map(_.anglesUnsafe) shouldBe
+        List(
+          List(60, 60, 60),
+          List(60, 60, 60),
+          List(60, 60, 60),
+          List(60, 60, 60)
+        ),
+      result.value.vertices.size shouldBe 2,
+      result.value.halfEdges.size shouldBe 12,
+      result.value.halfEdges.count(_.isLoop.get) shouldBe 4
     )
   }
