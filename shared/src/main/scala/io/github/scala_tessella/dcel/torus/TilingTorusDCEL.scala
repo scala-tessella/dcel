@@ -423,7 +423,7 @@ final case class TilingTorusDCEL private (
         }.mkString(" ")
         val first      =
           s"""<polyline points="$d1" fill="none" stroke="$curveStroke" stroke-width="$curveStrokeW"/>"""
-        if mult >= 2 then
+        if false && mult >= 2 then
           val duC  = complementDelta(duS)
           val dvC  = complementDelta(dvS)
           val pts2 = sampleEdgeCurveWithDelta(va.coords, vb.coords, duC, dvC, samplesPerCurve)
@@ -757,8 +757,8 @@ object TilingTorusDCEL:
       rollDeg: Double = 0.0,       // rotation around Y
       // how to interpret 2D coords as torus parameters
       // coords are assumed to be in a unit square tile grid, we map x,y to u,v in [0,1] via scaling
-      uScale: Double = 1.0,
-      vScale: Double = 1.0
+      uScale: Double = 1.0, // "horizontal" axis
+      vScale: Double = 1.0  // "vertical" axis
   )
 
   // Convert (u,v) in [0,1]x[0,1] to torus (x,y,z) with radii (R,r)
