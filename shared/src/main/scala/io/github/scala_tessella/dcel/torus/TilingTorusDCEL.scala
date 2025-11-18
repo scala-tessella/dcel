@@ -1,11 +1,11 @@
 package io.github.scala_tessella.dcel.torus
 
 import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.ACCURACY
-import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigBox, BigPoint}
+import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigBox, BigLineSegment, BigPoint}
 import io.github.scala_tessella.dcel.structure.*
 import io.github.scala_tessella.dcel.torus.TilingTorusValidation.validate
 import io.github.scala_tessella.dcel.{NotFoundError, TilingDCEL, TilingError, TopologyError}
-import io.github.scala_tessella.ring_seq.RingSeq.{sliceO, slidingO}
+import io.github.scala_tessella.ring_seq.RingSeq.slidingO
 import spire.implicits.*
 
 import scala.math.BigDecimal.RoundingMode
@@ -125,6 +125,20 @@ final case class TilingTorusDCEL private (
 
   def facesWithIncorrectCoords: List[Face] =
     faces.diff(facesWithCorrectCoords)
+
+  def toBox: BigBox =
+    val calculatedCoords =
+      facesWithIncorrectCoords.flatMap(face =>
+        val coords = face.getVerticesUnsafe.map(_.coords)
+        coords.indices.toList.slidingO(2).find(pair => coords(pair.head).hasUnitDistanceTo(coords(pair(1)))) match
+          case Some(i0 :: i1 :: Nil) =>
+            val angles = face.anglesUnsafe.toVector
+            val points = BigLineSegment(coords(i0), coords(i1)).unitPath(angles)
+//            println(points)
+            points
+          case _ => throw new Error("No correct coords found")
+      )
+    BigBox.fromPoints(calculatedCoords ::: vertices.map(_.coords))
 
   def toTilingDCEL: Either[TilingError, TilingDCEL] =
     // keep only unit-length edges (and their twins)
@@ -558,114 +572,6 @@ object TilingTorusDCEL:
       faces = List.empty
     )
 
-  def fromTilingDCELalt(tilingDCEL: TilingDCEL): Either[TilingError, TilingTorusDCEL] =
-    tilingDCEL.boundarySimplePolygon.parallelogonIndices match
-      case None                   => Left(TopologyError("TilingDCEL does not have a parallelogram boundary"))
-      case Some((i0, i1, i2, i3)) =>
-        val boundaryVertices  = tilingDCEL.boundaryVertices
-//        println(boundaryVertices(i0))
-//        println(boundaryVertices(i1))
-//        println(boundaryVertices(i2))
-//        println(boundaryVertices(i3))
-        val boundaryVertexIds = boundaryVertices.map(_.id)
-
-        // Ids of the vertices that will not be part of the TilingTorusDCEL
-        val deletableVertexIds = boundaryVertexIds.sliceO(i2, i0 + boundaryVertexIds.size + 1)
-        println(s"deletableVertexIds: $deletableVertexIds")
-        // Vertices that will be part of the TilingTorusDCEL
-        val remainingVertices  =
-          tilingDCEL.vertices.filterNot(vertex => deletableVertexIds.contains(vertex.id))
-        println(s"remainingVertices: ${remainingVertices.size} $remainingVertices")
-        println(s"remainingVertices leaving edges: ${remainingVertices.map(_.leaving)}")
-        // if a vertex has a leaving edge pointing to a deletable vertex, we need to correct it
-        val newVertices        = remainingVertices.map(vertex =>
-          if deletableVertexIds.contains(vertex.leaving.get.destination.get.id) then
-            Vertex(
-              vertex.id,
-              vertex.coords,
-              leaving = tilingDCEL.halfEdges.find(edge =>
-                edge.origin.id == vertex.id && remainingVertices.contains(edge.twin.get.origin)
-              )
-            )
-          else
-            vertex
-        )
-        println(s"newVertices: ${newVertices.size} $newVertices")
-        println(s"newVertices leaving edges: ${newVertices.map(_.leaving)}")
-
-        // convert vertexId to new vertex
-        val toNewVertex: VertexId => Vertex = vertexId => newVertices.find(_.id == vertexId).get
-
-        val double    = boundaryVertexIds ++ boundaryVertexIds
-        val len       = i1 - i0
-        val start     = boundaryVertexIds(i3) -> toNewVertex(boundaryVertexIds(len))
-        val firstPass = (1 to len).foldLeft(List(start))((l, index) =>
-          boundaryVertexIds(i3 - index) -> toNewVertex(boundaryVertexIds(i0 + index)) :: l
-        )
-        val len2      = i2 - i1
-
-        // Map from deletable vertex ID to old vertex that substitutes it
-        val substitutionMap = (0 until len2).foldLeft(firstPass)((l, index) =>
-          double(i3 + len2 - index) -> toNewVertex(boundaryVertexIds(i1 + index)) :: l
-        ).toMap
-        println(s"substitution map: $substitutionMap")
-
-        // boundary edges that must be deleted together with their twins
-        val deletableBoundaryEdges      = tilingDCEL.boundaryEdges.sliceO(i2, i0 + tilingDCEL.boundaryEdges.size)
-        val deletableBoundaryEdgesTwins = deletableBoundaryEdges.map(_.twin.get)
-        println(s"boundaryVertexIds: $boundaryVertexIds")
-        println(s"i0: $i0, i2: $i2")
-        println(s"original total edges: ${tilingDCEL.halfEdges.size}")
-        println(s"deletableBoundaryEdges: ${deletableBoundaryEdges.size} $deletableBoundaryEdges")
-        println(
-          s"deletableBoundaryEdgesTwins: ${deletableBoundaryEdgesTwins.size} $deletableBoundaryEdgesTwins"
-        )
-
-        val remainingHalfEdges =
-          tilingDCEL.halfEdges.diff(deletableBoundaryEdges ++ deletableBoundaryEdgesTwins)
-        println(s"remainingHalfEdges: ${remainingHalfEdges.size} $remainingHalfEdges")
-
-        // split between edges that need a substitution and those that don't
-        val (toBeChanged, unchanged) = remainingHalfEdges.partition(e =>
-          deletableVertexIds.contains(e.origin.id) || deletableVertexIds.contains(e.twin.get.origin.id)
-        )
-        println(s"toBeChanged: ${toBeChanged.size} $toBeChanged")
-        println(s"unchanged: ${unchanged.size} $unchanged")
-
-        // create new edges plus twins with substitution
-        val changed      = toBeChanged.collect {
-          case e if deletableVertexIds.contains(e.origin.id) =>
-            val he =
-              HalfEdge(
-                origin = substitutionMap(e.origin.id),
-                twin = e.twin,
-                incidentFace = e.incidentFace,
-                next = e.next,
-                prev = e.prev,
-                angle = e.angle
-              )
-            List(
-              he,
-              HalfEdge(
-                origin = toNewVertex(e.twin.map(_.origin.id).get),
-                twin = Some(he),
-                incidentFace = e.twin.flatMap(_.incidentFace),
-                next = e.twin.flatMap(_.next),
-                prev = e.twin.flatMap(_.prev),
-                angle = e.twin.flatMap(_.angle)
-              )
-            )
-        }.flatten
-        println(s"changed: ${changed.size} $changed")
-        val newHalfEdges = unchanged ++ changed
-        println(s"newHalfEdges: ${newHalfEdges.size} $newHalfEdges")
-
-        fromUntrusted(
-          vertices = newVertices,
-          halfEdges = newHalfEdges,
-          faces = tilingDCEL.innerFaces
-        )
-
   def fromTilingDCEL(tilingDCEL: TilingDCEL): Either[TilingError, TilingTorusDCEL] =
     tilingDCEL.boundarySimplePolygon.parallelogonEquivalences match
       case Nil =>
@@ -680,37 +586,15 @@ object TilingTorusDCEL:
 
         val n = boundaryVertices.size
 
-        // Map to boundary vertex IDs that will be substituted by the parallelogram boundary
-        val substitutionMapAlt = indexGroups.flatMap((_: @unchecked) match {
-          case index :: indexes => indexes.map(boundaryVertices(_).id -> boundaryVertices(index).id)
-        }).toMap
-
-        // Indices of the boundary vertices that are going to be substituted
-        val boundaryVertexIdsToBeDeleted = substitutionMapAlt.keys.toVector
-
-        // Indices of the boundary vertices that are going to substitute the deleted vertices
-        val boundaryVertexIdsToBeKept = substitutionMapAlt.keys.toSet
-
         // Each group in indexGroups is a list of boundary indices whose vertices
         // should be identified (folded) into a single vertex.
-        //
         // We choose the first index in each group as the representative, and
         // map every other boundary vertex in that group to it.
         val substitutionMap: Map[VertexId, VertexId] =
-          indexGroups.flatMap {
-            case repIdx :: others =>
-              val repId = boundaryVertices(repIdx).id
-              others.map { i =>
-                val vId = boundaryVertices(i).id
-                vId -> repId
-              }
-            case _ =>
-              // Should not happen: groups are non-empty by construction.
-              Nil
-          }.toMap
-
-        println(s"substitutionMap: $substitutionMap")
-        println(s"substitutionMapAlt: $substitutionMapAlt")
+          indexGroups.flatMap({
+            case index :: tail => tail.map(boundaryVertices(_).id -> boundaryVertices(index).id)
+            case Nil           => throw new Error("Should not happen: groups are non-empty by construction")
+          }).toMap
 
         // ---- 2. Build new vertices, one per equivalence class ----
         val oldVertices = tilingDCEL.vertices
