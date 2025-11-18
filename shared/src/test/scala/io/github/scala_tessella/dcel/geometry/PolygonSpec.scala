@@ -133,10 +133,12 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   }
 
   def checkIndicesForAllRotationsAndReflections(simple: SimplePolygon): Assertion =
-    simple.toAngles.rotationsAndReflections.distinct.forall(SimplePolygon(_).parallelogonIndices.isDefined) shouldBe true
+    simple.toAngles.rotationsAndReflections.distinct
+      .forall(SimplePolygon(_).parallelogonIndices.isDefined) shouldBe true
 
   def checkEquivalencesForAllRotationsAndReflections(simple: SimplePolygon, expectedGroupsCount: Int): Assertion =
-    simple.toAngles.rotationsAndReflections.distinct.forall(SimplePolygon(_).parallelogonEquivalences.size == expectedGroupsCount) shouldBe true
+    simple.toAngles.rotationsAndReflections.distinct
+      .forall(SimplePolygon(_).parallelogonEquivalences.size == expectedGroupsCount) shouldBe true
 
   it should "be found for a 3x3 square" in {
     val square3x3 = SimplePolygon(squareAngles).multiplySidesBy(3)
