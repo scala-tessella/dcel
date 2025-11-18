@@ -41,13 +41,13 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
   it should "find existing vertices and faces" in {
     val torus = createSquareNet(2, 2)
     allAssert(
-      torus.findVertex(VertexId("V1")).isRight shouldBe true,
-      torus.findVertex(VertexId("V2")).isRight shouldBe true,
-      torus.findVertex(VertexId("V3")).isRight shouldBe true,
-      torus.findVertex(VertexId("V4")).isRight shouldBe true,
-      torus.findFace(FaceId("F1")).isRight shouldBe true,
-      torus.findFace(FaceId("F2")).isRight shouldBe true,
-      torus.findFace(FaceId("F3")).isRight shouldBe true,
+      torus.findVertex(V1).isRight shouldBe true,
+      torus.findVertex(V2).isRight shouldBe true,
+      torus.findVertex(V3).isRight shouldBe true,
+      torus.findVertex(V4).isRight shouldBe true,
+      torus.findFace(F1).isRight shouldBe true,
+      torus.findFace(F2).isRight shouldBe true,
+      torus.findFace(F3).isRight shouldBe true,
       torus.findFace(FaceId("F4")).isRight shouldBe true
     )
   }
@@ -82,6 +82,14 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
     allAssert(
       result.isRight shouldBe true,
       result.value.faces.size shouldBe 1,
+      result.value.faces.map(_.getVerticesUnsafe.map(_.id)) shouldBe
+        List(
+          List(V1, V1, V1, V1)
+        ),
+      result.value.faces.map(_.anglesUnsafe) shouldBe
+        List(
+          List(90, 90, 90, 90),
+        ),
       result.value.vertices.size shouldBe 1,
       result.value.halfEdges.size shouldBe 4,
       result.value.halfEdges.forall(_.isLoop.get) shouldBe true
@@ -147,6 +155,16 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
     allAssert(
       result.isRight shouldBe true,
       result.value.faces.size shouldBe 2,
+      result.value.faces.map(_.getVerticesUnsafe.map(_.id)) shouldBe
+        List(
+          List(V1, V2, V3, V2, V1, "V6"),
+          List(V3, "V6", V1, "V6", V3, V2)
+        ),
+      result.value.faces.map(_.anglesUnsafe) shouldBe
+        List(
+          List(120, 120, 120, 120, 120, 120),
+          List(120, 120, 120, 120, 120, 120)
+        ),
       result.value.vertices.size shouldBe 4,
       result.value.halfEdges.size shouldBe 12,
       result.value.halfEdges.exists(_.isLoop.get) shouldBe false
@@ -162,6 +180,20 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
     allAssert(
       result.isRight shouldBe true,
       result.value.faces.size shouldBe 4,
+      result.value.faces.map(_.getVerticesUnsafe.map(_.id)) shouldBe
+        List(
+          List(V1, V2, V3, V4, "V5", "V6"),
+          List(V3, "V13", V1, "V6", "V10", V4),
+          List("V5", V4, "V10", V2, V1, "V13"),
+          List("V10", "V6", "V5", "V13", V3, V2)
+        ),
+      result.value.faces.map(_.anglesUnsafe) shouldBe
+        List(
+          List(120, 120, 120, 120, 120, 120),
+          List(120, 120, 120, 120, 120, 120),
+          List(120, 120, 120, 120, 120, 120),
+          List(120, 120, 120, 120, 120, 120)
+        ),
       result.value.vertices.size shouldBe 8,
       result.value.halfEdges.size shouldBe 24,
       result.value.halfEdges.exists(_.isLoop.get) shouldBe false
