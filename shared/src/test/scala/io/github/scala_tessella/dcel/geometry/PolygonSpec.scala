@@ -1,6 +1,6 @@
 package io.github.scala_tessella.dcel.geometry
 
-import io.github.scala_tessella.dcel.TilingTestHelpers
+import io.github.scala_tessella.dcel.{TilingBuilder, TilingTestHelpers}
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, RegularPolygon, SimplePolygon}
 import io.github.scala_tessella.ring_seq.RingSeq.rotationsAndReflections
 import org.scalatest.Assertion
@@ -136,9 +136,14 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     simple.toAngles.rotationsAndReflections.distinct
       .forall(SimplePolygon(_).parallelogonIndices.isDefined) shouldBe true
 
-  def checkEquivalencesForAllRotationsAndReflections(simple: SimplePolygon, expectedGroupsCount: Int): Assertion =
+  def checkEquivalencesForAllRotationsAndReflections(simple: SimplePolygon, expectedGroupsCount: Int, isShifted: Boolean = false): Assertion =
     simple.toAngles.rotationsAndReflections.distinct
-      .forall(SimplePolygon(_).parallelogonEquivalences.size == expectedGroupsCount) shouldBe true
+      .forall(angles =>
+        val g = SimplePolygon(angles).parallelogonEquivalences
+        g.size == expectedGroupsCount
+          && g.count(_.size == 2) == expectedGroupsCount - (if isShifted then 2 else 1)
+          && g.filter(_.size > 2).forall(_.size == (if isShifted then 3 else 4))
+      ) shouldBe true
 
   it should "be found for a 3x3 square" in {
     val square3x3 = SimplePolygon(squareAngles).multiplySidesBy(3)
@@ -223,7 +228,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           List(3, 7)
         ),
       checkIndicesForAllRotationsAndReflections(twoJoinedHexs),
-      checkEquivalencesForAllRotationsAndReflections(twoJoinedHexs, 4)
+      checkEquivalencesForAllRotationsAndReflections(twoJoinedHexs, 4, isShifted = true)
     )
 
   it should "be found for a 2 joined regular hexagons boundary multiplied by 2" in {
@@ -245,7 +250,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           List(9, 19)
         ),
       checkIndicesForAllRotationsAndReflections(doubledJoinedHexs),
-      checkEquivalencesForAllRotationsAndReflections(doubledJoinedHexs, 9)
+      checkEquivalencesForAllRotationsAndReflections(doubledJoinedHexs, 9, isShifted = true)
     )
   }
 
@@ -266,7 +271,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           List(6, 12)
         ),
       checkIndicesForAllRotationsAndReflections(fourJoinedHexs),
-      checkEquivalencesForAllRotationsAndReflections(fourJoinedHexs, 6)
+      checkEquivalencesForAllRotationsAndReflections(fourJoinedHexs, 6, isShifted = true)
     )
   }
 
@@ -287,7 +292,50 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           List(6, 12)
         ),
       checkIndicesForAllRotationsAndReflections(carved),
-      checkEquivalencesForAllRotationsAndReflections(carved, 6)
+      checkEquivalencesForAllRotationsAndReflections(carved, 6, isShifted = true)
+    )
+  }
+
+  it should "be true for a 8x8 joined regular hexagons boundary" in {
+    val sixtyFourJoinedHexs: SimplePolygon =
+      TilingBuilder.createHexagonNet(8, 8).boundarySimplePolygon
+    allAssert(
+      sixtyFourJoinedHexs.parallelogonIndices shouldBe Some((6, 22, 37, 53)),
+      sixtyFourJoinedHexs.parallelogonEquivalences shouldBe
+        List(
+          List(0, 29),
+          List(1, 28),
+          List(2, 27),
+          List(3, 26),
+          List(4, 25),
+          List(5, 24),
+          List(6, 23, 53),
+          List(7, 52),
+          List(8, 51),
+          List(9, 50),
+          List(10, 49),
+          List(11, 48),
+          List(12, 47),
+          List(13, 46),
+          List(14, 45),
+          List(15, 44),
+          List(16, 43),
+          List(17, 42),
+          List(18, 41),
+          List(19, 40),
+          List(20, 39),
+          List(21, 38),
+          List(22, 37, 54),
+          List(30, 61),
+          List(31, 60),
+          List(32, 59),
+          List(33, 58),
+          List(34, 57),
+          List(35, 56),
+          List(36, 55)
+        ),
+      checkIndicesForAllRotationsAndReflections(sixtyFourJoinedHexs),
+      checkEquivalencesForAllRotationsAndReflections(sixtyFourJoinedHexs, 30, isShifted = true)
     )
   }
 
