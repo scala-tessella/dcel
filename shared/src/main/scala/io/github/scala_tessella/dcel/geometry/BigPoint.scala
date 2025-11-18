@@ -1,6 +1,6 @@
 package io.github.scala_tessella.dcel.geometry
 
-import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.{ACCURACY, Orientation}
+import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.{ACCURACY, Orientation, almostEqual}
 import io.github.scala_tessella.dcel.geometry.BigLineSegment
 import io.github.scala_tessella.ring_seq.RingSeq.slidingO
 import spire.implicits.*
@@ -66,8 +66,8 @@ object BigPoint:
 
     /** Tests whether this `BigPoint` is approximately equal to another, within given accuracy. */
     def almostEquals(that: BigPoint, accuracy: Double = ACCURACY): Boolean =
-      val a = BigDecimal(accuracy)
-      (point.x - that.x).abs < a && (point.y - that.y).abs < a
+      val acc = BigDecimal(accuracy)
+      (point.x - that.x).abs < acc && (point.y - that.y).abs < acc
 
     /** New point moved by polar coordinates */
     def plusPolar(rho: BigDecimal)(theta: BigRadian): BigPoint =
@@ -84,9 +84,9 @@ object BigPoint:
     /** Calculates the distance to another point. */
     def distanceTo(other: BigPoint): BigDecimal =
       BigLineSegment(point, other).length
-      
+
     def hasUnitDistanceTo(other: BigPoint): Boolean =
-      (distanceTo(other) - BigDecimal(1.0)).abs <= ACCURACY  
+      distanceTo(other).almostEqual(BigDecimal(1.0))
 
     def scaled(scale: Double): BigPoint =
       (point.x * scale, point.y * scale)

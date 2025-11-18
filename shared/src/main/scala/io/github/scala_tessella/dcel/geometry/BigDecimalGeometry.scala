@@ -12,7 +12,13 @@ import scala.collection.mutable
   */
 object BigDecimalGeometry:
 
+  val ACCURACY: Double   = 1.0e-10
+  val BigAcc: BigDecimal = BigDecimal(ACCURACY)
+
   extension (bigDecimal: BigDecimal)
+
+    def almostEqual(other: BigDecimal): Boolean =
+      bigDecimal - other < BigAcc
 
     /** Formats a decimal number to a maximum of 6 decimal places, removing trailing zeros */
     def format: String =
@@ -21,9 +27,6 @@ object BigDecimalGeometry:
         formatted.replaceAll("0+$", "").replaceAll("\\.$", "")
       else
         formatted
-
-  val ACCURACY: Double   = 1.0e-10
-  val BigAcc: BigDecimal = BigDecimal(ACCURACY)
 
   enum Orientation:
     case Collinear, Clockwise, Counterclockwise

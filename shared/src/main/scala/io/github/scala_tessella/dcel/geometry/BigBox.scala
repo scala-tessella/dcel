@@ -8,14 +8,20 @@ case class BigBox(min: BigPoint, max: BigPoint):
     else if point.x > max.x then false
     else !(point.y > max.y)
 
+  def width: BigDecimal = max.x - min.x
+
+  def height: BigDecimal = max.y - min.y
+
   /** Checks if this bounding box intersects with another one. */
   def intersects(that: BigBox): Boolean =
     !(that.min.x > this.max.x || that.max.x < this.min.x || that.min.y > this.max.y || that.max.y < this.min.y)
 
+  def enlargeMinMax(by: BigPoint): BigBox =
+    BigBox(min - by, max + by)
+
   /** Expands the bounding box by a given amount in all directions. */
   def expand(by: BigDecimal): BigBox =
-    val b = BigPoint(by, by)
-    BigBox(min - b, max + b)
+    enlargeMinMax(BigPoint(by, by))
 
 object BigBox:
   /** Creates a BoundingBox that encloses a collection of points. */
