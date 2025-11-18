@@ -96,7 +96,7 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
     )
   }
 
-  it should "be converted from a 2x2 square" in {
+  it should "be converted from a 2x2 square net" in {
     val tilingDCEL    = TilingBuilder.createRhombusNet(2, 2)
     val result        = TilingTorusDCEL.fromTilingDCEL(tilingDCEL)
 //    val scale: Double = 1.0 / 2.0
@@ -114,7 +114,7 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
     )
   }
 
-  it should "be converted from a 3x3 square" in {
+  it should "be converted from a 3x3 square net" in {
     val tilingDCEL    = TilingBuilder.createRhombusNet(3, 3)
     val result        = TilingTorusDCEL.fromTilingDCEL(tilingDCEL)
 //    val scale: Double = 1.0 / 3.0
@@ -132,7 +132,7 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
     )
   }
 
-  it should "be converted from a 3x2 square" in {
+  it should "be converted from a 3x2 square net" in {
     val tilingDCEL = TilingBuilder.createRhombusNet(3, 2)
     val result     = TilingTorusDCEL.fromTilingDCEL(tilingDCEL)
 //    println(result)
@@ -145,7 +145,7 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
     )
   }
 
-  it should "be converted from a 2x1 hexagon" in {
+  it should "be converted from a 2x1 hexagon net" in {
     val tilingDCEL = TilingBuilder.createHexagonNet(2, 1)
     val result     = TilingTorusDCEL.fromTilingDCEL(tilingDCEL)
 //    val vScale: Double = 1.0 / 1.5
@@ -171,7 +171,7 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
     )
   }
 
-  it should "be converted from a 2x2 hexagon" in {
+  it should "be converted from a 2x2 hexagon net" in {
     val tilingDCEL = TilingBuilder.createHexagonNet(2, 2)
     val result     = TilingTorusDCEL.fromTilingDCEL(tilingDCEL)
 //    val vScale: Double = 1.0 / (1.5 * 2)
@@ -200,7 +200,7 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
     )
   }
 
-  it should "be converted from a 4x4 hexagon" in {
+  it should "be converted from a 4x4 hexagon net" in {
     val tilingDCEL = TilingBuilder.createHexagonNet(4, 4)
     val result = TilingTorusDCEL.fromTilingDCEL(tilingDCEL)
 //    val vScale: Double = 1.0 / (1.5 * 4)
