@@ -1,10 +1,9 @@
 package io.github.scala_tessella.dcel.torus
 
-import io.github.scala_tessella.dcel.geometry.RegularPolygon
+import io.github.scala_tessella.dcel.geometry.{RegularPolygon, SimplePolygon}
 import io.github.scala_tessella.dcel.{TilingBuilder, TilingTestHelpers}
 import io.github.scala_tessella.dcel.torus.TilingTorusBuilder.*
 import io.github.scala_tessella.dcel.structure.{FaceId, VertexId}
-import io.github.scala_tessella.dcel.torus.TilingTorusDCEL.TorusSvg3DOptions
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -93,6 +92,32 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
       result.value.vertices.size shouldBe 1,
       result.value.halfEdges.size shouldBe 4,
       result.value.halfEdges.forall(_.isLoop.get) shouldBe true
+    )
+  }
+
+  it should "be converted from a 2x2 square" in {
+    val tilingDCEL = TilingBuilder.createSimplePolygon(SimplePolygon(90, 90, 90, 90).multiplySidesBy(2)).toOption.get
+    val result = TilingTorusDCEL.fromTilingDCEL(tilingDCEL)
+//    val scale: Double = 1.0 / 2.0
+//    println(result.value.toSVG3D(TorusSvg3DOptions().copy(
+//      uScale = scale,
+//      vScale = scale,
+//      showVertexIds = true
+//    )))
+    allAssert(
+      result.isRight shouldBe true,
+      result.value.faces.size shouldBe 1,
+      result.value.faces.map(_.getVerticesUnsafe.map(_.id)) shouldBe
+        List(
+          List(V1, "V6", V1, "V8", V1, "V6", V1, "V8")
+        ),
+      result.value.faces.map(_.anglesUnsafe) shouldBe
+        List(
+          List(90, 180, 90, 180, 90, 180, 90, 180),
+        ),
+      result.value.vertices.size shouldBe 3,
+      result.value.halfEdges.size shouldBe 8,
+      result.value.halfEdges.exists(_.isLoop.get) shouldBe false
     )
   }
 
