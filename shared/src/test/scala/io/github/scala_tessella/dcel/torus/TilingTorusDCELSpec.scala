@@ -214,3 +214,18 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
       result.value.halfEdges.exists(_.isLoop.get) shouldBe false
     )
   }
+
+  it should "be converted from a 8x8 hexagon net" in {
+    val tilingDCEL = TilingBuilder.createHexagonNet(4, 8)
+    val result = TilingTorusDCEL.fromTilingDCEL(tilingDCEL)
+    //    val vScale: Double = 1.0 / (1.5 * 8)
+    //    val uScale: Double = 1.0 / (8 * 0.8660254037844386)
+    //    println(result.value.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
+    allAssert(
+      result.isRight shouldBe true,
+      result.value.faces.size shouldBe 32,
+      result.value.vertices.size shouldBe 64,
+      result.value.halfEdges.size shouldBe 192,
+      result.value.halfEdges.exists(_.isLoop.get) shouldBe false
+    )
+  }
