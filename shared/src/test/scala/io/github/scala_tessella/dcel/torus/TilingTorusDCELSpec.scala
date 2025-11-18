@@ -81,6 +81,7 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
     allAssert(
       result.isRight shouldBe true,
       result.value.faces.size shouldBe 1,
+      result.value.facesWithIncorrectCoords.size shouldBe 1,
       result.value.faces.map(_.getVerticesUnsafe.map(_.id)) shouldBe
         List(
           List(V1, V1, V1, V1)
@@ -107,6 +108,7 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
     allAssert(
       result.isRight shouldBe true,
       result.value.faces.size shouldBe 1,
+      result.value.facesWithIncorrectCoords.size shouldBe 1,
       result.value.faces.map(_.getVerticesUnsafe.map(_.id)) shouldBe
         List(
           List(V1, "V6", V1, "V8", V1, "V6", V1, "V8")
@@ -133,6 +135,14 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
     allAssert(
       result.isRight shouldBe true,
       result.value.faces.size shouldBe 4,
+      result.value.facesWithIncorrectCoords.size shouldBe 3,
+      result.value.faces.map(_.getVerticesUnsafe.map(_.id)) shouldBe
+        List(
+          List(V1, "V8", "V5", V4), 
+          List("V8", V1, V4, "V5"), 
+          List(V4, "V5", "V8", V1), 
+          List("V5", V4, V1, "V8")
+        ),
       result.value.vertices.size shouldBe 4,
       result.value.halfEdges.size shouldBe 16,
       result.value.halfEdges.exists(_.isLoop.get) shouldBe false
@@ -151,6 +161,7 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
     allAssert(
       result.isRight shouldBe true,
       result.value.faces.size shouldBe 9,
+      result.value.facesWithIncorrectCoords.size shouldBe 5,
       result.value.vertices.size shouldBe 9,
       result.value.halfEdges.size shouldBe 36,
       result.value.halfEdges.exists(_.isLoop.get) shouldBe false

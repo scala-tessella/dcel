@@ -1,12 +1,14 @@
 package io.github.scala_tessella.dcel.torus
 
 import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.ACCURACY
-import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint}
+import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigBox, BigPoint}
 import io.github.scala_tessella.dcel.structure.*
 import io.github.scala_tessella.dcel.torus.TilingTorusValidation.validate
 import io.github.scala_tessella.dcel.{NotFoundError, TilingDCEL, TilingError, TopologyError}
-import io.github.scala_tessella.ring_seq.RingSeq.sliceO
+import io.github.scala_tessella.ring_seq.RingSeq.{sliceO, slidingO}
 import spire.implicits.*
+
+import scala.math.BigDecimal.RoundingMode
 
 /** Represents the entire tiling structure as a container for its components.
   *
@@ -110,6 +112,19 @@ final case class TilingTorusDCEL private (
     } match
       case Nil      => vertices
       case boundary => boundary
+
+  /** Filter faces with correct coords. */
+  def facesWithCorrectCoords: List[Face] =
+    faces
+      .filter(face =>
+        val faceVertices = face.getVerticesUnsafe
+        faceVertices.map(_.id.value).toSet.size == faceVertices.size
+          && faceVertices.map(_.coords).slidingO(2).forall(coords => coords.head.hasUnitDistanceTo(coords(1)))
+      )
+      .distinctBy(_.getVerticesUnsafe.map(_.id.value).sorted)
+
+  def facesWithIncorrectCoords: List[Face] =
+    faces.diff(facesWithCorrectCoords)
 
   def toTilingDCEL: Either[TilingError, TilingDCEL] =
     // keep only unit-length edges (and their twins)
@@ -233,11 +248,24 @@ final case class TilingTorusDCEL private (
       outerFace = outer
     )
 
+  private def roundWithBigDecimal(value: Double, places: Int): Double =
+    if (places < 0) throw new IllegalArgumentException
+    var bd = BigDecimal(value.toString)
+    bd = bd.setScale(places, RoundingMode.HALF_UP)
+    bd.doubleValue
+
   // Render the tiling edges in 3D torus as SVG paths
   def toSVG3D(
       options: TilingTorusDCEL.TorusSvg3DOptions = TilingTorusDCEL.TorusSvg3DOptions()
   ): String =
-    val opt = options
+    val box = BigBox.fromPoints(vertices.map(_.coords))
+    val uScaleLocal = roundWithBigDecimal(1 / (box.width.toDouble + 1), 6)
+    val vScaleLocal = roundWithBigDecimal(1 / (box.height.toDouble + 1), 6)
+    println(s"width = $uScaleLocal, height = $vScaleLocal")
+    println(s"uScale = ${options.uScale}, vScale = ${options.vScale}")
+
+    val opt = options//.copy(uScale = uScaleLocal, vScale = vScaleLocal)
+
 
     // Precompute projected positions for vertices
     val vProj = vertices.map { v =>
@@ -246,7 +274,7 @@ final case class TilingTorusDCEL private (
     }.toMap
 
     // Helper: unwrap delta in [0,1) to shortest signed step in (-0.5, 0.5]
-    def wrapDelta(d: Double): Double =
+    def wrapDelta(d: Double) =
       var x = d - Math.floor(d) // [0,1)
       if x > 0.5 then x -= 1.0
       x
@@ -259,7 +287,7 @@ final case class TilingTorusDCEL private (
         du: Double,
         dv: Double,
         samples: Int
-    ): Seq[(Double, Double)] =
+    ) =
       val (u0, v0) = TilingTorusDCEL.toUV(p0, opt.uScale, opt.vScale)
       val n        = samples max 8
       (0 to n).map { i =>
@@ -279,7 +307,7 @@ final case class TilingTorusDCEL private (
       }
 
     // Convenience: shortest wrap deltas between two (u,v) points
-    def shortestWrapDelta(p0: BigPoint, p1: BigPoint): (Double, Double) =
+    def shortestWrapDelta(p0: BigPoint, p1: BigPoint) =
       val (u0, v0) = TilingTorusDCEL.toUV(p0, opt.uScale, opt.vScale)
       val (u1, v1) = TilingTorusDCEL.toUV(p1, opt.uScale, opt.vScale)
       (wrapDelta(u1 - u0), wrapDelta(v1 - v0))
@@ -306,7 +334,7 @@ final case class TilingTorusDCEL private (
 
     // For pairs that appear twice (two distinct undirected edges between same vertices),
     // draw both complementary wraps: the shortest and its exact complement so the two cover the full ellipse.
-    val edgeMultiplicity: Map[(Vertex, Vertex), Int] =
+    val edgeMultiplicity =
       halfEdges
         .flatMap(_.endpointsAsVertices)
         .map { case (a, b) =>
@@ -316,13 +344,13 @@ final case class TilingTorusDCEL private (
         .view.mapValues(_.size).toMap
 
     // Helper: exact complementary delta to travel the other half of the torus ellipse
-    inline def complementDelta(d: Double): Double =
+    inline def complementDelta(d: Double) =
       if d > 0 then d - 1.0
       else if d < 0 then d + 1.0
       else 0.0
 
     // Helper: draw a full ring (circle) at fixed u or fixed v passing through (u0,v0)
-    def ringAt(u0: Double, v0: Double, constantIsU: Boolean, samples: Int): String =
+    def ringAt(u0: Double, v0: Double, constantIsU: Boolean, samples: Int) =
       val n   = samples max 32
       val pts =
         (0 until n).map { i =>
@@ -407,7 +435,7 @@ final case class TilingTorusDCEL private (
     }.mkString("\n        ")
 
     // --- Torus wireframe ---
-    def ringPath(points: Seq[(Double, Double)], stroke: String, width: Double, dash: String = "2,3"): String =
+    def ringPath(points: Seq[(Double, Double)], stroke: String, width: Double, dash: String = "2,3") =
       if points.isEmpty then ""
       else
         val d = points.map { case (x, y) =>
@@ -416,7 +444,7 @@ final case class TilingTorusDCEL private (
         s"""<polyline points="$d" fill="none" stroke="$stroke" stroke-width="$width" stroke-dasharray="$dash"/>"""
 
     // Sample N points along a constant-(u or v) ring
-    def sampleRing(constUV: Double, constantIsU: Boolean, samples: Int): Seq[(Double, Double)] =
+    def sampleRing(constUV: Double, constantIsU: Boolean, samples: Int) =
       val n = samples max 8
       (0 until n).map { i =>
         val t     = i.toDouble / n
