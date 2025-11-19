@@ -232,6 +232,26 @@ final case class TilingDCEL private (
   ): Either[TilingError, TilingDCEL] =
     this.deepCopy.addSimplePolygon(startVertexId, endVertexId, simple)
 
+  def growDouble: Either[TilingError, TilingDCEL] =
+    if isEmpty then
+      Right(this)
+    else
+      boundarySimplePolygon.parallelogonEquivalences match
+        case Nil => Left(ValidationError("Tiling is not a parallelogon"))
+        case groups => 
+          val s = vertices.size
+          val group = groups.find(_.size == 4).getOrElse(
+            groups.find(_.size == 3).get
+          )
+          val two =
+            if (group(1) - group.head) >= s / 2 then group.takeRight(2) 
+            else group.take(2)
+          val origin = vertices(two.head)
+          val repeat = vertices(two.last)
+          println(s"origin: $origin, repeat: $repeat")  
+          Right(TilingDCEL.empty)  
+
+
   def maybeDeleteVertex(vertexId: VertexId): Either[TilingError, TilingDCEL] =
     this.deepCopy.deleteVertex(vertexId)
 
