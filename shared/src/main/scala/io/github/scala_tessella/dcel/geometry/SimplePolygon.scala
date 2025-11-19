@@ -174,9 +174,6 @@ object SimplePolygon:
 
           def groupOpposite(startFirst: Int, len: Int, shift: Int): List[List[Int]] =
             val startOpposite = startFirst + half
-//            println(
-//              s"\nstart: $startFirst, len $len, startOpposite: $startOpposite, half: $half, shift: $shift"
-//            )
             (0 to len).map(i =>
               val reverse = len - i + shift
               val added   =
@@ -191,18 +188,10 @@ object SimplePolygon:
               found.flatten.distinct :: unfound
             ).map(_.sorted).sortBy(_.head)
 
-          val isACStraight = areOpposite(segA, segC).isDefined
-          val isBDStraight = areOpposite(segB, segD).isDefined
+          def minimumShift(segment: Vector[AngleDegree], opposite: Vector[AngleDegree]): Int =
+            List(areOpposite(segment, opposite), areOpposite(segment, opposite.reverse)).flatten.min
 
-          val oppositionShiftAC = areOpposite(segA, if isACStraight then segC else segC.reverse)
-          val oppositionShiftBD = areOpposite(segB, if isBDStraight then segD else segD.reverse)
+          val oppositeAC = groupOpposite(s, l1, minimumShift(segA, segC))
+          val oppositeBD = groupOpposite(s + l1, l2, minimumShift(segB, segD))
 
-          // @note: it works but unclear why
-          val oppositeAC =
-            groupOpposite(s, l1, if oppositionShiftBD.get == 0 then oppositionShiftAC.get else 0)
-          val oppositeBD = groupOpposite(s + l1, l2, oppositionShiftBD.get)
-//          println(s"groups A <-> C: $oppositeAC")
-//          println(s"groups B <-> D: $oppositeBD")
-          val grouped    = equivalenceGroups(oppositeAC ::: oppositeBD)
-//          println(s"grouped: $grouped")
-          grouped
+          equivalenceGroups(oppositeAC ::: oppositeBD)

@@ -1,11 +1,11 @@
 package io.github.scala_tessella.dcel.torus
 
 import io.github.scala_tessella.dcel.conversion.TilingSVG.toTorusCheck
-import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.almostEqual
 import io.github.scala_tessella.dcel.geometry.{RegularPolygon, SimplePolygon}
 import io.github.scala_tessella.dcel.{TilingBuilder, TilingTestHelpers}
 import io.github.scala_tessella.dcel.torus.TilingTorusBuilder.*
 import io.github.scala_tessella.dcel.structure.{FaceId, VertexId}
+import io.github.scala_tessella.dcel.torus.TilingTorusDCEL.TorusSvg3DOptions
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -157,7 +157,7 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
 
   it should "be converted from a 3x3 square net" in {
     val tilingDCEL = TilingBuilder.createRhombusNet(3, 3)
-    println(tilingDCEL.toTorusCheck)
+//    println(tilingDCEL.toTorusCheck)
     val torus      = TilingTorusDCEL.fromTilingDCEL(tilingDCEL).value
 //    val scale: Double = 1.0 / 3.0
 //    println(result.value.toSVG3D(TorusSvg3DOptions().copy(
@@ -178,6 +178,7 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
 
   it should "be converted from a 3x2 square net" in {
     val tilingDCEL = TilingBuilder.createRhombusNet(3, 2)
+//    println(tilingDCEL.toTorusCheck)
     val torus      = TilingTorusDCEL.fromTilingDCEL(tilingDCEL).value
     allAssert(
       torus.faces.size shouldBe 6,
@@ -191,6 +192,7 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
 
   it should "be converted from a 2x1 hexagon net" in {
     val tilingDCEL = TilingBuilder.createHexagonNet(2, 1)
+//    println(tilingDCEL.toTorusCheck)
     val torus     = TilingTorusDCEL.fromTilingDCEL(tilingDCEL).value
 //    val vScale: Double = 1.0 / 1.5
 //    val uScale: Double = 1.0 / (4 * 0.8660254037844386)
@@ -208,6 +210,7 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
           List(120, 120, 120, 120, 120, 120),
           List(120, 120, 120, 120, 120, 120)
         ),
+      torus.facesWithIncorrectCoords.size shouldBe 2,
       torus.vertices.size shouldBe 4,
       torus.halfEdges.size shouldBe 12,
       torus.halfEdges.exists(_.isLoop.get) shouldBe false
@@ -216,10 +219,11 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
 
   it should "be converted from a 2x2 hexagon net" in {
     val tilingDCEL = TilingBuilder.createHexagonNet(2, 2)
+//    println(tilingDCEL.toTorusCheck)
     val torus      = TilingTorusDCEL.fromTilingDCEL(tilingDCEL).value
-//    val vScale: Double = 1.0 / (1.5 * 2)
-//    val uScale: Double = 1.0 / (4 * 0.8660254037844386)
-//    println(result.value.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
+    val uScale: Double = 1.0 / 3.0
+    val vScale: Double = 1.0 / (4 * 0.8660254037844386)
+//    println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
     allAssert(
       torus.faces.size shouldBe 4,
       torus.faces.map(_.getVerticesUnsafe.map(_.id)) shouldBe
@@ -244,10 +248,11 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
 
   it should "be converted from a 4x4 hexagon net" in {
     val tilingDCEL = TilingBuilder.createHexagonNet(4, 4)
+//    println(tilingDCEL.toTorusCheck)
     val torus      = TilingTorusDCEL.fromTilingDCEL(tilingDCEL).value
-//    val vScale: Double = 1.0 / (1.5 * 4)
-//    val uScale: Double = 1.0 / (8 * 0.8660254037844386)
-//    println(result.value.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
+    val uScale: Double = 1.0 / (4 * 1.5)
+    val vScale: Double = 1.0 / (4 * 2 * 0.8660254037844386)
+//    println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
     allAssert(
       torus.faces.size shouldBe 16,
       torus.vertices.size shouldBe 32,
@@ -257,15 +262,16 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
   }
 
   it should "be converted from a 8x8 hexagon net" in {
-    val tilingDCEL = TilingBuilder.createHexagonNet(4, 8)
+    val tilingDCEL = TilingBuilder.createHexagonNet(8, 8)
+//    println(tilingDCEL.toTorusCheck)
     val torus      = TilingTorusDCEL.fromTilingDCEL(tilingDCEL).value
-    //    val vScale: Double = 1.0 / (1.5 * 8)
-    //    val uScale: Double = 1.0 / (8 * 0.8660254037844386)
-    //    println(result.value.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
+//    val uScale: Double = 1.0 / (8 * 1.5)
+//    val vScale: Double = 1.0 / (8 * 2 * 0.8660254037844386)
+//    println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
     allAssert(
-      torus.faces.size shouldBe 32,
-      torus.vertices.size shouldBe 64,
-      torus.halfEdges.size shouldBe 192,
+      torus.faces.size shouldBe 64,
+      torus.vertices.size shouldBe 128,
+      torus.halfEdges.size shouldBe 384,
       torus.halfEdges.exists(_.isLoop.get) shouldBe false
     )
   }
