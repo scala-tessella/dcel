@@ -1,7 +1,13 @@
 package io.github.scala_tessella.dcel.conversion
 
 import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.*
-import io.github.scala_tessella.dcel.geometry.{BigDecimalGeometry, BigLineSegment, BigPoint, BigRadian, SimplePolygon}
+import io.github.scala_tessella.dcel.geometry.{
+  BigDecimalGeometry,
+  BigLineSegment,
+  BigPoint,
+  BigRadian,
+  SimplePolygon
+}
 import io.github.scala_tessella.dcel.structure.{FaceId, HalfEdge, Vertex, VertexId}
 import io.github.scala_tessella.dcel.{TilingDCEL, TilingError}
 import io.github.scala_tessella.dcel.TilingUniformity.scanUniformityTree
@@ -340,14 +346,17 @@ object TilingSVG:
 
     val labels = vertices.map { v =>
       val point = v.coords.scaled(config.scale).flippedY
-      val x = (point.x + config.strokeWidth * 2.5).format
-      val y = (point.y - config.strokeWidth * 2.5).format
+      val x     = (point.x + config.strokeWidth * 2.5).format
+      val y     = (point.y - config.strokeWidth * 2.5).format
       textAt(x, y, v.id.value)
     }
 
     (circles, labels)
 
-  private def createIndexVertexElements(vertices: List[(Vertex, Int)], config: SvgConfig): (Seq[Elem], Seq[Elem]) =
+  private def createIndexVertexElements(
+      vertices: List[(Vertex, Int)],
+      config: SvgConfig
+  ): (Seq[Elem], Seq[Elem]) =
 
     val circles =
       vertices.map(_._1).map { v =>
@@ -357,13 +366,12 @@ object TilingSVG:
 
     val labels = vertices.map { (v, index) =>
       val point = v.coords.scaled(config.scale).flippedY
-      val x = (point.x + config.strokeWidth * 2.5).format
-      val y = (point.y - config.strokeWidth * 2.5).format
+      val x     = (point.x + config.strokeWidth * 2.5).format
+      val y     = (point.y - config.strokeWidth * 2.5).format
       textAt(x, y, s"${v.id.value} - $index")
     }
 
     (circles, labels)
-
 
   private def createFaceLabels(tilingDCEL: TilingDCEL, config: SvgConfig): Seq[Elem] =
     tilingDCEL.innerFaces.map { face =>
@@ -663,34 +671,36 @@ object TilingSVG:
 
     def toTorusCheck: String =
       TilingTorusDCEL.fromTilingDCEL(tiling) match
-        case Left(_) => ""
+        case Left(_)      => ""
         case Right(torus) =>
           val svg: Elem =
             if tiling.vertices.isEmpty then
               svgElem("0", "0", "0 0 0 0", Seq.empty)
             else
 
-              val equivalenceClasses = tiling.boundarySimplePolygon.parallelogonEquivalences
-              val (i0, i1, i2, i3) = tiling.boundarySimplePolygon.parallelogonIndices.get
-              val twoAxesClasses = equivalenceClasses.filter(_.size > 2)
-              val boundaryVertices = tiling.boundaryVertices
+              val equivalenceClasses       = tiling.boundarySimplePolygon.parallelogonEquivalences
+              val (i0, i1, i2, i3)         = tiling.boundarySimplePolygon.parallelogonIndices.get
+              val twoAxesClasses           = equivalenceClasses.filter(_.size > 2)
+              val boundaryVertices         = tiling.boundaryVertices
               val selectedBoundaryVertices = twoAxesClasses.map(_.map(boundaryVertices(_)))
-              val parallelogonVertices = List(i0, i1, i2, i3).map(boundaryVertices(_)).zip(List(i0, i1, i2, i3))
+              val parallelogonVertices     =
+                List(i0, i1, i2, i3).map(boundaryVertices(_)).zip(List(i0, i1, i2, i3))
 
-              val config = toConfig(SvgOptions.apply())
+              val config              = toConfig(SvgOptions.apply())
               val strokeWidth: Double = config.strokeWidth
-              val padding: Double = config.padding
-              val scale: Double = config.scale
-              val vertices        = tiling.vertices.map(_.coords)
-              val viewBox         = calculateViewBox(vertices, scale, padding)
-              val (width, height) = viewBox.dimensions
+              val padding: Double     = config.padding
+              val scale: Double       = config.scale
+              val vertices            = tiling.vertices.map(_.coords)
+              val viewBox             = calculateViewBox(vertices, scale, padding)
+              val (width, height)     = viewBox.dimensions
 
               // Generate all elements
               val edgeLines                               = createEdgeLines(tiling, scale)
 //              val boundaryPolygon                         = createBoundaryElements(tiling, config)
 //              val (vertexCircles, vertexLabels)           = createSimpleVertexElements(selectedBoundaryVertices, config)
               val (indexCircles, indexLabels)             = createIndexVertexElements(parallelogonVertices, config)
-              val clingVertexCirclesGroups                = selectedBoundaryVertices.map(g => createSimpleVertexElements(g, config)._1)
+              val clingVertexCirclesGroups                =
+                selectedBoundaryVertices.map(g => createSimpleVertexElements(g, config)._1)
               val (torusVertexCircles, torusVertexLabels) = createSimpleVertexElements(torus.vertices, config)
 //              val faceLabels                              = createFaceLabels(tiling, config)
 
@@ -704,12 +714,24 @@ object TilingSVG:
 //              ).getOrElse(NodeSeq.Empty)
 
               val sections = List(
-                createSvgSection("Edges", edgeLines, attrs("stroke" -> "black", "stroke-width" -> strokeWidth)),
+                createSvgSection(
+                  "Edges",
+                  edgeLines,
+                  attrs("stroke" -> "black", "stroke-width" -> strokeWidth)
+                ),
 //                boundarySection,
                 createSvgSection("Vertices", torusVertexCircles, attrs("fill" -> "red")),
-                createSvgSection("Vertices", clingVertexCirclesGroups.head, attrs("fill" -> "none", "stroke" -> "green", "stroke-width" -> "2.0")),
+                createSvgSection(
+                  "Vertices",
+                  clingVertexCirclesGroups.head,
+                  attrs("fill" -> "none", "stroke" -> "green", "stroke-width" -> "2.0")
+                ),
                 if clingVertexCirclesGroups.size == 2 then
-                  createSvgSection("Vertices", clingVertexCirclesGroups(1), attrs("fill" -> "none", "stroke" -> "blue", "stroke-width" -> "2.0"))
+                  createSvgSection(
+                    "Vertices",
+                    clingVertexCirclesGroups(1),
+                    attrs("fill" -> "none", "stroke" -> "blue", "stroke-width" -> "2.0")
+                  )
                 else NodeSeq.Empty,
                 createSvgSection(
                   "Vertex Labels",
@@ -720,7 +742,7 @@ object TilingSVG:
                   "Index Labels",
                   indexLabels,
                   attrs("font-size" -> (strokeWidth * 8).toInt, "fill" -> "orange")
-                ),
+                )
 //                createSvgSection(
 //                  "Face Labels",
 //                  faceLabels,

@@ -93,7 +93,7 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
         ),
       torus.vertices.size shouldBe 1,
       torus.halfEdges.size shouldBe 4,
-      torus.halfEdges.forall(_.isLoop.get) shouldBe true,
+      torus.halfEdges.forall(_.isLoop.get) shouldBe true
 //      torus.toBox.width.almostEqual(1) shouldBe true,
 //      torus.toBox.height.almostEqual(1) shouldBe true
     )
@@ -122,7 +122,7 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
         ),
       torus.vertices.size shouldBe 3,
       torus.halfEdges.size shouldBe 8,
-      torus.halfEdges.exists(_.isLoop.get) shouldBe false,
+      torus.halfEdges.exists(_.isLoop.get) shouldBe false
 //      torus.toBox.width.almostEqual(2) shouldBe true,
 //      torus.toBox.height.almostEqual(2) shouldBe true
     )
@@ -149,7 +149,7 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
         ),
       torus.vertices.size shouldBe 4,
       torus.halfEdges.size shouldBe 16,
-      torus.halfEdges.exists(_.isLoop.get) shouldBe false,
+      torus.halfEdges.exists(_.isLoop.get) shouldBe false
 //      torus.toBox.width.almostEqual(2) shouldBe true,
 //      torus.toBox.height.almostEqual(2) shouldBe true
     )
@@ -170,7 +170,7 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
       torus.facesWithIncorrectCoords.size shouldBe 5,
       torus.vertices.size shouldBe 9,
       torus.halfEdges.size shouldBe 36,
-      torus.halfEdges.exists(_.isLoop.get) shouldBe false,
+      torus.halfEdges.exists(_.isLoop.get) shouldBe false
 //      torus.toBox.width.almostEqual(3) shouldBe true,
 //      torus.toBox.height.almostEqual(3) shouldBe true
     )
@@ -184,7 +184,7 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
       torus.faces.size shouldBe 6,
       torus.vertices.size shouldBe 6,
       torus.halfEdges.size shouldBe 24,
-      torus.halfEdges.exists(_.isLoop.get) shouldBe false,
+      torus.halfEdges.exists(_.isLoop.get) shouldBe false
 //      torus.toBox.width.almostEqual(3) shouldBe true,
 //      torus.toBox.height.almostEqual(2) shouldBe true
     )
@@ -193,7 +193,7 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
   it should "be converted from a 2x1 hexagon net" in {
     val tilingDCEL = TilingBuilder.createHexagonNet(2, 1)
 //    println(tilingDCEL.toTorusCheck)
-    val torus     = TilingTorusDCEL.fromTilingDCEL(tilingDCEL).value
+    val torus      = TilingTorusDCEL.fromTilingDCEL(tilingDCEL).value
 //    val vScale: Double = 1.0 / 1.5
 //    val uScale: Double = 1.0 / (4 * 0.8660254037844386)
 //    println(result.value.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
@@ -218,9 +218,9 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
   }
 
   it should "be converted from a 2x2 hexagon net" in {
-    val tilingDCEL = TilingBuilder.createHexagonNet(2, 2)
+    val tilingDCEL     = TilingBuilder.createHexagonNet(2, 2)
 //    println(tilingDCEL.toTorusCheck)
-    val torus      = TilingTorusDCEL.fromTilingDCEL(tilingDCEL).value
+    val torus          = TilingTorusDCEL.fromTilingDCEL(tilingDCEL).value
     val uScale: Double = 1.0 / 3.0
     val vScale: Double = 1.0 / (4 * 0.8660254037844386)
 //    println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
@@ -247,9 +247,9 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
   }
 
   it should "be converted from a 4x4 hexagon net" in {
-    val tilingDCEL = TilingBuilder.createHexagonNet(4, 4)
+    val tilingDCEL     = TilingBuilder.createHexagonNet(4, 4)
 //    println(tilingDCEL.toTorusCheck)
-    val torus      = TilingTorusDCEL.fromTilingDCEL(tilingDCEL).value
+    val torus          = TilingTorusDCEL.fromTilingDCEL(tilingDCEL).value
     val uScale: Double = 1.0 / (4 * 1.5)
     val vScale: Double = 1.0 / (4 * 2 * 0.8660254037844386)
 //    println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))

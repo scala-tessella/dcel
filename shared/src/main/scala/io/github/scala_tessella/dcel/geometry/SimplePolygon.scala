@@ -47,8 +47,7 @@ object SimplePolygon:
     *   Some(shift) if opposite, None otherwise
     */
   private def areOppositeShifted(xs: Vector[AngleDegree], ys: Vector[AngleDegree]): Option[Int] =
-    if xs != ys then None
-    else if xs.length <= 1 then None
+    if xs != ys || xs.length <= 1 then None
     else (1 to (xs.length / 2)).find(n => xs.drop(n).lazyZip(ys.dropRight(n)).forall(areFitting))
 
   /** Checks if one sequence of turns is the negative of another (antiparallel).

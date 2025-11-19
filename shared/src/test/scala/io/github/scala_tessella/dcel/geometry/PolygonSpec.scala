@@ -136,13 +136,17 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     simple.toAngles.rotationsAndReflections.distinct
       .forall(SimplePolygon(_).parallelogonIndices.isDefined) shouldBe true
 
-  def checkEquivalencesForAllRotationsAndReflections(simple: SimplePolygon, expectedGroupsCount: Int, isShifted: Boolean = false): Assertion =
+  def checkEquivalencesForAllRotationsAndReflections(
+      simple: SimplePolygon,
+      expectedGroupsCount: Int,
+      isShifted: Boolean = false
+  ): Assertion =
     simple.toAngles.rotationsAndReflections.distinct
       .forall(angles =>
         val g = SimplePolygon(angles).parallelogonEquivalences
         g.size == expectedGroupsCount
-          && g.count(_.size == 2) == expectedGroupsCount - (if isShifted then 2 else 1)
-          && g.filter(_.size > 2).forall(_.size == (if isShifted then 3 else 4))
+        && g.count(_.size == 2) == expectedGroupsCount - (if isShifted then 2 else 1)
+        && g.filter(_.size > 2).forall(_.size == (if isShifted then 3 else 4))
       ) shouldBe true
 
   it should "be found for a 3x3 square" in {
@@ -305,11 +309,36 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       sixtyFourJoinedHexs.parallelogonEquivalences should contain(List(7, 37, 53)),
       sixtyFourJoinedHexs.parallelogonEquivalences shouldBe
         List(
-          List(0, 28), List(1, 27), List(2, 26), List(3, 25), List(4, 24), List(5, 23), List(6, 22, 38),
-          List(7, 37, 53), List(8, 52), List(9, 51), List(10, 50), List(11, 49), List(12, 48), List(13, 47),
-          List(14, 46), List(15, 45), List(16, 44), List(17, 43), List(18, 42), List(19, 41), List(20, 40),
-          List(21, 39), List(29, 61), List(30, 60), List(31, 59), List(32, 58), List(33, 57), List(34, 56),
-          List(35, 55), List(36, 54)
+          List(0, 28),
+          List(1, 27),
+          List(2, 26),
+          List(3, 25),
+          List(4, 24),
+          List(5, 23),
+          List(6, 22, 38),
+          List(7, 37, 53),
+          List(8, 52),
+          List(9, 51),
+          List(10, 50),
+          List(11, 49),
+          List(12, 48),
+          List(13, 47),
+          List(14, 46),
+          List(15, 45),
+          List(16, 44),
+          List(17, 43),
+          List(18, 42),
+          List(19, 41),
+          List(20, 40),
+          List(21, 39),
+          List(29, 61),
+          List(30, 60),
+          List(31, 59),
+          List(32, 58),
+          List(33, 57),
+          List(34, 56),
+          List(35, 55),
+          List(36, 54)
         ),
       checkIndicesForAllRotationsAndReflections(sixtyFourJoinedHexs),
       checkEquivalencesForAllRotationsAndReflections(sixtyFourJoinedHexs, 30, isShifted = true)

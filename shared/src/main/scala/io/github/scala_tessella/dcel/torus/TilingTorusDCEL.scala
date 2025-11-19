@@ -137,7 +137,7 @@ final case class TilingTorusDCEL private (
       )
     val fullBox          = BigBox.fromPoints(calculatedCoords)
     val correctBox       = BigBox.fromPoints(vertices.map(_.coords))
-    val sub = correctBox.enlargeMinMax(BigPoint(
+    val sub              = correctBox.enlargeMinMax(BigPoint(
       fullBox.width - correctBox.width,
       fullBox.height - correctBox.height
     ).scaled(0.25))
@@ -757,8 +757,8 @@ object TilingTorusDCEL:
       rollDeg: Double = 0.0,       // rotation around Y
       // how to interpret 2D coords as torus parameters
       // coords are assumed to be in a unit square tile grid, we map x,y to u,v in [0,1] via scaling
-      uScale: Double = 1.0, // "horizontal" axis
-      vScale: Double = 1.0  // "vertical" axis
+      uScale: Double = 1.0,        // "horizontal" axis
+      vScale: Double = 1.0 // "vertical" axis
   )
 
   // Convert (u,v) in [0,1]x[0,1] to torus (x,y,z) with radii (R,r)
