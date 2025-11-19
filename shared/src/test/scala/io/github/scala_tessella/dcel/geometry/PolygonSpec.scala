@@ -301,6 +301,8 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       TilingBuilder.createHexagonNet(8, 8).boundarySimplePolygon
     allAssert(
       sixtyFourJoinedHexs.parallelogonIndices shouldBe Some((6, 22, 37, 53)),
+      sixtyFourJoinedHexs.parallelogonEquivalences should contain(List(6, 22, 38)),
+      sixtyFourJoinedHexs.parallelogonEquivalences should contain(List(7, 37, 53)),
       sixtyFourJoinedHexs.parallelogonEquivalences shouldBe
         List(
           List(0, 29),
