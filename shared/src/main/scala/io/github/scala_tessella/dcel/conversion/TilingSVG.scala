@@ -653,6 +653,11 @@ object TilingSVG:
               svgElem("0", "0", "0 0 0 0", Seq.empty)
             else
 
+              val equivalenceClasses = tiling.boundarySimplePolygon.parallelogonEquivalences
+              val twoAxesClasses = equivalenceClasses.filter(_.size > 2)
+              val boundaryVertices = tiling.boundaryVertices
+              val selectedBoundaryVertices = twoAxesClasses.map(_.map(boundaryVertices(_)))
+
               val config = toConfig(SvgOptions.apply())
               val strokeWidth: Double = config.strokeWidth
               val padding: Double = config.padding
@@ -664,7 +669,8 @@ object TilingSVG:
               // Generate all elements
               val edgeLines                               = createEdgeLines(tiling, scale)
 //              val boundaryPolygon                         = createBoundaryElements(tiling, config)
-              val (vertexCircles, vertexLabels)           = createSimpleVertexElements(tiling.vertices, config)
+//              val (vertexCircles, vertexLabels)           = createSimpleVertexElements(selectedBoundaryVertices, config)
+              val clingVertexCirclesGroups                = selectedBoundaryVertices.map(g => createSimpleVertexElements(g, config)._1)
               val (torusVertexCircles, torusVertexLabels) = createSimpleVertexElements(torus.vertices, config)
 //              val faceLabels                              = createFaceLabels(tiling, config)
 
@@ -681,6 +687,10 @@ object TilingSVG:
                 createSvgSection("Edges", edgeLines, attrs("stroke" -> "black", "stroke-width" -> strokeWidth)),
 //                boundarySection,
                 createSvgSection("Vertices", torusVertexCircles, attrs("fill" -> "red")),
+                createSvgSection("Vertices", clingVertexCirclesGroups.head, attrs("fill" -> "none", "stroke" -> "green", "stroke-width" -> "2.0")),
+                if clingVertexCirclesGroups.size == 2 then
+                  createSvgSection("Vertices", clingVertexCirclesGroups(1), attrs("fill" -> "none", "stroke" -> "blue", "stroke-width" -> "2.0"))
+                else NodeSeq.Empty,
                 createSvgSection(
                   "Vertex Labels",
                   torusVertexLabels,
