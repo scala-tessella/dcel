@@ -347,6 +347,23 @@ object TilingSVG:
 
     (circles, labels)
 
+  private def createIndexVertexElements(vertices: List[(Vertex, Int)], config: SvgConfig): (Seq[Elem], Seq[Elem]) =
+
+    val circles =
+      vertices.map(_._1).map { v =>
+        val (cx, cy) = v.coords.toSvgCoords(config.scale)
+        circleElem(cx, cy, (config.strokeWidth * 4).toString)
+      }
+
+    val labels = vertices.map { (v, index) =>
+      val point = v.coords.scaled(config.scale).flippedY
+      val x = (point.x + config.strokeWidth * 2.5).format
+      val y = (point.y - config.strokeWidth * 2.5).format
+      textAt(x, y, s"${v.id.value} - $index")
+    }
+
+    (circles, labels)
+
 
   private def createFaceLabels(tilingDCEL: TilingDCEL, config: SvgConfig): Seq[Elem] =
     tilingDCEL.innerFaces.map { face =>
@@ -654,9 +671,11 @@ object TilingSVG:
             else
 
               val equivalenceClasses = tiling.boundarySimplePolygon.parallelogonEquivalences
+              val (i0, i1, i2, i3) = tiling.boundarySimplePolygon.parallelogonIndices.get
               val twoAxesClasses = equivalenceClasses.filter(_.size > 2)
               val boundaryVertices = tiling.boundaryVertices
               val selectedBoundaryVertices = twoAxesClasses.map(_.map(boundaryVertices(_)))
+              val parallelogonVertices = List(i0, i1, i2, i3).map(boundaryVertices(_)).zip(List(i0, i1, i2, i3))
 
               val config = toConfig(SvgOptions.apply())
               val strokeWidth: Double = config.strokeWidth
@@ -670,6 +689,7 @@ object TilingSVG:
               val edgeLines                               = createEdgeLines(tiling, scale)
 //              val boundaryPolygon                         = createBoundaryElements(tiling, config)
 //              val (vertexCircles, vertexLabels)           = createSimpleVertexElements(selectedBoundaryVertices, config)
+              val (indexCircles, indexLabels)             = createIndexVertexElements(parallelogonVertices, config)
               val clingVertexCirclesGroups                = selectedBoundaryVertices.map(g => createSimpleVertexElements(g, config)._1)
               val (torusVertexCircles, torusVertexLabels) = createSimpleVertexElements(torus.vertices, config)
 //              val faceLabels                              = createFaceLabels(tiling, config)
@@ -695,6 +715,11 @@ object TilingSVG:
                   "Vertex Labels",
                   torusVertexLabels,
                   attrs("font-size" -> (strokeWidth * 8).toInt, "fill" -> "darkblue")
+                ),
+                createSvgSection(
+                  "Index Labels",
+                  indexLabels,
+                  attrs("font-size" -> (strokeWidth * 8).toInt, "fill" -> "orange")
                 ),
 //                createSvgSection(
 //                  "Face Labels",
