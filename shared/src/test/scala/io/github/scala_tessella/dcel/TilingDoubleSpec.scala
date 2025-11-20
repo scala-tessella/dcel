@@ -26,10 +26,12 @@ class TilingDoubleSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val doubled = TilingBuilder.createRhombusNet(2, 2).growDoubleAlt
     println(doubled)
     val result = doubled.value
+    println(TilingValidation.validate(result))
     allAssert(
       result.halfEdges.size shouldBe 44,
       result.vertices.size shouldBe 15,
-      result.innerFaces.size shouldBe 8
+      result.innerFaces.size shouldBe 8,
+      TilingValidation.validate(result).isRight shouldBe true
     )
   }
 

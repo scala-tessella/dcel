@@ -494,7 +494,7 @@ final case class TilingDCEL private (
             this.halfEdges ++ translated.halfEdges
 
           val allOldFaces: List[Face] =
-            // include both outers explicitly; they will map to the single new outer
+            // include both outers and inners, but we will rebuild the single outer face later
             (this.outerFace :: this.innerFaces) ++ (translated.outerFace :: translated.innerFaces)
 
           val edgeMap = mutable.HashMap.empty[HalfEdge, HalfEdge]
@@ -507,16 +507,12 @@ final case class TilingDCEL private (
             edgeMap(e) = ne
           }
 
-          // 3.b – create faces, unifying the two outer faces into one
-          val newOuterFace = Face(FaceId.outerId)
-
+          // 3.b – create inner faces only (discard old outers, we will recompute boundary)
           val faceMap = mutable.HashMap.empty[Face, Face]
 
           allOldFaces.foreach { f =>
-            if f.id == FaceId.outerId then
-              faceMap.getOrElseUpdate(f, newOuterFace)
-            else
-              faceMap.getOrElseUpdate(f, Face(f.id))
+            if idFromFaceId(f.id) != 0 then
+              faceMap.getOrElseUpdate(f, Face(f.id)): Unit
           }
 
           // 3.c – wire next / prev / incidentFace from old to new via maps
@@ -531,20 +527,24 @@ final case class TilingDCEL private (
             }
 
             oe.incidentFace.foreach { of =>
-              ne.incidentFace = Some(faceMap(of))
+              if idFromFaceId(of.id) != 0 then
+                // inner face
+                ne.incidentFace = Some(faceMap(of))
+              // else: old outer face, leave as boundary (incidentFace = None)
             }
           }
 
-          // 3.d – set outerComponent / innerComponents on faces
+          // 3.d – set outerComponent / innerComponents on inner faces only
           allOldFaces.foreach { of =>
-            val nf = faceMap(of)
+            if idFromFaceId(of.id) != 0 then
+              val nf = faceMap(of)
 
-            of.outerComponent.foreach { startOld =>
-              nf.outerComponent = Some(edgeMap(startOld))
-            }
+              of.outerComponent.foreach { startOld =>
+                nf.outerComponent = Some(edgeMap(startOld))
+              }
 
-            nf.innerComponents =
-              of.innerComponents.map(_.map(edgeMap))
+              nf.innerComponents =
+                of.innerComponents.map(_.map(edgeMap))
           }
 
           // 3.e – (re)wire twins purely by endpoints in the merged graph
@@ -597,9 +597,11 @@ final case class TilingDCEL private (
             // Partition by direction (origin,dest)
             val byDir = edges.groupBy(e => (e.origin.id, e.destination.get.id))
             if byDir.size >= 2 then
-              // One representative per direction
+              // One representative per direction, prefer edges with an incident inner face
               val mainPerDir: Map[(VertexId, VertexId), HalfEdge] =
-                byDir.view.mapValues(_.head).toMap
+                byDir.view.mapValues { sameDirEdges =>
+                  sameDirEdges.find(_.incidentFace.isDefined).getOrElse(sameDirEdges.head)
+                }.toMap
 
               // Wire the two main directions as twins
               val mains = mainPerDir.values.toList
@@ -612,47 +614,58 @@ final case class TilingDCEL private (
               byDir.foreach { case ((origId, destId), sameDirEdges) =>
                 if sameDirEdges.size > 1 then
                   val main = mainPerDir((origId, destId))
-                  sameDirEdges.tail.foreach { redundant =>
-                    // Redirect prev / next around redundant edge to main
-                    redundant.prev.foreach { p =>
-                      if p.next.contains(redundant) then p.next = Some(main)
-                    }
-                    redundant.next.foreach { n =>
-                      if n.prev.contains(redundant) then n.prev = Some(main)
-                    }
-                    // If some face's outerComponent pointed here, move it to main
-                    redundant.incidentFace.foreach { f =>
-                      if f.outerComponent.contains(redundant) then
-                        f.outerComponent = Some(main)
-                    }
-                    toRemove += redundant
+                  sameDirEdges.foreach { redundant =>
+                    if redundant ne main then
+                      // Redirect prev / next around redundant edge to main
+                      redundant.prev.foreach { p =>
+                        if p.next.contains(redundant) then p.next = Some(main)
+                      }
+                      redundant.next.foreach { n =>
+                        if n.prev.contains(redundant) then n.prev = Some(main)
+                      }
+                      toRemove += redundant
                   }
               }
           }
 
-          val allNewEdges: List[HalfEdge] =
+          val allNewEdgesNoDuplicates: List[HalfEdge] =
             allNewEdgesInitial.filterNot(toRemove.contains)
 
           // -----------------------------------------------------------------------
-          // 4. Ensure each merged vertex has a leaving edge
+          // 4. Rebuild outer face and assign boundary edges
           // -----------------------------------------------------------------------
+          // Boundary edges are those not incident to any inner face
+          val boundaryEdges = allNewEdgesNoDuplicates.filter(_.incidentFace.isEmpty)
+
+          val newOuterFace = Face(FaceId.outerId)
+
+          if boundaryEdges.nonEmpty then
+            val ordered = boundaryEdges.orderBoundary
+            // Link boundary cycle and assign outer face
+            ordered.linkInCycle()
+            ordered.foreach { e =>
+              e.incidentFace = Some(newOuterFace)
+            }
+            newOuterFace.outerComponent = ordered.headOption
+
+          // -----------------------------------------------------------------------
+          // 5. Ensure each merged vertex has a leaving edge
+          // -----------------------------------------------------------------------
+          val allNewEdges = allNewEdgesNoDuplicates
+
           newVertices.foreach { v =>
-            if v.leaving.isEmpty then
-              v.leaving = allNewEdges.find(_.origin eq v)
+            // Prefer a boundary edge as leaving if available, else any incident edge
+            val boundaryLeaving = boundaryEdges.find(_.origin eq v)
+            val anyLeaving = allNewEdges.find(_.origin eq v)
+            v.leaving = boundaryLeaving.orElse(anyLeaving)
           }
 
           // -----------------------------------------------------------------------
-          // 5. Build merged faces lists and validate
+          // 6. Build merged faces lists and validate
           // -----------------------------------------------------------------------
-          val newFaces: List[Face] =
-            faceMap.values.toList.distinct
-
           val newInnerFaces: List[Face] =
-            newFaces.filterNot(_.isOuter)
+            faceMap.values.toList
 
-          println(s"New ${newVertices.size} vertices: $newVertices")
-          println(s"New ${allNewEdges.size} half edges: $allNewEdges")
-          println(s"New ${newInnerFaces.size} inner faces: $newInnerFaces")
 //          TilingDCEL.fromUntrusted(
 //            vertices = newVertices,
 //            halfEdges = allNewEdges,
