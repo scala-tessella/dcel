@@ -414,32 +414,193 @@ final case class TilingDCEL private (
           val delta = repeat.coords - origin.coords
           val coordsTranslation: BigPoint => BigPoint = _ + delta
 
+          // Translate vertices: give completely fresh vertex ids
           val vertexIds = vertices.map(_.id)
           val maxVertexId = vertexIds.map(vertexId => idFromVertexId(vertexId)).maxOption.get
-          val vertexIdTranslation: VertexId => VertexId = 
-            vertexIds.indices.map(index => vertexIds(index) -> vertexIdV(maxVertexId + index + 1)).toMap
+          val vertexIdTranslation: VertexId => VertexId =
+            vertexIds.indices
+              .map { index =>
+                val oldId = vertexIds(index)
+                oldId -> vertexIdV(maxVertexId + index + 1)
+              }
+              .toMap
 
+          // Translate faces: keep outer face id, shift inner ones
           val faceIds = faces.map(_.id)
           val maxFaceId = faceIds.map(faceId => idFromFaceId(faceId)).maxOption.get
           val faceIdTranslation: FaceId => FaceId =
-            faceIds.indices.map(index => faceIds(index) match
-              case faceId if idFromFaceId(faceId) == 0 => faceId -> faceId
-              case faceId                              => faceId -> faceIdF(maxFaceId + index + 1)
-            ).toMap
+            faceIds.indices
+              .map { index =>
+                faceIds(index) match
+                  case faceId if idFromFaceId(faceId) == 0 => faceId -> faceId // outer face
+                  case faceId => faceId -> faceIdF(maxFaceId + index + 1)
+              }
+              .toMap
 
+          // Second copy, translated in space and with fresh ids
           val translated: TilingDCEL =
             this.translatedDouble(
               coordsTranslation,
               vertexIdTranslation,
               faceIdTranslation
             )
-            
-          // At this stage we have two tilings (with the same outer face) that are identical except for
-          // the vertex ids, vertex coordinates and face ids.
-          // Now we need to merge them into a single tiling.
-          // By finding the vertices with the same coordinates (within accuracy) we can merge them.
-            
-          ???
+
+          // -----------------------------------------------------------------------
+          // 1. Identify coincident vertices between original and translated copy
+          // -----------------------------------------------------------------------
+          import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.ACCURACY
+
+          val sharedVertexPairs: List[(Vertex, Vertex)] =
+            vertices.sameCoords(translated.vertices, accuracy = ACCURACY)
+
+          // Map: "secondary" (translated) vertex id -> "primary" (original) vertex id
+          val substitutionMap: Map[VertexId, VertexId] =
+            sharedVertexPairs.map { (orig, copied) => copied.id -> orig.id }.toMap
+
+          // -----------------------------------------------------------------------
+          // 2. Build merged vertex set by identifying coincident vertices
+          // -----------------------------------------------------------------------
+          import scala.collection.mutable
+
+          def repOf(id: VertexId): VertexId =
+            substitutionMap.getOrElse(id, id)
+
+          val allOldVertices: List[Vertex] =
+            this.vertices ++ translated.vertices
+
+          // Representative id -> merged Vertex
+          val repToVertex = mutable.HashMap.empty[VertexId, Vertex]
+
+          allOldVertices.foreach { v =>
+            val r = repOf(v.id)
+            if !repToVertex.contains(r) then
+              // Use coordinates of the first encountered vertex in that equivalence class
+              repToVertex(r) = Vertex(r, v.coords)
+          }
+
+          // Every old vertex id maps to its merged vertex
+          val newVertexOfId: Map[VertexId, Vertex] =
+            allOldVertices
+              .map(v => v.id -> repToVertex(repOf(v.id)))
+              .toMap
+
+          val newVertices: List[Vertex] =
+            repToVertex.values.toList
+
+          // -----------------------------------------------------------------------
+          // 3. Clone and rewire half-edges and faces for the union of the two tilings
+          // -----------------------------------------------------------------------
+          val allOldEdges: List[HalfEdge] =
+            this.halfEdges ++ translated.halfEdges
+
+          val allOldFaces: List[Face] =
+            // include both outers explicitly; they will map to the single new outer
+            (this.outerFace :: this.innerFaces) ++ (translated.outerFace :: translated.innerFaces)
+
+          val edgeMap = mutable.HashMap.empty[HalfEdge, HalfEdge]
+
+          // 3.a – create new edges with merged origins and copy angles only
+          allOldEdges.foreach { e =>
+            val newOrigin = newVertexOfId(e.origin.id)
+            val ne = HalfEdge(newOrigin)
+            ne.angle = e.angle
+            edgeMap(e) = ne
+          }
+
+          // 3.b – create faces, unifying the two outer faces into one
+          val newOuterFace = Face(FaceId.outerId)
+
+          val faceMap = mutable.HashMap.empty[Face, Face]
+
+          allOldFaces.foreach { f =>
+            if f.id == FaceId.outerId then
+              faceMap.getOrElseUpdate(f, newOuterFace)
+            else
+              faceMap.getOrElseUpdate(f, Face(f.id))
+          }
+
+          // 3.c – wire next / prev / incidentFace from old to new via maps
+          allOldEdges.foreach { oe =>
+            val ne = edgeMap(oe)
+
+            oe.next.foreach { on =>
+              ne.next = Some(edgeMap(on))
+            }
+            oe.prev.foreach { op =>
+              ne.prev = Some(edgeMap(op))
+            }
+
+            oe.incidentFace.foreach { of =>
+              ne.incidentFace = Some(faceMap(of))
+            }
+          }
+
+          // 3.d – set outerComponent / innerComponents on faces
+          allOldFaces.foreach { of =>
+            val nf = faceMap(of)
+
+            of.outerComponent.foreach { startOld =>
+              nf.outerComponent = Some(edgeMap(startOld))
+            }
+
+            nf.innerComponents =
+              of.innerComponents.map(_.map(edgeMap))
+          }
+
+          // 3.e – (re)wire twins purely by endpoints in the merged graph
+          val dirBuckets =
+            mutable.HashMap.empty[(VertexId, VertexId), mutable.ArrayBuffer[HalfEdge]]
+
+          edgeMap.values.foreach { e =>
+            e.next.foreach { n =>
+              val key = (e.origin.id, n.origin.id)
+              val buf = dirBuckets.getOrElseUpdate(key, mutable.ArrayBuffer.empty[HalfEdge])
+              buf += e
+            }
+          }
+
+          dirBuckets.foreach { case ((o, d), buf) =>
+            val oppKey = (d, o)
+            dirBuckets.get(oppKey).foreach { oppBuf =>
+              val count = math.min(buf.size, oppBuf.size)
+              var i = 0
+              while i < count do
+                val e1 = buf(i)
+                val e2 = oppBuf(i)
+                if e1.twin.isEmpty && e2.twin.isEmpty then
+                  e1.twinWith(e2)
+                i += 1
+            }
+          }
+
+          // -----------------------------------------------------------------------
+          // 4. Ensure each merged vertex has a leaving edge
+          // -----------------------------------------------------------------------
+          val allNewEdges = edgeMap.values.toList
+
+          newVertices.foreach { v =>
+            if v.leaving.isEmpty then
+              v.leaving = allNewEdges.find(_.origin eq v)
+          }
+
+          // -----------------------------------------------------------------------
+          // 5. Build merged faces lists and validate
+          // -----------------------------------------------------------------------
+          val newFaces: List[Face] =
+            faceMap.values.toList.distinct
+
+          val newInnerFaces: List[Face] =
+            newFaces.filterNot(_.isOuter)
+
+          println(s"New ${newVertices.size} vertices: $newVertices")
+          println(s"New ${allNewEdges.size} half edges: $allNewEdges")
+          println(s"New ${newInnerFaces.size} inner faces: $newInnerFaces")
+          TilingDCEL.fromUntrusted(
+            vertices = newVertices,
+            halfEdges = allNewEdges,
+            innerFaces = newInnerFaces,
+            outerFace = newOuterFace
+          )
 
   def maybeDeleteVertex(vertexId: VertexId): Either[TilingError, TilingDCEL] =
     this.deepCopy.deleteVertex(vertexId)

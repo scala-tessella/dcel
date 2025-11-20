@@ -22,7 +22,14 @@ class TilingDoubleSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     doubled.isRight shouldBe true
   }
 
+  it should "not fail for a 2x2 square net" in {
+    val doubled = TilingBuilder.createRhombusNet(2, 2).growDoubleAlt
+    println(doubled)
+    doubled.isRight shouldBe true
+  }
+
   it should "not fail for a 3x3 square net" in {
-    val squareNet3x3 = TilingBuilder.createRhombusNet(3, 3)
-    squareNet3x3.growDouble.isRight shouldBe true
+    val doubled = TilingBuilder.createRhombusNet(3, 3).growDouble
+    println(doubled)
+    doubled.isRight shouldBe true
   }
