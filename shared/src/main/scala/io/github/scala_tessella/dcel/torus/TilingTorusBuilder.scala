@@ -2,6 +2,7 @@ package io.github.scala_tessella.dcel.torus
 
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint}
 import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
+import io.github.scala_tessella.dcel.TilingBuilder.vertexIdV
 
 import spire.implicits.*
 
@@ -52,7 +53,7 @@ object TilingTorusBuilder:
     // Place them on [0,1]x[0,1] lattice
     val verts =
       Array.tabulate(height, width) { (j, i) =>
-        val id  = VertexId(s"V${j * width + i + 1}")
+        val id  = vertexIdV(j * width + i + 1)
         val pos = BigPoint(BigDecimal(i), BigDecimal(j))
         Vertex(id, pos)
       }
@@ -144,7 +145,7 @@ object TilingTorusBuilder:
         val offset = if (j & 1) == 1 then dx / 2 else BigDecimal(0)
         val x      = BigDecimal(i) * dx + offset
         val y      = BigDecimal(j) * dy
-        val id     = VertexId(s"V${j * width + i + 1}")
+        val id     = vertexIdV(j * width + i + 1)
         Vertex(id, BigPoint(x, y))
       }
 
@@ -295,7 +296,7 @@ object TilingTorusBuilder:
       vertexByTriple.getOrElseUpdate(
         key, {
           val (a, b, c) = key
-          val v         = Vertex(VertexId(s"V$vCount"), tripleToPoint(a, b, c))
+          val v         = Vertex(vertexIdV(vCount), tripleToPoint(a, b, c))
           vCount += 1
           v
         }

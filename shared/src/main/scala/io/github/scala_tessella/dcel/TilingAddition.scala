@@ -1,6 +1,6 @@
 package io.github.scala_tessella.dcel
 
-import io.github.scala_tessella.dcel.TilingBuilder.{calculateVertexPoints, validatePoints}
+import io.github.scala_tessella.dcel.TilingBuilder.{calculateVertexPoints, validatePoints, vertexIdV}
 import io.github.scala_tessella.dcel.TilingEquivalency.*
 import io.github.scala_tessella.dcel.geometry.{
   AngleDegree,
@@ -23,7 +23,7 @@ object TilingAddition:
   private def createVertices(points: List[BigPoint], startingIndex: Int): List[Vertex] =
     points.zipWithIndex.map { (point, index) =>
 
-      Vertex(VertexId(s"V${startingIndex + index}"), point)
+      Vertex(vertexIdV(startingIndex + index), point)
     }
 
   // More descriptive boundary angle calculation
