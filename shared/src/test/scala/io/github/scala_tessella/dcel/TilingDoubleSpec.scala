@@ -48,3 +48,14 @@ class TilingDoubleSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       TilingValidation.validate(result).isRight shouldBe true
     )
   }
+
+  it should "not fail for a 2x2 hexagon net" in {
+    val doubled = TilingBuilder.createHexagonNet(2, 2).growDouble
+    val result = doubled.value
+    allAssert(
+      result.halfEdges.size shouldBe 70,
+      result.vertices.size shouldBe 28,
+      result.innerFaces.size shouldBe 8,
+      TilingValidation.validate(result).isRight shouldBe true
+    )
+  }

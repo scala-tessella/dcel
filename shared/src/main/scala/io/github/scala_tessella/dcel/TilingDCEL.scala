@@ -288,7 +288,7 @@ final case class TilingDCEL private (
 
                 faceIds(index) match
                   case faceId if idFromFaceId(faceId) == 0 => faceId -> faceId // outer face
-                  case faceId                              => faceId -> faceIdF(maxFaceId + index + 1)
+                  case faceId                              => faceId -> faceIdF(maxFaceId + index)
               }
               .toMap
 
@@ -473,7 +473,7 @@ final case class TilingDCEL private (
               // Wire the two main directions as twins
               val mains = mainPerDir.values.toList
               if mains.size == 2 then
-                val a = mains(0)
+                val a = mains.head
                 val b = mains(1)
                 a.twinWith(b)
 
