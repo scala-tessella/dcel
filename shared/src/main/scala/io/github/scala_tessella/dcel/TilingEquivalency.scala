@@ -2,7 +2,7 @@ package io.github.scala_tessella.dcel
 
 import io.github.scala_tessella.dcel.Utils.associate
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint}
-import io.github.scala_tessella.dcel.structure.{Face, HalfEdge, Vertex}
+import io.github.scala_tessella.dcel.structure.{Face, HalfEdge, Vertex, VertexId}
 import io.github.scala_tessella.ring_seq.RingSeq.rotationsAndReflections
 
 import scala.Ordering.Implicits.*
@@ -36,9 +36,17 @@ object TilingEquivalency:
 
   extension (tiling: TilingDCEL)
 
-    private def createMaps(coordsTransformer: BigPoint => BigPoint)
-        : (Map[Vertex, Vertex], Map[HalfEdge, HalfEdge], Map[Face, Face]) =
-      val vertexMap   = tiling.vertices.associate(v => Vertex(v.id, coordsTransformer(v.coords)))
+    private def createMaps(
+        coordsTransformer: BigPoint => BigPoint,
+        vertexIdTransformer: VertexId => VertexId
+    ): (Map[Vertex, Vertex], Map[HalfEdge, HalfEdge], Map[Face, Face]) =
+      val vertexMap   =
+        tiling.vertices.associate { v =>
+          Vertex(
+            id = vertexIdTransformer(v.id),
+            coords = coordsTransformer(v.coords)
+          )
+        }
       val halfEdgeMap = tiling.halfEdges.associate(he => HalfEdge(vertexMap(he.origin)))
       val faceMap     = tiling.faces.associate(f => Face(f.id))
       (vertexMap, halfEdgeMap, faceMap)
@@ -110,10 +118,11 @@ object TilingEquivalency:
 
     private def rawCopy(
         coordsTransformer: BigPoint => BigPoint,
-        vertexLeavingTransformer: (Vertex, HalfEdge, Map[HalfEdge, HalfEdge]) => Unit
+        vertexLeavingTransformer: (Vertex, HalfEdge, Map[HalfEdge, HalfEdge]) => Unit,
+        vertexIdTransformer: VertexId => VertexId
     ): TilingDCEL =
       // Create mapping from old to new components
-      val (vertexMap, halfEdgeMap, faceMap) = createMaps(coordsTransformer)
+      val (vertexMap, halfEdgeMap, faceMap) = createMaps(coordsTransformer, vertexIdTransformer)
 
       // Copy all relationships for half-edges
       copyHalfEdgeRelationships(halfEdgeMap, faceMap)
@@ -143,7 +152,8 @@ object TilingEquivalency:
         coordsTransformer = identity,
         vertexLeavingTransformer =
           (newVertex, oldLeavingEdge, halfEdgeMap) =>
-            newVertex.leaving = Some(halfEdgeMap(oldLeavingEdge))
+            newVertex.leaving = Some(halfEdgeMap(oldLeavingEdge)),
+        vertexIdTransformer = identity
       )
 
     /** Creates a geometric reflection of the tiling across the vertical axis of its bounding box. It achieves
@@ -169,7 +179,8 @@ object TilingEquivalency:
           (newVertex, oldLeavingEdge, halfEdgeMap) =>
             oldLeavingEdge.prev.flatMap(_.twin).foreach(newLeaving =>
               newVertex.leaving = Some(halfEdgeMap(newLeaving))
-            )
+            ),
+        identity
       )
 
     private def calculateBoundaryDistances: Map[Vertex, Int] =
