@@ -60,6 +60,8 @@ object TilingBuilder:
     val points = calculateVertexPoints(angles)
     buildDCELFromPointsUnsafe(points, angles.toList)
 
+  def vertexIdV(i: Int): VertexId = VertexId(s"V$i")
+
   /** Given validated points and angles, builds the TilingDCEL structure.
     */
   private def buildDCELFromPointsUnsafe(
@@ -70,7 +72,7 @@ object TilingBuilder:
 
     // Create vertices from the calculated points
     val vertices = points.zipWithIndex.map { case (p, i) =>
-      Vertex(VertexId(s"V${i + 1}"), p)
+      Vertex(vertexIdV(i +1), p)
     }
 
     // Create the two faces: one for the polygon, one for the outside
@@ -153,8 +155,8 @@ object TilingBuilder:
     }
 
     val vertices = Array.tabulate(height + 1, width + 1) { (j, i) =>
-      val vertexId = j * (width + 1) + i + 1
-      Vertex(VertexId(s"V$vertexId"), points(j)(i))
+      val id = j * (width + 1) + i + 1
+      Vertex(vertexIdV(id), points(j)(i))
     }
     (points, vertices)
 
@@ -433,7 +435,7 @@ object TilingBuilder:
       vertexByTriple.getOrElseUpdate(
         key, {
           val (n0, n1, n2) = key
-          val v            = Vertex(VertexId(s"V$vertexCounter"), tripleToPoint(n0, n1, n2))
+          val v            = Vertex(vertexIdV(vertexCounter), tripleToPoint(n0, n1, n2))
           vertexCounter += 1
           v
         }
@@ -534,7 +536,7 @@ object TilingBuilder:
     }
 
   def createHoledTriangleNet(width: Int, height: Int)(f: (Int, Int) => Boolean): TilingDCEL =
-    val transform: (Int, Int) => VertexId = (x, y) => VertexId(s"V${x + 1 + y * (width + 1)}")
+    val transform: (Int, Int) => VertexId = (x, y) => vertexIdV(x + 1 + y * (width + 1))
     val holes: IndexedSeq[VertexId]       =
       for
         y <- 0 to height
