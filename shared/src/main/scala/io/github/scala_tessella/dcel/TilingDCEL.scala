@@ -248,19 +248,21 @@ final case class TilingDCEL private (
         case Nil => Left(ValidationError("Tiling is not a parallelogon"))
         case groups =>
           // Choose the pair of equivalent boundary vertices that defines the translation side
-          val s = vertices.size
           val group =
             groups.find(_.size == 4).getOrElse(
               groups.find(_.size == 3).get
             )
           val two =
-            if (group(1) - group.head) >= s / 2 then group.takeRight(2)
+            if (group(1) - group.head) >= vertices.size / 2 then group.takeRight(2)
             else group.take(2)
+          val third = if group.size == 3 then group.diff(two).head else group(2)
 
-          // NOTE: `group`/`two` index into the polygon's vertex sequence; here we assume that
-          // this corresponds to indices in `vertices`. If not, adapt this mapping accordingly.
+          // NOTE: `group`/`two` index into the polygon's vertex sequence.
           val origin = vertices(two.head)
           val repeat = vertices(two.last)
+          val repeatOnOtherAxis = vertices(third)
+
+          println(s"Growing, origin: $origin and repeat: $repeat and repeatOnOtherAxis: $repeatOnOtherAxis")
 
           // Compute the translation vector from origin to repeat
           val dx = repeat.coords.x - origin.coords.x
@@ -288,6 +290,7 @@ final case class TilingDCEL private (
             }.toMap
 
           val clonedVertices: List[Vertex] = vertexMap.values.toList
+          println(s"Cloned vertices: $clonedVertices")
 
           // ---------------------------------------------------------------------------
           // 2. Clone inner faces (outer face is shared, not duplicated)
@@ -305,6 +308,7 @@ final case class TilingDCEL private (
 
           val faceMap: Map[Face, Face] = faceMapPairs.toMap
           val clonedInnerFaces: List[Face] = faceMap.values.toList
+          println(s"Cloned inner faces: $clonedInnerFaces")
 
           // ---------------------------------------------------------------------------
           // 3. Clone half-edges (two-pass: create, then wire)
@@ -357,92 +361,19 @@ final case class TilingDCEL private (
           }
 
           // ---------------------------------------------------------------------------
-          // 6. Stitch along the chosen boundary side (origin -> repeat)
+          // 6. Stitch along the chosen boundary segment (repeat -> repeatOnOtherAxis)
           // ---------------------------------------------------------------------------
 
-          // Find the boundary half-edge on the original tiling from origin to repeat
-          val sharedOrigOpt =
-            boundaryEdges.find { e =>
-              (e.origin eq origin) && e.destination.contains(repeat)
-            }
 
-          sharedOrigOpt match
-            case None =>
-              Left(TopologyError(s"Could not find boundary edge from ${origin.id} to ${repeat.id}"))
-            case Some(sharedOrig) =>
-              // Corresponding boundary edge in the translated copy
-              val sharedCopy = edgeMap(sharedOrig)
-
-              // On each side, we have:
-              //  - outerEdge: incident to outerFace (boundary)
-              //  - innerEdge: its twin, incident to an inner face
-              val outer1 = sharedOrig
-              val inner1 = outer1.twin.get
-
-              val outer2 = sharedCopy
-              val inner2 = outer2.twin.get
-
-              // Rewire the outer face boundary to skip the shared side.
-              // Existing outer cycles:
-              //   ... prev1 -> outer1 -> next1 ...
-              //   ... prev2 -> outer2 -> next2 ...
-              // After stitching:
-              //   prev1 -> next2   and   prev2 -> next1
-              val prev1 = outer1.prev.get
-              val next1 = outer1.next.get
-              val prev2 = outer2.prev.get
-              val next2 = outer2.next.get
-
-              // Connect prev1 -> next2
-              prev1.next = Some(next2)
-              next2.prev = Some(prev1)
-
-              // Connect prev2 -> next1
-              prev2.next = Some(next1)
-              next1.prev = Some(prev2)
-
-              // If the outer face's reference edge was one of the removed ones,
-              // move it to a surviving boundary edge.
-              if outerFace.outerComponent.contains(outer1) then
-                outerFace.outerComponent = Some(next2)
-              else if outerFace.outerComponent.contains(outer2) then
-                outerFace.outerComponent = Some(next1)
-
-              // The shared side should now be an internal edge between the
-              // two parallelogon copies: make their inner edges twins.
-              inner1.twinWith(inner2)
-
-              // Ensure vertices whose leaving edge pointed to the removed
-              // boundary edges now point to a valid incident edge.
-              val allVertices = vertices ++ clonedVertices
-              allVertices.foreach { v =>
-                v.leaving match
-                  case Some(e) if e eq outer1 =>
-                    v.leaving = Some(inner1)
-                  case Some(e) if e eq outer2 =>
-                    v.leaving = Some(inner2)
-                  case _ => ()
-              }
-
-              // Remove the now-unused boundary edges from the global list
-              val stitchedHalfEdges =
-                (halfEdges ++ clonedHalfEdges).filterNot(e => (e eq outer1) || (e eq outer2))
-
-              // -----------------------------------------------------------------------
-              // 7. Build final doubled tiling and validate
-              // -----------------------------------------------------------------------
-              TilingDCEL.fromUntrusted(
-                vertices = vertices ++ clonedVertices,
-                halfEdges = stitchedHalfEdges,
-                innerFaces = innerFaces ++ clonedInnerFaces,
-                outerFace = outerFace
-              )
-//              Right(TilingDCEL(
-//                vertices = vertices ++ clonedVertices,
-//                halfEdges = stitchedHalfEdges,
-//                innerFaces = innerFaces ++ clonedInnerFaces,
-//                outerFace = outerFace
-//              ))
+          // -----------------------------------------------------------------------
+          // 7. Build final doubled tiling and validate
+          // -----------------------------------------------------------------------
+          TilingDCEL.fromUntrusted(
+            vertices = vertices ++ clonedVertices,
+            halfEdges = ???,
+            innerFaces = innerFaces ++ clonedInnerFaces,
+            outerFace = outerFace
+          )
 
   def maybeDeleteVertex(vertexId: VertexId): Either[TilingError, TilingDCEL] =
     this.deepCopy.deleteVertex(vertexId)
