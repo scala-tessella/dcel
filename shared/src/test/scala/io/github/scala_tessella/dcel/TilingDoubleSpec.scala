@@ -18,15 +18,18 @@ class TilingDoubleSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "not fail for a square" in {
     val doubled = TilingBuilder.createRegularPolygon(RegularPolygon(4)).growDouble
-    println(doubled)
-    doubled.isRight shouldBe true
+    val result  = doubled.value
+    allAssert(
+      result.halfEdges.size shouldBe 14,
+      result.vertices.size shouldBe 6,
+      result.innerFaces.size shouldBe 2,
+      TilingValidation.validate(result).isRight shouldBe true
+    )
   }
 
   it should "not fail for a 2x2 square net" in {
-    val doubled = TilingBuilder.createRhombusNet(2, 2).growDoubleAlt
-    println(doubled)
-    val result = doubled.value
-    println(TilingValidation.validate(result))
+    val doubled = TilingBuilder.createRhombusNet(2, 2).growDouble
+    val result  = doubled.value
     allAssert(
       result.halfEdges.size shouldBe 44,
       result.vertices.size shouldBe 15,
@@ -37,6 +40,11 @@ class TilingDoubleSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "not fail for a 3x3 square net" in {
     val doubled = TilingBuilder.createRhombusNet(3, 3).growDouble
-    println(doubled)
-    doubled.isRight shouldBe true
+    val result  = doubled.value
+    allAssert(
+      result.halfEdges.size shouldBe 90,
+      result.vertices.size shouldBe 28,
+      result.innerFaces.size shouldBe 18,
+      TilingValidation.validate(result).isRight shouldBe true
+    )
   }
