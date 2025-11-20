@@ -96,8 +96,10 @@ object TilingValidation:
     // Ensure all edges that claim to be on the outer face are covered by the outer face traversal
     val outerEdgesClaimed   = tiling.halfEdges.filter(_.hasIncidentFace(tiling.outerFace)).toSet
     val outerTraversalEdges =
-      tiling.outerFace.outerComponent.map(_.faceTraversalUnsafe().toSet).getOrElse(Set.empty)
-    if outerTraversalEdges.nonEmpty && outerEdgesClaimed.diff(outerTraversalEdges).nonEmpty then
+      tiling.outerFace.outerComponent.map(_.faceTraversal()).get
+    if outerTraversalEdges.isLeft then
+      errors += "Outer face traversal failed: " + outerTraversalEdges.swap.getOrElse("")
+    else if outerEdgesClaimed.diff(outerTraversalEdges.toOption.get.toSet).nonEmpty then
       errors += "Outer face has edges not reachable from its outer component"
 
     // This is specific to the tessellation we want, without holes, because holes are just other inner polygons
