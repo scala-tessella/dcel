@@ -1,6 +1,7 @@
 package io.github.scala_tessella.dcel
 
 import io.github.scala_tessella.dcel.TilingAddition.*
+import io.github.scala_tessella.dcel.TilingBuilder.vertexIdV
 import io.github.scala_tessella.dcel.TilingDeletion.*
 import io.github.scala_tessella.dcel.TilingEquivalency.*
 import io.github.scala_tessella.dcel.TilingValidation.validate
@@ -550,7 +551,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
     // Add triangles to create a flower pattern
     for (i <- 1 to 6)
-      val result = currentTiling.addRegularPolygonToBoundary(VertexId(s"V$i"), RegularPolygon(3))
+      val result = currentTiling.addRegularPolygonToBoundary(vertexIdV(i), RegularPolygon(3))
       allAssert(
         result.isRight shouldBe true, {
           currentTiling = result.value
