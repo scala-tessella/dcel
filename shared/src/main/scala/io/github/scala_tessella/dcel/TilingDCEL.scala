@@ -257,6 +257,7 @@ final case class TilingDCEL private (
             else group.take(2)
           val third = if group.size == 3 then group.diff(two).head else group(2)
           println(s"Indices, origin: ${two.head} and repeat: ${two.last} and repeatOnOtherAxis: $third")
+          val sharedSegmentLength = third - two.last
 
           // NOTE: `group`/`two` index into the polygon's vertex sequence.
           val origin = boundaryVertices(two.head)
