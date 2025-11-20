@@ -488,7 +488,7 @@ final case class TilingDCEL private (
             repToVertex.values.toList
 
           // -----------------------------------------------------------------------
-          // 3. Clone and rewire half-edges and faces for the union of the two tilings
+          // 3. Clone half-edges and faces for the union of the two tilings
           // -----------------------------------------------------------------------
           val allOldEdges: List[HalfEdge] =
             this.halfEdges ++ translated.halfEdges
@@ -574,10 +574,68 @@ final case class TilingDCEL private (
           }
 
           // -----------------------------------------------------------------------
+          // 3.f – collapse duplicated seam edges (same origin/destination)
+          // -----------------------------------------------------------------------
+          val allNewEdgesInitial: List[HalfEdge] =
+            edgeMap.values.toList
+
+          val toRemove = mutable.Set.empty[HalfEdge]
+
+          // Group by undirected key (min(originId, destId), max(originId, destId))
+          val byUndirected: Map[(VertexId, VertexId), List[HalfEdge]] =
+            allNewEdgesInitial
+              .flatMap { e =>
+                e.destination.map { d =>
+                  val oId = e.origin.id
+                  val dId = d.id
+                  if oId.value <= dId.value then ((oId, dId), e) else ((dId, oId), e)
+                }
+              }
+              .groupMap(_._1)(_._2)
+
+          byUndirected.values.foreach { edges =>
+            // Partition by direction (origin,dest)
+            val byDir = edges.groupBy(e => (e.origin.id, e.destination.get.id))
+            if byDir.size >= 2 then
+              // One representative per direction
+              val mainPerDir: Map[(VertexId, VertexId), HalfEdge] =
+                byDir.view.mapValues(_.head).toMap
+
+              // Wire the two main directions as twins
+              val mains = mainPerDir.values.toList
+              if mains.size == 2 then
+                val a = mains(0)
+                val b = mains(1)
+                a.twinWith(b)
+
+              // All other edges in each direction are redundant; rewire their neighbours to the main
+              byDir.foreach { case ((origId, destId), sameDirEdges) =>
+                if sameDirEdges.size > 1 then
+                  val main = mainPerDir((origId, destId))
+                  sameDirEdges.tail.foreach { redundant =>
+                    // Redirect prev / next around redundant edge to main
+                    redundant.prev.foreach { p =>
+                      if p.next.contains(redundant) then p.next = Some(main)
+                    }
+                    redundant.next.foreach { n =>
+                      if n.prev.contains(redundant) then n.prev = Some(main)
+                    }
+                    // If some face's outerComponent pointed here, move it to main
+                    redundant.incidentFace.foreach { f =>
+                      if f.outerComponent.contains(redundant) then
+                        f.outerComponent = Some(main)
+                    }
+                    toRemove += redundant
+                  }
+              }
+          }
+
+          val allNewEdges: List[HalfEdge] =
+            allNewEdgesInitial.filterNot(toRemove.contains)
+
+          // -----------------------------------------------------------------------
           // 4. Ensure each merged vertex has a leaving edge
           // -----------------------------------------------------------------------
-          val allNewEdges = edgeMap.values.toList
-
           newVertices.foreach { v =>
             if v.leaving.isEmpty then
               v.leaving = allNewEdges.find(_.origin eq v)
@@ -595,12 +653,13 @@ final case class TilingDCEL private (
           println(s"New ${newVertices.size} vertices: $newVertices")
           println(s"New ${allNewEdges.size} half edges: $allNewEdges")
           println(s"New ${newInnerFaces.size} inner faces: $newInnerFaces")
-          TilingDCEL.fromUntrusted(
-            vertices = newVertices,
-            halfEdges = allNewEdges,
-            innerFaces = newInnerFaces,
-            outerFace = newOuterFace
-          )
+//          TilingDCEL.fromUntrusted(
+//            vertices = newVertices,
+//            halfEdges = allNewEdges,
+//            innerFaces = newInnerFaces,
+//            outerFace = newOuterFace
+//          )
+          Right(TilingDCEL(newVertices, allNewEdges, newInnerFaces, newOuterFace))
 
   def maybeDeleteVertex(vertexId: VertexId): Either[TilingError, TilingDCEL] =
     this.deepCopy.deleteVertex(vertexId)
