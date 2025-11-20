@@ -294,10 +294,11 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
       square.translatedDouble(
         _ + BigPoint(1, 0),
         vertexId => vertexIdV(idFromVertexId(vertexId) + 4),
-        faceId => faceIdF(idFromFaceId(faceId) match {
-          case 0 => 0
-          case n => n + 1
-        }),
+        faceId =>
+          faceIdF(idFromFaceId(faceId) match {
+            case 0 => 0
+            case n => n + 1
+          })
       )
     allAssert(
       transformed.vertices.map(_.toString) shouldEqual

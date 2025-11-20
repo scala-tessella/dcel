@@ -47,6 +47,7 @@ object TilingEquivalency:
     ): (Map[Vertex, Vertex], Map[HalfEdge, HalfEdge], Map[Face, Face]) =
       val vertexMap   =
         tiling.vertices.associate { v =>
+
           Vertex(
             id = vertexIdTransformer(v.id),
             coords = coordsTransformer(v.coords)
@@ -55,6 +56,7 @@ object TilingEquivalency:
       val halfEdgeMap = tiling.halfEdges.associate(he => HalfEdge(vertexMap(he.origin)))
       val faceMap     =
         tiling.faces.associate { f =>
+
           Face(
             id = faceIdTransformer(f.id)
           )
@@ -133,7 +135,8 @@ object TilingEquivalency:
         faceIdTransformer: FaceId => FaceId
     ): TilingDCEL =
       // Create mapping from old to new components
-      val (vertexMap, halfEdgeMap, faceMap) = createMaps(coordsTransformer, vertexIdTransformer, faceIdTransformer)
+      val (vertexMap, halfEdgeMap, faceMap) =
+        createMaps(coordsTransformer, vertexIdTransformer, faceIdTransformer)
 
       // Copy all relationships for half-edges
       copyHalfEdgeRelationships(halfEdgeMap, faceMap)
@@ -152,7 +155,6 @@ object TilingEquivalency:
         outerFace = faceMap(tiling.outerFace)
       )
 
-    
     /** Creates a deep copy of this TilingDCEL that is completely independent. Changes to the original will
       * not affect the copy and vice versa.
       *
@@ -168,9 +170,9 @@ object TilingEquivalency:
       )
 
     def translatedDouble(
-      coordsTransformer: BigPoint => BigPoint,
-      vertexIdTransformer: VertexId => VertexId,
-      faceIdTransformer: FaceId => FaceId
+        coordsTransformer: BigPoint => BigPoint,
+        vertexIdTransformer: VertexId => VertexId,
+        faceIdTransformer: FaceId => FaceId
     ): TilingDCEL =
       rawCopy(
         coordsTransformer = coordsTransformer,

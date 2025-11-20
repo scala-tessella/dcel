@@ -78,7 +78,7 @@ object TilingBuilder:
 
     // Create vertices from the calculated points
     val vertices = points.zipWithIndex.map { case (p, i) =>
-      Vertex(vertexIdV(i +1), p)
+      Vertex(vertexIdV(i + 1), p)
     }
 
     // Create the two faces: one for the polygon, one for the outside
