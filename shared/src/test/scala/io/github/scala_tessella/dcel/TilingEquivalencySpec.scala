@@ -1,9 +1,10 @@
 package io.github.scala_tessella.dcel
 
+import io.github.scala_tessella.dcel.TilingBuilder.*
 import io.github.scala_tessella.dcel.TilingDeletion.*
 import io.github.scala_tessella.dcel.TilingEquivalency.*
 import io.github.scala_tessella.dcel.TilingValidation.validate
-import io.github.scala_tessella.dcel.geometry.RegularPolygon
+import io.github.scala_tessella.dcel.geometry.{BigPoint, RegularPolygon}
 import io.github.scala_tessella.dcel.structure.VertexId
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -284,6 +285,19 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
         )
       }
     )
+  }
+
+  behavior of "TilingDCEL.translatedDouble"
+
+  it should "have the possibility to transform coordinates and vertex ids" in {
+    val transformed = square.translatedDouble(_ + BigPoint(1, 0), vertexId => vertexIdV(idFromVertexId(vertexId) + 4))
+    transformed.vertices.map(_.toString) shouldEqual
+      List(
+        "Vertex V5 at coords (1, 0)",
+        "Vertex V6 at coords (2, 0)",
+        "Vertex V7 at coords (2, 1)",
+        "Vertex V8 at coords (1, 1)"
+      )
   }
 
   behavior of "TilingDCEL.isTopologicallyEquivalentTo"

@@ -34,6 +34,10 @@ object TilingEquivalency:
         elems.reverse
       }
 
+  private val defaultLeavingTransformer: (Vertex, HalfEdge, Map[HalfEdge, HalfEdge]) => Unit =
+    (newVertex, oldLeavingEdge, halfEdgeMap) =>
+      newVertex.leaving = Some(halfEdgeMap(oldLeavingEdge))
+
   extension (tiling: TilingDCEL)
 
     private def createMaps(
@@ -141,6 +145,7 @@ object TilingEquivalency:
         outerFace = faceMap(tiling.outerFace)
       )
 
+    
     /** Creates a deep copy of this TilingDCEL that is completely independent. Changes to the original will
       * not affect the copy and vice versa.
       *
@@ -150,10 +155,18 @@ object TilingEquivalency:
     def deepCopy: TilingDCEL =
       rawCopy(
         coordsTransformer = identity,
-        vertexLeavingTransformer =
-          (newVertex, oldLeavingEdge, halfEdgeMap) =>
-            newVertex.leaving = Some(halfEdgeMap(oldLeavingEdge)),
+        vertexLeavingTransformer = defaultLeavingTransformer,
         vertexIdTransformer = identity
+      )
+
+    def translatedDouble(
+      coordsTransformer: BigPoint => BigPoint,
+      vertexIdTransformer: VertexId => VertexId
+    ): TilingDCEL =
+      rawCopy(
+        coordsTransformer = coordsTransformer,
+        vertexLeavingTransformer = defaultLeavingTransformer,
+        vertexIdTransformer = vertexIdTransformer
       )
 
     /** Creates a geometric reflection of the tiling across the vertical axis of its bounding box. It achieves
