@@ -377,6 +377,70 @@ final case class TilingDCEL private (
             outerFace = outerFace
           )
 
+  /** Doubles the tiling if it is a parallelogon.
+   * If yes, adds another identical joining them side by side
+   *
+   * @return
+   * Either a TilingError if the tiling is not a parallelogon
+   * or a new TilingDCEL with the doubled tiling
+   */
+  def growDoubleAlt: Either[TilingError, TilingDCEL] =
+    if isEmpty then
+      Right(this)
+    else
+      boundarySimplePolygon.parallelogonEquivalences match
+        case Nil => Left(ValidationError("Tiling is not a parallelogon"))
+        case groups =>
+          // Choose the pair of equivalent boundary vertices that defines the translation side
+          val group =
+            groups.find(_.size == 4).getOrElse(
+              groups.find(_.size == 3).get
+            )
+          val two =
+            if (group(1) - group.head) >= vertices.size / 2 then group.takeRight(2)
+            else group.take(2)
+          val third = if group.size == 3 then group.diff(two).head else group(2)
+          println(s"Indices, origin: ${two.head} and repeat: ${two.last} and repeatOnOtherAxis: $third")
+          val sharedSegmentLength = third - two.last
+
+          // NOTE: `group`/`two` index into the polygon's vertex sequence.
+          val origin = boundaryVertices(two.head)
+          val repeat = boundaryVertices(two.last)
+          val repeatOnOtherAxis = boundaryVertices(third)
+
+          println(s"Vertices, origin: $origin and repeat: $repeat and repeatOnOtherAxis: $repeatOnOtherAxis")
+
+          // Compute the translation vector from origin to repeat
+          val delta = repeat.coords - origin.coords
+          val coordsTranslation: BigPoint => BigPoint = _ + delta
+
+          val vertexIds = vertices.map(_.id)
+          val maxVertexId = vertexIds.map(vertexId => idFromVertexId(vertexId)).maxOption.get
+          val vertexIdTranslation: VertexId => VertexId = 
+            vertexIds.indices.map(index => vertexIds(index) -> vertexIdV(maxVertexId + index + 1)).toMap
+
+          val faceIds = faces.map(_.id)
+          val maxFaceId = faceIds.map(faceId => idFromFaceId(faceId)).maxOption.get
+          val faceIdTranslation: FaceId => FaceId =
+            faceIds.indices.map(index => faceIds(index) match
+              case faceId if idFromFaceId(faceId) == 0 => faceId -> faceId
+              case faceId                              => faceId -> faceIdF(maxFaceId + index + 1)
+            ).toMap
+
+          val translated: TilingDCEL =
+            this.translatedDouble(
+              coordsTranslation,
+              vertexIdTranslation,
+              faceIdTranslation
+            )
+            
+          // At this stage we have two tilings (with the same outer face) that are identical except for
+          // the vertex ids, vertex coordinates and face ids.
+          // Now we need to merge them into a single tiling.
+          // By finding the vertices with the same coordinates (within accuracy) we can merge them.
+            
+          ???
+
   def maybeDeleteVertex(vertexId: VertexId): Either[TilingError, TilingDCEL] =
     this.deepCopy.deleteVertex(vertexId)
 
