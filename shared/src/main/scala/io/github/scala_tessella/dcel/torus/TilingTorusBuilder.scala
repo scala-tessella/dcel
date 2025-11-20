@@ -1,8 +1,8 @@
 package io.github.scala_tessella.dcel.torus
 
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint}
-import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
-import io.github.scala_tessella.dcel.TilingBuilder.vertexIdV
+import io.github.scala_tessella.dcel.structure.{Face, HalfEdge, Vertex}
+import io.github.scala_tessella.dcel.TilingBuilder.{faceIdF, vertexIdV}
 
 import spire.implicits.*
 
@@ -64,7 +64,7 @@ object TilingTorusBuilder:
     val faces: Array[Array[Face]] =
       Array.tabulate(height, width) { (j, i) =>
 
-        Face(FaceId(s"F${j * width + i + 1}"))
+        Face(faceIdF(j * width + i + 1))
       }
 
     // Helpers to wrap indices on torus
@@ -157,7 +157,7 @@ object TilingTorusBuilder:
     val faces =
       Array.tabulate(height, width, 2) { (j, i, k) =>
         val idx = j * width * 2 + i * 2 + k + 1
-        Face(FaceId(s"F$idx"))
+        Face(faceIdF(idx))
       }
 
     // Angles at equilateral triangle corners
@@ -320,7 +320,7 @@ object TilingTorusBuilder:
 
     val faces = Array.tabulate(height, width) { (j, i) =>
 
-      Face(FaceId(s"F${j * width + i + 1}"))
+      Face(faceIdF(j * width + i + 1))
     }
 
     for j <- 0 until height; i <- 0 until width do

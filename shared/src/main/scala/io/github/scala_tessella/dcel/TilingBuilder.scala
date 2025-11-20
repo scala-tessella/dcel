@@ -60,6 +60,8 @@ object TilingBuilder:
     val points = calculateVertexPoints(angles)
     buildDCELFromPointsUnsafe(points, angles.toList)
 
+  def faceIdF(i: Int): FaceId = FaceId(s"F$i")
+
   def vertexIdV(i: Int): VertexId = VertexId(s"V$i")
 
   /** Given validated points and angles, builds the TilingDCEL structure.
@@ -211,7 +213,7 @@ object TilingBuilder:
   private def netFaces(height: Int, width: Int): Array[Array[Face]] =
     Array.tabulate(height, width) { (j, i) =>
 
-      Face(FaceId(s"F${j * width + i + 1}"))
+      Face(faceIdF(j * width + i + 1))
     }
 
   // Link outer face boundary
@@ -271,7 +273,7 @@ object TilingBuilder:
     // Two triangular faces per rhombus cell
     val faces = Array.tabulate(height, width, 2) { (j, i, k) =>
 
-      Face(FaceId(s"F${(j * width + i) * 2 + k + 1}"))
+      Face(faceIdF((j * width + i) * 2 + k + 1))
     }
     val fOuter = Face.outer
 
