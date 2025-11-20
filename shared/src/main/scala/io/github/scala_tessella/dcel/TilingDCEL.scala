@@ -256,13 +256,14 @@ final case class TilingDCEL private (
             if (group(1) - group.head) >= vertices.size / 2 then group.takeRight(2)
             else group.take(2)
           val third = if group.size == 3 then group.diff(two).head else group(2)
+          println(s"Indices, origin: ${two.head} and repeat: ${two.last} and repeatOnOtherAxis: $third")
 
           // NOTE: `group`/`two` index into the polygon's vertex sequence.
-          val origin = vertices(two.head)
-          val repeat = vertices(two.last)
-          val repeatOnOtherAxis = vertices(third)
+          val origin = boundaryVertices(two.head)
+          val repeat = boundaryVertices(two.last)
+          val repeatOnOtherAxis = boundaryVertices(third)
 
-          println(s"Growing, origin: $origin and repeat: $repeat and repeatOnOtherAxis: $repeatOnOtherAxis")
+          println(s"Vertices, origin: $origin and repeat: $repeat and repeatOnOtherAxis: $repeatOnOtherAxis")
 
           // Compute the translation vector from origin to repeat
           val dx = repeat.coords.x - origin.coords.x
