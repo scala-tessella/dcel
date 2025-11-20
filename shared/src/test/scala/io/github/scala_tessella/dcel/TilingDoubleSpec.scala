@@ -59,3 +59,28 @@ class TilingDoubleSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       TilingValidation.validate(result).isRight shouldBe true
     )
   }
+
+  behavior of "TilingDCEL.quadrupleArea"
+
+  it should "quadruple a 2x2 square net" in {
+    val doubled = TilingBuilder.createRhombusNet(2, 2).quadrupleArea
+    val result = doubled.value
+    allAssert(
+      result.halfEdges.size shouldBe 80,
+      result.vertices.size shouldBe 25,
+      result.innerFaces.size shouldBe 16,
+      TilingValidation.validate(result).isRight shouldBe true
+    )
+  }
+
+  it should "quadruple a 2x2 hexagon net" in {
+    val doubled = TilingBuilder.createHexagonNet(2, 2).quadrupleArea
+    val result = doubled.value
+    allAssert(
+      result.halfEdges.size shouldBe 126,
+      result.vertices.size shouldBe 48,
+      result.innerFaces.size shouldBe 16,
+      TilingValidation.validate(result).isRight shouldBe true
+    )
+  }
+

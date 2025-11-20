@@ -233,6 +233,33 @@ final case class TilingDCEL private (
   ): Either[TilingError, TilingDCEL] =
     this.deepCopy.addSimplePolygon(startVertexId, endVertexId, simple)
 
+  def quadrupleArea: Either[TilingError, TilingDCEL] =
+    if isEmpty then
+      Right(this)
+    else
+      boundarySimplePolygon.parallelogonEquivalences match
+        case Nil => Left(ValidationError("Tiling is not a parallelogon"))
+        case groups =>
+          // Choose the pair of equivalent boundary vertices that defines the translation side
+          val group =
+            groups.find(_.size == 4).getOrElse(
+              groups.find(_.size == 3).get
+            )
+          val two =
+            if (group(1) - group.head) >= vertices.size / 2 then group.takeRight(2)
+            else group.take(2)
+          val third = if group.size == 3 then group.diff(two).head else group(3)
+          println(s"Indices, origin: ${two.head} and repeat: ${two.last} and repeatOnOtherAxis: $third")
+          val sharedSegmentLength = third - two.last
+
+          // NOTE: `group`/`two` index into the polygon's vertex sequence.
+          val origin = boundaryVertices(two.head)
+          val repeat = boundaryVertices(two.last)
+          val repeatOnOtherAxis = boundaryVertices(third)
+          println(s"Vertices, origin: $origin and repeat: $repeat and repeatOnOtherAxis: $repeatOnOtherAxis")
+
+          Right(rawDouble(origin, repeat).rawDouble(origin, repeatOnOtherAxis))
+
   /** Doubles the tiling if it is a parallelogon. If yes, adds another identical joining them side by side
     *
     * @return
@@ -253,17 +280,16 @@ final case class TilingDCEL private (
           val two                 =
             if (group(1) - group.head) >= vertices.size / 2 then group.takeRight(2)
             else group.take(2)
-          val third               = if group.size == 3 then group.diff(two).head else group(2)
-          println(s"Indices, origin: ${two.head} and repeat: ${two.last} and repeatOnOtherAxis: $third")
-          val sharedSegmentLength = third - two.last
+          println(s"Indices, origin: ${two.head} and repeat: ${two.last}")
 
           // NOTE: `group`/`two` index into the polygon's vertex sequence.
           val origin            = boundaryVertices(two.head)
           val repeat            = boundaryVertices(two.last)
-          val repeatOnOtherAxis = boundaryVertices(third)
 
-          println(s"Vertices, origin: $origin and repeat: $repeat and repeatOnOtherAxis: $repeatOnOtherAxis")
+          println(s"Vertices, origin: $origin and repeat: $repeat")
+          Right(rawDouble(origin, repeat))
 
+  private def rawDouble(origin: Vertex, repeat: Vertex): TilingDCEL =
           // Compute the translation vector from origin to repeat
           val delta                                   = repeat.coords - origin.coords
           val coordsTranslation: BigPoint => BigPoint = _ + delta
@@ -550,7 +576,7 @@ final case class TilingDCEL private (
 //            innerFaces = newInnerFaces,
 //            outerFace = newOuterFace
 //          )
-          Right(TilingDCEL(newVertices, allNewEdges, newInnerFaces, newOuterFace))
+          TilingDCEL(newVertices, allNewEdges, newInnerFaces, newOuterFace)
 
   def maybeDeleteVertex(vertexId: VertexId): Either[TilingError, TilingDCEL] =
     this.deepCopy.deleteVertex(vertexId)
