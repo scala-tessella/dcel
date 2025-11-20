@@ -267,3 +267,10 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
       result.innerFaces.size shouldBe 22
     )
   }
+
+  behavior of "TilingBuilder.idFromFaceId"
+
+  it should "return the id" in {
+    val faceId = TilingBuilder.faceIdF(100)
+    TilingBuilder.idFromFaceId(faceId) shouldBe 100
+  }
