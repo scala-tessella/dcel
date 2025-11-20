@@ -1,10 +1,6 @@
 package io.github.scala_tessella.dcel
 
-import io.github.scala_tessella.dcel.TilingDeletion.deleteEdge
-import io.github.scala_tessella.dcel.TilingEquivalency.isEquivalentTo
-import io.github.scala_tessella.dcel.Tree.{Branch, Leaf}
-import io.github.scala_tessella.dcel.geometry.{AngleDegree, RegularPolygon}
-import io.github.scala_tessella.dcel.structure.*
+import io.github.scala_tessella.dcel.geometry.RegularPolygon
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -21,6 +17,11 @@ class TilingDoubleSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   }
 
   it should "not fail for a square" in {
-    TilingBuilder.createRegularPolygon(RegularPolygon(4)).growDouble.isRight shouldBe true
+    val doubled = TilingBuilder.createRegularPolygon(RegularPolygon(4)).growDouble
+    println(doubled)
+    doubled.isRight shouldBe true
   }
 
+  it should "not fail for a 3x3 square net" in {
+    TilingBuilder.createRhombusNet(3, 3).growDouble.isRight shouldBe true
+  }

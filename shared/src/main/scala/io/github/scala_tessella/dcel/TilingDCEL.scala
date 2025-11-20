@@ -1,6 +1,7 @@
 package io.github.scala_tessella.dcel
 
 import io.github.scala_tessella.dcel.TilingAddition.*
+import io.github.scala_tessella.dcel.TilingBuilder.*
 import io.github.scala_tessella.dcel.TilingDeletion.*
 import io.github.scala_tessella.dcel.TilingEquivalency.*
 import io.github.scala_tessella.dcel.TilingUniformity.*
@@ -232,25 +233,216 @@ final case class TilingDCEL private (
   ): Either[TilingError, TilingDCEL] =
     this.deepCopy.addSimplePolygon(startVertexId, endVertexId, simple)
 
+  /** Doubles the tiling if it is a parallelogon.
+   * If yes, adds another identical joining them side by side
+   *
+   * @return
+   * Either a TilingError if the tiling is not a parallelogon
+   * or a new TilingDCEL with the doubled tiling
+   */
   def growDouble: Either[TilingError, TilingDCEL] =
     if isEmpty then
       Right(this)
     else
       boundarySimplePolygon.parallelogonEquivalences match
         case Nil => Left(ValidationError("Tiling is not a parallelogon"))
-        case groups => 
+        case groups =>
+          // Choose the pair of equivalent boundary vertices that defines the translation side
           val s = vertices.size
-          val group = groups.find(_.size == 4).getOrElse(
-            groups.find(_.size == 3).get
-          )
+          val group =
+            groups.find(_.size == 4).getOrElse(
+              groups.find(_.size == 3).get
+            )
           val two =
-            if (group(1) - group.head) >= s / 2 then group.takeRight(2) 
+            if (group(1) - group.head) >= s / 2 then group.takeRight(2)
             else group.take(2)
+
+          // NOTE: `group`/`two` index into the polygon's vertex sequence; here we assume that
+          // this corresponds to indices in `vertices`. If not, adapt this mapping accordingly.
           val origin = vertices(two.head)
           val repeat = vertices(two.last)
-          println(s"origin: $origin, repeat: $repeat")  
-          Right(TilingDCEL.empty)  
 
+          // Compute the translation vector from origin to repeat
+          val dx = repeat.coords.x - origin.coords.x
+          val dy = repeat.coords.y - origin.coords.y
+          val translation = BigPoint(dx, dy)
+
+          // ---------------------------------------------------------------------------
+          // 1. Clone and translate vertices
+          // ---------------------------------------------------------------------------
+          val maxVertexId = vertices.map(vertex => idFromVertexId(vertex.id)).maxOption.get
+          var nextVertexId = maxVertexId + 1
+
+          val vertexMap: Map[Vertex, Vertex] =
+            vertices.map { v =>
+              val newV = Vertex(
+                id = vertexIdV(nextVertexId),
+                coords = BigPoint(
+                  v.coords.x + translation.x,
+                  v.coords.y + translation.y
+                ),
+                leaving = None
+              )
+              nextVertexId += 1
+              v -> newV
+            }.toMap
+
+          val clonedVertices: List[Vertex] = vertexMap.values.toList
+
+          // ---------------------------------------------------------------------------
+          // 2. Clone inner faces (outer face is shared, not duplicated)
+          // ---------------------------------------------------------------------------
+          val existingFaceIds = innerFaces.map(face => idFromFaceId(face.id))
+          val baseFaceId = if existingFaceIds.isEmpty then 0 else existingFaceIds.max
+          var nextFaceId = baseFaceId + 1
+
+          val faceMapPairs: List[(Face, Face)] =
+            innerFaces.map { f =>
+              val newF = Face(faceIdF(nextFaceId))
+              nextFaceId += 1
+              f -> newF
+            }
+
+          val faceMap: Map[Face, Face] = faceMapPairs.toMap
+          val clonedInnerFaces: List[Face] = faceMap.values.toList
+
+          // ---------------------------------------------------------------------------
+          // 3. Clone half-edges (two-pass: create, then wire)
+          // ---------------------------------------------------------------------------
+          val edgeMap = scala.collection.mutable.Map.empty[HalfEdge, HalfEdge]
+
+          // First pass: create edges with origin / incidentFace / angle, but no links yet
+          halfEdges.foreach { oldE =>
+            val newOrigin = vertexMap(oldE.origin)
+            val newFaceOpt =
+              oldE.incidentFace.map { f =>
+                if f eq outerFace then outerFace
+                else faceMap(f)
+              }
+
+            val newE = HalfEdge(
+              origin = newOrigin,
+              twin = None,
+              incidentFace = newFaceOpt,
+              next = None,
+              prev = None,
+              angle = oldE.angle
+            )
+
+            edgeMap += oldE -> newE
+          }
+
+          // Second pass: wire twin / next / prev
+          edgeMap.foreach { case (oldE, newE) =>
+            newE.twin = oldE.twin.map(edgeMap)
+            newE.next = oldE.next.map(edgeMap)
+            newE.prev = oldE.prev.map(edgeMap)
+          }
+
+          val clonedHalfEdges: List[HalfEdge] = edgeMap.values.toList
+
+          // ---------------------------------------------------------------------------
+          // 4. Fix leaving edge for cloned vertices
+          // ---------------------------------------------------------------------------
+          vertexMap.foreach { case (oldV, newV) =>
+            newV.leaving = oldV.leaving.map(edgeMap)
+          }
+
+          // ---------------------------------------------------------------------------
+          // 5. Fix outerComponent / innerComponents for cloned faces
+          // ---------------------------------------------------------------------------
+          faceMapPairs.foreach { case (oldF, newF) =>
+            newF.outerComponent = oldF.outerComponent.map(edgeMap)
+            newF.innerComponents = oldF.innerComponents.map(_.map(edgeMap))
+          }
+
+          // ---------------------------------------------------------------------------
+          // 6. Stitch along the chosen boundary side (origin -> repeat)
+          // ---------------------------------------------------------------------------
+
+          // Find the boundary half-edge on the original tiling from origin to repeat
+          val sharedOrigOpt =
+            boundaryEdges.find { e =>
+              (e.origin eq origin) && e.destination.contains(repeat)
+            }
+
+          sharedOrigOpt match
+            case None =>
+              Left(TopologyError(s"Could not find boundary edge from ${origin.id} to ${repeat.id}"))
+            case Some(sharedOrig) =>
+              // Corresponding boundary edge in the translated copy
+              val sharedCopy = edgeMap(sharedOrig)
+
+              // On each side, we have:
+              //  - outerEdge: incident to outerFace (boundary)
+              //  - innerEdge: its twin, incident to an inner face
+              val outer1 = sharedOrig
+              val inner1 = outer1.twin.get
+
+              val outer2 = sharedCopy
+              val inner2 = outer2.twin.get
+
+              // Rewire the outer face boundary to skip the shared side.
+              // Existing outer cycles:
+              //   ... prev1 -> outer1 -> next1 ...
+              //   ... prev2 -> outer2 -> next2 ...
+              // After stitching:
+              //   prev1 -> next2   and   prev2 -> next1
+              val prev1 = outer1.prev.get
+              val next1 = outer1.next.get
+              val prev2 = outer2.prev.get
+              val next2 = outer2.next.get
+
+              // Connect prev1 -> next2
+              prev1.next = Some(next2)
+              next2.prev = Some(prev1)
+
+              // Connect prev2 -> next1
+              prev2.next = Some(next1)
+              next1.prev = Some(prev2)
+
+              // If the outer face's reference edge was one of the removed ones,
+              // move it to a surviving boundary edge.
+              if outerFace.outerComponent.contains(outer1) then
+                outerFace.outerComponent = Some(next2)
+              else if outerFace.outerComponent.contains(outer2) then
+                outerFace.outerComponent = Some(next1)
+
+              // The shared side should now be an internal edge between the
+              // two parallelogon copies: make their inner edges twins.
+              inner1.twinWith(inner2)
+
+              // Ensure vertices whose leaving edge pointed to the removed
+              // boundary edges now point to a valid incident edge.
+              val allVertices = vertices ++ clonedVertices
+              allVertices.foreach { v =>
+                v.leaving match
+                  case Some(e) if e eq outer1 =>
+                    v.leaving = Some(inner1)
+                  case Some(e) if e eq outer2 =>
+                    v.leaving = Some(inner2)
+                  case _ => ()
+              }
+
+              // Remove the now-unused boundary edges from the global list
+              val stitchedHalfEdges =
+                (halfEdges ++ clonedHalfEdges).filterNot(e => (e eq outer1) || (e eq outer2))
+
+              // -----------------------------------------------------------------------
+              // 7. Build final doubled tiling and validate
+              // -----------------------------------------------------------------------
+              TilingDCEL.fromUntrusted(
+                vertices = vertices ++ clonedVertices,
+                halfEdges = stitchedHalfEdges,
+                innerFaces = innerFaces ++ clonedInnerFaces,
+                outerFace = outerFace
+              )
+//              Right(TilingDCEL(
+//                vertices = vertices ++ clonedVertices,
+//                halfEdges = stitchedHalfEdges,
+//                innerFaces = innerFaces ++ clonedInnerFaces,
+//                outerFace = outerFace
+//              ))
 
   def maybeDeleteVertex(vertexId: VertexId): Either[TilingError, TilingDCEL] =
     this.deepCopy.deleteVertex(vertexId)
