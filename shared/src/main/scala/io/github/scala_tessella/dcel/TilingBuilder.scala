@@ -64,9 +64,9 @@ object TilingBuilder:
 
   def vertexIdV(i: Int): VertexId = VertexId(s"V$i")
 
-  def idFromFaceId(faceId: FaceId) = faceId.value.tail.toInt
+  def idFromFaceId(faceId: FaceId): Int = faceId.value.tail.toInt
 
-  def idFromVertexId(vertexId: VertexId) = vertexId.value.tail.toInt
+  def idFromVertexId(vertexId: VertexId): Int = vertexId.value.tail.toInt
 
   /** Given validated points and angles, builds the TilingDCEL structure.
     */
