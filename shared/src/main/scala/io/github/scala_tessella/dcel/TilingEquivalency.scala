@@ -2,7 +2,7 @@ package io.github.scala_tessella.dcel
 
 import io.github.scala_tessella.dcel.Utils.associate
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint}
-import io.github.scala_tessella.dcel.structure.{Face, HalfEdge, Vertex, VertexId}
+import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
 import io.github.scala_tessella.ring_seq.RingSeq.rotationsAndReflections
 
 import scala.Ordering.Implicits.*
@@ -42,7 +42,8 @@ object TilingEquivalency:
 
     private def createMaps(
         coordsTransformer: BigPoint => BigPoint,
-        vertexIdTransformer: VertexId => VertexId
+        vertexIdTransformer: VertexId => VertexId,
+        faceIdTransformer: FaceId => FaceId
     ): (Map[Vertex, Vertex], Map[HalfEdge, HalfEdge], Map[Face, Face]) =
       val vertexMap   =
         tiling.vertices.associate { v =>
@@ -52,7 +53,12 @@ object TilingEquivalency:
           )
         }
       val halfEdgeMap = tiling.halfEdges.associate(he => HalfEdge(vertexMap(he.origin)))
-      val faceMap     = tiling.faces.associate(f => Face(f.id))
+      val faceMap     =
+        tiling.faces.associate { f =>
+          Face(
+            id = faceIdTransformer(f.id)
+          )
+        }
       (vertexMap, halfEdgeMap, faceMap)
 
     private def copyHalfEdgeRelationships(
@@ -123,10 +129,11 @@ object TilingEquivalency:
     private def rawCopy(
         coordsTransformer: BigPoint => BigPoint,
         vertexLeavingTransformer: (Vertex, HalfEdge, Map[HalfEdge, HalfEdge]) => Unit,
-        vertexIdTransformer: VertexId => VertexId
+        vertexIdTransformer: VertexId => VertexId,
+        faceIdTransformer: FaceId => FaceId
     ): TilingDCEL =
       // Create mapping from old to new components
-      val (vertexMap, halfEdgeMap, faceMap) = createMaps(coordsTransformer, vertexIdTransformer)
+      val (vertexMap, halfEdgeMap, faceMap) = createMaps(coordsTransformer, vertexIdTransformer, faceIdTransformer)
 
       // Copy all relationships for half-edges
       copyHalfEdgeRelationships(halfEdgeMap, faceMap)
@@ -156,17 +163,20 @@ object TilingEquivalency:
       rawCopy(
         coordsTransformer = identity,
         vertexLeavingTransformer = defaultLeavingTransformer,
-        vertexIdTransformer = identity
+        vertexIdTransformer = identity,
+        faceIdTransformer = identity
       )
 
     def translatedDouble(
       coordsTransformer: BigPoint => BigPoint,
-      vertexIdTransformer: VertexId => VertexId
+      vertexIdTransformer: VertexId => VertexId,
+      faceIdTransformer: FaceId => FaceId
     ): TilingDCEL =
       rawCopy(
         coordsTransformer = coordsTransformer,
         vertexLeavingTransformer = defaultLeavingTransformer,
-        vertexIdTransformer = vertexIdTransformer
+        vertexIdTransformer = vertexIdTransformer,
+        faceIdTransformer = faceIdTransformer
       )
 
     /** Creates a geometric reflection of the tiling across the vertical axis of its bounding box. It achieves
@@ -193,6 +203,7 @@ object TilingEquivalency:
             oldLeavingEdge.prev.flatMap(_.twin).foreach(newLeaving =>
               newVertex.leaving = Some(halfEdgeMap(newLeaving))
             ),
+        identity,
         identity
       )
 

@@ -290,14 +290,26 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
   behavior of "TilingDCEL.translatedDouble"
 
   it should "have the possibility to transform coordinates and vertex ids" in {
-    val transformed = square.translatedDouble(_ + BigPoint(1, 0), vertexId => vertexIdV(idFromVertexId(vertexId) + 4))
-    transformed.vertices.map(_.toString) shouldEqual
-      List(
-        "Vertex V5 at coords (1, 0)",
-        "Vertex V6 at coords (2, 0)",
-        "Vertex V7 at coords (2, 1)",
-        "Vertex V8 at coords (1, 1)"
+    val transformed =
+      square.translatedDouble(
+        _ + BigPoint(1, 0),
+        vertexId => vertexIdV(idFromVertexId(vertexId) + 4),
+        faceId => faceIdF(idFromFaceId(faceId) match {
+          case 0 => 0
+          case n => n + 1
+        }),
       )
+    allAssert(
+      transformed.vertices.map(_.toString) shouldEqual
+        List(
+          "Vertex V5 at coords (1, 0)",
+          "Vertex V6 at coords (2, 0)",
+          "Vertex V7 at coords (2, 1)",
+          "Vertex V8 at coords (1, 1)"
+        ),
+      transformed.faces.map(_.id) shouldEqual
+        List("F0", F2)
+    )
   }
 
   behavior of "TilingDCEL.isTopologicallyEquivalentTo"
