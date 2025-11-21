@@ -9,6 +9,7 @@ import io.github.scala_tessella.dcel.TilingValidation.validate
 import io.github.scala_tessella.dcel.Tree
 import io.github.scala_tessella.dcel.conversion.TilingDOT.*
 import io.github.scala_tessella.dcel.conversion.TilingSVG.*
+import io.github.scala_tessella.dcel.geometry.SimplePolygon.ParallelogramTranslation
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint, RegularPolygon, SimplePolygon}
 import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
 import io.github.scala_tessella.ring_seq.RingSeq.startAt
@@ -237,51 +238,13 @@ final case class TilingDCEL private (
     if isEmpty then
       Right(this)
     else
-      boundarySimplePolygon.parallelogonEquivalences match
-        case Nil    => Left(ValidationError("Tiling is not a parallelogon"))
-        case groups =>
-          // Choose the pair of equivalent boundary vertices that defines the translation side
-          val group               = groups.find(_.size > 2).get
-          val two                 =
-            if (group(1) - group.head) >= vertices.size / 2 then group.takeRight(2)
-            else group.take(2)
-          val third               = if group.size == 3 then group.diff(two).head else group(3)
-          println(s"Indices, origin: ${two.head} and repeat: ${two.last} and repeatOnOtherAxis: $third")
-          val sharedSegmentLength = third - two.last
-
-          // NOTE: `group`/`two` index into the polygon's vertex sequence.
-          val origin            = boundaryVertices(two.head)
-          val repeat            = boundaryVertices(two.last)
-          val repeatOnOtherAxis = boundaryVertices(third)
-          println(s"Vertices, origin: $origin and repeat: $repeat and repeatOnOtherAxis: $repeatOnOtherAxis")
-
+      boundarySimplePolygon.parallelogonTranslationIndices match
+        case None                     => Left(ValidationError("Tiling is not a parallelogon"))
+        case Some(boundaryIndexesMap) =>
+          val origin            = boundaryVertices(boundaryIndexesMap(ParallelogramTranslation.None))
+          val repeat            = boundaryVertices(boundaryIndexesMap(ParallelogramTranslation.SideAC))
+          val repeatOnOtherAxis = boundaryVertices(boundaryIndexesMap(ParallelogramTranslation.SideBD))
           Right(rawDouble(origin, repeat).rawDouble(origin, repeatOnOtherAxis))
-
-  /** Doubles the tiling if it is a parallelogon. If yes, adds another identical joining them side by side
-    *
-    * @return
-    *   Either a TilingError if the tiling is not a parallelogon or a new TilingDCEL with the doubled tiling
-    */
-  def growDouble: Either[TilingError, TilingDCEL] =
-    if isEmpty then
-      Right(this)
-    else
-      boundarySimplePolygon.parallelogonEquivalences match
-        case Nil    => Left(ValidationError("Tiling is not a parallelogon"))
-        case groups =>
-          // Choose the pair of equivalent boundary vertices that defines the translation side
-          val group = groups.find(_.size > 2).get
-          val two   =
-            if (group(1) - group.head) >= vertices.size / 2 then group.takeRight(2)
-            else group.take(2)
-          println(s"Indices, origin: ${two.head} and repeat: ${two.last}")
-
-          // NOTE: `group`/`two` index into the polygon's vertex sequence.
-          val origin = boundaryVertices(two.head)
-          val repeat = boundaryVertices(two.last)
-
-          println(s"Vertices, origin: $origin and repeat: $repeat")
-          Right(rawDouble(origin, repeat))
 
   private def rawDouble(origin: Vertex, repeat: Vertex): TilingDCEL =
     // Compute the translation vector from origin to repeat

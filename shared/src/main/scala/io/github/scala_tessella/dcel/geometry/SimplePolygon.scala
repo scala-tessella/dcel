@@ -9,6 +9,9 @@ opaque type SimplePolygon = Vector[AngleDegree]
 
 object SimplePolygon:
 
+  enum ParallelogramTranslation:
+    case None, SideAC, SideBD
+
   def alphaSum(sides: Int): AngleDegree =
     AngleDegree(180) * (sides - 2)
 
@@ -194,3 +197,20 @@ object SimplePolygon:
           val oppositeBD = groupOpposite(s + l1, l2, minimumShift(segB, segD))
 
           equivalenceGroups(oppositeAC ::: oppositeBD)
+
+    def parallelogonTranslationIndices: Option[Map[ParallelogramTranslation, Int]] =
+      parallelogonEquivalences match
+        case Nil    => None
+        case groups =>
+          // Choose the pair of equivalent boundary vertices that defines the translation side
+          val group = groups.find(_.size > 2).get
+          val two   =
+            if (group(1) - group.head) >= angles.size / 2 then group.takeRight(2)
+            else group.take(2)
+          val third = if group.size == 3 then group.diff(two).head else group(3)
+          println(s"Indices, origin: ${two.head} and repeat: ${two.last} and repeatOnOtherAxis: $third")
+          Option(Map(
+            ParallelogramTranslation.None   -> two.head,
+            ParallelogramTranslation.SideAC -> two.last,
+            ParallelogramTranslation.SideBD -> third
+          ))
