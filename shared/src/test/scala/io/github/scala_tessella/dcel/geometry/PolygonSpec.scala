@@ -1,5 +1,6 @@
 package io.github.scala_tessella.dcel.geometry
 
+import io.github.scala_tessella.dcel.geometry.SimplePolygon.ParallelogramTranslation.*
 import io.github.scala_tessella.dcel.{TilingBuilder, TilingTestHelpers}
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, RegularPolygon, SimplePolygon}
 import io.github.scala_tessella.ring_seq.RingSeq.rotationsAndReflections
@@ -94,12 +95,22 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   behavior of "SimplePolygon.parallelogonIndices"
 
+  val simpleSquare: SimplePolygon = SimplePolygon(squareAngles)
+
   it should "be found for a square" in
     allAssert(
-      SimplePolygon(squareAngles).parallelogonIndices shouldBe Some((0, 1, 2, 3)),
-      SimplePolygon(squareAngles).parallelogonEquivalences shouldBe
+      simpleSquare.parallelogonIndices shouldBe Some((0, 1, 2, 3)),
+      simpleSquare.parallelogonEquivalences shouldBe
         List(
           List(0, 1, 2, 3)
+        ),
+      simpleSquare.parallelogonTranslationIndices shouldBe
+        Option(
+          Map(
+            Identity -> 0,
+            SideAC   -> 1,
+            SideBD   -> 3
+          )
         )
     )
 
@@ -107,27 +118,46 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     SimplePolygon(RegularPolygon(5).angles).parallelogonIndices shouldBe None
   }
 
-  it should "be found for a 2x2 square" in
+  it should "be found for a 2x2 square" in {
+    val square2x2 = simpleSquare.multiplySidesBy(2)
     allAssert(
-      SimplePolygon(squareAngles).multiplySidesBy(2).parallelogonIndices shouldBe Some((0, 2, 4, 6)),
-      SimplePolygon(squareAngles).multiplySidesBy(2).parallelogonEquivalences shouldBe
+      square2x2.parallelogonIndices shouldBe Some((0, 2, 4, 6)),
+      square2x2.parallelogonEquivalences shouldBe
         List(
           List(0, 2, 4, 6),
           List(1, 5),
           List(3, 7)
+        ),
+      square2x2.parallelogonTranslationIndices shouldBe
+        Option(
+          Map(
+            Identity -> 0,
+            SideAC   -> 2,
+            SideBD   -> 6
+          )
         )
     )
+  }
 
   it should "be found for a 2x2 square with shifted angles" in {
     val angles =
       Vector.fill(4)(Vector(AngleDegree(180), AngleDegree(90))).flatten
+    val simple = SimplePolygon(angles)
     allAssert(
-      SimplePolygon(angles).parallelogonIndices shouldBe Some((1, 3, 5, 7)),
-      SimplePolygon(angles).parallelogonEquivalences shouldBe
+      simple.parallelogonIndices shouldBe Some((1, 3, 5, 7)),
+      simple.parallelogonEquivalences shouldBe
         List(
           List(0, 4),
           List(1, 3, 5, 7),
           List(2, 6)
+        ),
+      simple.parallelogonTranslationIndices shouldBe
+        Option(
+          Map(
+            Identity -> 1,
+            SideAC   -> 3,
+            SideBD   -> 7
+          )
         )
     )
   }
@@ -161,6 +191,14 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           List(4, 11),
           List(5, 10)
         ),
+      square3x3.parallelogonTranslationIndices shouldBe
+        Option(
+          Map(
+            Identity -> 0,
+            SideAC   -> 3,
+            SideBD   -> 9
+          )
+        ),
       checkIndicesForAllRotationsAndReflections(square3x3),
       checkEquivalencesForAllRotationsAndReflections(square3x3, 5)
     )
@@ -182,6 +220,14 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           List(1, 5),
           List(3, 7)
         ),
+      scale.parallelogonTranslationIndices shouldBe
+        Option(
+          Map(
+            Identity -> 0,
+            SideAC   -> 2,
+            SideBD   -> 6
+          )
+        ),
       checkIndicesForAllRotationsAndReflections(scale),
       checkEquivalencesForAllRotationsAndReflections(scale, 3)
     )
@@ -195,6 +241,14 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
         List(
           List(0, 1, 3, 4),
           List(2, 5)
+        ),
+      rectangle1x2.parallelogonTranslationIndices shouldBe
+        Option(
+          Map(
+            Identity -> 0,
+            SideAC   -> 1,
+            SideBD   -> 4
+          )
         ),
       checkIndicesForAllRotationsAndReflections(rectangle1x2),
       checkEquivalencesForAllRotationsAndReflections(rectangle1x2, 2)
@@ -211,6 +265,14 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
         List(
           List(0, 1, 3, 4),
           List(2, 5)
+        ),
+      parallelogram2x1.parallelogonTranslationIndices shouldBe
+        Option(
+          Map(
+            Identity -> 0,
+            SideAC   -> 1,
+            SideBD   -> 4
+          )
         ),
       checkIndicesForAllRotationsAndReflections(parallelogram2x1),
       checkEquivalencesForAllRotationsAndReflections(parallelogram2x1, 2)
@@ -230,6 +292,14 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           List(1, 5, 9),
           List(2, 8),
           List(3, 7)
+        ),
+      twoJoinedHexs.parallelogonTranslationIndices shouldBe
+        Option(
+          Map(
+            Identity -> 0,
+            SideAC   -> 4,
+            SideBD   -> 6
+          )
         ),
       checkIndicesForAllRotationsAndReflections(twoJoinedHexs),
       checkEquivalencesForAllRotationsAndReflections(twoJoinedHexs, 4, isShifted = true)
@@ -253,6 +323,14 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           List(7, 13),
           List(9, 19)
         ),
+      doubledJoinedHexs.parallelogonTranslationIndices shouldBe
+        Option(
+          Map(
+            Identity -> 0,
+            SideAC   -> 8,
+            SideBD   -> 12
+          )
+        ),
       checkIndicesForAllRotationsAndReflections(doubledJoinedHexs),
       checkEquivalencesForAllRotationsAndReflections(doubledJoinedHexs, 9, isShifted = true)
     )
@@ -274,6 +352,14 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           List(5, 13),
           List(6, 12)
         ),
+      fourJoinedHexs.parallelogonTranslationIndices shouldBe
+        Option(
+          Map(
+            Identity -> 0,
+            SideAC   -> 4,
+            SideBD   -> 10
+          )
+        ),
       checkIndicesForAllRotationsAndReflections(fourJoinedHexs),
       checkEquivalencesForAllRotationsAndReflections(fourJoinedHexs, 6, isShifted = true)
     )
@@ -294,6 +380,14 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           List(3, 7, 11),
           List(5, 13),
           List(6, 12)
+        ),
+      carved.parallelogonTranslationIndices shouldBe
+        Option(
+          Map(
+            Identity -> 0,
+            SideAC   -> 4,
+            SideBD   -> 10
+          )
         ),
       checkIndicesForAllRotationsAndReflections(carved),
       checkEquivalencesForAllRotationsAndReflections(carved, 6, isShifted = true)
@@ -339,6 +433,14 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           List(34, 56),
           List(35, 55),
           List(36, 54)
+        ),
+      sixtyFourJoinedHexs.parallelogonTranslationIndices shouldBe
+        Option(
+          Map(
+            Identity -> 6,
+            SideAC   -> 22,
+            SideBD   -> 38
+          )
         ),
       checkIndicesForAllRotationsAndReflections(sixtyFourJoinedHexs),
       checkEquivalencesForAllRotationsAndReflections(sixtyFourJoinedHexs, 30, isShifted = true)

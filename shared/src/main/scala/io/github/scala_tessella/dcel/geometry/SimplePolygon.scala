@@ -10,7 +10,7 @@ opaque type SimplePolygon = Vector[AngleDegree]
 object SimplePolygon:
 
   enum ParallelogramTranslation:
-    case None, SideAC, SideBD
+    case Identity, SideAC, SideBD
 
   def alphaSum(sides: Int): AngleDegree =
     AngleDegree(180) * (sides - 2)
@@ -210,7 +210,7 @@ object SimplePolygon:
           val third = if group.size == 3 then group.diff(two).head else group(3)
           println(s"Indices, origin: ${two.head} and repeat: ${two.last} and repeatOnOtherAxis: $third")
           Option(Map(
-            ParallelogramTranslation.None   -> two.head,
-            ParallelogramTranslation.SideAC -> two.last,
-            ParallelogramTranslation.SideBD -> third
+            ParallelogramTranslation.Identity -> two.head,
+            ParallelogramTranslation.SideAC   -> two.last,
+            ParallelogramTranslation.SideBD   -> third
           ))

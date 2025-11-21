@@ -241,7 +241,7 @@ final case class TilingDCEL private (
       boundarySimplePolygon.parallelogonTranslationIndices match
         case None                     => Left(ValidationError("Tiling is not a parallelogon"))
         case Some(boundaryIndexesMap) =>
-          val origin            = boundaryVertices(boundaryIndexesMap(ParallelogramTranslation.None))
+          val origin            = boundaryVertices(boundaryIndexesMap(ParallelogramTranslation.Identity))
           val repeat            = boundaryVertices(boundaryIndexesMap(ParallelogramTranslation.SideAC))
           val repeatOnOtherAxis = boundaryVertices(boundaryIndexesMap(ParallelogramTranslation.SideBD))
           Right(rawDouble(origin, repeat).rawDouble(origin, repeatOnOtherAxis))
