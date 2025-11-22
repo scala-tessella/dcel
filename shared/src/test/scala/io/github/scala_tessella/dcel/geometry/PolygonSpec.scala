@@ -447,11 +447,11 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     )
   }
 
-  it should "be true for a 4.8.8 component" in {
+  /** <img src="file:../../../../../../resources/simple/octagonRoot.svg"/> */
+  val octagonRoot: SimplePolygon =
+    SimplePolygon(90, 90, 225, 135, 135, 135, 135, 135, 135, 225)
 
-    /** <img src="file:../../../../../../resources/simple/octagonRoot.svg"/> */
-    val octagonRoot: SimplePolygon =
-      SimplePolygon(90, 90, 225, 135, 135, 135, 135, 135, 135, 225)
+  it should "be true for a 4.8.8 component" in {
     allAssert(
       octagonRoot.parallelogonIndices shouldBe Some((0, 3, 7, 10)),
       octagonRoot.parallelogonEquivalences shouldBe
@@ -475,6 +475,36 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       checkEquivalencesForAllRotationsAndReflections(octagonRoot, 6, isShifted = true)
     )
   }
+
+  it should "be true for a doubled 4.8.8 component" in {
+
+    /** <img src="file:../../../../../../resources/simple/doubledOctagonRoot.svg"/> */
+    val doubledOctagonRoot: SimplePolygon =
+      octagonRoot.multiplySidesBy(2)
+    allAssert(
+      doubledOctagonRoot.parallelogonIndices shouldBe Some((0, 3, 7, 10)),
+      doubledOctagonRoot.parallelogonEquivalences shouldBe
+        List(
+          List(0, 4, 10),
+          List(1, 9),
+          List(2, 8),
+          List(3, 7, 11),
+          List(5, 13),
+          List(6, 12)
+        ),
+      doubledOctagonRoot.parallelogonTranslationIndices shouldBe
+        Option(
+          Map(
+            Identity -> 0,
+            SideAC -> 4,
+            SideBD -> 10
+          )
+        ),
+      checkIndicesForAllRotationsAndReflections(octagonRoot),
+      checkEquivalencesForAllRotationsAndReflections(octagonRoot, 6, isShifted = true)
+    )
+  }
+
 
   behavior of "RegularPolygon"
 
