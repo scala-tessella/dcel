@@ -483,7 +483,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "quadruple a square" in {
     val doubled = square.quadrupleArea
-    val result = doubled.value
+    val result  = doubled.value
     allAssert(
       result.halfEdges.size shouldBe 24,
       result.vertices.size shouldBe 9,
@@ -494,7 +494,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "quadruple a 2x2 square net" in {
     val doubled = TilingBuilder.createRhombusNet(2, 2).quadrupleArea
-    val result = doubled.value
+    val result  = doubled.value
     allAssert(
       result.halfEdges.size shouldBe 80,
       result.vertices.size shouldBe 25,
@@ -505,7 +505,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "quadruple a 2x2 hexagon net" in {
     val doubled = TilingBuilder.createHexagonNet(2, 2).quadrupleArea
-    val result = doubled.value
+    val result  = doubled.value
     allAssert(
       result.halfEdges.size shouldBe 126,
       result.vertices.size shouldBe 48,
@@ -513,4 +513,3 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       TilingValidation.validate(result).isRight shouldBe true
     )
   }
-
