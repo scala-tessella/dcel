@@ -450,11 +450,11 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   it should "be true for a 4.8.8 component" in {
 
     /** <img src="file:../../../../../../resources/simple/octagonRoot.svg"/> */
-    val carved: SimplePolygon =
+    val octagonRoot: SimplePolygon =
       SimplePolygon(90, 90, 225, 135, 135, 135, 135, 135, 135, 225)
     allAssert(
-      carved.parallelogonIndices shouldBe Some((0, 3, 7, 10)),
-      carved.parallelogonEquivalences shouldBe
+      octagonRoot.parallelogonIndices shouldBe Some((0, 3, 7, 10)),
+      octagonRoot.parallelogonEquivalences shouldBe
         List(
           List(0, 4, 10),
           List(1, 9),
@@ -463,7 +463,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           List(5, 13),
           List(6, 12)
         ),
-      carved.parallelogonTranslationIndices shouldBe
+      octagonRoot.parallelogonTranslationIndices shouldBe
         Option(
           Map(
             Identity -> 0,
@@ -471,8 +471,8 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
             SideBD -> 10
           )
         ),
-      checkIndicesForAllRotationsAndReflections(carved),
-      checkEquivalencesForAllRotationsAndReflections(carved, 6, isShifted = true)
+      checkIndicesForAllRotationsAndReflections(octagonRoot),
+      checkEquivalencesForAllRotationsAndReflections(octagonRoot, 6, isShifted = true)
     )
   }
 
