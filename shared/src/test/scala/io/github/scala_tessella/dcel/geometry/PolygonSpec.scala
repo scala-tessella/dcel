@@ -1,5 +1,6 @@
 package io.github.scala_tessella.dcel.geometry
 
+import io.github.scala_tessella.dcel.conversion.TilingSVG.toScalableVectorG
 import io.github.scala_tessella.dcel.geometry.SimplePolygon.ParallelogramTranslation.*
 import io.github.scala_tessella.dcel.{TilingBuilder, TilingTestHelpers}
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, RegularPolygon, SimplePolygon}
@@ -444,6 +445,36 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
         ),
       checkIndicesForAllRotationsAndReflections(sixtyFourJoinedHexs),
       checkEquivalencesForAllRotationsAndReflections(sixtyFourJoinedHexs, 30, isShifted = true)
+    )
+  }
+
+  it should "be true for a 4.8.8 component" in {
+
+    /** <img src="file:../../../../../../resources/simple/carved.svg"/> */
+    val carved: SimplePolygon =
+      SimplePolygon(90, 90, 225, 135, 135, 135, 135, 135, 135, 225)
+    println(carved.toScalableVectorG())  
+    allAssert(
+      carved.parallelogonIndices shouldBe Some((0, 3, 7, 10)),
+      carved.parallelogonEquivalences shouldBe
+        List(
+          List(0, 4, 10),
+          List(1, 9),
+          List(2, 8),
+          List(3, 7, 11),
+          List(5, 13),
+          List(6, 12)
+        ),
+      carved.parallelogonTranslationIndices shouldBe
+        Option(
+          Map(
+            Identity -> 0,
+            SideAC -> 4,
+            SideBD -> 10
+          )
+        ),
+      checkIndicesForAllRotationsAndReflections(carved),
+      checkEquivalencesForAllRotationsAndReflections(carved, 6, isShifted = true)
     )
   }
 

@@ -1,0 +1,37 @@
+<svg
+        width="180" height="230" viewBox="-65.355339 -200.710678 180.710678 230.710678" xmlns="http://www.w3.org/2000/svg">
+    <g>
+        <!-- Boundary Highlight -->
+        <g stroke="red" stroke-width="3.0" fill="none">
+            <polygon
+                    points="0,0 50,0 50,-50 85.355339,-85.355339 85.355339,-135.355339 50,-170.710678 0,-170.710678 -35.355339,-135.355339 -35.355339,-85.355339 -0,-50">
+            </polygon>
+        </g>
+        <!-- Vertices -->
+        <g fill="darkred">
+            <circle cx="0" cy="0" r="2.0"/>
+            <circle cx="50" cy="0" r="2.0"/>
+            <circle cx="50" cy="-50" r="2.0"/>
+            <circle cx="85.355339" cy="-85.355339" r="2.0"/>
+            <circle cx="85.355339" cy="-135.355339" r="2.0"/>
+            <circle cx="50" cy="-170.710678" r="2.0"/>
+            <circle cx="0" cy="-170.710678" r="2.0"/>
+            <circle cx="-35.355339" cy="-135.355339" r="2.0"/>
+            <circle cx="-35.355339" cy="-85.355339" r="2.0"/>
+            <circle cx="-0" cy="-50" r="2.0"/>
+        </g>
+        <!-- Vertex Labels -->
+        <g font-size="8" fill="blue">
+            <text x="2.5" y="-2.5">0</text>
+            <text x="52.5" y="-2.5">1</text>
+            <text x="52.5" y="-52.5">2</text>
+            <text x="87.855339" y="-87.855339">3</text>
+            <text x="87.855339" y="-137.855339">4</text>
+            <text x="52.5" y="-173.210678">5</text>
+            <text x="2.5" y="-173.210678">6</text>
+            <text x="-32.855339" y="-137.855339">7</text>
+            <text x="-32.855339" y="-87.855339">8</text>
+            <text x="2.5" y="-52.5">9</text>
+        </g>
+    </g>
+</svg>
