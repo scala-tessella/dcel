@@ -450,10 +450,10 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "be true for a 4.8.8 component" in {
 
-    /** <img src="file:../../../../../../resources/simple/carved.svg"/> */
+    /** <img src="file:../../../../../../resources/simple/octagonRoot.svg"/> */
     val carved: SimplePolygon =
       SimplePolygon(90, 90, 225, 135, 135, 135, 135, 135, 135, 225)
-    println(carved.toScalableVectorG())  
+    println(carved.toScalableVectorG())
     allAssert(
       carved.parallelogonIndices shouldBe Some((0, 3, 7, 10)),
       carved.parallelogonEquivalences shouldBe
