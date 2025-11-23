@@ -1,6 +1,6 @@
 package io.github.scala_tessella.dcel.geometry
 
-import io.github.scala_tessella.dcel.conversion.TilingSVG.toScalableVectorG
+import io.github.scala_tessella.dcel.conversion.TilingSVG.toParallelogonTiling
 import io.github.scala_tessella.dcel.geometry.SimplePolygon.ParallelogramTranslation.*
 import io.github.scala_tessella.dcel.{TilingBuilder, TilingTestHelpers}
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, RegularPolygon, SimplePolygon}
@@ -375,6 +375,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
     /** <img src="file:../../../../../../resources/simple/badge-4.6.12.svg"/> */
     val badge = SimplePolygon(150, 150, 150, 150, 150, 150, 240, 90, 210, 120, 120, 210, 210, 120, 120, 210, 90, 240)
+    println(badge.toParallelogonTiling())
     allAssert(
       badge.parallelogonIndices shouldBe Some((1, 4, 10, 13)),
       badge.parallelogonEquivalences shouldBe

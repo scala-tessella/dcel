@@ -1,16 +1,11 @@
 package io.github.scala_tessella.dcel.conversion
 
 import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.*
-import io.github.scala_tessella.dcel.geometry.{
-  BigDecimalGeometry,
-  BigLineSegment,
-  BigPoint,
-  BigRadian,
-  SimplePolygon
-}
+import io.github.scala_tessella.dcel.geometry.{BigDecimalGeometry, BigLineSegment, BigPoint, BigRadian, SimplePolygon}
 import io.github.scala_tessella.dcel.structure.{FaceId, HalfEdge, Vertex, VertexId}
 import io.github.scala_tessella.dcel.{TilingDCEL, TilingError}
 import io.github.scala_tessella.dcel.TilingUniformity.scanUniformityTree
+import io.github.scala_tessella.dcel.geometry.SimplePolygon.ParallelogramTranslation
 import io.github.scala_tessella.dcel.torus.TilingTorusDCEL
 import spire.implicits.*
 
@@ -458,6 +453,57 @@ object TilingSVG:
 
   extension (simple: SimplePolygon)
 
+    private def section(
+      vertices: List[BigPoint],
+      strokeWidth: Double = 1.0,
+      padding: Double = 30.0,
+      scale: Double = 50.0
+    ): Elem =
+
+      // Generate all elements
+      val boundaryPolygon =
+        val points = vertices.map { v =>
+          val (x, y) = v.toSvgCoords(scale)
+          s"$x,$y"
+        }.mkString(" ")
+        Some(polygonElem(points))
+
+      val (vertexCircles, vertexLabels) = // createVertexElements(tiling, config)
+        val circles =
+          vertices.map { v =>
+            val (cx, cy) = v.toSvgCoords(scale)
+            circleElem(cx, cy, (strokeWidth * 2).toString)
+          }
+
+        val labels = vertices.indices.map { index =>
+          val point = vertices(index).scaled(scale).flippedY
+          val x     = (point.x + strokeWidth * 2.5).format
+          val y     = (point.y - strokeWidth * 2.5).format
+          textAt(x, y, s"$index") // - ${simple.toAngles(index)}°")
+        }
+
+        (circles, labels)
+
+      // Build sections
+      val boundarySection = boundaryPolygon.map(polygon =>
+        createSvgSection(
+          "Boundary Highlight",
+          Seq(polygon),
+          attrs("stroke" -> "red", "stroke-width" -> strokeWidth * 3, "fill" -> "none")
+        )
+      ).getOrElse(NodeSeq.Empty)
+
+      val sections = List(
+        boundarySection,
+        createSvgSection("Vertices", vertexCircles, attrs("fill" -> "darkred")),
+        createSvgSection(
+          "Vertex Labels",
+          vertexLabels,
+          attrs("font-size" -> (strokeWidth * 8).toInt, "fill" -> "blue")
+        )
+      ).flatten
+      gElem(sections)
+
     def toScalableVectorG(
         strokeWidth: Double = 1.0,
         padding: Double = 30.0,
@@ -470,57 +516,57 @@ object TilingSVG:
         val viewBox         = calculateViewBox(vertices, scale, padding)
         val (width, height) = viewBox.dimensions
 
-        // Generate all elements
-        val boundaryPolygon =
-          val points = vertices.map { v =>
-            val (x, y) = v.toSvgCoords(scale)
-            s"$x,$y"
-          }.mkString(" ")
-          Some(polygonElem(points))
-
-        val (vertexCircles, vertexLabels) = // createVertexElements(tiling, config)
-          val circles =
-            vertices.map { v =>
-              val (cx, cy) = v.toSvgCoords(scale)
-              circleElem(cx, cy, (strokeWidth * 2).toString)
-            }
-
-          val labels = vertices.indices.map { index =>
-            val point = vertices(index).scaled(scale).flippedY
-            val x     = (point.x + strokeWidth * 2.5).format
-            val y     = (point.y - strokeWidth * 2.5).format
-            textAt(x, y, s"$index") // - ${simple.toAngles(index)}°")
-          }
-
-          (circles, labels)
-
-        // Build sections
-        val boundarySection = boundaryPolygon.map(polygon =>
-          createSvgSection(
-            "Boundary Highlight",
-            Seq(polygon),
-            attrs("stroke" -> "red", "stroke-width" -> strokeWidth * 3, "fill" -> "none")
-          )
-        ).getOrElse(NodeSeq.Empty)
-
-        val sections = List(
-          boundarySection,
-          createSvgSection("Vertices", vertexCircles, attrs("fill" -> "darkred")),
-          createSvgSection(
-            "Vertex Labels",
-            vertexLabels,
-            attrs("font-size" -> (strokeWidth * 8).toInt, "fill" -> "blue")
-          )
-        ).flatten
-
         svgElem(
           width = width.toString,
           height = height.toString,
           viewBox = viewBox.formatted,
-          children = Seq(gElem(sections))
+          children = Seq(gElem(section(vertices)))
         )
 
       new PrettyPrinter(120, 2).format(svg)
+
+    def toParallelogonTiling(
+        strokeWidth: Double = 1.0,
+        padding: Double = 30.0,
+        scale: Double = 50.0
+    ): String =
+      val vertices =
+        BigLineSegment(BigPoint.origin, BigPoint(1, 0)).unitPath(simple.toAngles)
+
+      simple.parallelogonTranslationIndices match
+        case None                     => toScalableVectorG(strokeWidth, padding, scale)
+        case Some(boundaryIndexesMap) =>
+
+          val origin            = vertices(boundaryIndexesMap(ParallelogramTranslation.Identity)).scaled(scale)
+          val repeat            = vertices(boundaryIndexesMap(ParallelogramTranslation.SideAC)).scaled(scale)
+          val repeatOnOtherAxis = vertices(boundaryIndexesMap(ParallelogramTranslation.SideBD)).scaled(scale)
+
+          val diffTwo = (repeat - origin).scaled(1.05)
+          val diffThree = origin - repeatOnOtherAxis.scaled(1.05)
+          val diffFour = diffTwo + diffThree
+          val one = section(vertices)
+
+          val viewBox =
+            calculateViewBox(vertices, scale, padding)
+          val viewBoxAdjusted =
+            viewBox.copy(width = viewBox.width + diffFour.x.abs, height = viewBox.height + diffFour.y.abs)
+          val (width, height) = viewBoxAdjusted.dimensions
+
+          val svg =
+            svgElem(
+              width = width.toString,
+              height = height.toString,
+              viewBox = viewBoxAdjusted.formatted,
+              children = Seq(
+                gElem(one),
+                gElem(one, attrs("transform" -> s"translate(${diffTwo.x}, ${diffTwo.y})")),
+                gElem(one, attrs("transform" -> s"translate(${diffThree.x}, ${diffThree.y})")),
+                gElem(one, attrs("transform" -> s"translate(${diffFour.x}, ${diffFour.y})")),
+              )
+            )
+
+          new PrettyPrinter(120, 2).format(svg)
+
 
   extension (tiling: TilingDCEL)
 
