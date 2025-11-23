@@ -49,7 +49,7 @@ object SimplePolygon:
     * @return
     *   Some(shift) if opposite, None otherwise
     */
-  private def areOppositeShifted(xs: Vector[AngleDegree], ys: Vector[AngleDegree]): Option[Int] =
+  private[dcel] def areOppositeShifted(xs: Vector[AngleDegree], ys: Vector[AngleDegree]): Option[Int] =
     if xs != ys || xs.length <= 1 then None
     // changed from xs.length to xs.length + 1
     else (1 to ((xs.length + 1) / 2)).find(n => xs.drop(n).lazyZip(ys.dropRight(n)).forall(areFitting))
@@ -60,7 +60,7 @@ object SimplePolygon:
     *   Some(shift) if opposite, None otherwise
     */
 
-  private def areOpposite(xs: Vector[AngleDegree], ys: Vector[AngleDegree]): Option[Int] =
+  private[dcel] def areOpposite(xs: Vector[AngleDegree], ys: Vector[AngleDegree]): Option[Int] =
     if xs.size != ys.size then None
     else if xs.lazyZip(ys).forall(areFitting) then Some(0)
     else areOppositeShifted(xs, ys)
