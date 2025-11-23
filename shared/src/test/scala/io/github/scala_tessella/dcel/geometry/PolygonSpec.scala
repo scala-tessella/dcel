@@ -213,6 +213,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
     /** <img src="file:../../../../../../resources/simple/scale-3.3.4.3.4.svg"/> */
     val scale = SimplePolygon(90, 150, 120, 150, 90, 210, 60, 210)
+    println(scale.toParallelogonTiling())
     allAssert(
       scale.parallelogonIndices shouldBe Some((0, 2, 4, 6)),
       scale.parallelogonEquivalences shouldBe
@@ -238,6 +239,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
     /** <img src="file:../../../../../../resources/simple/comma-3.3.3.4.4.svg"/> */
     val comma = SimplePolygon(90, 90, 150, 120, 60, 210)
+    println(comma.toParallelogonTiling())
     allAssert(
       comma.parallelogonIndices shouldBe Some((0, 1, 3, 4)),
       comma.parallelogonEquivalences shouldBe
@@ -262,6 +264,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
     /** <img src="file:../../../../../../resources/simple/devil-3.12.12.svg"/> */
     val devil = SimplePolygon(150, 150, 150, 150, 150, 150, 150, 150, 210, 60, 210, 210, 60, 210)
+    println(devil.toParallelogonTiling())
     allAssert(
       devil.parallelogonIndices shouldBe Some((2, 5, 9, 12)),
       devil.parallelogonEquivalences shouldBe
@@ -290,6 +293,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
     /** <img src="file:../../../../../../resources/simple/unit-3.6.3.6.svg"/> */
     val unit = SimplePolygon(60, 180, 120, 120, 120, 300, 120, 120, 180, 60, 240, 60, 240, 240)
+    println(unit.toParallelogonTiling())
     allAssert(
       unit.parallelogonIndices shouldBe Some((0, 2, 7, 9)),
       unit.parallelogonEquivalences shouldBe
@@ -346,6 +350,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
     /** <img src="file:../../../../../../resources/simple/unit-3.4.6.4.svg"/> */
     val unit = SimplePolygon(90, 210, 120, 120, 210, 210, 120, 210, 90, 150, 150, 150, 150, 240, 150, 150)
+    println(unit.toParallelogonTiling())
     allAssert(
       unit.parallelogonIndices shouldBe Some((2, 6, 10, 14)),
       unit.parallelogonEquivalences shouldBe
@@ -428,6 +433,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
     /** <img src="file:../../../../../../resources/simple/parallelogram2x1.svg"/> */
     val parallelogram2x1 = SimplePolygon(60, 120, 180, 60, 120, 180)
+    println(parallelogram2x1.toParallelogonTiling())
     allAssert(
       parallelogram2x1.parallelogonIndices shouldBe Some((0, 1, 3, 4)),
       parallelogram2x1.parallelogonEquivalences shouldBe
@@ -539,6 +545,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     /** <img src="file:../../../../../../resources/simple/carved.svg"/> */
     val carved: SimplePolygon =
       SimplePolygon(120, 180, 120, 180, 120, 240, 120, 60, 240, 180, 120, 120, 240, 120)
+    println(carved.toParallelogonTiling())
     allAssert(
       carved.parallelogonIndices shouldBe Some((0, 3, 7, 10)),
       carved.parallelogonEquivalences shouldBe
@@ -621,6 +628,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     SimplePolygon(90, 90, 225, 135, 135, 135, 135, 135, 135, 225)
 
   it should "be true for a 4.8.8 tessellation unit" in {
+    println(bulb.toParallelogonTiling())
     allAssert(
       bulb.parallelogonIndices shouldBe Some((0, 1, 5, 6)),
       bulb.parallelogonEquivalences shouldBe
@@ -645,9 +653,10 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "be true for a doubled 4.8.8 tessellation unit" in {
 
-    /** <img src="file:../../../../../../resources/simple/doubledOctagonRoot.svg"/> */
+    /** <img src="file:../../../../../../resources/simple/doubledBulb.svg"/> */
     val doubledBulb: SimplePolygon =
       bulb.multiplySidesBy(2)
+    println(doubledBulb.toParallelogonTiling())
     allAssert(
       doubledBulb.parallelogonIndices shouldBe Some((0, 2, 10, 12)),
       doubledBulb.parallelogonEquivalences shouldBe

@@ -541,15 +541,24 @@ object TilingSVG:
           val repeat            = vertices(boundaryIndexesMap(ParallelogramTranslation.SideAC)).scaled(scale)
           val repeatOnOtherAxis = vertices(boundaryIndexesMap(ParallelogramTranslation.SideBD)).scaled(scale)
 
-          val diffTwo = (repeat - origin).scaled(1.05)
-          val diffThree = origin - repeatOnOtherAxis.scaled(1.05)
+//          println(s"origin: $origin, repeat: $repeat, repeatOnOtherAxis: $repeatOnOtherAxis")
+          val diffTwo = (repeat - origin).scaled(1.1)
+//          println(s"diffTwo: $diffTwo")
+          val diffThree = (repeatOnOtherAxis - origin).scaled(1.1)
+//          println(s"diffThree: $diffThree")
+
           val diffFour = diffTwo + diffThree
           val one = section(vertices)
 
           val viewBox =
             calculateViewBox(vertices, scale, padding)
           val viewBoxAdjusted =
-            viewBox.copy(width = viewBox.width + diffFour.x.abs, height = viewBox.height + diffFour.y.abs)
+            viewBox.copy(
+              minX = viewBox.minX,
+              minY = viewBox.minY - diffFour.y.abs,
+              width = viewBox.width + diffFour.x.abs,
+              height = viewBox.height + diffFour.y.abs
+            )
           val (width, height) = viewBoxAdjusted.dimensions
 
           val svg =
@@ -559,9 +568,9 @@ object TilingSVG:
               viewBox = viewBoxAdjusted.formatted,
               children = Seq(
                 gElem(one),
-                gElem(one, attrs("transform" -> s"translate(${diffTwo.x}, ${diffTwo.y})")),
-                gElem(one, attrs("transform" -> s"translate(${diffThree.x}, ${diffThree.y})")),
-                gElem(one, attrs("transform" -> s"translate(${diffFour.x}, ${diffFour.y})")),
+                gElem(one, attrs("transform" -> s"translate(${diffTwo.x}, ${-diffTwo.y})")),
+                gElem(one, attrs("transform" -> s"translate(${diffThree.x}, ${-diffThree.y})")),
+                gElem(one, attrs("transform" -> s"translate(${diffFour.x}, ${-diffFour.y})"))
               )
             )
 
