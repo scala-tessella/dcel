@@ -211,7 +211,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "be found for a scale" in {
 
-    /** <img src="file:../../../../../../resources/simple/scale.svg"/> */
+    /** <img src="file:../../../../../../resources/simple/scale-3.3.4.3.4.svg"/> */
     val scale = SimplePolygon(90, 150, 120, 150, 90, 210, 60, 210)
     allAssert(
       scale.parallelogonIndices shouldBe Some((0, 2, 4, 6)),
@@ -236,7 +236,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "be found for a comma" in {
 
-    /** <img src="file:../../../../../../resources/simple/comma.svg"/> */
+    /** <img src="file:../../../../../../resources/simple/comma-3.3.3.4.4.svg"/> */
     val comma = SimplePolygon(90, 90, 150, 120, 60, 210)
     allAssert(
       comma.parallelogonIndices shouldBe Some((0, 1, 3, 4)),
@@ -260,7 +260,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "be found for a devil" in {
 
-    /** <img src="file:../../../../../../resources/simple/devil.svg"/> */
+    /** <img src="file:../../../../../../resources/simple/devil-3.12.12.svg"/> */
     val devil = SimplePolygon(150, 150, 150, 150, 150, 150, 150, 150, 210, 60, 210, 210, 60, 210)
     allAssert(
       devil.parallelogonIndices shouldBe Some((2, 5, 9, 12)),
@@ -289,10 +289,10 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   it should "be found for a 3.6.3.6 tessellation unit" in {
 
     /** <img src="file:../../../../../../resources/simple/unit-3.6.3.6.svg"/> */
-    val unit3636 = SimplePolygon(60, 180, 120, 120, 120, 300, 120, 120, 180, 60, 240, 60, 240, 240)
+    val unit = SimplePolygon(60, 180, 120, 120, 120, 300, 120, 120, 180, 60, 240, 60, 240, 240)
     allAssert(
-      unit3636.parallelogonIndices shouldBe Some((0, 2, 7, 9)),
-      unit3636.parallelogonEquivalences shouldBe
+      unit.parallelogonIndices shouldBe Some((0, 2, 7, 9)),
+      unit.parallelogonEquivalences shouldBe
         List(
           List(0, 2, 7, 9),
           List(1, 8),
@@ -301,7 +301,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           List(5, 11),
           List(6, 10)
         ),
-      unit3636.parallelogonTranslationIndices shouldBe
+      unit.parallelogonTranslationIndices shouldBe
         Option(
           Map(
             Identity -> 0,
@@ -309,8 +309,8 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
             SideBD -> 9
           )
         ),
-      checkIndicesForAllRotationsAndReflections(unit3636),
-      checkEquivalencesForAllRotationsAndReflections(unit3636, 6)
+      checkIndicesForAllRotationsAndReflections(unit),
+      checkEquivalencesForAllRotationsAndReflections(unit, 6)
     )
   }
 
@@ -529,21 +529,21 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     )
   }
 
-  /** <img src="file:../../../../../../resources/simple/octagonRoot.svg"/> */
-  val octagonRoot: SimplePolygon =
+  /** <img src="file:../../../../../../resources/simple/bulb-4.8.8.svg"/> */
+  val bulb: SimplePolygon =
     SimplePolygon(90, 90, 225, 135, 135, 135, 135, 135, 135, 225)
 
-  it should "be true for a 4.8.8 component" in {
+  it should "be true for a 4.8.8 tessellation unit" in {
     allAssert(
-      octagonRoot.parallelogonIndices shouldBe Some((0, 1, 5, 6)),
-      octagonRoot.parallelogonEquivalences shouldBe
+      bulb.parallelogonIndices shouldBe Some((0, 1, 5, 6)),
+      bulb.parallelogonEquivalences shouldBe
         List(
           List(0, 3, 6),
           List(1, 5, 8),
           List(2, 7),
           List(4, 9)
         ),
-      octagonRoot.parallelogonTranslationIndices shouldBe
+      bulb.parallelogonTranslationIndices shouldBe
         Option(
           Map(
             Identity -> 0,
@@ -551,19 +551,19 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
             SideBD -> 6
           )
         ),
-      checkIndicesForAllRotationsAndReflections(octagonRoot),
-      checkEquivalencesForAllRotationsAndReflections(octagonRoot, 4, isShifted = true)
+      checkIndicesForAllRotationsAndReflections(bulb),
+      checkEquivalencesForAllRotationsAndReflections(bulb, 4, isShifted = true)
     )
   }
 
-  it should "be true for a doubled 4.8.8 component" in {
+  it should "be true for a doubled 4.8.8 tessellation unit" in {
 
     /** <img src="file:../../../../../../resources/simple/doubledOctagonRoot.svg"/> */
-    val doubledOctagonRoot: SimplePolygon =
-      octagonRoot.multiplySidesBy(2)
+    val doubledBulb: SimplePolygon =
+      bulb.multiplySidesBy(2)
     allAssert(
-      doubledOctagonRoot.parallelogonIndices shouldBe Some((0, 2, 10, 12)),
-      doubledOctagonRoot.parallelogonEquivalences shouldBe
+      doubledBulb.parallelogonIndices shouldBe Some((0, 2, 10, 12)),
+      doubledBulb.parallelogonEquivalences shouldBe
         List(
           List(0, 6, 12),
           List(1, 11),
@@ -575,7 +575,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           List(8, 18),
           List(9, 17)
         ),
-      doubledOctagonRoot.parallelogonTranslationIndices shouldBe
+      doubledBulb.parallelogonTranslationIndices shouldBe
         Option(
           Map(
             Identity -> 0,
@@ -583,8 +583,8 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
             SideBD -> 12
           )
         ),
-      checkIndicesForAllRotationsAndReflections(doubledOctagonRoot),
-      checkEquivalencesForAllRotationsAndReflections(doubledOctagonRoot, 9, isShifted = true)
+      checkIndicesForAllRotationsAndReflections(doubledBulb),
+      checkEquivalencesForAllRotationsAndReflections(doubledBulb, 9, isShifted = true)
     )
   }
 
