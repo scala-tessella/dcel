@@ -43,6 +43,21 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
     SimplePolygon.areOppositeShifted(s, s) shouldBe Some(1)
   }
 
+  it can "detect a shift of 2 in sequences of length 3" in {
+    val s = Vector(45, 45, -45).map(AngleDegree(_))
+    SimplePolygon.areOppositeShifted(s, s) shouldBe Some(2)
+  }
+
+  it can "NOT detect a shift of 2 in sequences of length 4" in {
+    val s = Vector(45, 45, 45, -45).map(AngleDegree(_))
+    SimplePolygon.areOppositeShifted(s, s) shouldBe None
+  }
+
+  it can "detect another shift of 2 in sequences of length 4" in {
+    val s = Vector(45, 45, -45, 45).map(AngleDegree(_))
+    SimplePolygon.areOppositeShifted(s, s) shouldBe None
+  }
+
   it should "detect a shift of 2" in {
     val s = Vector(45, 0, -45, 0, 45, 0).map(AngleDegree(_))
     SimplePolygon.areOppositeShifted(s, s) shouldBe Some(2)
