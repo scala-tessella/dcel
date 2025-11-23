@@ -371,6 +371,36 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     )
   }
 
+  it should "be found for a 4.6.12 tessellation unit" in {
+
+    /** <img src="file:../../../../../../resources/simple/unit-4.6.12.svg"/> */
+    val unit = SimplePolygon(150, 150, 150, 150, 150, 150, 240, 90, 210, 120, 120, 210, 210, 120, 120, 210, 90, 240)
+    allAssert(
+      unit.parallelogonIndices shouldBe Some((1, 4, 10, 13)),
+      unit.parallelogonEquivalences shouldBe
+        List(
+          List(0, 8),
+          List(1, 7, 13),
+          List(2, 12),
+          List(3, 11),
+          List(4, 10, 16),
+          List(5, 15),
+          List(6, 14),
+          List(9, 17)
+        ),
+      unit.parallelogonTranslationIndices shouldBe
+        Option(
+          Map(
+            Identity -> 1,
+            SideAC -> 7,
+            SideBD -> 13
+          )
+        ),
+      checkIndicesForAllRotationsAndReflections(unit),
+      checkEquivalencesForAllRotationsAndReflections(unit, 8, isShifted = true)
+    )
+  }
+
   it should "be found for a 1x2 rectangle" in {
     val rectangle1x2 = SimplePolygon(90, 90, 180, 90, 90, 180)
     allAssert(
