@@ -51,7 +51,8 @@ object SimplePolygon:
     */
   private def areOppositeShifted(xs: Vector[AngleDegree], ys: Vector[AngleDegree]): Option[Int] =
     if xs != ys || xs.length <= 1 then None
-    else (1 to (xs.length / 2)).find(n => xs.drop(n).lazyZip(ys.dropRight(n)).forall(areFitting))
+    // changed from xs.length to xs.length + 1
+    else (1 to ((xs.length + 1) / 2)).find(n => xs.drop(n).lazyZip(ys.dropRight(n)).forall(areFitting))
 
   /** Checks if one sequence of turns is the negative of another (antiparallel).
     *
@@ -118,6 +119,7 @@ object SimplePolygon:
           else None
         else
           val half = n / 2
+//          println(s"n=$n, half=$half")
 
           // Exterior turn at each vertex along the boundary (assuming unit edges).
           val turns: Vector[AngleDegree] = toTurns
@@ -137,6 +139,7 @@ object SimplePolygon:
                     val segB = circularSlice(s + l1, l2)
                     val segC = circularSlice(s + half, l1)
                     val segD = circularSlice(s + half + l1, l2)
+//                    println(s"s=$s, l1=$l1, l2=$l2, segA=$segA, segB=$segB, segC=$segC, segD=$segD")
 
                     (areOpposite(segA, segC).isDefined || areOpposite(segA, segC.reverse).isDefined)
                     && (areOpposite(segB, segD).isDefined || areOpposite(segB, segD.reverse).isDefined)
@@ -192,6 +195,11 @@ object SimplePolygon:
 
           def minimumShift(segment: Vector[AngleDegree], opposite: Vector[AngleDegree]): Int =
             List(areOpposite(segment, opposite), areOpposite(segment, opposite.reverse)).flatten.min
+
+//          println(areOpposite(segA, segC))
+//          println(areOpposite(segA, segC.reverse))
+//          println(areOpposite(segB, segD))
+//          println(areOpposite(segB, segD.reverse))
 
           val oppositeAC = groupOpposite(s, l1, minimumShift(segA, segC))
           val oppositeBD = groupOpposite(s + l1, l2, minimumShift(segB, segD))

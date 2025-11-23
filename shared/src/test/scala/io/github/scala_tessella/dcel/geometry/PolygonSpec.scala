@@ -1,5 +1,6 @@
 package io.github.scala_tessella.dcel.geometry
 
+//import io.github.scala_tessella.dcel.conversion.TilingSVG.toScalableVectorG
 import io.github.scala_tessella.dcel.geometry.SimplePolygon.ParallelogramTranslation.*
 import io.github.scala_tessella.dcel.{TilingBuilder, TilingTestHelpers}
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, RegularPolygon, SimplePolygon}
@@ -233,6 +234,87 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     )
   }
 
+  it should "be found for a comma" in {
+
+    /** <img src="file:../../../../../../resources/simple/comma.svg"/> */
+    val comma = SimplePolygon(90, 90, 150, 120, 60, 210)
+    allAssert(
+      comma.parallelogonIndices shouldBe Some((0, 1, 3, 4)),
+      comma.parallelogonEquivalences shouldBe
+        List(
+          List(0, 1, 3, 4),
+          List(2, 5)
+        ),
+      comma.parallelogonTranslationIndices shouldBe
+        Option(
+          Map(
+            Identity -> 0,
+            SideAC -> 1,
+            SideBD -> 4
+          )
+        ),
+      checkIndicesForAllRotationsAndReflections(comma),
+      checkEquivalencesForAllRotationsAndReflections(comma, 2)
+    )
+  }
+
+  it should "be found for a devil" in {
+
+    /** <img src="file:../../../../../../resources/simple/devil.svg"/> */
+    val devil = SimplePolygon(150, 150, 150, 150, 150, 150, 150, 150, 210, 60, 210, 210, 60, 210)
+    allAssert(
+      devil.parallelogonIndices shouldBe Some((2, 5, 9, 12)),
+      devil.parallelogonEquivalences shouldBe
+        List(
+          List(0, 5, 9),
+          List(1, 8),
+          List(2, 7, 12),
+          List(3, 11),
+          List(4, 10),
+          List(6, 13)
+        ),
+      devil.parallelogonTranslationIndices shouldBe
+        Option(
+          Map(
+            Identity -> 0,
+            SideAC -> 5,
+            SideBD -> 9
+          )
+        ),
+      checkIndicesForAllRotationsAndReflections(devil),
+      checkEquivalencesForAllRotationsAndReflections(devil, 6, isShifted = true)
+    )
+  }
+
+  it should "be found for a 3.6.3.6 tessellation unit" in {
+
+    /** <img src="file:../../../../../../resources/simple/unit-3.6.3.6.svg"/> */
+    val unit3636 = SimplePolygon(60, 180, 120, 120, 120, 300, 120, 120, 180, 60, 240, 60, 240, 240)
+    allAssert(
+      unit3636.parallelogonIndices shouldBe Some((0, 2, 7, 9)),
+      unit3636.parallelogonEquivalences shouldBe
+        List(
+          List(0, 2, 7, 9),
+          List(1, 8),
+          List(3, 13),
+          List(4, 12),
+          List(5, 11),
+          List(6, 10)
+        ),
+      unit3636.parallelogonTranslationIndices shouldBe
+        Option(
+          Map(
+            Identity -> 0,
+            SideAC -> 2,
+            SideBD -> 9
+          )
+        ),
+      checkIndicesForAllRotationsAndReflections(unit3636),
+      checkEquivalencesForAllRotationsAndReflections(unit3636, 6)
+    )
+  }
+
+
   it should "be found for a 1x2 rectangle" in {
     val rectangle1x2 = SimplePolygon(90, 90, 180, 90, 90, 180)
     allAssert(
@@ -285,7 +367,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "be found for a 2 joined regular hexagons boundary" in
     allAssert(
-      twoJoinedHexs.parallelogonIndices shouldBe Some((0, 4, 5, 9)),
+      twoJoinedHexs.parallelogonIndices shouldBe Some((0, 1, 5, 6)),
       twoJoinedHexs.parallelogonEquivalences shouldBe
         List(
           List(0, 4, 6),
@@ -310,7 +392,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     /** <img src="file:../../../../../../resources/simple/doubledJoinedHexs.svg"/> */
     val doubledJoinedHexs = twoJoinedHexs.multiplySidesBy(2)
     allAssert(
-      doubledJoinedHexs.parallelogonIndices shouldBe Some((0, 8, 10, 18)),
+      doubledJoinedHexs.parallelogonIndices shouldBe Some((0, 2, 10, 12)),
       doubledJoinedHexs.parallelogonEquivalences shouldBe
         List(
           List(0, 8, 12),
@@ -398,7 +480,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val sixtyFourJoinedHexs: SimplePolygon =
       TilingBuilder.createHexagonNet(8, 8).boundarySimplePolygon
     allAssert(
-      sixtyFourJoinedHexs.parallelogonIndices shouldBe Some((6, 22, 37, 53)),
+      sixtyFourJoinedHexs.parallelogonIndices shouldBe Some((0, 13, 31, 41)),
       sixtyFourJoinedHexs.parallelogonEquivalences should contain(List(6, 22, 38)),
       sixtyFourJoinedHexs.parallelogonEquivalences should contain(List(7, 37, 53)),
       sixtyFourJoinedHexs.parallelogonEquivalences shouldBe
@@ -453,26 +535,24 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "be true for a 4.8.8 component" in {
     allAssert(
-      octagonRoot.parallelogonIndices shouldBe Some((0, 3, 7, 10)),
+      octagonRoot.parallelogonIndices shouldBe Some((0, 1, 5, 6)),
       octagonRoot.parallelogonEquivalences shouldBe
         List(
-          List(0, 4, 10),
-          List(1, 9),
-          List(2, 8),
-          List(3, 7, 11),
-          List(5, 13),
-          List(6, 12)
+          List(0, 3, 6),
+          List(1, 5, 8),
+          List(2, 7),
+          List(4, 9)
         ),
       octagonRoot.parallelogonTranslationIndices shouldBe
         Option(
           Map(
             Identity -> 0,
-            SideAC -> 4,
-            SideBD -> 10
+            SideAC -> 3,
+            SideBD -> 6
           )
         ),
       checkIndicesForAllRotationsAndReflections(octagonRoot),
-      checkEquivalencesForAllRotationsAndReflections(octagonRoot, 6, isShifted = true)
+      checkEquivalencesForAllRotationsAndReflections(octagonRoot, 4, isShifted = true)
     )
   }
 
@@ -482,29 +562,31 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val doubledOctagonRoot: SimplePolygon =
       octagonRoot.multiplySidesBy(2)
     allAssert(
-      doubledOctagonRoot.parallelogonIndices shouldBe Some((0, 3, 7, 10)),
+      doubledOctagonRoot.parallelogonIndices shouldBe Some((0, 2, 10, 12)),
       doubledOctagonRoot.parallelogonEquivalences shouldBe
         List(
-          List(0, 4, 10),
-          List(1, 9),
-          List(2, 8),
-          List(3, 7, 11),
+          List(0, 6, 12),
+          List(1, 11),
+          List(2, 10, 16),
+          List(3, 15),
+          List(4, 14),
           List(5, 13),
-          List(6, 12)
+          List(7, 19),
+          List(8, 18),
+          List(9, 17)
         ),
       doubledOctagonRoot.parallelogonTranslationIndices shouldBe
         Option(
           Map(
             Identity -> 0,
-            SideAC -> 4,
-            SideBD -> 10
+            SideAC -> 6,
+            SideBD -> 12
           )
         ),
-      checkIndicesForAllRotationsAndReflections(octagonRoot),
-      checkEquivalencesForAllRotationsAndReflections(octagonRoot, 6, isShifted = true)
+      checkIndicesForAllRotationsAndReflections(doubledOctagonRoot),
+      checkEquivalencesForAllRotationsAndReflections(doubledOctagonRoot, 9, isShifted = true)
     )
   }
-
 
   behavior of "RegularPolygon"
 
