@@ -1,7 +1,13 @@
 package io.github.scala_tessella.dcel.conversion
 
 import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.*
-import io.github.scala_tessella.dcel.geometry.{BigDecimalGeometry, BigLineSegment, BigPoint, BigRadian, SimplePolygon}
+import io.github.scala_tessella.dcel.geometry.{
+  BigDecimalGeometry,
+  BigLineSegment,
+  BigPoint,
+  BigRadian,
+  SimplePolygon
+}
 import io.github.scala_tessella.dcel.structure.{FaceId, HalfEdge, Vertex, VertexId}
 import io.github.scala_tessella.dcel.{TilingDCEL, TilingError}
 import io.github.scala_tessella.dcel.TilingUniformity.scanUniformityTree
@@ -454,10 +460,10 @@ object TilingSVG:
   extension (simple: SimplePolygon)
 
     private def section(
-      vertices: List[BigPoint],
-      strokeWidth: Double = 1.0,
-      padding: Double = 30.0,
-      scale: Double = 50.0
+        vertices: List[BigPoint],
+        strokeWidth: Double = 1.0,
+        padding: Double = 30.0,
+        scale: Double = 50.0
     ): Elem =
 
       // Generate all elements
@@ -542,15 +548,15 @@ object TilingSVG:
           val repeatOnOtherAxis = vertices(boundaryIndexesMap(ParallelogramTranslation.SideBD)).scaled(scale)
 
 //          println(s"origin: $origin, repeat: $repeat, repeatOnOtherAxis: $repeatOnOtherAxis")
-          val diffTwo = (repeat - origin).scaled(1.1)
+          val diffTwo   = (repeat - origin).scaled(1.1)
 //          println(s"diffTwo: $diffTwo")
           val diffThree = (repeatOnOtherAxis - origin).scaled(1.1)
 //          println(s"diffThree: $diffThree")
 
           val diffFour = diffTwo + diffThree
-          val one = section(vertices)
+          val one      = section(vertices)
 
-          val viewBox =
+          val viewBox         =
             calculateViewBox(vertices, scale, padding)
           val viewBoxAdjusted =
             viewBox.copy(
@@ -575,7 +581,6 @@ object TilingSVG:
             )
 
           new PrettyPrinter(120, 2).format(svg)
-
 
   extension (tiling: TilingDCEL)
 

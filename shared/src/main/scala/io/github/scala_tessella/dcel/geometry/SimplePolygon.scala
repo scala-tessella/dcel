@@ -59,7 +59,6 @@ object SimplePolygon:
     * @return
     *   Some(shift) if opposite, None otherwise
     */
-
   private[dcel] def areOpposite(xs: Vector[AngleDegree], ys: Vector[AngleDegree]): Option[Int] =
     if xs.size != ys.size then None
     else if xs.lazyZip(ys).forall(areFitting) then Some(0)

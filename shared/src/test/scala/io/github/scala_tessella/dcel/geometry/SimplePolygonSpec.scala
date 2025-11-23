@@ -21,7 +21,7 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
   }
 
   it should "detect a shift of 1 if turns are all 0°" in {
-    val s = Vector(0, 0).map(AngleDegree(_))
+    val s  = Vector(0, 0).map(AngleDegree(_))
     val s1 = Vector(0, 0, 0).map(AngleDegree(_))
     allAssert(
       SimplePolygon.areOppositeShifted(s, s) shouldBe Some(1),
@@ -30,7 +30,7 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
   }
 
   it should "return None for other opposite sequences containing the same turns (not fitting)" in {
-    val s = Vector(90, 90, 90, 90).map(AngleDegree(_))
+    val s  = Vector(90, 90, 90, 90).map(AngleDegree(_))
     val s1 = Vector(45, 45, 45, 45).map(AngleDegree(_))
     allAssert(
       SimplePolygon.areOppositeShifted(s, s) shouldBe None,

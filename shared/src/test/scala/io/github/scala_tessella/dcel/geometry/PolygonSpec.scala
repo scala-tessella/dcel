@@ -251,8 +251,8 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
         Option(
           Map(
             Identity -> 0,
-            SideAC -> 1,
-            SideBD -> 4
+            SideAC   -> 1,
+            SideBD   -> 4
           )
         ),
       checkIndicesForAllRotationsAndReflections(comma),
@@ -280,8 +280,8 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
         Option(
           Map(
             Identity -> 0,
-            SideAC -> 5,
-            SideBD -> 9
+            SideAC   -> 5,
+            SideBD   -> 9
           )
         ),
       checkIndicesForAllRotationsAndReflections(devil),
@@ -309,8 +309,8 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
         Option(
           Map(
             Identity -> 0,
-            SideAC -> 2,
-            SideBD -> 9
+            SideAC   -> 2,
+            SideBD   -> 9
           )
         ),
       checkIndicesForAllRotationsAndReflections(unit),
@@ -337,8 +337,8 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
         Option(
           Map(
             Identity -> 0,
-            SideAC -> 2,
-            SideBD -> 9
+            SideAC   -> 2,
+            SideBD   -> 9
           )
         ),
       checkIndicesForAllRotationsAndReflections(unit),
@@ -367,8 +367,8 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
         Option(
           Map(
             Identity -> 0,
-            SideAC -> 6,
-            SideBD -> 10
+            SideAC   -> 6,
+            SideBD   -> 10
           )
         ),
       checkIndicesForAllRotationsAndReflections(unit),
@@ -379,7 +379,8 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   it should "be found for a 4.6.12 tessellation unit" in {
 
     /** <img src="file:../../../../../../resources/simple/badge-4.6.12.svg"/> */
-    val badge = SimplePolygon(150, 150, 150, 150, 150, 150, 240, 90, 210, 120, 120, 210, 210, 120, 120, 210, 90, 240)
+    val badge =
+      SimplePolygon(150, 150, 150, 150, 150, 150, 240, 90, 210, 120, 120, 210, 210, 120, 120, 210, 90, 240)
     println(badge.toParallelogonTiling())
     allAssert(
       badge.parallelogonIndices shouldBe Some((1, 4, 10, 13)),
@@ -398,8 +399,8 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
         Option(
           Map(
             Identity -> 1,
-            SideAC -> 7,
-            SideBD -> 13
+            SideAC   -> 7,
+            SideBD   -> 13
           )
         ),
       checkIndicesForAllRotationsAndReflections(badge),
@@ -642,8 +643,8 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
         Option(
           Map(
             Identity -> 0,
-            SideAC -> 3,
-            SideBD -> 6
+            SideAC   -> 3,
+            SideBD   -> 6
           )
         ),
       checkIndicesForAllRotationsAndReflections(bulb),
@@ -675,8 +676,8 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
         Option(
           Map(
             Identity -> 0,
-            SideAC -> 6,
-            SideBD -> 12
+            SideAC   -> 6,
+            SideBD   -> 12
           )
         ),
       checkIndicesForAllRotationsAndReflections(doubledBulb),
