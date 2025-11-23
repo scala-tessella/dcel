@@ -1,6 +1,6 @@
 package io.github.scala_tessella.dcel.geometry
 
-//import io.github.scala_tessella.dcel.conversion.TilingSVG.toScalableVectorG
+import io.github.scala_tessella.dcel.conversion.TilingSVG.toScalableVectorG
 import io.github.scala_tessella.dcel.geometry.SimplePolygon.ParallelogramTranslation.*
 import io.github.scala_tessella.dcel.{TilingBuilder, TilingTestHelpers}
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, RegularPolygon, SimplePolygon}
@@ -314,6 +314,62 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     )
   }
 
+  it should "be found for a 3.3.3.3.6 tessellation unit" in {
+
+    /** <img src="file:../../../../../../resources/simple/unit-3.3.3.3.6.svg"/> */
+    val unit = SimplePolygon(120, 180, 120, 120, 240, 180, 120, 240, 60, 180, 120, 180, 120, 240, 180, 120)
+    allAssert(
+      unit.parallelogonIndices shouldBe Some((0, 2, 7, 9)),
+      unit.parallelogonEquivalences shouldBe
+        List(
+          List(0, 2, 7, 9),
+          List(1, 8),
+          List(3, 13),
+          List(4, 12),
+          List(5, 11),
+          List(6, 10)
+        ),
+      unit.parallelogonTranslationIndices shouldBe
+        Option(
+          Map(
+            Identity -> 0,
+            SideAC -> 2,
+            SideBD -> 9
+          )
+        ),
+      checkIndicesForAllRotationsAndReflections(unit),
+      checkEquivalencesForAllRotationsAndReflections(unit, 6)
+    )
+  }
+
+  it should "be found for a 3.4.6.4 tessellation unit" in {
+
+    /** <img src="file:../../../../../../resources/simple/unit-3.4.6.4.svg"/> */
+    val unit = SimplePolygon(90, 210, 120, 120, 210, 210, 120, 210, 90, 150, 150, 150, 150, 240, 150, 150)
+    allAssert(
+      unit.parallelogonIndices shouldBe Some((2, 6, 10, 14)),
+      unit.parallelogonEquivalences shouldBe
+        List(
+          List(0, 6, 10),
+          List(1, 9),
+          List(2, 8, 14),
+          List(3, 13),
+          List(4, 12),
+          List(5, 11),
+          List(7, 15)
+        ),
+      unit.parallelogonTranslationIndices shouldBe
+        Option(
+          Map(
+            Identity -> 0,
+            SideAC -> 6,
+            SideBD -> 10
+          )
+        ),
+      checkIndicesForAllRotationsAndReflections(unit),
+      checkEquivalencesForAllRotationsAndReflections(unit, 7, isShifted = true)
+    )
+  }
 
   it should "be found for a 1x2 rectangle" in {
     val rectangle1x2 = SimplePolygon(90, 90, 180, 90, 90, 180)
