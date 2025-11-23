@@ -373,11 +373,11 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "be found for a 4.6.12 tessellation unit" in {
 
-    /** <img src="file:../../../../../../resources/simple/unit-4.6.12.svg"/> */
-    val unit = SimplePolygon(150, 150, 150, 150, 150, 150, 240, 90, 210, 120, 120, 210, 210, 120, 120, 210, 90, 240)
+    /** <img src="file:../../../../../../resources/simple/badge-4.6.12.svg"/> */
+    val badge = SimplePolygon(150, 150, 150, 150, 150, 150, 240, 90, 210, 120, 120, 210, 210, 120, 120, 210, 90, 240)
     allAssert(
-      unit.parallelogonIndices shouldBe Some((1, 4, 10, 13)),
-      unit.parallelogonEquivalences shouldBe
+      badge.parallelogonIndices shouldBe Some((1, 4, 10, 13)),
+      badge.parallelogonEquivalences shouldBe
         List(
           List(0, 8),
           List(1, 7, 13),
@@ -388,7 +388,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           List(6, 14),
           List(9, 17)
         ),
-      unit.parallelogonTranslationIndices shouldBe
+      badge.parallelogonTranslationIndices shouldBe
         Option(
           Map(
             Identity -> 1,
@@ -396,8 +396,8 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
             SideBD -> 13
           )
         ),
-      checkIndicesForAllRotationsAndReflections(unit),
-      checkEquivalencesForAllRotationsAndReflections(unit, 8, isShifted = true)
+      checkIndicesForAllRotationsAndReflections(badge),
+      checkEquivalencesForAllRotationsAndReflections(badge, 8, isShifted = true)
     )
   }
 
