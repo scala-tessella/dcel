@@ -86,3 +86,13 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
     )
   }
 
+  behavior of "SimplePolygon.parallelogonIndices"
+
+  it should "be found for a 3.3.3.3.6 tessellation unit" in {
+
+    /** <img src="file:../../../../../../resources/simple/unit-3.3.3.3.6.svg"/> */
+    val unit = SimplePolygon(120, 180, 120, 120, 240, 180, 120, 240, 60, 180, 120, 180, 120, 240, 180, 120)
+    unit.parallelogonIndices.isDefined shouldBe true
+  }
+
+
