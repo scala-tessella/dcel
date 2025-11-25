@@ -83,9 +83,9 @@ object SimplePolygon:
       *   [[https://en.wikipedia.org/wiki/Parallelogon]]
       */
     def canTileTorus: Boolean =
-      parallelogonHexIndices.nonEmpty
+      parallelogonIndices.nonEmpty
 
-    def parallelogonHexIndices: List[Int] =
+    def parallelogonIndices: List[Int] =
       val n = angles.size
       if n < 4 || n % 2 != 0 then Nil
       else
@@ -123,28 +123,30 @@ object SimplePolygon:
           (0 until half - 1).view.flatMap: i =>
             (i until half - 1).view.flatMap: j =>
               (j + 1 until half).map: k =>
-                (i, j, k)
+                List(i, j, k)
 
-        // give precedence to degenerate square results, where the first two indices are the same
-        val (sqr, hex) = viewIndices.partition((i, j, _) => i == j)
+        // separate the degenerate square results, where the first two indices are the same
+        val (sqr, hex) = viewIndices.partition((_: @unchecked) match { case i :: j :: _ => i == j })
 
-        def isFitting(ijk: (Int, Int, Int)): Boolean =
-          val (i, j, k) = ijk
-          val segA      = circularSlice(i, j)
-          val segB      = circularSlice(j, k)
-          val segC      = circularSlice(k, i + half)
-          val segD      = circularSlice(i + half, j + half)
-          val segE      = circularSlice(j + half, k + half)
-          val segF      = circularSlice(k + half, i + n)
+        def completeHalf(ijk: List[Int]) =
+          ijk ::: ijk.map(_ + half)
 
+        def isParallelogon(ijk: List[Int]): Boolean =
+          val startStops = completeHalf(ijk) :+ (ijk.head + n)
+          val segments = startStops.sliding(2).collect({
+            case start :: stop :: Nil => circularSlice(start, stop)
+          }).toVector
+
+          /** Checks that the 3 first segments fits into their opposites */
           def allSegmentsFitting(f: Vector[AngleDegree] => Vector[AngleDegree] = identity): Boolean =
-            areOpposite(segA, f(segD)) && areOpposite(segB, f(segE)) && areOpposite(segC, f(segF))
+            (0 to 2).forall(i => areOpposite(segments(i), f(segments(i + 3))))
 
           allSegmentsFitting() || allSegmentsFitting(_.reverse)
 
-        sqr.find(isFitting)
-          .orElse(hex.find(isFitting))
-          .map((i, j, k) => List(i, j, k, i + half, j + half, k + half).distinct)
+        // give precedence to square results
+        sqr.find(isParallelogon)
+          .orElse(hex.find(isParallelogon))
+          .map(completeHalf(_).distinct)
           .getOrElse(Nil)
 
     def parallelogonHexEquivalences: List[List[Int]] =
@@ -154,14 +156,14 @@ object SimplePolygon:
       def connect(i0: Int, i1: Int, i3: Int): List[List[Int]] =
         (1 until i1 - i0).toList.map(i => List(i0 + i, (i3 - i + n) % n))
 
-      parallelogonHexIndices match
+      parallelogonIndices match
         case sqr @ a :: b :: c :: d :: Nil     => sqr :: connect(a, b, d) ::: connect(b, c, a)
         case a :: b :: c :: d :: e :: f :: Nil =>
           List(a, c, e) :: List(b, d, f) :: connect(a, b, e) ::: connect(b, c, f) ::: connect(c, d, a)
         case _                                 => Nil
 
     def parallelogonTranslationHexIndices: Option[Map[ParallelogramTranslation, Int]] =
-      (parallelogonHexIndices match
+      (parallelogonIndices match
         case origin :: ac :: bd :: _ :: Nil    => Option(List(origin, ac, bd))
         case origin :: _ :: ac :: _ :: bd :: _ => Option(List(origin, ac, bd))
         case _                                 => None
