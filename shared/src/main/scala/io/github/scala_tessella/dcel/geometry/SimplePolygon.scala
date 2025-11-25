@@ -120,22 +120,22 @@ object SimplePolygon:
 
         // all combinations of indices for the start of three consecutive segments in the 6-sides parallelogon
         val viewIndices =
-          (0 until half - 1).view.flatMap:
-            i => (i until half - 1).view.flatMap:
-              j => (j + 1 until half).map:
-                k => (i, j, k)
+          (0 until half - 1).view.flatMap: i =>
+            (i until half - 1).view.flatMap: j =>
+              (j + 1 until half).map: k =>
+                (i, j, k)
 
         // give precedence to degenerate square results, where the first two indices are the same
         val (sqr, hex) = viewIndices.partition((i, j, _) => i == j)
 
         def isFitting(ijk: (Int, Int, Int)): Boolean =
           val (i, j, k) = ijk
-          val segA = circularSlice(i, j)
-          val segB = circularSlice(j, k)
-          val segC = circularSlice(k, i + half)
-          val segD = circularSlice(i + half, j + half)
-          val segE = circularSlice(j + half, k + half)
-          val segF = circularSlice(k + half, i + n)
+          val segA      = circularSlice(i, j)
+          val segB      = circularSlice(j, k)
+          val segC      = circularSlice(k, i + half)
+          val segD      = circularSlice(i + half, j + half)
+          val segE      = circularSlice(j + half, k + half)
+          val segF      = circularSlice(k + half, i + n)
 
           def allSegmentsFitting(f: Vector[AngleDegree] => Vector[AngleDegree] = identity): Boolean =
             areOpposite(segA, f(segD)) && areOpposite(segB, f(segE)) && areOpposite(segC, f(segF))
@@ -149,14 +149,15 @@ object SimplePolygon:
 
     def parallelogonHexEquivalences: List[List[Int]] =
       val n = angles.size
+
+      // connect the other indices of the segment to those of its antiparallel counterpart
+      def connect(i0: Int, i1: Int, i3: Int): List[List[Int]] =
+        (1 until i1 - i0).toList.map(i => List(i0 + i, (i3 - i + n) % n))
+
       parallelogonHexIndices match
-        case sqr @ a :: b :: c :: d :: Nil    =>
-          sqr :: (1 until b - a).toList.map(i => List(a + i, (d - i + n) % n))
-            ::: (1 until c - b).toList.map(i => List(b + i, (a - i + n) % n))
+        case sqr @ a :: b :: c :: d :: Nil     => sqr :: connect(a, b, d) ::: connect(b, c, a)
         case a :: b :: c :: d :: e :: f :: Nil =>
-          List(a, c, e) :: List(b, d, f) :: (1 until b - a).toList.map(i => List(a + i, (e - i + n) % n))
-            ::: (1 until c - b).toList.map(i => List(b + i, (f - i + n) % n))
-            ::: (1 until d - c).toList.map(i => List(c + i, (a - i + n) % n))
+          List(a, c, e) :: List(b, d, f) :: connect(a, b, e) ::: connect(b, c, f) ::: connect(c, d, a)
         case _                                 => Nil
 
     def parallelogonTranslationHexIndices: Option[Map[ParallelogramTranslation, Int]] =
