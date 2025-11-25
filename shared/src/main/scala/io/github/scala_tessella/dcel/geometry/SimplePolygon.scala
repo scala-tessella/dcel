@@ -74,6 +74,10 @@ object SimplePolygon:
     else if xs.lazyZip(ys).forall(areFitting) then Some(0)
     else areOppositeShiftedNew(xs, ys)
 
+  private[dcel] def areOppositeSimple(xs: Vector[AngleDegree], ys: Vector[AngleDegree]): Boolean =
+    if xs.size != ys.size then throw new IllegalArgumentException("The two sequences must have the same length.")
+    xs.lazyZip(ys).forall(areFitting) || xs.reverse.lazyZip(ys).forall(areFitting)
+
   extension (angles: SimplePolygon)
 
     /** @return the underlying number of sides */
@@ -113,6 +117,58 @@ object SimplePolygon:
       */
     def canTileTorus: Boolean =
       parallelogonIndices.isDefined
+
+    def parallelogonHexIndices: List[Int] =
+      val n = angles.size
+      if n < 4 || n % 2 != 0 then Nil
+      else
+        val half = n / 2
+        val turns: Vector[AngleDegree] = toTurns
+
+        // Slices the circular `turns` vector.
+        def circularSlice(start: Int, stop: Int): Vector[AngleDegree] =
+          turns.sliceO(start, stop).drop(1)
+
+        val halfIndices =
+          for
+            i <- 0 until half - 1
+            j <- i until half - 1
+            k <- j + 1 until half
+          yield (i, j, k)
+        println(s"half indices $halfIndices")
+        println(half)
+        halfIndices.foreach((i, j, k) =>
+          println(s"i=$i, j=$j, k=$k")
+          val segA = circularSlice(i, j)
+          val segB = circularSlice(j, k)
+          val segC = circularSlice(k, i + half)
+          val segD = circularSlice(i + half, j + half)
+          val segE = circularSlice(j + half, k + half)
+          val segF = circularSlice(k + half, i + n)
+          println(s"segA: $segA, segB: $segB, segC: $segC, segD: $segD, segE: $segE, segF: $segF")
+        )
+        val result =
+        (0 until half - 1).view.flatMap { i =>
+          (i until half - 1).view.flatMap { j =>
+            (j + 1 until half).collectFirst {
+              case k if {
+                val segA = circularSlice(i, j)
+                val segB = circularSlice(j, k)
+                val segC = circularSlice(k, i + half)
+                val segD = circularSlice(i + half, j + half)
+                val segE = circularSlice(j + half, k + half)
+                val segF = circularSlice(k + half, i + n)
+
+                println(s"i=$i, j=$j, k=$k")
+                areOppositeSimple(segA, segD) && areOppositeSimple(segB, segE) && areOppositeSimple(segC, segF)
+              } =>
+                println(s"i=$i, j=$j, k=$k, i+half=${i+half}, j+half=${j+half}, k+half=${k+half}")
+                List(i, j, k, i + half, j + half, k + half)
+            }
+          }
+        }.headOption.getOrElse(Nil).distinct
+        println(result)
+        result
 
     def parallelogonIndices: Option[(Int, Int, Int, Int)] =
       val n = angles.size
