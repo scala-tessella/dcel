@@ -268,6 +268,64 @@ object SimplePolygon:
 
           equivalenceGroups(oppositeAC ::: oppositeBD)
 
+    def parallelogonEquivalencesNew: List[List[Int]] =
+      val n = angles.size
+
+      // Must have at least 4 sides and an even number of them to form opposite pairs.
+      if n < 4 || n % 2 != 0 then Nil
+      else
+        // Quick guard: a regular n-gon can tile a torus only if n=4 (a square).
+        if angles.map(_.normalised.toRational).distinct.size == 1 then
+          if n == 4 then
+            List(List(0, 1, 2, 3))
+          else Nil
+        else
+          val half = n / 2
+
+          // Exterior turn at each vertex along the boundary (assuming unit edges).
+          val turns: Vector[AngleDegree] = toTurns
+
+          // Slices the circular `turns` vector.
+          def circularSlice(start: Int, len: Int): Vector[AngleDegree] =
+            turns.sliceO(start, start + len).tail
+
+          val (s, s_l1, s_half, s_half_li) = parallelogonIndicesNew.get
+          val l1 = s_l1 - s
+          val l2 = half - l1
+          val segA = circularSlice(s, l1)
+          val segB = circularSlice(s + l1, l2)
+          val segC = circularSlice(s + half, l1)
+          val segD = circularSlice(s + half + l1, l2)
+
+          def groupOpposite(startFirst: Int, len: Int, shift: Int): List[List[Int]] =
+            val startOpposite = startFirst + half
+            (0 to len).map(i =>
+              val reverse = len - i + shift
+              val added =
+                if i < shift then reverse % len
+                else reverse
+              List((startOpposite + added) % n, startFirst + i)
+            ).toList
+
+          def equivalenceGroups(unmatched: List[List[Int]]): List[List[Int]] =
+            (0 until n).foldLeft(unmatched)((groups, index) =>
+              val (found, unfound) = groups.partition(_.contains(index))
+              found.flatten.distinct :: unfound
+            ).map(_.sorted).sortBy(_.head)
+
+          def minimumShift(segment: Vector[AngleDegree], opposite: Vector[AngleDegree]): Int =
+            List(areOppositeNew(segment, opposite), areOppositeNew(segment, opposite.reverse)).flatten.min
+
+          //          println(areOpposite(segA, segC))
+          //          println(areOpposite(segA, segC.reverse))
+          //          println(areOpposite(segB, segD))
+          //          println(areOpposite(segB, segD.reverse))
+
+          val oppositeAC = groupOpposite(s, l1, minimumShift(segA, segC))
+          val oppositeBD = groupOpposite(s + l1, l2, minimumShift(segB, segD))
+
+          equivalenceGroups(oppositeAC ::: oppositeBD)
+
     def parallelogonTranslationIndices: Option[Map[ParallelogramTranslation, Int]] =
       parallelogonEquivalences match
         case Nil    => None
@@ -284,3 +342,21 @@ object SimplePolygon:
             ParallelogramTranslation.SideAC   -> two.last,
             ParallelogramTranslation.SideAD   -> third
           ))
+
+    def parallelogonTranslationIndicesNew: Option[Map[ParallelogramTranslation, Int]] =
+      parallelogonEquivalencesNew match
+        case Nil => None
+        case groups =>
+          // Choose the pair of equivalent boundary vertices that defines the translation side
+          val group = groups.find(_.size > 2).get
+          val two =
+            if (group(1) - group.head) >= angles.size / 2 then group.takeRight(2)
+            else group.take(2)
+          val third = if group.size == 3 then group.diff(two).head else group(3)
+          println(s"Indices, origin: ${two.head} and repeat: ${two.last} and repeatOnOtherAxis: $third")
+          Option(Map(
+            ParallelogramTranslation.Identity -> two.head,
+            ParallelogramTranslation.SideAC -> two.last,
+            ParallelogramTranslation.SideAD -> third
+          ))
+
