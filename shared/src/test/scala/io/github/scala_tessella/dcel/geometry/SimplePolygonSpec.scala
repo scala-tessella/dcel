@@ -79,7 +79,7 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
   }
 
   it should "detect a shift of 0 if turns are all 0°" in {
-    val s = Vector(0, 0).map(AngleDegree(_))
+    val s  = Vector(0, 0).map(AngleDegree(_))
     val s1 = Vector(0, 0, 0).map(AngleDegree(_))
     allAssert(
       SimplePolygon.areOpposite(s, s) shouldBe Some(0),
@@ -173,7 +173,7 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
   val twoJoinedHexs: SimplePolygon =
     SimplePolygon(120, 120, 240, 120, 120, 120, 120, 240, 120, 120)
 
-  they should "be found for a 2 joined regular hexagons boundary" in {
+  they should "be found for a 2 joined regular hexagons boundary" in
 //    println(twoJoinedHexs.toParallelogonTiling())
     allAssert(
       twoJoinedHexs.parallelogonIndices shouldBe Some((0, 1, 5, 6)),
@@ -184,7 +184,6 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
       twoJoinedHexs.parallelogonEquivalencesNew shouldBe
         List(List(0, 4, 6), List(1, 5, 9), List(2, 8), List(3, 7))
     )
-  }
 
   they should "be found for a 2 joined regular hexagons boundary multiplied by 2" in {
 
@@ -220,7 +219,7 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
       sixtyFourJoinedHexs.parallelogonIndicesNew shouldBe Some((6, 21, 37, 52)),
       sixtyFourJoinedHexs.parallelogonHexIndices shouldBe List(0, 7, 22, 31, 38, 53),
 
-        //      sixtyFourJoinedHexs.parallelogonEquivalences shouldBe
+      //      sixtyFourJoinedHexs.parallelogonEquivalences shouldBe
 //        List(
 //          List(0, 13, 22, 31, 37, 53), List(1, 36), List(2, 35), List(3, 34), List(4, 33), List(5, 32), List(6, 44),
 //          List(7, 43), List(8, 42), List(9, 41), List(10, 40), List(11, 39), List(12, 38), List(14, 52), List(15, 51),
@@ -229,13 +228,36 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
 //        ),
       sixtyFourJoinedHexs.parallelogonEquivalencesNew shouldBe
         List(
-          List(0, 28), List(1, 27), List(2, 26), List(3, 25), List(4, 24), List(5, 23),
+          List(0, 28),
+          List(1, 27),
+          List(2, 26),
+          List(3, 25),
+          List(4, 24),
+          List(5, 23),
           List(6, 22, 52),
-          List(7, 51), List(8, 50), List(9, 49), List(10, 48), List(11, 47), List(12, 46), List(13, 45),
-          List(14, 44), List(15, 43), List(16, 42), List(17, 41), List(18, 40), List(19, 39), List(20, 38),
+          List(7, 51),
+          List(8, 50),
+          List(9, 49),
+          List(10, 48),
+          List(11, 47),
+          List(12, 46),
+          List(13, 45),
+          List(14, 44),
+          List(15, 43),
+          List(16, 42),
+          List(17, 41),
+          List(18, 40),
+          List(19, 39),
+          List(20, 38),
           List(21, 37, 53),
-          List(29, 61), List(30, 60), List(31, 59), List(32, 58),
-          List(33, 57), List(34, 56), List(35, 55), List(36, 54)
+          List(29, 61),
+          List(30, 60),
+          List(31, 59),
+          List(32, 58),
+          List(33, 57),
+          List(34, 56),
+          List(35, 55),
+          List(36, 54)
         )
     )
   }
@@ -289,7 +311,7 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
       devil.parallelogonEquivalences shouldBe
         List(List(0, 5, 9), List(1, 8), List(2, 7, 12), List(3, 11), List(4, 10), List(6, 13)),
       devil.parallelogonEquivalencesNew shouldBe
-        List(List(0, 8), List(1, 7), List(2, 6, 12), List(3, 11), List(4, 10), List(5, 9, 13)),
+        List(List(0, 8), List(1, 7), List(2, 6, 12), List(3, 11), List(4, 10), List(5, 9, 13))
     )
   }
 
@@ -328,9 +350,27 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
       badge.parallelogonIndicesNew shouldBe Some((1, 7, 10, 16)),
       badge.parallelogonHexIndices shouldBe List(1, 4, 7, 10, 13, 16),
       badge.parallelogonEquivalences shouldBe
-        List(List(0, 8), List(1, 7, 13), List(2, 12), List(3, 11), List(4, 10, 16), List(5, 15), List(6, 14), List(9, 17)),
+        List(
+          List(0, 8),
+          List(1, 7, 13),
+          List(2, 12),
+          List(3, 11),
+          List(4, 10, 16),
+          List(5, 15),
+          List(6, 14),
+          List(9, 17)
+        ),
       badge.parallelogonEquivalencesNew shouldBe
-        List(List(0, 8), List(1, 7, 12), List(2, 11), List(3, 10, 16), List(4, 15), List(5, 14), List(6, 13), List(9, 17))
+        List(
+          List(0, 8),
+          List(1, 7, 12),
+          List(2, 11),
+          List(3, 10, 16),
+          List(4, 15),
+          List(5, 14),
+          List(6, 13),
+          List(9, 17)
+        )
     )
   }
 
@@ -338,14 +378,13 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
   val bulb: SimplePolygon =
     SimplePolygon(90, 90, 225, 135, 135, 135, 135, 135, 135, 225)
 
-  they should "be true for a 4.8.8 tessellation unit" in {
+  they should "be true for a 4.8.8 tessellation unit" in
 //    println(bulb.toParallelogonTiling())
     allAssert(
       bulb.parallelogonIndices shouldBe Some((0, 1, 5, 6)),
       bulb.parallelogonIndicesNew shouldBe Some((0, 3, 5, 8)),
       bulb.parallelogonHexIndices shouldBe List(0, 1, 3, 5, 6, 8)
     )
-  }
 
   they should "be true for a doubled 4.8.8 tessellation unit" in {
 
@@ -371,12 +410,12 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
       unit.parallelogonHexIndices shouldBe List(0, 2, 3, 5, 7, 8)
     )
   }
-  
+
   they should "be found for a 3.3.3.3.6 tessellation unit" in {
 
     /** <img src="file:../../../../../../resources/simple/unit-3.3.3.3.6.svg"/> */
     val unit = SimplePolygon(120, 180, 120, 120, 240, 180, 120, 240, 60, 180, 120, 180, 120, 240, 180, 120)
-    println(unit.toParallelogonTiling())
+//    println(unit.toParallelogonTiling())
     allAssert(
       unit.parallelogonIndices shouldBe None,
       unit.parallelogonIndicesNew shouldBe Option(0, 2, 8, 10),

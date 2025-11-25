@@ -75,7 +75,8 @@ object SimplePolygon:
     else areOppositeShiftedNew(xs, ys)
 
   private[dcel] def areOppositeSimple(xs: Vector[AngleDegree], ys: Vector[AngleDegree]): Boolean =
-    if xs.size != ys.size then throw new IllegalArgumentException("The two sequences must have the same length.")
+    if xs.size != ys.size then
+      throw new IllegalArgumentException("The two sequences must have the same length.")
     xs.lazyZip(ys).forall(areFitting) || xs.reverse.lazyZip(ys).forall(areFitting)
 
   extension (angles: SimplePolygon)
@@ -122,7 +123,7 @@ object SimplePolygon:
       val n = angles.size
       if n < 4 || n % 2 != 0 then Nil
       else
-        val half = n / 2
+        val half                       = n / 2
         val turns: Vector[AngleDegree] = toTurns
 
         // Slices the circular `turns` vector.
@@ -148,24 +149,29 @@ object SimplePolygon:
 //          println(s"segA: $segA, segB: $segB, segC: $segC, segD: $segD, segE: $segE, segF: $segF")
 //        )
         val result =
-        (0 until half - 1).view.flatMap { i =>
-          (i until half - 1).view.flatMap { j =>
-            (j + 1 until half).collectFirst {
-              case k if {
-                val segA = circularSlice(i, j)
-                val segB = circularSlice(j, k)
-                val segC = circularSlice(k, i + half)
-                val segD = circularSlice(i + half, j + half)
-                val segE = circularSlice(j + half, k + half)
-                val segF = circularSlice(k + half, i + n)
+          (0 until half - 1).view.flatMap { i =>
+
+            (i until half - 1).view.flatMap { j =>
+
+              (j + 1 until half).collectFirst {
+                case k if {
+                      val segA = circularSlice(i, j)
+                      val segB = circularSlice(j, k)
+                      val segC = circularSlice(k, i + half)
+                      val segD = circularSlice(i + half, j + half)
+                      val segE = circularSlice(j + half, k + half)
+                      val segF = circularSlice(k + half, i + n)
 
 //                println(s"i=$i, j=$j, k=$k")
-                areOppositeSimple(segA, segD) && areOppositeSimple(segB, segE) && areOppositeSimple(segC, segF)
-              } =>
-                List(i, j, k, i + half, j + half, k + half)
+                      areOppositeSimple(segA, segD) && areOppositeSimple(segB, segE) && areOppositeSimple(
+                        segC,
+                        segF
+                      )
+                    } =>
+                  List(i, j, k, i + half, j + half, k + half)
+              }
             }
-          }
-        }.headOption.getOrElse(Nil).distinct
+          }.headOption.getOrElse(Nil).distinct
         println(result)
         result
 
@@ -243,17 +249,17 @@ object SimplePolygon:
 
           val solutionsWithShits =
             for
-              s <- 0 until half
-              l1 <- 1 until half
-              l2 = half - l1
-              segA = circularSlice(s, l1)
-              segB = circularSlice(s + l1, l2)
-              segC = circularSlice(s + half, l1)
-              segD = circularSlice(s + half + l1, l2)
+              s       <- 0 until half
+              l1      <- 1 until half
+              l2       = half - l1
+              segA     = circularSlice(s, l1)
+              segB     = circularSlice(s + l1, l2)
+              segC     = circularSlice(s + half, l1)
+              segD     = circularSlice(s + half + l1, l2)
 //              _ = println(s"s:$s l1:$l1 segA:$segA segB:$segB segC:$segC segD:$segD")
-              oppAC = areOppositeNew(segA, segC)
+              oppAC    = areOppositeNew(segA, segC)
               oppACrev = areOppositeNew(segA, segC.reverse)
-              oppBD = areOppositeNew(segB, segD)
+              oppBD    = areOppositeNew(segB, segD)
               oppBDrev = areOppositeNew(segB, segD.reverse)
 //              _ = println(s"oppAC:${oppAC.isDefined || oppACrev.isDefined} oppBD:${oppBD.isDefined || oppBDrev.isDefined}")
               if (oppAC.isDefined || oppACrev.isDefined) && (oppBD.isDefined || oppBDrev.isDefined)
@@ -345,18 +351,18 @@ object SimplePolygon:
             turns.sliceO(start, start + len).tail
 
           val (s, s_l1, s_half, s_half_li) = parallelogonIndicesNew.get
-          val l1 = s_l1 - s
-          val l2 = half - l1
-          val segA = circularSlice(s, l1)
-          val segB = circularSlice(s + l1, l2)
-          val segC = circularSlice(s + half, l1)
-          val segD = circularSlice(s + half + l1, l2)
+          val l1                           = s_l1 - s
+          val l2                           = half - l1
+          val segA                         = circularSlice(s, l1)
+          val segB                         = circularSlice(s + l1, l2)
+          val segC                         = circularSlice(s + half, l1)
+          val segD                         = circularSlice(s + half + l1, l2)
 
           def groupOpposite(startFirst: Int, len: Int, shift: Int): List[List[Int]] =
             val startOpposite = startFirst + half
             (0 to len).map(i =>
               val reverse = len - i + shift
-              val added =
+              val added   =
                 if i < shift then reverse % len
                 else reverse
               List((startOpposite + added) % n, startFirst + i)
@@ -388,38 +394,3 @@ object SimplePolygon:
         case _                                 => None
       )
         .map(i => ParallelogramTranslation.values.zip(i).toMap)
-
-    def parallelogonTranslationIndices: Option[Map[ParallelogramTranslation, Int]] =
-      parallelogonEquivalences match
-        case Nil    => None
-        case groups =>
-          // Choose the pair of equivalent boundary vertices that defines the translation side
-          val group = groups.find(_.size > 2).get
-          val two   =
-            if (group(1) - group.head) >= angles.size / 2 then group.takeRight(2)
-            else group.take(2)
-          val third = if group.size == 3 then group.diff(two).head else group(3)
-          println(s"Indices, origin: ${two.head} and repeat: ${two.last} and repeatOnOtherAxis: $third")
-          Option(Map(
-            ParallelogramTranslation.Identity -> two.head,
-            ParallelogramTranslation.SidesAC   -> two.last,
-            ParallelogramTranslation.SidesBD   -> third
-          ))
-
-    def parallelogonTranslationIndicesNew: Option[Map[ParallelogramTranslation, Int]] =
-      parallelogonEquivalencesNew match
-        case Nil => None
-        case groups =>
-          // Choose the pair of equivalent boundary vertices that defines the translation side
-          val group = groups.find(_.size > 2).get
-          val two =
-            if (group(1) - group.head) >= angles.size / 2 then group.takeRight(2)
-            else group.take(2)
-          val third = if group.size == 3 then group.diff(two).head else group(3)
-          println(s"Indices, origin: ${two.head} and repeat: ${two.last} and repeatOnOtherAxis: $third")
-          Option(Map(
-            ParallelogramTranslation.Identity -> two.head,
-            ParallelogramTranslation.SidesAC -> two.last,
-            ParallelogramTranslation.SidesBD -> third
-          ))
-

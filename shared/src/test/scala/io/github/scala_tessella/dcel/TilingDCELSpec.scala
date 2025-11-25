@@ -477,8 +477,15 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     TilingDCEL.empty.quadrupleArea.value.isEmpty shouldBe true
   }
 
-  it should "fail for an hexagon" in {
-    hexagon.quadrupleArea.isRight shouldBe false
+  it should "quadruple an hexagon" in {
+    val quadrupled = hexagon.quadrupleArea
+    val result     = quadrupled.value
+    allAssert(
+      result.halfEdges.size shouldBe 38,
+      result.vertices.size shouldBe 16,
+      result.innerFaces.size shouldBe 4,
+      TilingValidation.validate(result).isRight shouldBe true
+    )
   }
 
   it should "quadruple a square" in {
