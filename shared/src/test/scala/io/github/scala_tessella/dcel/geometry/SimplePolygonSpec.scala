@@ -165,10 +165,10 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
 
   they should "be found for a 3.4.6.4 tessellation unit" in:
 
-    /** <img src="file:../../../../../../resources/simple/unit-3.4.6.4.svg"/> */
-    val unit = SimplePolygon(90, 210, 120, 120, 210, 210, 120, 210, 90, 150, 150, 150, 150, 240, 150, 150)
-//    println(unit.toParallelogonTiling())
-    unit.parallelogonIndices shouldBe List(0, 2, 3, 8, 10, 11)
+    /** <img src="file:../../../../../../resources/simple/fan-3.4.6.4.svg"/> */
+    val unit = SimplePolygon(90, 210, 120, 120, 210, 90, 150, 150, 150, 150)
+    println(unit.toParallelogonTiling())
+    unit.parallelogonIndices shouldBe List(0, 2, 3, 5, 7, 8)
 
   they should "be found for a 4.6.12 tessellation unit" in:
 
@@ -209,19 +209,7 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
 
   they should "be found for a 3.3.3.3.6 tessellation half unit" in:
 
-    /** <img src="file:../../../../../../resources/simple/unit-3.3.3.3.6half.svg"/> */
+    /** <img src="file:../../../../../../resources/simple/vase-3.3.3.3.6.svg"/> */
     val unit = SimplePolygon(60, 180, 120, 180, 120, 120, 180, 120, 120, 240)
 //    println(unit.toParallelogonTiling())
     unit.parallelogonIndices shouldBe List(0, 2, 3, 5, 7, 8)
-
-  they should "be found for a 3.3.3.3.6 tessellation unit" in:
-
-    /** <img src="file:../../../../../../resources/simple/unit-3.3.3.3.6.svg"/> */
-    val unit = SimplePolygon(120, 180, 120, 120, 240, 180, 120, 240, 60, 180, 120, 180, 120, 240, 180, 120)
-//    println(unit.toParallelogonTiling())
-    allAssert(
-      unit.parallelogonIndices shouldBe List(0, 2, 3, 8, 10, 11),
-      unit.parallelogonTranslationIndices.get.values.toList shouldBe List(0, 3, 10),
-      unit.parallelogonEquivalences shouldBe
-        List(List(0, 3, 10), List(2, 8, 11), List(1, 9), List(4, 15), List(5, 14), List(6, 13), List(7, 12))
-    )

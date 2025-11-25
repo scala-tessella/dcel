@@ -1,0 +1,146 @@
+<svg width="446" height="333" viewBox="-30 -278.432667 446.996732 333.432667" xmlns="http://www.w3.org/2000/svg">
+    <g>
+        <g>
+            <!-- Boundary Highlight -->
+            <g stroke="red" stroke-width="3.0" fill="none">
+                <polygon
+                        points="0,0 50,0 93.30127,25 136.60254,0 136.60254,-50 161.60254,-93.30127 118.30127,-118.30127 68.30127,-118.30127 25,-93.30127 0,-50">
+                </polygon>
+            </g>
+            <!-- Vertices -->
+            <g fill="darkred">
+                <circle cx="0" cy="0" r="2.0"/>
+                <circle cx="50" cy="0" r="2.0"/>
+                <circle cx="93.30127" cy="25" r="2.0"/>
+                <circle cx="136.60254" cy="0" r="2.0"/>
+                <circle cx="136.60254" cy="-50" r="2.0"/>
+                <circle cx="161.60254" cy="-93.30127" r="2.0"/>
+                <circle cx="118.30127" cy="-118.30127" r="2.0"/>
+                <circle cx="68.30127" cy="-118.30127" r="2.0"/>
+                <circle cx="25" cy="-93.30127" r="2.0"/>
+                <circle cx="0" cy="-50" r="2.0"/>
+            </g>
+            <!-- Vertex Labels -->
+            <g font-size="8" fill="blue">
+                <text x="2.5" y="-2.5">0</text>
+                <text x="52.5" y="-2.5">1</text>
+                <text x="95.80127" y="22.5">2</text>
+                <text x="139.10254" y="-2.5">3</text>
+                <text x="139.10254" y="-52.5">4</text>
+                <text x="164.10254" y="-95.80127">5</text>
+                <text x="120.80127" y="-120.80127">6</text>
+                <text x="70.80127" y="-120.80127">7</text>
+                <text x="27.5" y="-95.80127">8</text>
+                <text x="2.5" y="-52.5">9</text>
+            </g>
+        </g>
+    </g>
+    <g transform="translate(150.2627944162882562097103789201949, 2.992768950986459386500E-15)">
+        <g>
+            <!-- Boundary Highlight -->
+            <g stroke="red" stroke-width="3.0" fill="none">
+                <polygon
+                        points="0,0 50,0 93.30127,25 136.60254,0 136.60254,-50 161.60254,-93.30127 118.30127,-118.30127 68.30127,-118.30127 25,-93.30127 0,-50">
+                </polygon>
+            </g>
+            <!-- Vertices -->
+            <g fill="darkred">
+                <circle cx="0" cy="0" r="2.0"/>
+                <circle cx="50" cy="0" r="2.0"/>
+                <circle cx="93.30127" cy="25" r="2.0"/>
+                <circle cx="136.60254" cy="0" r="2.0"/>
+                <circle cx="136.60254" cy="-50" r="2.0"/>
+                <circle cx="161.60254" cy="-93.30127" r="2.0"/>
+                <circle cx="118.30127" cy="-118.30127" r="2.0"/>
+                <circle cx="68.30127" cy="-118.30127" r="2.0"/>
+                <circle cx="25" cy="-93.30127" r="2.0"/>
+                <circle cx="0" cy="-50" r="2.0"/>
+            </g>
+            <!-- Vertex Labels -->
+            <g font-size="8" fill="blue">
+                <text x="2.5" y="-2.5">0</text>
+                <text x="52.5" y="-2.5">1</text>
+                <text x="95.80127" y="22.5">2</text>
+                <text x="139.10254" y="-2.5">3</text>
+                <text x="139.10254" y="-52.5">4</text>
+                <text x="164.10254" y="-95.80127">5</text>
+                <text x="120.80127" y="-120.80127">6</text>
+                <text x="70.80127" y="-120.80127">7</text>
+                <text x="27.5" y="-95.80127">8</text>
+                <text x="2.5" y="-52.5">9</text>
+            </g>
+        </g>
+    </g>
+    <g transform="translate(75.13139720814416940194235527537274, -130.1313972081441567143347845946081)">
+        <g>
+            <!-- Boundary Highlight -->
+            <g stroke="red" stroke-width="3.0" fill="none">
+                <polygon
+                        points="0,0 50,0 93.30127,25 136.60254,0 136.60254,-50 161.60254,-93.30127 118.30127,-118.30127 68.30127,-118.30127 25,-93.30127 0,-50">
+                </polygon>
+            </g>
+            <!-- Vertices -->
+            <g fill="darkred">
+                <circle cx="0" cy="0" r="2.0"/>
+                <circle cx="50" cy="0" r="2.0"/>
+                <circle cx="93.30127" cy="25" r="2.0"/>
+                <circle cx="136.60254" cy="0" r="2.0"/>
+                <circle cx="136.60254" cy="-50" r="2.0"/>
+                <circle cx="161.60254" cy="-93.30127" r="2.0"/>
+                <circle cx="118.30127" cy="-118.30127" r="2.0"/>
+                <circle cx="68.30127" cy="-118.30127" r="2.0"/>
+                <circle cx="25" cy="-93.30127" r="2.0"/>
+                <circle cx="0" cy="-50" r="2.0"/>
+            </g>
+            <!-- Vertex Labels -->
+            <g font-size="8" fill="blue">
+                <text x="2.5" y="-2.5">0</text>
+                <text x="52.5" y="-2.5">1</text>
+                <text x="95.80127" y="22.5">2</text>
+                <text x="139.10254" y="-2.5">3</text>
+                <text x="139.10254" y="-52.5">4</text>
+                <text x="164.10254" y="-95.80127">5</text>
+                <text x="120.80127" y="-120.80127">6</text>
+                <text x="70.80127" y="-120.80127">7</text>
+                <text x="27.5" y="-95.80127">8</text>
+                <text x="2.5" y="-52.5">9</text>
+            </g>
+        </g>
+    </g>
+    <g transform="translate(225.3941916244324256116527341955676, -130.1313972081441537215658336081487)">
+        <g>
+            <!-- Boundary Highlight -->
+            <g stroke="red" stroke-width="3.0" fill="none">
+                <polygon
+                        points="0,0 50,0 93.30127,25 136.60254,0 136.60254,-50 161.60254,-93.30127 118.30127,-118.30127 68.30127,-118.30127 25,-93.30127 0,-50">
+                </polygon>
+            </g>
+            <!-- Vertices -->
+            <g fill="darkred">
+                <circle cx="0" cy="0" r="2.0"/>
+                <circle cx="50" cy="0" r="2.0"/>
+                <circle cx="93.30127" cy="25" r="2.0"/>
+                <circle cx="136.60254" cy="0" r="2.0"/>
+                <circle cx="136.60254" cy="-50" r="2.0"/>
+                <circle cx="161.60254" cy="-93.30127" r="2.0"/>
+                <circle cx="118.30127" cy="-118.30127" r="2.0"/>
+                <circle cx="68.30127" cy="-118.30127" r="2.0"/>
+                <circle cx="25" cy="-93.30127" r="2.0"/>
+                <circle cx="0" cy="-50" r="2.0"/>
+            </g>
+            <!-- Vertex Labels -->
+            <g font-size="8" fill="blue">
+                <text x="2.5" y="-2.5">0</text>
+                <text x="52.5" y="-2.5">1</text>
+                <text x="95.80127" y="22.5">2</text>
+                <text x="139.10254" y="-2.5">3</text>
+                <text x="139.10254" y="-52.5">4</text>
+                <text x="164.10254" y="-95.80127">5</text>
+                <text x="120.80127" y="-120.80127">6</text>
+                <text x="70.80127" y="-120.80127">7</text>
+                <text x="27.5" y="-95.80127">8</text>
+                <text x="2.5" y="-52.5">9</text>
+            </g>
+        </g>
+    </g>
+</svg>
