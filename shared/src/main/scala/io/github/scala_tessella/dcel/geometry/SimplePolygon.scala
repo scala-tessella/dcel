@@ -85,6 +85,12 @@ object SimplePolygon:
     def canTileTorus: Boolean =
       parallelogonIndices.nonEmpty
 
+    /** Returns the indices of the vertices of the parallelogon, if found
+      *
+      * @return
+      *   the ordered indices, 6 or 4 in the degenerate case of a 4-sides parallelogon, or Nil if the polygon
+      *   is not a parallelogon
+      */
     def parallelogonIndices: List[Int] =
       val n = angles.size
       if n < 4 || n % 2 != 0 then Nil
@@ -149,7 +155,7 @@ object SimplePolygon:
           .map(completeHalf(_).distinct)
           .getOrElse(Nil)
 
-    def parallelogonHexEquivalences: List[List[Int]] =
+    def parallelogonEquivalences: List[List[Int]] =
       val n = angles.size
 
       // connect the other indices of the segment to those of its antiparallel counterpart
@@ -162,7 +168,7 @@ object SimplePolygon:
           List(a, c, e) :: List(b, d, f) :: connect(a, b, e) ::: connect(b, c, f) ::: connect(c, d, a)
         case _                                 => Nil
 
-    def parallelogonTranslationHexIndices: Option[Map[ParallelogramTranslation, Int]] =
+    def parallelogonTranslationIndices: Option[Map[ParallelogramTranslation, Int]] =
       (parallelogonIndices match
         case origin :: ac :: bd :: _ :: Nil    => Option(List(origin, ac, bd))
         case origin :: _ :: ac :: _ :: bd :: _ => Option(List(origin, ac, bd))

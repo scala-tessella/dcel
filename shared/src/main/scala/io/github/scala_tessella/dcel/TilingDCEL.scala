@@ -237,7 +237,7 @@ final case class TilingDCEL private (
     if isEmpty then
       Right(this)
     else
-      boundarySimplePolygon.parallelogonTranslationHexIndices match
+      boundarySimplePolygon.parallelogonTranslationIndices match
         case None                     => Left(ValidationError("Tiling is not a parallelogon"))
         case Some(boundaryIndexesMap) =>
           val origin            = boundaryVertices(boundaryIndexesMap(ParallelogramTranslation.Identity))

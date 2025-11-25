@@ -575,7 +575,7 @@ object TilingTorusDCEL:
     )
 
   def fromTilingDCEL(tilingDCEL: TilingDCEL): Either[TilingError, TilingTorusDCEL] =
-    tilingDCEL.boundarySimplePolygon.parallelogonHexEquivalences match
+    tilingDCEL.boundarySimplePolygon.parallelogonEquivalences match
       case Nil         =>
         Left(TopologyError("TilingDCEL does not have a parallelogram boundary"))
       case indexGroups =>

@@ -538,7 +538,7 @@ object TilingSVG:
       val vertices =
         BigLineSegment(BigPoint.origin, BigPoint(1, 0)).unitPath(simple.toAngles)
 
-      simple.parallelogonTranslationHexIndices match
+      simple.parallelogonTranslationIndices match
         case None                     => toScalableVectorG(strokeWidth, padding, scale)
         case Some(boundaryIndexesMap) =>
 
