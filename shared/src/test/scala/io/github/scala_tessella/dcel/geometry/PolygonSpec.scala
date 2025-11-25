@@ -110,7 +110,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           Map(
             Identity -> 0,
             SideAC   -> 1,
-            SideBD   -> 3
+            SideAD   -> 3
           )
         )
     )
@@ -134,7 +134,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           Map(
             Identity -> 0,
             SideAC   -> 2,
-            SideBD   -> 6
+            SideAD   -> 6
           )
         )
     )
@@ -157,7 +157,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           Map(
             Identity -> 1,
             SideAC   -> 3,
-            SideBD   -> 7
+            SideAD   -> 7
           )
         )
     )
@@ -197,7 +197,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           Map(
             Identity -> 0,
             SideAC   -> 3,
-            SideBD   -> 9
+            SideAD   -> 9
           )
         ),
       checkIndicesForAllRotationsAndReflections(square3x3),
@@ -227,7 +227,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           Map(
             Identity -> 0,
             SideAC   -> 2,
-            SideBD   -> 6
+            SideAD   -> 6
           )
         ),
       checkIndicesForAllRotationsAndReflections(scale),
@@ -252,7 +252,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           Map(
             Identity -> 0,
             SideAC   -> 1,
-            SideBD   -> 4
+            SideAD   -> 4
           )
         ),
       checkIndicesForAllRotationsAndReflections(comma),
@@ -281,7 +281,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           Map(
             Identity -> 0,
             SideAC   -> 5,
-            SideBD   -> 9
+            SideAD   -> 9
           )
         ),
       checkIndicesForAllRotationsAndReflections(devil),
@@ -310,7 +310,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           Map(
             Identity -> 0,
             SideAC   -> 2,
-            SideBD   -> 9
+            SideAD   -> 9
           )
         ),
       checkIndicesForAllRotationsAndReflections(unit),
@@ -339,7 +339,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           Map(
             Identity -> 0,
             SideAC   -> 2,
-            SideBD   -> 9
+            SideAD   -> 9
           )
         ),
       checkIndicesForAllRotationsAndReflections(unit),
@@ -369,7 +369,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           Map(
             Identity -> 0,
             SideAC   -> 6,
-            SideBD   -> 10
+            SideAD   -> 10
           )
         ),
       checkIndicesForAllRotationsAndReflections(unit),
@@ -401,7 +401,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           Map(
             Identity -> 1,
             SideAC   -> 7,
-            SideBD   -> 13
+            SideAD   -> 13
           )
         ),
       checkIndicesForAllRotationsAndReflections(badge),
@@ -423,7 +423,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           Map(
             Identity -> 0,
             SideAC   -> 1,
-            SideBD   -> 4
+            SideAD   -> 4
           )
         ),
       checkIndicesForAllRotationsAndReflections(rectangle1x2),
@@ -448,7 +448,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           Map(
             Identity -> 0,
             SideAC   -> 1,
-            SideBD   -> 4
+            SideAD   -> 4
           )
         ),
       checkIndicesForAllRotationsAndReflections(parallelogram2x1),
@@ -475,7 +475,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           Map(
             Identity -> 0,
             SideAC   -> 4,
-            SideBD   -> 6
+            SideAD   -> 6
           )
         ),
       checkIndicesForAllRotationsAndReflections(twoJoinedHexs),
@@ -505,7 +505,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           Map(
             Identity -> 0,
             SideAC   -> 8,
-            SideBD   -> 12
+            SideAD   -> 12
           )
         ),
       checkIndicesForAllRotationsAndReflections(doubledJoinedHexs),
@@ -534,7 +534,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           Map(
             Identity -> 0,
             SideAC   -> 4,
-            SideBD   -> 10
+            SideAD   -> 10
           )
         ),
       checkIndicesForAllRotationsAndReflections(fourJoinedHexs),
@@ -564,7 +564,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           Map(
             Identity -> 0,
             SideAC   -> 4,
-            SideBD   -> 10
+            SideAD   -> 10
           )
         ),
       checkIndicesForAllRotationsAndReflections(carved),
@@ -617,7 +617,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           Map(
             Identity -> 6,
             SideAC   -> 22,
-            SideBD   -> 38
+            SideAD   -> 38
           )
         ),
       checkIndicesForAllRotationsAndReflections(sixtyFourJoinedHexs),
@@ -645,7 +645,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           Map(
             Identity -> 0,
             SideAC   -> 3,
-            SideBD   -> 6
+            SideAD   -> 6
           )
         ),
       checkIndicesForAllRotationsAndReflections(bulb),
@@ -678,7 +678,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           Map(
             Identity -> 0,
             SideAC   -> 6,
-            SideBD   -> 12
+            SideAD   -> 12
           )
         ),
       checkIndicesForAllRotationsAndReflections(doubledBulb),

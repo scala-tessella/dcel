@@ -10,7 +10,7 @@ opaque type SimplePolygon = Vector[AngleDegree]
 object SimplePolygon:
 
   enum ParallelogramTranslation:
-    case Identity, SideAC, SideBD
+    case Identity, SideAC, SideAD
 
   def alphaSum(sides: Int): AngleDegree =
     AngleDegree(180) * (sides - 2)
@@ -282,5 +282,5 @@ object SimplePolygon:
           Option(Map(
             ParallelogramTranslation.Identity -> two.head,
             ParallelogramTranslation.SideAC   -> two.last,
-            ParallelogramTranslation.SideBD   -> third
+            ParallelogramTranslation.SideAD   -> third
           ))

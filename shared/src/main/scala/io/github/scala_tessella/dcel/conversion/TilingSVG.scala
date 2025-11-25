@@ -545,7 +545,7 @@ object TilingSVG:
 
           val origin            = vertices(boundaryIndexesMap(ParallelogramTranslation.Identity)).scaled(scale)
           val repeat            = vertices(boundaryIndexesMap(ParallelogramTranslation.SideAC)).scaled(scale)
-          val repeatOnOtherAxis = vertices(boundaryIndexesMap(ParallelogramTranslation.SideBD)).scaled(scale)
+          val repeatOnOtherAxis = vertices(boundaryIndexesMap(ParallelogramTranslation.SideAD)).scaled(scale)
 
 //          println(s"origin: $origin, repeat: $repeat, repeatOnOtherAxis: $repeatOnOtherAxis")
           val diffTwo   = (repeat - origin).scaled(1.1)
