@@ -59,7 +59,7 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
   val twoJoinedHexs: SimplePolygon =
     SimplePolygon(120, 120, 240, 120, 120, 120, 120, 240, 120, 120)
 
-  they should "be found for a 2 joined regular hexagons boundary" in
+  they should "be found for a 2 joined regular hexagons boundary" in:
 //    println(twoJoinedHexs.toParallelogonTiling())
     allAssert(
       twoJoinedHexs.parallelogonHexIndices shouldBe List(0, 1, 4, 5, 6, 9),
@@ -67,24 +67,22 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
         List(List(0, 4, 6), List(1, 5, 9), List(2, 8), List(3, 7))
     )
 
-  they should "be found for a 2 joined regular hexagons boundary multiplied by 2" in {
+  they should "be found for a 2 joined regular hexagons boundary multiplied by 2" in:
 
     /** <img src="file:../../../../../../resources/simple/doubledJoinedHexs.svg"/> */
     val doubledJoinedHexs = twoJoinedHexs.multiplySidesBy(2)
 //    println(doubledJoinedHexs.toParallelogonTiling())
     doubledJoinedHexs.parallelogonHexIndices shouldBe List(0, 2, 8, 10, 12, 18)
-  }
 
-  they should "be true for a 2x2 joined regular hexagons boundary" in {
+  they should "be true for a 2x2 joined regular hexagons boundary" in:
 
     /** <img src="file:../../../../../../resources/simple/fourJoinedHexs.svg"/> */
     val fourJoinedHexs: SimplePolygon =
       SimplePolygon(120, 120, 240, 120, 120, 240, 120, 120, 120, 240, 120, 120, 240, 120)
 //    println(fourJoinedHexs.toParallelogonTiling())
     fourJoinedHexs.parallelogonHexIndices shouldBe List(0, 1, 4, 7, 8, 11)
-  }
 
-  they should "be true for a 8x8 joined regular hexagons boundary" in {
+  they should "be true for a 8x8 joined regular hexagons boundary" in:
     val sixtyFourJoinedHexs: SimplePolygon =
       TilingBuilder.createHexagonNet(8, 8).boundarySimplePolygon
 //    println(sixtyFourJoinedHexs.toParallelogonTiling())
@@ -124,34 +122,30 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
           List(30, 54)
         )
     )
-  }
 
-  they should "be true for a carved boundary" in {
+  they should "be true for a carved boundary" in:
 
     /** <img src="file:../../../../../../resources/simple/carved.svg"/> */
     val carved: SimplePolygon =
       SimplePolygon(120, 180, 120, 180, 120, 240, 120, 60, 240, 180, 120, 120, 240, 120)
 //    println(carved.toParallelogonTiling())
     carved.parallelogonHexIndices shouldBe List(0, 3, 4, 7, 10, 11)
-  }
 
-  they should "be found for a scale" in {
+  they should "be found for a scale" in:
 
     /** <img src="file:../../../../../../resources/simple/scale-3.3.4.3.4.svg"/> */
     val scale = SimplePolygon(90, 150, 120, 150, 90, 210, 60, 210)
 //    println(scale.toParallelogonTiling())
     scale.parallelogonHexIndices shouldBe List(0, 2, 4, 6)
-  }
 
-  they should "be found for a comma" in {
+  they should "be found for a comma" in:
 
     /** <img src="file:../../../../../../resources/simple/comma-3.3.3.4.4.svg"/> */
     val comma = SimplePolygon(90, 90, 150, 120, 60, 210)
 //    println(comma.toParallelogonTiling())
     comma.parallelogonHexIndices shouldBe List(0, 1, 3, 4)
-  }
 
-  they should "be found for a devil" in {
+  they should "be found for a devil" in:
 
     /** <img src="file:../../../../../../resources/simple/devil-3.12.12.svg"/> */
     val devil = SimplePolygon(150, 150, 150, 150, 150, 150, 150, 150, 210, 60, 210, 210, 60, 210)
@@ -161,25 +155,22 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
       devil.parallelogonHexEquivalences shouldBe
         List(List(0, 5, 9), List(2, 7, 12), List(1, 8), List(3, 11), List(4, 10), List(6, 13))
     )
-  }
 
-  they should "be found for a 3.6.3.6 tessellation unit" in {
+  they should "be found for a 3.6.3.6 tessellation unit" in:
 
     /** <img src="file:../../../../../../resources/simple/unit-3.6.3.6.svg"/> */
     val unit = SimplePolygon(60, 180, 120, 120, 120, 300, 120, 120, 180, 60, 240, 60, 240, 240)
 //    println(unit.toParallelogonTiling())
     unit.parallelogonHexIndices shouldBe List(0, 2, 7, 9)
-  }
 
-  they should "be found for a 3.4.6.4 tessellation unit" in {
+  they should "be found for a 3.4.6.4 tessellation unit" in:
 
     /** <img src="file:../../../../../../resources/simple/unit-3.4.6.4.svg"/> */
     val unit = SimplePolygon(90, 210, 120, 120, 210, 210, 120, 210, 90, 150, 150, 150, 150, 240, 150, 150)
 //    println(unit.toParallelogonTiling())
     unit.parallelogonHexIndices shouldBe List(0, 2, 3, 8, 10, 11)
-  }
 
-  they should "be found for a 4.6.12 tessellation unit" in {
+  they should "be found for a 4.6.12 tessellation unit" in:
 
     /** <img src="file:../../../../../../resources/simple/badge-4.6.12.svg"/> */
     val badge =
@@ -199,35 +190,31 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
           List(9, 17)
         )
     )
-  }
 
   /** <img src="file:../../../../../../resources/simple/bulb-4.8.8.svg"/> */
   val bulb: SimplePolygon =
     SimplePolygon(90, 90, 225, 135, 135, 135, 135, 135, 135, 225)
 
-  they should "be true for a 4.8.8 tessellation unit" in {
+  they should "be true for a 4.8.8 tessellation unit" in:
     //    println(bulb.toParallelogonTiling())
     bulb.parallelogonHexIndices shouldBe List(0, 1, 3, 5, 6, 8)
-  }
 
-  they should "be true for a doubled 4.8.8 tessellation unit" in {
+  they should "be true for a doubled 4.8.8 tessellation unit" in:
 
     /** <img src="file:../../../../../../resources/simple/bulbDoubled.svg"/> */
     val doubledBulb: SimplePolygon =
       bulb.multiplySidesBy(2)
 //    println(doubledBulb.toParallelogonTiling())
     doubledBulb.parallelogonHexIndices shouldBe List(0, 2, 6, 10, 12, 16)
-  }
 
-  they should "be found for a 3.3.3.3.6 tessellation half unit" in {
+  they should "be found for a 3.3.3.3.6 tessellation half unit" in:
 
     /** <img src="file:../../../../../../resources/simple/unit-3.3.3.3.6half.svg"/> */
     val unit = SimplePolygon(60, 180, 120, 180, 120, 120, 180, 120, 120, 240)
 //    println(unit.toParallelogonTiling())
     unit.parallelogonHexIndices shouldBe List(0, 2, 3, 5, 7, 8)
-  }
 
-  they should "be found for a 3.3.3.3.6 tessellation unit" in {
+  they should "be found for a 3.3.3.3.6 tessellation unit" in:
 
     /** <img src="file:../../../../../../resources/simple/unit-3.3.3.3.6.svg"/> */
     val unit = SimplePolygon(120, 180, 120, 120, 240, 180, 120, 240, 60, 180, 120, 180, 120, 240, 180, 120)
@@ -238,4 +225,3 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
       unit.parallelogonHexEquivalences shouldBe
         List(List(0, 3, 10), List(2, 8, 11), List(1, 9), List(4, 15), List(5, 14), List(6, 13), List(7, 12))
     )
-  }
