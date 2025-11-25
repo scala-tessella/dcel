@@ -23,7 +23,7 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
     val angles =
       Vector.fill(4)(Vector(AngleDegree(180), AngleDegree(90))).flatten
     val simple = SimplePolygon(angles)
-    simple.parallelogonHexIndices shouldBe List(0, 1, 3, 4, 5, 7)
+    simple.parallelogonHexIndices shouldBe List(1, 3, 5, 7)
 
   they should "be found for a 3x3 square" in:
     val square3x3 = simpleSquare.multiplySidesBy(3)

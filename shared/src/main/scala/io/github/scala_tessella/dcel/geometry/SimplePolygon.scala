@@ -117,38 +117,41 @@ object SimplePolygon:
 //          val segF = circularSlice(k + half, i + n)
 //          println(s"segA: $segA, segB: $segB, segC: $segC, segD: $segD, segE: $segE, segF: $segF")
 //        )
-        val result =
-          (0 until half - 1).view.flatMap { i =>
 
-            (i until half - 1).view.flatMap { j =>
+        // all combinations of indices for the start of three consecutive segments in the 6-sides parallelogon
+        val viewIndices =
+          (0 until half - 1).view.flatMap:
+            i => (i until half - 1).view.flatMap:
+              j => (j + 1 until half).map:
+                k => (i, j, k)
 
-              (j + 1 until half).collectFirst {
-                case k if {
-                      val segA = circularSlice(i, j)
-                      val segB = circularSlice(j, k)
-                      val segC = circularSlice(k, i + half)
-                      val segD = circularSlice(i + half, j + half)
-                      val segE = circularSlice(j + half, k + half)
-                      val segF = circularSlice(k + half, i + n)
+        // give precedence to degenerate square results, where the first two indices are the same
+        val (sqr, hex) = viewIndices.partition((i, j, _) => i == j)
 
-                      def allSegmentsFitting(f: Vector[AngleDegree] => Vector[AngleDegree] = identity): Boolean =
-                        areOpposite(segA, f(segD)) && areOpposite(segB, f(segE)) && areOpposite(segC, f(segF))
+        def isFitting(ijk: (Int, Int, Int)): Boolean =
+          val (i, j, k) = ijk
+          val segA = circularSlice(i, j)
+          val segB = circularSlice(j, k)
+          val segC = circularSlice(k, i + half)
+          val segD = circularSlice(i + half, j + half)
+          val segE = circularSlice(j + half, k + half)
+          val segF = circularSlice(k + half, i + n)
 
-//                      println(s"i=$i, j=$j, k=$k")
-                      allSegmentsFitting() || allSegmentsFitting(_.reverse)
-                    } =>
-                  List(i, j, k, i + half, j + half, k + half)
-              }
-            }
-          }.headOption.getOrElse(Nil).distinct
-//        println(result)
-        result
+          def allSegmentsFitting(f: Vector[AngleDegree] => Vector[AngleDegree] = identity): Boolean =
+            areOpposite(segA, f(segD)) && areOpposite(segB, f(segE)) && areOpposite(segC, f(segF))
+
+          allSegmentsFitting() || allSegmentsFitting(_.reverse)
+
+        sqr.find(isFitting)
+          .orElse(hex.find(isFitting))
+          .map((i, j, k) => List(i, j, k, i + half, j + half, k + half).distinct)
+          .getOrElse(Nil)
 
     def parallelogonHexEquivalences: List[List[Int]] =
       val n = angles.size
       parallelogonHexIndices match
-        case four @ a :: b :: c :: d :: Nil    =>
-          four :: (1 until b - a).toList.map(i => List(a + i, (d - i + n) % n))
+        case sqr @ a :: b :: c :: d :: Nil    =>
+          sqr :: (1 until b - a).toList.map(i => List(a + i, (d - i + n) % n))
             ::: (1 until c - b).toList.map(i => List(b + i, (a - i + n) % n))
         case a :: b :: c :: d :: e :: f :: Nil =>
           List(a, c, e) :: List(b, d, f) :: (1 until b - a).toList.map(i => List(a + i, (e - i + n) % n))
