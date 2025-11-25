@@ -4,6 +4,8 @@ import io.github.scala_tessella.dcel.conversion.TilingSVG.toScalableVectorG
 import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.ACCURACY
 import io.github.scala_tessella.ring_seq.RingSeq.sliceO
 
+import scala.::
+
 /** Unit simple polygon with the given ordered interior angles */
 opaque type SimplePolygon = Vector[AngleDegree]
 
@@ -270,6 +272,18 @@ object SimplePolygon:
 
           println(solutionsWithShits)
           if solutionsWithShits.isEmpty then None else Option(solutionsWithShits.minBy((_, a, b) => a + b)._1)
+
+    def parallelogonHexEquivalences: List[List[Int]] =
+      val n = angles.size
+      parallelogonHexIndices match
+        case four @ a :: b :: c :: d :: Nil    =>
+          four :: (1 until b - a).toList.map(i => List(a + i, (d - i + n) % n))
+            ::: (1 until c - b).toList.map(i => List(b + i, (a - i + n) % n))
+        case a :: b :: c :: d :: e :: f :: Nil =>
+          List(a, c, e) :: List(b, d, f) :: (1 until b - a).toList.map(i => List(a + i, (e - i + n) % n))
+            ::: (1 until c - b).toList.map(i => List(b + i, (f - i + n) % n))
+            ::: (1 until d - c).toList.map(i => List(c + i, (a - i + n) % n))
+        case _                                 => Nil
 
     def parallelogonEquivalences: List[List[Int]] =
       val n = angles.size
