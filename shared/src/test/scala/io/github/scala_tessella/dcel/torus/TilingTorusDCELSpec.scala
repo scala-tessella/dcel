@@ -1,11 +1,9 @@
 package io.github.scala_tessella.dcel.torus
 
-import io.github.scala_tessella.dcel.conversion.TilingSVG.toTorusCheck
 import io.github.scala_tessella.dcel.geometry.{RegularPolygon, SimplePolygon}
 import io.github.scala_tessella.dcel.{TilingBuilder, TilingTestHelpers}
 import io.github.scala_tessella.dcel.torus.TilingTorusBuilder.*
 import io.github.scala_tessella.dcel.structure.{FaceId, VertexId}
-import io.github.scala_tessella.dcel.torus.TilingTorusDCEL.TorusSvg3DOptions
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
