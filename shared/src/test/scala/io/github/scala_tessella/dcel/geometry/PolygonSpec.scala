@@ -655,7 +655,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "be true for a doubled 4.8.8 tessellation unit" in {
 
-    /** <img src="file:../../../../../../resources/simple/doubledBulb.svg"/> */
+    /** <img src="file:../../../../../../resources/simple/bulbDoubled.svg"/> */
     val doubledBulb: SimplePolygon =
       bulb.multiplySidesBy(2)
     println(doubledBulb.toParallelogonTiling())

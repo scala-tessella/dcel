@@ -1,4 +1,5 @@
-<svg width="271" height="602" viewBox="-123.30127 -572.128129 271.60254 602.128129" xmlns="http://www.w3.org/2000/svg">
+<svg
+        width="524" height="424" viewBox="-123.30127 -394.365335 524.496732 424.365335" xmlns="http://www.w3.org/2000/svg">
     <g>
         <g>
             <!-- Boundary Highlight -->
@@ -43,7 +44,7 @@
             </g>
         </g>
     </g>
-    <g transform="translate(102.6313972081441545982386099777897, -177.7627944162882515911932880681522)">
+    <g transform="translate(-47.63139720814408987012119747905857, -177.7627944162882689350400763340769)">
         <g>
             <!-- Boundary Highlight -->
             <g stroke="red" stroke-width="3.0" fill="none">
@@ -87,7 +88,7 @@
             </g>
         </g>
     </g>
-    <g transform="translate(-102.6313972081440998835958094680057, -177.7627944162883263327853125558398)">
+    <g transform="translate(-205.2627944162883280790568617989479, -7.4741592024487719144E-14)">
         <g>
             <!-- Boundary Highlight -->
             <g stroke="red" stroke-width="3.0" fill="none">
@@ -131,7 +132,7 @@
             </g>
         </g>
     </g>
-    <g transform="translate(5.47146428005097840E-14, -355.5255888325765779239786006239920)">
+    <g transform="translate(-252.8941916244324179491780592780065, -177.7627944162883436766321008217960)">
         <g>
             <!-- Boundary Highlight -->
             <g stroke="red" stroke-width="3.0" fill="none">
