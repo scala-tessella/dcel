@@ -1,5 +1,6 @@
 package io.github.scala_tessella.dcel.geometry
 
+import io.github.scala_tessella.dcel.conversion.TilingSVG.toParallelogonTiling
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, SimplePolygon}
 import io.github.scala_tessella.dcel.TilingTestHelpers
 import org.scalatest.flatspec.AnyFlatSpec
@@ -93,6 +94,13 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
     rhombus.parallelogonIndices shouldBe Some((0, 1, 2, 3))
   }
 
+  they should "be found for a 3.3.3.3.6 tessellation half unit" in {
+    val unit = SimplePolygon(60, 180, 120, 180, 120, 120, 180, 120, 120, 240)
+    unit.parallelogonIndices.isDefined shouldBe true
+    unit.parallelogonIndices shouldBe Option(List(0, 2, 5, 7))
+
+  }
+  
   they should "be found for a 3.3.3.3.6 tessellation unit" in {
 
     /** <img src="file:../../../../../../resources/simple/unit-3.3.3.3.6.svg"/> */
