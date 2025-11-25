@@ -128,14 +128,14 @@ object SimplePolygon:
         // separate the degenerate square results, where the first two indices are the same
         val (sqr, hex) = viewIndices.partition((_: @unchecked) match { case i :: j :: _ => i == j })
 
-        def completeHalf(ijk: List[Int]) =
+        def completeHalf(ijk: List[Int]): List[Int] =
           ijk ::: ijk.map(_ + half)
 
         def isParallelogon(ijk: List[Int]): Boolean =
           val startStops = completeHalf(ijk) :+ (ijk.head + n)
-          val segments = startStops.sliding(2).collect({
+          val segments   = startStops.sliding(2).collect {
             case start :: stop :: Nil => circularSlice(start, stop)
-          }).toVector
+          }.toVector
 
           /** Checks that the 3 first segments fits into their opposites */
           def allSegmentsFitting(f: Vector[AngleDegree] => Vector[AngleDegree] = identity): Boolean =
