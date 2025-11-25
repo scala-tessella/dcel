@@ -99,15 +99,15 @@ object SimplePolygon:
         def circularSlice(start: Int, stop: Int): Vector[AngleDegree] =
           turns.sliceO(start, stop).drop(1)
 
-//        val halfIndices =
+//        val halfIndicesAlt =
 //          for
 //            i <- 0 until half - 1
 //            j <- i until half - 1
 //            k <- j + 1 until half
 //          yield (i, j, k)
-//        println(s"half indices $halfIndices")
+//        println(s"half indices $halfIndicesAlt")
 //        println(half)
-//        halfIndices.foreach((i, j, k) =>
+//        halfIndicesAlt.foreach((i, j, k) =>
 //          println(s"i=$i, j=$j, k=$k")
 //          val segA = circularSlice(i, j)
 //          val segB = circularSlice(j, k)
@@ -119,14 +119,14 @@ object SimplePolygon:
 //        )
 
         // all combinations of indices for the start of three consecutive segments in the 6-sides parallelogon
-        val viewIndices =
+        val halfIndices =
           (0 until half - 1).view.flatMap: i =>
             (i until half - 1).view.flatMap: j =>
               (j + 1 until half).map: k =>
                 List(i, j, k)
 
         // separate the degenerate square results, where the first two indices are the same
-        val (sqr, hex) = viewIndices.partition((_: @unchecked) match { case i :: j :: _ => i == j })
+        val (sqr, hex) = halfIndices.partition((_: @unchecked) match { case i :: j :: _ => i == j })
 
         def completeHalf(ijk: List[Int]): List[Int] =
           ijk ::: ijk.map(_ + half)
