@@ -92,8 +92,8 @@ object SimplePolygon:
         val half                       = n / 2
         val turns: Vector[AngleDegree] = toTurns
 
-        def areOppositeSimple(xs: Vector[AngleDegree], ys: Vector[AngleDegree]): Boolean =
-          xs.lazyZip(ys).forall(areFitting) || xs.reverse.lazyZip(ys).forall(areFitting)
+        def areOpposite(xs: Vector[AngleDegree], ys: Vector[AngleDegree]): Boolean =
+          xs.lazyZip(ys).forall(areFitting)
 
         // Slices the circular `turns` vector.
         def circularSlice(start: Int, stop: Int): Vector[AngleDegree] =
@@ -131,17 +131,17 @@ object SimplePolygon:
                       val segE = circularSlice(j + half, k + half)
                       val segF = circularSlice(k + half, i + n)
 
-//                println(s"i=$i, j=$j, k=$k")
-                      areOppositeSimple(segA, segD) && areOppositeSimple(segB, segE) && areOppositeSimple(
-                        segC,
-                        segF
-                      )
+                      def allSegmentsFitting(f: Vector[AngleDegree] => Vector[AngleDegree] = identity): Boolean =
+                        areOpposite(segA, f(segD)) && areOpposite(segB, f(segE)) && areOpposite(segC, f(segF))
+
+//                      println(s"i=$i, j=$j, k=$k")
+                      allSegmentsFitting() || allSegmentsFitting(_.reverse)
                     } =>
                   List(i, j, k, i + half, j + half, k + half)
               }
             }
           }.headOption.getOrElse(Nil).distinct
-        println(result)
+//        println(result)
         result
 
     def parallelogonHexEquivalences: List[List[Int]] =
