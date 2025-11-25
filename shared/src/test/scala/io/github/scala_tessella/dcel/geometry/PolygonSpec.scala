@@ -322,6 +322,7 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
     /** <img src="file:../../../../../../resources/simple/unit-3.3.3.3.6.svg"/> */
     val unit = SimplePolygon(120, 180, 120, 120, 240, 180, 120, 240, 60, 180, 120, 180, 120, 240, 180, 120)
+//    println(unit.toParallelogonTiling())
     allAssert(
       unit.parallelogonIndices shouldBe Some((0, 2, 7, 9)),
       unit.parallelogonEquivalences shouldBe

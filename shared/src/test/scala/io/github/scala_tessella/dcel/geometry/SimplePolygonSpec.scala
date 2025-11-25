@@ -1,8 +1,8 @@
 package io.github.scala_tessella.dcel.geometry
 
-import io.github.scala_tessella.dcel.conversion.TilingSVG.toParallelogonTiling
+import io.github.scala_tessella.dcel.conversion.TilingSVG.{toParallelogonTiling, toScalableVectorG}
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, SimplePolygon}
-import io.github.scala_tessella.dcel.TilingTestHelpers
+import io.github.scala_tessella.dcel.{TilingBuilder, TilingTestHelpers}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -89,24 +89,230 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
 
   behavior of "SimplePolygon.parallelogonIndices"
 
+  val simpleSquare: SimplePolygon = SimplePolygon(90, 90, 90, 90)
+
+  they should "be found for a square" in
+    allAssert(
+      simpleSquare.parallelogonIndices shouldBe Some((0, 1, 2, 3)),
+      simpleSquare.parallelogonIndicesNew shouldBe Some((0, 1, 2, 3))
+    )
+
+  they should "be found for a 2x2 square" in {
+    val square2x2 = simpleSquare.multiplySidesBy(2)
+    allAssert(
+      square2x2.parallelogonIndices shouldBe Some((0, 2, 4, 6)),
+      square2x2.parallelogonIndicesNew shouldBe Some((0, 2, 4, 6))
+    )
+  }
+
+  they should "be found for a 2x2 square with shifted angles" in {
+    val angles =
+      Vector.fill(4)(Vector(AngleDegree(180), AngleDegree(90))).flatten
+    val simple = SimplePolygon(angles)
+    allAssert(
+      simple.parallelogonIndices shouldBe Some((1, 3, 5, 7)),
+      simple.parallelogonIndicesNew shouldBe Some((1, 3, 5, 7))
+    )
+  }
+
+  they should "be found for a 3x3 square" in {
+    val square3x3 = simpleSquare.multiplySidesBy(3)
+    allAssert(
+      square3x3.parallelogonIndices shouldBe Some((0, 3, 6, 9)),
+      square3x3.parallelogonIndicesNew shouldBe Some((0, 3, 6, 9))
+    )
+  }
+
   they should "be found for a rhombus" in {
     val rhombus = SimplePolygon(120, 60, 120, 60)
     rhombus.parallelogonIndices shouldBe Some((0, 1, 2, 3))
   }
 
+  they should "be found for a 1x2 rectangle" in {
+    val rectangle1x2 = SimplePolygon(90, 90, 180, 90, 90, 180)
+    allAssert(
+      rectangle1x2.parallelogonIndices shouldBe Some((0, 1, 3, 4)),
+      rectangle1x2.parallelogonIndicesNew shouldBe Some((0, 1, 3, 4))
+    )
+  }
+
+  they should "be found for a 2x1 parallelogram" in {
+
+    /** <img src="file:../../../../../../resources/simple/parallelogram2x1.svg"/> */
+    val parallelogram2x1 = SimplePolygon(60, 120, 180, 60, 120, 180)
+//    println(parallelogram2x1.toParallelogonTiling())
+    allAssert(
+      parallelogram2x1.parallelogonIndices shouldBe Some((0, 1, 3, 4)),
+      parallelogram2x1.parallelogonIndicesNew shouldBe Some((0, 1, 3, 4))
+    )
+  }
+
+  they should "be found for a regular pentagon" in {
+    SimplePolygon(RegularPolygon(5).angles).parallelogonIndices shouldBe None
+  }
+
+  they should "be found for an hexagon" in {
+    val unit = SimplePolygon(90, 120, 150, 90, 120, 150)
+    unit.parallelogonIndices shouldBe None
+    unit.parallelogonIndicesNew shouldBe None
+  }
+
+  /** <img src="file:../../../../../../resources/simple/twoJoinedHexs.svg"/> */
+  val twoJoinedHexs: SimplePolygon =
+    SimplePolygon(120, 120, 240, 120, 120, 120, 120, 240, 120, 120)
+
+  they should "be found for a 2 joined regular hexagons boundary" in
+    allAssert(
+      twoJoinedHexs.parallelogonIndices shouldBe Some((0, 1, 5, 6)),
+      twoJoinedHexs.parallelogonIndicesNew shouldBe Some((0, 4, 5, 9))
+    )
+
+  they should "be found for a 2 joined regular hexagons boundary multiplied by 2" in {
+
+    /** <img src="file:../../../../../../resources/simple/doubledJoinedHexs.svg"/> */
+    val doubledJoinedHexs = twoJoinedHexs.multiplySidesBy(2)
+    allAssert(
+      doubledJoinedHexs.parallelogonIndices shouldBe Some((0, 2, 10, 12)),
+      doubledJoinedHexs.parallelogonIndicesNew shouldBe Some((0, 6, 10, 16))
+    )
+  }
+
+  they should "be true for a 2x2 joined regular hexagons boundary" in {
+
+    /** <img src="file:../../../../../../resources/simple/fourJoinedHexs.svg"/> */
+    val fourJoinedHexs: SimplePolygon =
+      SimplePolygon(120, 120, 240, 120, 120, 240, 120, 120, 120, 240, 120, 120, 240, 120)
+    allAssert(
+      fourJoinedHexs.parallelogonIndices shouldBe Some((0, 3, 7, 10)),
+      fourJoinedHexs.parallelogonIndicesNew shouldBe Some((0, 3, 7, 10))
+    )
+  }
+
+  they should "be true for a 8x8 joined regular hexagons boundary" in {
+    val sixtyFourJoinedHexs: SimplePolygon =
+      TilingBuilder.createHexagonNet(8, 8).boundarySimplePolygon
+    allAssert(
+      sixtyFourJoinedHexs.parallelogonIndices shouldBe Some((0, 13, 31, 41)),
+      sixtyFourJoinedHexs.parallelogonIndicesNew shouldBe Some((0, 13, 31, 44))
+    )
+  }
+
+  they should "be true for a carved boundary" in {
+
+    /** <img src="file:../../../../../../resources/simple/carved.svg"/> */
+    val carved: SimplePolygon =
+      SimplePolygon(120, 180, 120, 180, 120, 240, 120, 60, 240, 180, 120, 120, 240, 120)
+    println(carved.toParallelogonTiling())
+    allAssert(
+      carved.parallelogonIndices shouldBe Some((0, 3, 7, 10)),
+    )
+  }
+
+  they should "be found for a scale" in {
+
+    /** <img src="file:../../../../../../resources/simple/scale-3.3.4.3.4.svg"/> */
+    val scale = SimplePolygon(90, 150, 120, 150, 90, 210, 60, 210)
+//    println(scale.toParallelogonTiling())
+    allAssert(
+      scale.parallelogonIndices shouldBe Some((0, 2, 4, 6)),
+      scale.parallelogonIndicesNew shouldBe Some((0, 2, 4, 6))
+    )
+  }
+
+  they should "be found for a comma" in {
+
+    /** <img src="file:../../../../../../resources/simple/comma-3.3.3.4.4.svg"/> */
+    val comma = SimplePolygon(90, 90, 150, 120, 60, 210)
+//    println(comma.toParallelogonTiling())
+    allAssert(
+      comma.parallelogonIndices shouldBe Some((0, 1, 3, 4)),
+      comma.parallelogonIndicesNew shouldBe Some((0, 1, 3, 4))
+    )
+  }
+
+  they should "be found for a devil" in {
+
+    /** <img src="file:../../../../../../resources/simple/devil-3.12.12.svg"/> */
+    val devil = SimplePolygon(150, 150, 150, 150, 150, 150, 150, 150, 210, 60, 210, 210, 60, 210)
+//    println(devil.toParallelogonTiling())
+    allAssert(
+      devil.parallelogonIndices shouldBe Some((2, 5, 9, 12)),
+      devil.parallelogonIndicesNew shouldBe Some((2, 5, 9, 12))
+    )
+  }
+
+  they should "be found for a 3.6.3.6 tessellation unit" in {
+
+    /** <img src="file:../../../../../../resources/simple/unit-3.6.3.6.svg"/> */
+    val unit = SimplePolygon(60, 180, 120, 120, 120, 300, 120, 120, 180, 60, 240, 60, 240, 240)
+//    println(unit.toParallelogonTiling())
+    allAssert(
+      unit.parallelogonIndices shouldBe Some((0, 2, 7, 9)),
+      unit.parallelogonIndicesNew shouldBe Some((0, 2, 7, 9))
+    )
+  }
+
+  they should "be found for a 3.4.6.4 tessellation unit" in {
+
+    /** <img src="file:../../../../../../resources/simple/unit-3.4.6.4.svg"/> */
+    val unit = SimplePolygon(90, 210, 120, 120, 210, 210, 120, 210, 90, 150, 150, 150, 150, 240, 150, 150)
+//    println(unit.toParallelogonTiling())
+    allAssert(
+      unit.parallelogonIndices shouldBe Some((2, 6, 10, 14)),
+      unit.parallelogonIndicesNew shouldBe Some((0, 2, 8, 10))
+    )
+  }
+
+  they should "be found for a 4.6.12 tessellation unit" in {
+
+    /** <img src="file:../../../../../../resources/simple/badge-4.6.12.svg"/> */
+    val badge =
+      SimplePolygon(150, 150, 150, 150, 150, 150, 240, 90, 210, 120, 120, 210, 210, 120, 120, 210, 90, 240)
+//    println(badge.toParallelogonTiling())
+    allAssert(
+      badge.parallelogonIndices shouldBe Some((1, 4, 10, 13)),
+      badge.parallelogonIndicesNew shouldBe Some((1, 7, 10, 16))
+    )
+  }
+
+  /** <img src="file:../../../../../../resources/simple/bulb-4.8.8.svg"/> */
+  val bulb: SimplePolygon =
+    SimplePolygon(90, 90, 225, 135, 135, 135, 135, 135, 135, 225)
+
+  they should "be true for a 4.8.8 tessellation unit" in {
+//    println(bulb.toParallelogonTiling())
+    allAssert(
+      bulb.parallelogonIndices shouldBe Some((0, 1, 5, 6)),
+      bulb.parallelogonIndicesNew shouldBe Some((0, 3, 5, 8))
+    )
+  }
+
+  they should "be true for a doubled 4.8.8 tessellation unit" in {
+
+    /** <img src="file:../../../../../../resources/simple/doubledBulb.svg"/> */
+    val doubledBulb: SimplePolygon =
+      bulb.multiplySidesBy(2)
+//    println(doubledBulb.toParallelogonTiling())
+    allAssert(
+      doubledBulb.parallelogonIndices shouldBe Some((0, 2, 10, 12)),
+      doubledBulb.parallelogonIndicesNew shouldBe Some((0, 6, 10, 16))
+    )
+  }
+
   they should "be found for a 3.3.3.3.6 tessellation half unit" in {
     val unit = SimplePolygon(60, 180, 120, 180, 120, 120, 180, 120, 120, 240)
-    unit.parallelogonIndices.isDefined shouldBe true
-    unit.parallelogonIndices shouldBe Option(List(0, 2, 5, 7))
-
+//    println(unit.toParallelogonTiling())
+    unit.parallelogonIndices shouldBe None
+    unit.parallelogonIndicesNew shouldBe Option((0, 2, 5, 7))
   }
   
   they should "be found for a 3.3.3.3.6 tessellation unit" in {
 
     /** <img src="file:../../../../../../resources/simple/unit-3.3.3.3.6.svg"/> */
     val unit = SimplePolygon(120, 180, 120, 120, 240, 180, 120, 240, 60, 180, 120, 180, 120, 240, 180, 120)
-    unit.parallelogonIndices.isDefined shouldBe true
-    unit.parallelogonIndices shouldBe Option(List(0, 2, 8, 10))
+//    println(unit.toParallelogonTiling())
+    unit.parallelogonIndices shouldBe None
+    unit.parallelogonIndicesNew shouldBe Option(0, 2, 8, 10)
   }
 
 

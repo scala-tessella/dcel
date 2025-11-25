@@ -54,6 +54,11 @@ object SimplePolygon:
     // changed from xs.length to xs.length + 1
     else (1 to ((xs.length + 1) / 2)).find(n => xs.drop(n).lazyZip(ys.dropRight(n)).forall(areFitting))
 
+  private[dcel] def areOppositeShiftedNew(xs: Vector[AngleDegree], ys: Vector[AngleDegree]): Option[Int] =
+    if xs.length <= 1 then None
+    // changed from xs.length to xs.length + 1
+    else (1 to ((xs.length + 1) / 2)).find(n => xs.drop(n).lazyZip(ys.dropRight(n)).forall(areFitting))
+
   /** Checks if one sequence of turns is the negative of another (antiparallel).
     *
     * @return
@@ -63,6 +68,11 @@ object SimplePolygon:
     if xs.size != ys.size then None
     else if xs.lazyZip(ys).forall(areFitting) then Some(0)
     else areOppositeShifted(xs, ys)
+
+  private[dcel] def areOppositeNew(xs: Vector[AngleDegree], ys: Vector[AngleDegree]): Option[Int] =
+    if xs.size != ys.size then None
+    else if xs.lazyZip(ys).forall(areFitting) then Some(0)
+    else areOppositeShiftedNew(xs, ys)
 
   extension (angles: SimplePolygon)
 
@@ -138,7 +148,13 @@ object SimplePolygon:
                     val segB = circularSlice(s + l1, l2)
                     val segC = circularSlice(s + half, l1)
                     val segD = circularSlice(s + half + l1, l2)
-//                    println(s"s=$s, l1=$l1, l2=$l2, segA=$segA, segB=$segB, segC=$segC, segD=$segD")
+
+//                    println(s"----\ns=$s, l1=$l1, l2=$l2")
+//                    println(s"segA: $segA, segC: $segC, segB: $segB, segD: $segD")
+//                    println(s"areOpposite(segA, segC): ${areOpposite(segA, segC)}")
+//                    println(s"areOpposite(segA, segC.reverse): ${areOpposite(segA, segC.reverse)}")
+//                    println(s"areOpposite(segB, segD): ${areOpposite(segB, segD)}")
+//                    println(s"areOpposite(segB, segD.reverse): ${areOpposite(segB, segD.reverse)}")
 
                     (areOpposite(segA, segC).isDefined || areOpposite(segA, segC.reverse).isDefined)
                     && (areOpposite(segB, segD).isDefined || areOpposite(segB, segD.reverse).isDefined)
@@ -146,6 +162,53 @@ object SimplePolygon:
                 (s, s + l1, s + half, s + half + l1)
             }
           }.headOption
+
+    def parallelogonIndicesNew: Option[(Int, Int, Int, Int)] =
+      val n = angles.size
+
+      // Must have at least 4 sides and an even number of them to form opposite pairs.
+      if n < 4 || n % 2 != 0 then None
+      else
+        // Quick guard: a regular n-gon can tile a torus only if n=4 (a square).
+        if angles.map(_.normalised.toRational).distinct.size == 1 then
+          if n == 4 then
+            println(List(List(0, 1, 2, 3)))
+            Some(0, 1, 2, 3)
+          else None
+        else
+          val half = n / 2
+          //          println(s"n=$n, half=$half")
+
+          // Exterior turn at each vertex along the boundary (assuming unit edges).
+          val turns: Vector[AngleDegree] = toTurns
+
+          // Slices the circular `turns` vector.
+          def circularSlice(start: Int, len: Int): Vector[AngleDegree] =
+            turns.sliceO(start, start + len).tail
+
+          val solutionsWithShits =
+            for
+              s <- 0 until half
+              l1 <- 1 until half
+              l2 = half - l1
+              segA = circularSlice(s, l1)
+              segB = circularSlice(s + l1, l2)
+              segC = circularSlice(s + half, l1)
+              segD = circularSlice(s + half + l1, l2)
+//              _ = println(s"s:$s l1:$l1 segA:$segA segB:$segB segC:$segC segD:$segD")
+              oppAC = areOppositeNew(segA, segC)
+              oppACrev = areOppositeNew(segA, segC.reverse)
+              oppBD = areOppositeNew(segB, segD)
+              oppBDrev = areOppositeNew(segB, segD.reverse)
+//              _ = println(s"oppAC:${oppAC.isDefined || oppACrev.isDefined} oppBD:${oppBD.isDefined || oppBDrev.isDefined}")
+              if (oppAC.isDefined || oppACrev.isDefined) && (oppBD.isDefined || oppBDrev.isDefined)
+            yield
+              val minACshift = List(oppAC, oppACrev).flatten.min
+              val minBDshift = List(oppBD, oppBDrev).flatten.min
+              ((s, (s + l1) % n, (s + half) % n, (s + half + l1) % n), minACshift, minBDshift)
+
+          println(solutionsWithShits)
+          if solutionsWithShits.isEmpty then None else Option(solutionsWithShits.minBy((_, a, b) => a + b)._1)
 
     def parallelogonEquivalences: List[List[Int]] =
       val n = angles.size
