@@ -10,7 +10,7 @@ opaque type SimplePolygon = Vector[AngleDegree]
 object SimplePolygon:
 
   enum ParallelogramTranslation:
-    case Identity, SideAC, SideAD
+    case Identity, SidesAC, SidesBD
 
   def alphaSum(sides: Int): AngleDegree =
     AngleDegree(180) * (sides - 2)
@@ -129,24 +129,24 @@ object SimplePolygon:
         def circularSlice(start: Int, stop: Int): Vector[AngleDegree] =
           turns.sliceO(start, stop).drop(1)
 
-        val halfIndices =
-          for
-            i <- 0 until half - 1
-            j <- i until half - 1
-            k <- j + 1 until half
-          yield (i, j, k)
-        println(s"half indices $halfIndices")
-        println(half)
-        halfIndices.foreach((i, j, k) =>
-          println(s"i=$i, j=$j, k=$k")
-          val segA = circularSlice(i, j)
-          val segB = circularSlice(j, k)
-          val segC = circularSlice(k, i + half)
-          val segD = circularSlice(i + half, j + half)
-          val segE = circularSlice(j + half, k + half)
-          val segF = circularSlice(k + half, i + n)
-          println(s"segA: $segA, segB: $segB, segC: $segC, segD: $segD, segE: $segE, segF: $segF")
-        )
+//        val halfIndices =
+//          for
+//            i <- 0 until half - 1
+//            j <- i until half - 1
+//            k <- j + 1 until half
+//          yield (i, j, k)
+//        println(s"half indices $halfIndices")
+//        println(half)
+//        halfIndices.foreach((i, j, k) =>
+//          println(s"i=$i, j=$j, k=$k")
+//          val segA = circularSlice(i, j)
+//          val segB = circularSlice(j, k)
+//          val segC = circularSlice(k, i + half)
+//          val segD = circularSlice(i + half, j + half)
+//          val segE = circularSlice(j + half, k + half)
+//          val segF = circularSlice(k + half, i + n)
+//          println(s"segA: $segA, segB: $segB, segC: $segC, segD: $segD, segE: $segE, segF: $segF")
+//        )
         val result =
         (0 until half - 1).view.flatMap { i =>
           (i until half - 1).view.flatMap { j =>
@@ -159,10 +159,9 @@ object SimplePolygon:
                 val segE = circularSlice(j + half, k + half)
                 val segF = circularSlice(k + half, i + n)
 
-                println(s"i=$i, j=$j, k=$k")
+//                println(s"i=$i, j=$j, k=$k")
                 areOppositeSimple(segA, segD) && areOppositeSimple(segB, segE) && areOppositeSimple(segC, segF)
               } =>
-                println(s"i=$i, j=$j, k=$k, i+half=${i+half}, j+half=${j+half}, k+half=${k+half}")
                 List(i, j, k, i + half, j + half, k + half)
             }
           }
@@ -382,6 +381,14 @@ object SimplePolygon:
 
           equivalenceGroups(oppositeAC ::: oppositeBD)
 
+    def parallelogonTranslationHexIndices: Option[Map[ParallelogramTranslation, Int]] =
+      (parallelogonHexIndices match
+        case origin :: ac :: bd :: _ :: Nil    => Option(List(origin, ac, bd))
+        case origin :: _ :: ac :: _ :: bd :: _ => Option(List(origin, ac, bd))
+        case _                                 => None
+      )
+        .map(i => ParallelogramTranslation.values.zip(i).toMap)
+
     def parallelogonTranslationIndices: Option[Map[ParallelogramTranslation, Int]] =
       parallelogonEquivalences match
         case Nil    => None
@@ -395,8 +402,8 @@ object SimplePolygon:
           println(s"Indices, origin: ${two.head} and repeat: ${two.last} and repeatOnOtherAxis: $third")
           Option(Map(
             ParallelogramTranslation.Identity -> two.head,
-            ParallelogramTranslation.SideAC   -> two.last,
-            ParallelogramTranslation.SideAD   -> third
+            ParallelogramTranslation.SidesAC   -> two.last,
+            ParallelogramTranslation.SidesBD   -> third
           ))
 
     def parallelogonTranslationIndicesNew: Option[Map[ParallelogramTranslation, Int]] =
@@ -412,7 +419,7 @@ object SimplePolygon:
           println(s"Indices, origin: ${two.head} and repeat: ${two.last} and repeatOnOtherAxis: $third")
           Option(Map(
             ParallelogramTranslation.Identity -> two.head,
-            ParallelogramTranslation.SideAC -> two.last,
-            ParallelogramTranslation.SideAD -> third
+            ParallelogramTranslation.SidesAC -> two.last,
+            ParallelogramTranslation.SidesBD -> third
           ))
 

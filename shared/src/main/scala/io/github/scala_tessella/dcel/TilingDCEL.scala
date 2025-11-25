@@ -241,8 +241,8 @@ final case class TilingDCEL private (
         case None                     => Left(ValidationError("Tiling is not a parallelogon"))
         case Some(boundaryIndexesMap) =>
           val origin            = boundaryVertices(boundaryIndexesMap(ParallelogramTranslation.Identity))
-          val repeat            = boundaryVertices(boundaryIndexesMap(ParallelogramTranslation.SideAC))
-          val repeatOnOtherAxis = boundaryVertices(boundaryIndexesMap(ParallelogramTranslation.SideAD))
+          val repeat            = boundaryVertices(boundaryIndexesMap(ParallelogramTranslation.SidesAC))
+          val repeatOnOtherAxis = boundaryVertices(boundaryIndexesMap(ParallelogramTranslation.SidesBD))
           Right(this.rawDouble(origin, repeat).rawDouble(origin, repeatOnOtherAxis))
 
   def maybeDeleteVertex(vertexId: VertexId): Either[TilingError, TilingDCEL] =

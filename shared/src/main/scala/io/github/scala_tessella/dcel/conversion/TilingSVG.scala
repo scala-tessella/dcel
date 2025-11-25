@@ -539,13 +539,13 @@ object TilingSVG:
       val vertices =
         BigLineSegment(BigPoint.origin, BigPoint(1, 0)).unitPath(simple.toAngles)
 
-      simple.parallelogonTranslationIndicesNew match
+      simple.parallelogonTranslationHexIndices match
         case None                     => toScalableVectorG(strokeWidth, padding, scale)
         case Some(boundaryIndexesMap) =>
 
           val origin            = vertices(boundaryIndexesMap(ParallelogramTranslation.Identity)).scaled(scale)
-          val repeat            = vertices(boundaryIndexesMap(ParallelogramTranslation.SideAC)).scaled(scale)
-          val repeatOnOtherAxis = vertices(boundaryIndexesMap(ParallelogramTranslation.SideAD)).scaled(scale)
+          val repeat            = vertices(boundaryIndexesMap(ParallelogramTranslation.SidesAC)).scaled(scale)
+          val repeatOnOtherAxis = vertices(boundaryIndexesMap(ParallelogramTranslation.SidesBD)).scaled(scale)
 
 //          println(s"origin: $origin, repeat: $repeat, repeatOnOtherAxis: $repeatOnOtherAxis")
           val diffTwo   = (repeat - origin).scaled(1.1)

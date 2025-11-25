@@ -203,10 +203,11 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
     /** <img src="file:../../../../../../resources/simple/fourJoinedHexs.svg"/> */
     val fourJoinedHexs: SimplePolygon =
       SimplePolygon(120, 120, 240, 120, 120, 240, 120, 120, 120, 240, 120, 120, 240, 120)
-    println(fourJoinedHexs.toParallelogonTiling())
+//    println(fourJoinedHexs.toParallelogonTiling())
     allAssert(
       fourJoinedHexs.parallelogonIndices shouldBe Some((0, 3, 7, 10)),
-      fourJoinedHexs.parallelogonIndicesNew shouldBe Some((0, 3, 7, 10))
+      fourJoinedHexs.parallelogonIndicesNew shouldBe Some((0, 3, 7, 10)),
+      fourJoinedHexs.parallelogonHexIndices shouldBe List(0, 1, 4, 7, 8, 11)
     )
   }
 
@@ -217,7 +218,9 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
     allAssert(
       sixtyFourJoinedHexs.parallelogonIndices shouldBe Some((0, 13, 31, 44)),
       sixtyFourJoinedHexs.parallelogonIndicesNew shouldBe Some((6, 21, 37, 52)),
-//      sixtyFourJoinedHexs.parallelogonEquivalences shouldBe
+      sixtyFourJoinedHexs.parallelogonHexIndices shouldBe List(0, 7, 22, 31, 38, 53),
+
+        //      sixtyFourJoinedHexs.parallelogonEquivalences shouldBe
 //        List(
 //          List(0, 13, 22, 31, 37, 53), List(1, 36), List(2, 35), List(3, 34), List(4, 33), List(5, 32), List(6, 44),
 //          List(7, 43), List(8, 42), List(9, 41), List(10, 40), List(11, 39), List(12, 38), List(14, 52), List(15, 51),
@@ -245,7 +248,8 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
 //    println(carved.toParallelogonTiling())
     allAssert(
       carved.parallelogonIndices shouldBe Some((0, 3, 7, 10)),
-      carved.parallelogonIndicesNew shouldBe Some((0, 3, 7, 10))
+      carved.parallelogonIndicesNew shouldBe Some((0, 3, 7, 10)),
+      carved.parallelogonHexIndices shouldBe List(0, 3, 4, 7, 10, 11)
     )
   }
 
@@ -256,7 +260,8 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
 //    println(scale.toParallelogonTiling())
     allAssert(
       scale.parallelogonIndices shouldBe Some((0, 2, 4, 6)),
-      scale.parallelogonIndicesNew shouldBe Some((0, 2, 4, 6))
+      scale.parallelogonIndicesNew shouldBe Some((0, 2, 4, 6)),
+      scale.parallelogonHexIndices shouldBe List(0, 2, 4, 6)
     )
   }
 
@@ -267,7 +272,8 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
 //    println(comma.toParallelogonTiling())
     allAssert(
       comma.parallelogonIndices shouldBe Some((0, 1, 3, 4)),
-      comma.parallelogonIndicesNew shouldBe Some((0, 1, 3, 4))
+      comma.parallelogonIndicesNew shouldBe Some((0, 1, 3, 4)),
+      comma.parallelogonHexIndices shouldBe List(0, 1, 3, 4)
     )
   }
 
@@ -279,6 +285,7 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
     allAssert(
       devil.parallelogonIndices shouldBe Some((2, 5, 9, 12)),
       devil.parallelogonIndicesNew shouldBe Some((2, 5, 9, 12)),
+      devil.parallelogonHexIndices shouldBe List(0, 2, 5, 7, 9, 12),
       devil.parallelogonEquivalences shouldBe
         List(List(0, 5, 9), List(1, 8), List(2, 7, 12), List(3, 11), List(4, 10), List(6, 13)),
       devil.parallelogonEquivalencesNew shouldBe
@@ -293,7 +300,8 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
 //    println(unit.toParallelogonTiling())
     allAssert(
       unit.parallelogonIndices shouldBe Some((0, 2, 7, 9)),
-      unit.parallelogonIndicesNew shouldBe Some((0, 2, 7, 9))
+      unit.parallelogonIndicesNew shouldBe Some((0, 2, 7, 9)),
+      unit.parallelogonHexIndices shouldBe List(0, 2, 7, 9)
     )
   }
 
@@ -304,7 +312,8 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
 //    println(unit.toParallelogonTiling())
     allAssert(
       unit.parallelogonIndices shouldBe Some((2, 6, 10, 14)),
-      unit.parallelogonIndicesNew shouldBe Some((0, 2, 8, 10))
+      unit.parallelogonIndicesNew shouldBe Some((0, 2, 8, 10)),
+      unit.parallelogonHexIndices shouldBe List(0, 2, 3, 8, 10, 11)
     )
   }
 
@@ -317,6 +326,7 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
     allAssert(
       badge.parallelogonIndices shouldBe Some((1, 4, 10, 13)),
       badge.parallelogonIndicesNew shouldBe Some((1, 7, 10, 16)),
+      badge.parallelogonHexIndices shouldBe List(1, 4, 7, 10, 13, 16),
       badge.parallelogonEquivalences shouldBe
         List(List(0, 8), List(1, 7, 13), List(2, 12), List(3, 11), List(4, 10, 16), List(5, 15), List(6, 14), List(9, 17)),
       badge.parallelogonEquivalencesNew shouldBe
@@ -332,7 +342,8 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
 //    println(bulb.toParallelogonTiling())
     allAssert(
       bulb.parallelogonIndices shouldBe Some((0, 1, 5, 6)),
-      bulb.parallelogonIndicesNew shouldBe Some((0, 3, 5, 8))
+      bulb.parallelogonIndicesNew shouldBe Some((0, 3, 5, 8)),
+      bulb.parallelogonHexIndices shouldBe List(0, 1, 3, 5, 6, 8)
     )
   }
 
@@ -344,7 +355,8 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
 //    println(doubledBulb.toParallelogonTiling())
     allAssert(
       doubledBulb.parallelogonIndices shouldBe Some((0, 2, 10, 12)),
-      doubledBulb.parallelogonIndicesNew shouldBe Some((0, 6, 10, 16))
+      doubledBulb.parallelogonIndicesNew shouldBe Some((0, 6, 10, 16)),
+      doubledBulb.parallelogonHexIndices shouldBe List(0, 2, 6, 10, 12, 16)
     )
   }
 
@@ -352,17 +364,22 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
 
     /** <img src="file:../../../../../../resources/simple/unit-3.3.3.3.6half.svg"/> */
     val unit = SimplePolygon(60, 180, 120, 180, 120, 120, 180, 120, 120, 240)
-    println(unit.toParallelogonTiling())
-    unit.parallelogonIndices shouldBe None
-    unit.parallelogonIndicesNew shouldBe Option((0, 2, 5, 7))
+//    println(unit.toParallelogonTiling())
+    allAssert(
+      unit.parallelogonIndices shouldBe None,
+      unit.parallelogonIndicesNew shouldBe Option((0, 2, 5, 7)),
+      unit.parallelogonHexIndices shouldBe List(0, 2, 3, 5, 7, 8)
+    )
   }
   
   they should "be found for a 3.3.3.3.6 tessellation unit" in {
 
     /** <img src="file:../../../../../../resources/simple/unit-3.3.3.3.6.svg"/> */
     val unit = SimplePolygon(120, 180, 120, 120, 240, 180, 120, 240, 60, 180, 120, 180, 120, 240, 180, 120)
-//    println(unit.toParallelogonTiling())
-    unit.parallelogonIndices shouldBe None
-    unit.parallelogonIndicesNew shouldBe Option(0, 2, 8, 10)
-    unit.parallelogonHexIndices shouldBe List(0, 2, 3, 8, 10, 11)
+    println(unit.toParallelogonTiling())
+    allAssert(
+      unit.parallelogonIndices shouldBe None,
+      unit.parallelogonIndicesNew shouldBe Option(0, 2, 8, 10),
+      unit.parallelogonHexIndices shouldBe List(0, 2, 3, 8, 10, 11)
+    )
   }
