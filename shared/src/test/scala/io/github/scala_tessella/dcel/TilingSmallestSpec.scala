@@ -13,15 +13,14 @@ class TilingSmallestSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   def smallestVertex: Either[TilingError, TilingDCEL] =
     square.addRegularPolygon(V1, V2, RegularPolygon(3))
 
-  it should "add an inner triangle to a square, producing the smallest DCEL with a non boundary vertex" in {
+  it should "add an inner triangle to a square, producing the smallest DCEL with a non boundary vertex" in:
     smallestVertex.isRight shouldBe true
-  }
 
   /** <img src="file:../../../../../resources/smallestWithNonBoundaryEdge.svg"/> */
   def smallestEdge: Either[TilingError, TilingDCEL] =
     triangle.addRegularPolygonToBoundary(V2, RegularPolygon(3))
 
-  it should "add a triangle to a triangle, producing the smallest DCEL with a non boundary edge" in {
+  it should "add a triangle to a triangle, producing the smallest DCEL with a non boundary edge" in:
     val result = smallestEdge
     val tiling = result.value
 
@@ -53,7 +52,6 @@ class TilingSmallestSpec extends AnyFlatSpec with Matchers with TilingTestHelper
         )
       }
     )
-  }
 
   /** <img src="file:../../../../../resources/smallestWithNonBoundaryFace.svg"/> */
   def smallestFace: Either[TilingError, TilingDCEL] =
@@ -61,6 +59,5 @@ class TilingSmallestSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       .addRegularPolygon(V1, V2, RegularPolygon(3)).value
       .addRegularPolygonToBoundary(V2, RegularPolygon(3))
 
-  it should "add an inner triangle to a square and then a triangle, producing the smallest DCEL with a non boundary face" in {
+  it should "add an inner triangle to a square and then a triangle, producing the smallest DCEL with a non boundary face" in:
     smallestFace.isRight shouldBe true
-  }

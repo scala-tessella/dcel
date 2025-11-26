@@ -19,13 +19,12 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       triangle.faces should contain allElementsOf triangle.innerFaces
     )
 
-  it should "return only outer face when no inner faces exist" in {
+  it should "return only outer face when no inner faces exist" in:
     val empty = emptyTiling
     allAssert(
       empty.faces should have length 1,
       empty.faces should contain only empty.outerFace
     )
-  }
 
   behavior of "TilingDCEL.findVertex"
 
@@ -42,9 +41,8 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       triangle.findVertexUnsafe(VertexId("NonExistent")) shouldBe None
     )
 
-  it should "find vertices in empty tiling" in {
+  it should "find vertices in empty tiling" in:
     emptyTiling.findVertexUnsafe(VertexId("V0")) shouldBe None
-  }
 
   behavior of "TilingDCEL.findFace"
 
@@ -62,9 +60,8 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   behavior of "TilingDCEL.hasConnectedFaces"
 
-  it should "return true for empty tiling" in {
+  it should "return true for empty tiling" in:
     emptyTiling.hasConnectedFaces shouldBe true
-  }
 
   it should "return true for single polygon tiling" in
     allAssert(
@@ -72,40 +69,35 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       square.hasConnectedFaces shouldBe true
     )
 
-  it should "return true for connected multi-polygon tiling" in {
+  it should "return true for connected multi-polygon tiling" in:
     val twoTriangles = triangle.maybeAddRegularPolygonToBoundary(V1, RegularPolygon(3)).value
     twoTriangles.hasConnectedFaces shouldBe true
-  }
 
   behavior of "TilingDCEL.boundary"
 
-  it should "return empty vector for empty tiling" in {
+  it should "return empty vector for empty tiling" in:
     emptyTiling.boundaryVertices shouldBe Vector.empty[Vertex]
-  }
 
-  it should "return correct boundary vertices for triangle in clockwise order" in {
+  it should "return correct boundary vertices for triangle in clockwise order" in:
     val boundary = triangle.boundaryVertices
     allAssert(
       boundary should have length 3,
       boundary.map(_.id) should contain theSameElementsInOrderAs Vector(V1, V3, V2)
     )
-  }
 
-  it should "return correct boundary vertices for square in clockwise order" in {
+  it should "return correct boundary vertices for square in clockwise order" in:
     val boundary = square.boundaryVertices
     allAssert(
       boundary should have length 4,
       boundary.map(_.id) should contain theSameElementsInOrderAs Vector(V1, V4, V3, V2)
     )
-  }
 
-  it should "return correct boundary vertices for hexagon" in {
+  it should "return correct boundary vertices for hexagon" in:
     val boundary = hexagon.boundaryVertices
     allAssert(
       boundary should have length 6,
       boundary.map(_.id) should contain theSameElementsInOrderAs Vector(V1, "V6", "V5", V4, V3, V2)
     )
-  }
 
   behavior of "TilingDCEL.boundarySafe"
 
@@ -115,11 +107,10 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       square.boundaryVerticesSafer.value shouldEqual square.boundaryVertices
     )
 
-  it should "return empty vector for empty tiling" in {
+  it should "return empty vector for empty tiling" in:
     emptyTiling.boundaryVerticesSafer shouldBe Right(Vector.empty)
-  }
 
-  it should "fail for malformed boundary loop" in {
+  it should "fail for malformed boundary loop" in:
     val tiling        = triangle
     val boundaryEdges = tiling.boundaryEdgesSafer.value
     val firstEdge     = boundaryEdges.head // This is the startEdge
@@ -130,9 +121,8 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     secondEdge.next = Some(secondEdge) // Make second edge point to itself
 
     tiling.boundaryVerticesSafer.isLeft shouldBe true
-  }
 
-  it should "fail for open chain in boundary" in {
+  it should "fail for open chain in boundary" in:
     val tiling        = triangle
     val boundaryEdges = tiling.boundaryEdgesSafer.value
     val firstEdge     = boundaryEdges.head
@@ -140,15 +130,13 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     firstEdge.next = None
 
     tiling.boundaryVerticesSafer.isLeft shouldBe true
-  }
 
   behavior of "TilingDCEL.getBoundaryEdges"
 
-  it should "return empty list for empty tiling" in {
+  it should "return empty list for empty tiling" in:
     emptyTiling.boundaryEdgesSafer shouldBe Right(List.empty)
-  }
 
-  it should "return boundary edges in correct order" in {
+  it should "return boundary edges in correct order" in:
     val boundaryEdges = triangle.boundaryEdgesSafer.value
     allAssert(
       boundaryEdges should have length 3, {
@@ -157,9 +145,8 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
         vertices.map(_.id) should contain theSameElementsInOrderAs Vector(V1, V3, V2)
       }
     )
-  }
 
-  it should "fail for malformed boundary with visited edge" in {
+  it should "fail for malformed boundary with visited edge" in:
     val tiling        = triangle
     val boundaryEdges = tiling.boundaryEdgesSafer.value
     val firstEdge     = boundaryEdges.head // e0 (start)
@@ -172,34 +159,30 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     thirdEdge.next = Some(secondEdge) // This creates the problematic cycle
 
     tiling.boundaryEdgesSafer.isLeft shouldBe true
-  }
 
-  it should "fail for unclosed boundary loop" in {
+  it should "fail for unclosed boundary loop" in:
     val tiling        = triangle
     val boundaryEdges = tiling.boundaryEdgesSafer.value
     // Break the loop by making the last edge not point back to the first
     boundaryEdges.last.next = None
     tiling.boundaryEdgesSafer.isLeft shouldBe true
-  }
 
   behavior of "TilingDCEL.getAnglesAtVertex"
 
-  it should "return the angles for a vertex where all incident edges have an angle" in {
+  it should "return the angles for a vertex where all incident edges have an angle" in:
     val v1     = triangle.findVertexUnsafe(V1).get
     v1.incidentEdgesUnsafe.filter(_.hasIncidentFace(triangle.outerFace)).foreach(_.angle =
       Some(AngleDegree(300))
     )
     val result = triangle.getAnglesAtVertex(V1)
     result.value should contain theSameElementsAs List(AngleDegree(60), AngleDegree(300))
-  }
 
-  it should "return an error for a non-existent vertex" in {
+  it should "return an error for a non-existent vertex" in:
     val result = triangle.getAnglesAtVertex(VertexId("V999"))
     allAssert(
       result.isLeft shouldBe true,
       result.left.value.message shouldEqual "Vertex with ID 'V999' not found."
     )
-  }
 
   /** @see <img src="file:../../../../../resources/bench.svg"/> */
   def bench: TilingDCEL =
@@ -211,38 +194,33 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       .maybeAddRegularPolygonToBoundary(VertexId("V8"), RegularPolygon(4)).value
       .maybeAddRegularPolygonToBoundary(VertexId("V11"), RegularPolygon(6)).value
 
-  it should "return the angles for the inner vertex of the bench" in {
+  it should "return the angles for the inner vertex of the bench" in:
     val result = bench.getAnglesAtVertex(VertexId("V8"))
     result.value shouldBe List(120, 90, 60, 90).map(AngleDegree(_))
-  }
 
-  it should "return the angles for a boundary vertex of the bench" in {
+  it should "return the angles for a boundary vertex of the bench" in:
     val result = bench.getAnglesAtVertex(V1)
     result.value shouldBe List(30, 60, 120, 60, 90).map(AngleDegree(_))
-  }
 
   behavior of "TilingDCEL.getInnerAnglesAtVertex"
 
-  it should "return the inner angles for the inner vertex of the bench" in {
+  it should "return the inner angles for the inner vertex of the bench" in:
     val result = bench.getInnerAnglesAtVertex(VertexId("V8"))
     result.value shouldBe List(120, 90, 60, 90).map(AngleDegree(_))
-  }
 
-  it should "return the inner angles for a boundary vertex of the bench" in {
+  it should "return the inner angles for a boundary vertex of the bench" in:
     val result = bench.getInnerAnglesAtVertex(V1)
     result.value shouldBe List(60, 120, 60, 90).map(AngleDegree(_))
-  }
 
   behavior of "TilingDCEL.innerVertices"
 
-  it should "return the inner vertices of the bench" in {
+  it should "return the inner vertices of the bench" in:
     val result = bench.innerVertices
     result.map(_.id) shouldBe List(VertexId("V8"))
-  }
 
   behavior of "TilingDCEL.empty"
 
-  it should "create empty tiling" in {
+  it should "create empty tiling" in:
     val emptyTiling = TilingDCEL.empty
     allAssert(
       emptyTiling.vertices shouldBe empty,
@@ -250,49 +228,44 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       emptyTiling.innerFaces shouldBe empty,
       emptyTiling.outerFace.id shouldBe FaceId.outerId
     )
-  }
 
   behavior of "TilingDCEL.getDcelAtVertex"
 
-  it should "return the DCEL around the inner vertex of the bench" in {
+  it should "return the DCEL around the inner vertex of the bench" in:
 
     /** @see <img src="file:../../../../../resources/aroundInnerVertex.svg"/> */
     val result = bench.getDcelAtVertex(VertexId("V8"))
     TilingValidation.validate(result.value).isRight shouldBe true
-  }
 
-  it should "return the DCEL around a boundary vertex of the bench" in {
+  it should "return the DCEL around a boundary vertex of the bench" in:
 
     /** @see <img src="file:../../../../../resources/aroundBoundaryVertex.svg"/> */
     val result = bench.getDcelAtVertex(V1)
     TilingValidation.validate(result.value).isRight shouldBe true
-  }
 
-  it should "return the DCEL around another boundary vertex of the bench" in {
+  it should "return the DCEL around another boundary vertex of the bench" in:
     val result = bench.getDcelAtVertex(VertexId("V7"))
     allAssert(
       TilingValidation.validate(result.value).isRight shouldBe true,
       result.value.isEquivalentTo(triangle) shouldBe true
     )
-  }
 
-  it should "return the DCEL around the inner vertex with varying distances" in {
+  it should "return the DCEL around the inner vertex with varying distances" in:
     val net = TilingBuilder.createRhombusNet(6, 6)
     allAssert(
       net.getDcelAtVertex(VertexId("V25"), 0).value.innerFaces.size shouldBe 4,
       net.getDcelAtVertex(VertexId("V25"), 1).value.innerFaces.size shouldBe 12,
       net.getDcelAtVertex(VertexId("V25"), 2).value.innerFaces.size shouldBe 24
     )
-  }
 
 //  behavior of "TilingDCEL.getPolygonVerticesAroundVertex"
 //
-//  it should "return the DCEL around the inner vertex of the bench" in {
+//  it should "return the DCEL around the inner vertex of the bench" in:
 //    val result = bench.getPolygonVerticesAroundVertex(VertexId("V8"))
 //    result.value shouldBe List("V13", "V1", "V2", "V10", "V11", "V14", "V15", "V16", "V12")
 //  }
 //
-//  it should "return the DCEL around a boundary vertex of the bench" in {
+//  it should "return the DCEL around a boundary vertex of the bench" in:
 //    val result = bench.getPolygonVerticesAroundVertex(V1)
 //    result.value shouldBe List("V6", "V5", "V4", "V3", "V2", "V8", "V12", "V13", "V1", "V7")
 //  }
@@ -303,7 +276,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   def holeInNet2: TilingDCEL = net.deleteEdge(VertexId("V14"), VertexId("V15")).value
 
-//  it should "group the inner vertices according to their adjacent polygons" in {
+//  it should "group the inner vertices according to their adjacent polygons" in:
 //    holeInNet2.groupedInnerVertices.values.toList shouldBe List(
 //      List("V6", "V7", "V22", "V23"),
 //      List("V10", "V11", "V18", "V19"),
@@ -313,7 +286,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   behavior of "TilingDCEL.uniformity"
 
-  it should "calculate the uniformity of a square net" in {
+  it should "calculate the uniformity of a square net" in:
     val net = TilingBuilder.createRhombusNet(6, 6)
     net.uniformityTree.flattenLeaves shouldBe
       List(
@@ -345,17 +318,15 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           "V25"
         )
       )
-  }
 
-  it should "calculate the uniformity of a holed net" in {
+  it should "calculate the uniformity of a holed net" in:
     holeInNet2.uniformityTree.flattenLeaves shouldBe List(
       List("V6", "V7", "V22", "V23"),
       List("V10", "V11", "V18", "V19"),
       List("V14", "V15")
     )
-  }
 
-  it should "calculate another" in {
+  it should "calculate another" in:
     val result = TilingBuilder.createHoledTriangleNet(12, 12)((i, j) => i % 10 == (j * 8) % 10)
     result.uniformityTree shouldBe
       Branch(
@@ -469,15 +440,13 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           ))
         )
       )
-  }
 
   behavior of "TilingDCEL.quadrupleArea"
 
-  it should "keep an empty tiling" in {
+  it should "keep an empty tiling" in:
     TilingDCEL.empty.quadrupleArea.value.isEmpty shouldBe true
-  }
 
-  it should "quadruple an hexagon" in {
+  it should "quadruple an hexagon" in:
     val quadrupled = hexagon.quadrupleArea
     val result     = quadrupled.value
     allAssert(
@@ -486,9 +455,8 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       result.innerFaces.size shouldBe 4,
       TilingValidation.validate(result).isRight shouldBe true
     )
-  }
 
-  it should "quadruple a square" in {
+  it should "quadruple a square" in:
     val doubled = square.quadrupleArea
     val result  = doubled.value
     allAssert(
@@ -497,9 +465,8 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       result.innerFaces.size shouldBe 4,
       TilingValidation.validate(result).isRight shouldBe true
     )
-  }
 
-  it should "quadruple a 2x2 square net" in {
+  it should "quadruple a 2x2 square net" in:
     val doubled = TilingBuilder.createRhombusNet(2, 2).quadrupleArea
     val result  = doubled.value
     allAssert(
@@ -508,9 +475,8 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       result.innerFaces.size shouldBe 16,
       TilingValidation.validate(result).isRight shouldBe true
     )
-  }
 
-  it should "quadruple a 2x2 hexagon net" in {
+  it should "quadruple a 2x2 hexagon net" in:
     val doubled = TilingBuilder.createHexagonNet(2, 2).quadrupleArea
     val result  = doubled.value
     allAssert(
@@ -519,4 +485,3 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       result.innerFaces.size shouldBe 16,
       TilingValidation.validate(result).isRight shouldBe true
     )
-  }

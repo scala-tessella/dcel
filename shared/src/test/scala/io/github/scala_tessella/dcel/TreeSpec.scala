@@ -27,32 +27,27 @@ class TreeSpec extends AnyFlatSpec with should.Matchers:
       )
     )
 
-  "A tree" must "have a size" in {
+  "A tree" must "have a size" in:
     tree_ABCDEFG.size shouldBe 7
-  }
 
-  it must "have a size of leaves" in {
+  it must "have a size of leaves" in:
     tree_ABCDEFG.sizeLeaves shouldBe 4
-  }
 
-  it can "contain a value" in {
+  it can "contain a value" in:
     tree_ABCDEFG.contains('B') shouldBe
       true
     tree_ABCDEFG.contains('F') shouldBe
       true
     tree_ABCDEFG.contains('Z') shouldBe
       false
-  }
 
-  it can "be flattened" in {
+  it can "be flattened" in:
     tree_ABCDEFG.flatten.mkString shouldBe
       "ABDECFG"
-  }
 
-  it can "have its leaves listed" in {
+  it can "have its leaves listed" in:
     tree_ABCDEFG.flattenLeaves shouldBe
       List('D', 'E', 'F', 'G')
-  }
 
   val tree_0123456: Tree[Int] =
     Branch(
@@ -75,17 +70,15 @@ class TreeSpec extends AnyFlatSpec with should.Matchers:
       )
     )
 
-  it can "have its leaves mapped" in {
+  it can "have its leaves mapped" in:
     tree_ABCDEFG.map(_.toInt - 65) shouldBe
       tree_0123456
-  }
 
-  it can "have them mapped via unfold" in {
+  it can "have them mapped via unfold" in:
     Tree.map(tree_ABCDEFG, _.toInt - 65) shouldBe
       tree_0123456
-  }
 
-  it can "be exported to a DOT graph with labels" in {
+  it can "be exported to a DOT graph with labels" in:
     tree_ABCDEFG.toDOT(_.toString) shouldBe
       """graph G {
         |1 [label="A"]
@@ -102,9 +95,8 @@ class TreeSpec extends AnyFlatSpec with should.Matchers:
         |5 -- 7
         |7 [label="G"]
         |}""".stripMargin
-  }
 
-  "Another tree" can "be shrunk" in {
+  "Another tree" can "be shrunk" in:
     tree_0123456.shrink(_.sum) shouldBe
       Branch(
         3,
@@ -115,9 +107,8 @@ class TreeSpec extends AnyFlatSpec with should.Matchers:
       )
     tree_0123456.shrinkAll(_.sum) shouldBe
       Leaf(18)
-  }
 
-  it can "have only its leaves mapped" in {
+  it can "have only its leaves mapped" in:
     tree_0123456.mapLeaves(_ + 1) shouldBe
       Branch(
         0,
@@ -138,14 +129,12 @@ class TreeSpec extends AnyFlatSpec with should.Matchers:
           )
         )
       )
-  }
 
-  it can "have all its values folded into one" in {
+  it can "have all its values folded into one" in:
     tree_0123456.foldValues(_.sum) shouldBe
       21
-  }
 
-  it can "be exported to a DOT graph" in {
+  it can "be exported to a DOT graph" in:
     tree_ABCDEFG.toDOT() shouldBe
       """graph G {
         |1
@@ -162,9 +151,8 @@ class TreeSpec extends AnyFlatSpec with should.Matchers:
         |5 -- 7
         |7
         |}""".stripMargin
-  }
 
-  "A tree" can "be created by fill" in {
+  "A tree" can "be created by fill" in:
     Tree.fill(2)('A') shouldBe
       Branch(
         'A',
@@ -185,9 +173,8 @@ class TreeSpec extends AnyFlatSpec with should.Matchers:
           )
         )
       )
-  }
 
-  "A different tree" can "be folded" in {
+  "A different tree" can "be folded" in:
     Branch(
       1,
       List(
@@ -196,9 +183,8 @@ class TreeSpec extends AnyFlatSpec with should.Matchers:
       )
     ).foldValues(_.sum) shouldBe
       8
-  }
 
-  "A tree with long terminal branches" can "be shortened" in {
+  "A tree with long terminal branches" can "be shortened" in:
     Branch(
       1,
       List(
@@ -232,9 +218,8 @@ class TreeSpec extends AnyFlatSpec with should.Matchers:
           Leaf(21)
         )
       )
-  }
 
-  "Another tree with a branch without children" can "be shortened" in {
+  "Another tree with a branch without children" can "be shortened" in:
     Branch(
       1,
       List(
@@ -268,4 +253,3 @@ class TreeSpec extends AnyFlatSpec with should.Matchers:
           Leaf(13)
         )
       )
-  }

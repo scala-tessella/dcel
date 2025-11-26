@@ -13,7 +13,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
 
   behavior of "TilingDCEL.deepCopy"
 
-  it should "create a copy with same structural properties as original" in {
+  it should "create a copy with same structural properties as original" in:
     val original = triangle
     val copy     = original.deepCopy
 
@@ -36,9 +36,8 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
       // Face IDs should match
       copy.faces.map(_.id) should contain theSameElementsAs original.faces.map(_.id)
     )
-  }
 
-  it should "create completely independent objects" in {
+  it should "create completely independent objects" in:
     val original = square
     val copy     = original.deepCopy
 
@@ -60,9 +59,8 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
         }*
       )
     )
-  }
 
-  it should "preserve all cross-references correctly" in {
+  it should "preserve all cross-references correctly" in:
     val original = hexagon
     val copy     = original.deepCopy
 
@@ -120,9 +118,8 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
         }*
       )
     )
-  }
 
-  it should "maintain DCEL validation after copying" in {
+  it should "maintain DCEL validation after copying" in:
     val original = triangle
     val copy     = original.deepCopy
 
@@ -131,9 +128,8 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
       validate(original) shouldBe Right(()),
       validate(copy) shouldBe Right(())
     )
-  }
 
-  it should "not affect original when copy is modified" in {
+  it should "not affect original when copy is modified" in:
     val original = square
     val copy     = original.deepCopy
 
@@ -157,9 +153,8 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
       original.vertices should have length 4,
       original.innerFaces should have length 1
     )
-  }
 
-  it should "not affect copy when original is modified" in {
+  it should "not affect copy when original is modified" in:
     val original = triangle
     val copy     = original.deepCopy
 
@@ -181,9 +176,8 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
       copy.vertices should have length 3,
       copy.innerFaces should have length 1
     )
-  }
 
-  it should "work correctly with empty tiling" in {
+  it should "work correctly with empty tiling" in:
     val original = emptyTiling
     val copy     = original.deepCopy
 
@@ -194,9 +188,8 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
       copy.outerFace should not be theSameInstanceAs(original.outerFace),
       copy.outerFace.id shouldEqual original.outerFace.id
     )
-  }
 
-  it should "preserve boundary traversal functionality" in {
+  it should "preserve boundary traversal functionality" in:
     val original = hexagon
     val copy     = original.deepCopy
 
@@ -216,9 +209,8 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
         }*
       )
     )
-  }
 
-  it should "preserve angle information correctly" in {
+  it should "preserve angle information correctly" in:
     val original = triangle
     val copy     = original.deepCopy
 
@@ -239,9 +231,8 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
         }*
       )
     )
-  }
 
-  it should "maintain connectedness property" in {
+  it should "maintain connectedness property" in:
     val original = square
     val copy     = original.deepCopy
     allAssert(
@@ -255,9 +246,8 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
         )
       }
     )
-  }
 
-  it should "work correctly for complex multi-polygon tilings" in {
+  it should "work correctly for complex multi-polygon tilings" in:
     val original = triangle
       .maybeAddRegularPolygonToBoundary(V1, RegularPolygon(4)).value
       .maybeAddRegularPolygonToBoundary(V5, RegularPolygon(3)).value
@@ -285,11 +275,10 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
         )
       }
     )
-  }
 
   behavior of "TilingDCEL.translatedDouble"
 
-  it should "have the possibility to transform coordinates and vertex ids" in {
+  it should "have the possibility to transform coordinates and vertex ids" in:
     val transformed =
       square.translatedDouble(
         _ + BigPoint(1, 0),
@@ -311,38 +300,32 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
       transformed.faces.map(_.id) shouldEqual
         List("F0", F2)
     )
-  }
 
   behavior of "TilingDCEL.isTopologicallyEquivalentTo"
 
-  it should "return true for the same instance" in {
+  it should "return true for the same instance" in:
     triangle.isTopologicallyEquivalentTo(triangle) shouldBe true
-  }
 
-  it should "return true for a deep copy of a tiling" in {
+  it should "return true for a deep copy of a tiling" in:
     val squareCopy = square.deepCopy
     square.isTopologicallyEquivalentTo(squareCopy) shouldBe true
-  }
 
-  it should "return true for two identical but separate tilings" in {
+  it should "return true for two identical but separate tilings" in:
     val triangle1 = triangle
     val triangle2 = triangle
     triangle1.isTopologicallyEquivalentTo(triangle2) shouldBe true
-  }
 
-  it should "return false for tilings with different numbers of components" in {
+  it should "return false for tilings with different numbers of components" in:
     triangle.isTopologicallyEquivalentTo(square) shouldBe false
-  }
 
-  it should "return false for tilings with different face signatures" in {
+  it should "return false for tilings with different face signatures" in:
     // Both have 2 faces, 7 vertices, 16 half-edges
     val tiling1 = square.maybeAddRegularPolygonToBoundary(V1, RegularPolygon(3)).value
     // Both have 2 faces, 8 vertices, 18 half-edges
     val tiling2 = square.maybeAddRegularPolygonToBoundary(V1, RegularPolygon(4)).value
     tiling1.isTopologicallyEquivalentTo(tiling2) shouldBe false
-  }
 
-  it should "return true for two complex tilings built differently but structurally identical" in {
+  it should "return true for two complex tilings built differently but structurally identical" in:
     // Tiling A: Add a triangle to V1, then another to V4
     val tilingA = triangle
       .maybeAddRegularPolygonToBoundary(V1, RegularPolygon(3)).value
@@ -353,9 +336,8 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
       .maybeAddRegularPolygonToBoundary(V4, RegularPolygon(3)).value
 
     tilingA.isTopologicallyEquivalentTo(tilingB) shouldBe true
-  }
 
-  it should "return false for tilings with the same face signatures but different vertex signatures" in {
+  it should "return false for tilings with the same face signatures but different vertex signatures" in:
     // Tiling 1: Four squares in a 2x2 grid
     val gridTiling = TilingBuilder.createRhombusNet(2, 2) // V7 is on the new edge
 
@@ -370,11 +352,9 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
       ) should contain theSameElementsAs lineTiling.innerFaces.map(_.halfEdgesUnsafe.size),
       gridTiling.isTopologicallyEquivalentTo(lineTiling) shouldBe false
     )
-  }
 
-  it should "return false for an empty tiling vs a non-empty one" in {
+  it should "return false for an empty tiling vs a non-empty one" in:
     emptyTiling.isTopologicallyEquivalentTo(triangle) shouldBe false
-  }
 
   it should "return false for two different rhombuses" in
     allAssert(
@@ -417,18 +397,16 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
   /** <img src="file:../../../../../resources/holeInNet2.svg"/> */
   def holeInNet2: TilingDCEL = net.deleteEdge(VertexId("V14"), VertexId("V15")).value
 
-  it should "fail for two similar but different tiling" in {
+  it should "fail for two similar but different tiling" in:
     holeInNet1.isTopologicallyEquivalentTo(holeInNet2) shouldBe false
 //    shape1.isEquivalentTo(shape2) shouldBe false
-  }
 
   behavior of "TilingDCEL.reflectedCopy"
 
-  it should "create a valid reflected copy" in {
+  it should "create a valid reflected copy" in:
     val reflected = shapeL.verticallyReflectedCopy
     validate(reflected).isRight shouldBe true
 //    println(reflected.toSVG())
-  }
 
   behavior of "TilingDCEL.isReflectionOf"
 

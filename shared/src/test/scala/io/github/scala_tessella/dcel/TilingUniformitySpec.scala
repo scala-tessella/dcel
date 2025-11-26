@@ -12,7 +12,7 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
 
   behavior of "TilingDCEL.uniformityTree"
 
-  it should "find an uniform 1 tiling" in {
+  it should "find an uniform 1 tiling" in:
 
     /** <img src="file:../../../../../resources/uniform1.svg"/> */
     val result = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => (i + 3 * j) % 7 == 0)
@@ -20,9 +20,8 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
       result.uniformityTree.sizeLeaves shouldBe 1,
       result.innerFaces.size shouldBe 101
     )
-  }
 
-  it should "find the same tiling with opposite chirality by inverting the axes" in {
+  it should "find the same tiling with opposite chirality by inverting the axes" in:
 
     /** <img src="file:../../../../../resources/uniform1_specular.svg"/> */
     val result = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => (j + 3 * i) % 7 == 0)
@@ -30,9 +29,8 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
       result.uniformityTree.sizeLeaves shouldBe 1,
       result.innerFaces.size shouldBe 101
     )
-  }
 
-  it should "find an uniform 2 tiling" in {
+  it should "find an uniform 2 tiling" in:
 
     /** <img src="file:../../../../../resources/uniform2.svg"/> */
     val result = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => i % 3 == 0 && j % 3 == 0)
@@ -40,9 +38,8 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
       result.uniformityTree.sizeLeaves shouldBe 2,
       result.innerFaces.size shouldBe 112
     )
-  }
 
-  it should "find an uniform 3 tiling" in {
+  it should "find an uniform 3 tiling" in:
 
     /** <img src="file:../../../../../resources/uniform3.svg"/> */
     val result = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => (i + 4 * j) % 7 == 0)
@@ -50,9 +47,8 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
       result.uniformityTree.sizeLeaves shouldBe 3,
       result.innerFaces.size shouldBe 104
     )
-  }
 
-  it should "find an uniform 4 tiling" in {
+  it should "find an uniform 4 tiling" in:
 
     /** <img src="file:../../../../../resources/uniform4.svg"/> */
     val result = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => (i + 7 * j) % 9 == 0)
@@ -60,9 +56,8 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
       result.uniformityTree.sizeLeaves shouldBe 4,
       result.innerFaces.size shouldBe 116
     )
-  }
 
-  it should "find an uniform 5 tiling" in {
+  it should "find an uniform 5 tiling" in:
 
     /** <img src="file:../../../../../resources/uniform5.svg"/> */
     val result = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => i % 10 == (j * 8) % 10)
@@ -70,12 +65,11 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
       result.uniformityTree.sizeLeaves shouldBe 5,
       result.innerFaces.size shouldBe 120
     )
-  }
 
   /** <img src="file:../../../../../resources/uniform6.svg"/> */
   val uniformity6: TilingDCEL = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => (i + 3 * j) % 13 == 0)
 
-  it should "find an uniform 6 tiling" in {
+  it should "find an uniform 6 tiling" in:
     val tree = uniformity6.uniformityTree
     allAssert(
       tree.sizeLeaves shouldBe 6,
@@ -136,9 +130,8 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
           )
         )
     )
-  }
 
-  it should "find that 3.3.6.6.i has uniformity 5" in {
+  it should "find that 3.3.6.6.i has uniformity 5" in:
 
     /** <img src="file:../../../../../resources/uniform5_3.3.6.6.i.svg"/> */
     val result =
@@ -159,11 +152,10 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
       result.uniformityTree.sizeLeaves shouldBe 5,
       result.innerFaces.size shouldBe 39
     )
-  }
 
   behavior of "TilingUniformity.uniformityTreeUncompressed"
 
-  it should "find at distance 0 uncompressed" in {
+  it should "find at distance 0 uncompressed" in:
     uniformity6.uniformityTreeUncompressed(Option(0)) shouldBe
       Branch(
         List(),
@@ -211,9 +203,8 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
           )
         )
       )
-  }
 
-  it should "find at distance 0" in {
+  it should "find at distance 0" in:
     uniformity6.uniformityTreeUncompressed(Option(0)).compress(_ ::: _) shouldBe
       Branch(
         List(),
@@ -327,9 +318,8 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
           ))
         )
       )
-  }
 
-  it should "find at distance 1" in {
+  it should "find at distance 1" in:
     uniformity6.uniformityTreeUncompressed(Option(1)).compress(_ ::: _) shouldBe
       Branch(
         List(),
@@ -440,9 +430,8 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
           )
         )
       )
-  }
 
-  it should "find at distance 2" in {
+  it should "find at distance 2" in:
     uniformity6.uniformityTreeUncompressed(Option(2)).compress(_ ::: _) shouldBe
       Branch(
         List(),
@@ -553,9 +542,8 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
           )
         )
       )
-  }
 
-  it should "find at distance 3" in {
+  it should "find at distance 3" in:
     uniformity6.uniformityTreeUncompressed(Option(3)).compress(_ ::: _) shouldBe
       Branch(
         List(),
@@ -666,29 +654,25 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
           )
         )
       )
-  }
 
-  it should "find at distance 2 alt" in {
+  it should "find at distance 2 alt" in:
     uniformity6.uniformityTreeUncompressedAlt(Option(2)).compress(_ ::: _) shouldEqual
       uniformity6.uniformityTreeUncompressedAlt(Option(1)).compress(_ ::: _)
-  }
 
-  it should "find at distance 4" in {
+  it should "find at distance 4" in:
     uniformity6.uniformityTreeUncompressed(Option(4)).compress(_ ::: _) shouldEqual
       uniformity6.uniformityTreeUncompressed(Option(3)).compress(_ ::: _)
-  }
 
   behavior of "TilingDCEL.scanUniformityTree"
 
-  it should "efficiently scan uniformity at all distances" in {
+  it should "efficiently scan uniformity at all distances" in:
     uniformity6.scanUniformityTree shouldEqual
       (0 to 3).toList.map { distance =>
 
         uniformity6.uniformityTreeUncompressed(Option(distance)).compress(_ ::: _)
       }
-  }
 
-  it should "scan uniformity leaves at all distances" in {
+  it should "scan uniformity leaves at all distances" in:
     uniformity6.scanUniformityTree.map(_.flattenLeaves) shouldEqual
       List(
         List(
@@ -753,9 +737,7 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
           List("V27", "V34", "V75", "V77", "V36")
         )
       )
-  }
 
-  it should "pippo" in {
+  it should "pippo" in:
     println(uniformity6.toUniformityAnimation())
     true shouldBe true
-  }

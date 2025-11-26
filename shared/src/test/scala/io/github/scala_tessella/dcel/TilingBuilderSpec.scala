@@ -11,7 +11,7 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
 
   // --- Success cases ---
 
-  it should "create a valid TilingDCEL for a regular triangle" in {
+  it should "create a valid TilingDCEL for a regular triangle" in:
     val triangleAngles = Vector.fill(3)(AngleDegree(60))
     val result         = TilingBuilder.createSimplePolygon(SimplePolygon(triangleAngles))
 
@@ -25,9 +25,8 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
         )
       }
     )
-  }
 
-  it should "create a valid TilingDCEL for a square" in {
+  it should "create a valid TilingDCEL for a square" in:
     val squareAngles = Vector.fill(4)(AngleDegree(90))
     val result       = TilingBuilder.createSimplePolygon(SimplePolygon(squareAngles))
 
@@ -41,9 +40,8 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
         )
       }
     )
-  }
 
-  it should "create a valid TilingDCEL for a regular hexagon" in {
+  it should "create a valid TilingDCEL for a regular hexagon" in:
     val hexagonAngles = Vector.fill(6)(AngleDegree(120))
     val result        = TilingBuilder.createSimplePolygon(SimplePolygon(hexagonAngles))
 
@@ -57,9 +55,8 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
         )
       }
     )
-  }
 
-  it should "fail if the polygon is self-intersecting" in {
+  it should "fail if the polygon is self-intersecting" in:
     // A crossed hexagon ("bow-tie" style)
     // The sum of angles is (6-2)*180=720, but the geometry crosses itself.
     // Note: This polygon fails the final angle validation, but the self-intersection
@@ -80,9 +77,8 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
         "The polygon is not simple (it has vertices that are equal, which is not allowed)"
       )
     )
-  }
 
-  it should "fail if the polygon does not close geometrically, even with correct angle sum" in {
+  it should "fail if the polygon does not close geometrically, even with correct angle sum" in:
     // These pentagon angles sum to 540 degrees, which is correct for a pentagon ((5-2)*180),
     // but the sequence of angles does not form a closed polygon with unit-length sides.
     val nonClosingAngles =
@@ -93,20 +89,18 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
       result.isLeft shouldBe true,
       result.left.value.message should include("The polygon does not close")
     )
-  }
 
   behavior of "TilingBuilder.createRegularPolygon"
 
-  it should "create a valid TilingDCEL for a regular triangle" in {
+  it should "create a valid TilingDCEL for a regular triangle" in:
     val tiling = triangle
     allAssert(
       tiling.vertices.length shouldBe 3,
       tiling.faces.length shouldBe 2,
       tiling.halfEdges.length shouldBe 6
     )
-  }
 
-  it should "create a valid TilingDCEL for a square" in {
+  it should "create a valid TilingDCEL for a square" in:
     val tiling = square
     allAssert(
       tiling.vertices.length shouldBe 4,
@@ -125,9 +119,8 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
         "F1, F1, F1, F1"
       )
     )
-  }
 
-  it should "create a valid TilingDCEL for a regular pentagon" in {
+  it should "create a valid TilingDCEL for a regular pentagon" in:
     val tiling = TilingBuilder.createRegularPolygon(RegularPolygon(5))
     allAssert(
       tiling.vertices.length shouldBe 5,
@@ -144,108 +137,96 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
         "F1, F1, F1, F1, F1"
       )
     )
-  }
 
   behavior of "TilingBuilder.createRhombusNet"
 
-  it should "create a valid TilingDCEL with a net of rhombi" in {
+  it should "create a valid TilingDCEL with a net of rhombi" in:
 
     /** <img src="file:../../../../../resources/rhombusNet.svg"/> */
     val rhombusNet: TilingDCEL =
       TilingBuilder.createRhombusNet(3, 3, AngleDegree(60))
     validate(rhombusNet).isRight shouldBe true
-  }
 
   behavior of "TilingBuilder.createTriangleNet"
 
-  it should "create a valid TilingDCEL with a net of regular triangles" in {
+  it should "create a valid TilingDCEL with a net of regular triangles" in:
 
     /** <img src="file:../../../../../resources/triangleNet.svg"/> */
     val triangleNet: TilingDCEL =
       TilingBuilder.createTriangleNet(3, 3)
     validate(triangleNet).isRight shouldBe true
-  }
 
   behavior of "TilingBuilder.createHexagonNet"
 
-  it should "create a valid TilingDCEL with a net of regular hexagons" in {
+  it should "create a valid TilingDCEL with a net of regular hexagons" in:
 
     /** <img src="file:../../../../../resources/hexagonNet.svg"/> */
     val hexagonNet: TilingDCEL =
       TilingBuilder.createHexagonNet(3, 3, AngleDegree(90))
     validate(hexagonNet).isRight shouldBe true
-  }
 
   behavior of "TilingBuilder.createRing"
 
-  it should "create a valid TilingDCEL with a ring of regular triangles" in {
+  it should "create a valid TilingDCEL with a ring of regular triangles" in:
 
     /** <img src="file:../../../../../resources/ring3.svg"/> */
     val triangleRing: TilingDCEL =
       TilingBuilder.createRing(RegularPolygon(3))
     triangleRing.innerFaces.length shouldBe 6
-  }
 
-  it should "create a valid TilingDCEL with a ring of squares" in {
+  it should "create a valid TilingDCEL with a ring of squares" in:
 
     /** <img src="file:../../../../../resources/ring4.svg"/> */
     val squareRing: TilingDCEL =
       TilingBuilder.createRing(RegularPolygon(4))
     squareRing.innerFaces.length shouldBe 4
-  }
 
-  it should "create a valid TilingDCEL with a ring of regular pentagons" in {
+  it should "create a valid TilingDCEL with a ring of regular pentagons" in:
 
     /** <img src="file:../../../../../resources/ring5.svg"/> */
     val pentagonRing: TilingDCEL =
       TilingBuilder.createRing(RegularPolygon(5))
     pentagonRing.innerFaces.length shouldBe 11
-  }
 
-  it should "create a valid TilingDCEL with a ring of regular hexagons" in {
+  it should "create a valid TilingDCEL with a ring of regular hexagons" in:
 
     /** <img src="file:../../../../../resources/ring6.svg"/> */
     val hexagonRing: TilingDCEL =
       TilingBuilder.createRing(RegularPolygon(6))
     hexagonRing.innerFaces.length shouldBe 7
-  }
 
-  it should "create a valid TilingDCEL with a ring of regular eptagons" in {
+  it should "create a valid TilingDCEL with a ring of regular eptagons" in:
 
     /** <img src="file:../../../../../resources/ring7.svg"/> */
     val eptagonRing: TilingDCEL =
       TilingBuilder.createRing(RegularPolygon(7))
     eptagonRing.innerFaces.length shouldBe 15
-  }
 
-  it should "create a valid TilingDCEL with a ring of regular octagons" in {
+  it should "create a valid TilingDCEL with a ring of regular octagons" in:
 
     /** <img src="file:../../../../../resources/ring8.svg"/> */
     val octagonRing: TilingDCEL =
       TilingBuilder.createRing(RegularPolygon(8))
     octagonRing.innerFaces.length shouldBe 9
-  }
 
-  it should "create a valid TilingDCEL with a ring of regular ennagons" in {
+  it should "create a valid TilingDCEL with a ring of regular ennagons" in:
 
     /** <img src="file:../../../../../resources/ring9.svg"/> */
     val ennagonRing: TilingDCEL =
       TilingBuilder.createRing(RegularPolygon(9))
     ennagonRing.innerFaces.length shouldBe 19
-  }
 
-  it should "create a valid TilingDCEL with a ring of regular decagons" in {
+  it should "create a valid TilingDCEL with a ring of regular decagons" in:
 
     /** <img src="file:../../../../../resources/ring10.svg"/> */
     val decagonRing: TilingDCEL =
       TilingBuilder.createRing(RegularPolygon(10))
     decagonRing.innerFaces.length shouldBe 11
-  }
 
   /** @note
     *   from 46 sides onwards this is failing, if ACCURACY at 1.0e-12; from 92 sides onwards, if at 1.0e-11
     */
-  it should "create a valid TilingDCEL with a ring of regular centagons" in {
+  it should "create a valid TilingDCEL with a ring of regular centagons" in:
 
     val centagonRing: TilingDCEL =
       TilingBuilder.createRing(RegularPolygon(100))
@@ -254,11 +235,9 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
       centagonRing.vertices.length shouldBe 9800
     )
 
-  }
-
   behavior of "TilingBuilder.createHoledTriangleNet"
 
-  it should "create an hexagon net" in {
+  it should "create an hexagon net" in:
 
     /** <img src="file:../../../../../resources/uniform1_all_hex.svg"/> */
     val result = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => (i - j) % 3 == 0)
@@ -266,11 +245,9 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
       result.uniformityTree.sizeLeaves shouldBe 1,
       result.innerFaces.size shouldBe 22
     )
-  }
 
   behavior of "TilingBuilder.idFromFaceId"
 
-  it should "return the id" in {
+  it should "return the id" in:
     val faceId = TilingBuilder.faceIdF(100)
     TilingBuilder.idFromFaceId(faceId) shouldBe 100
-  }

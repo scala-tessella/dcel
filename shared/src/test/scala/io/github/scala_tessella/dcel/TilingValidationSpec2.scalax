@@ -9,16 +9,14 @@ class TilingValidationSpec2 extends AnyFlatSpec with Matchers with TilingTestHel
 
   behavior of "TilingDCEL.validate"
 
-  it should "succeed for a valid single polygon tiling" in {
+  it should "succeed for a valid single polygon tiling" in:
     validate(square) shouldBe Right(())
-  }
 
-  it should "succeed for a valid multi-polygon tiling" in {
+  it should "succeed for a valid multi-polygon tiling" in:
     val twoSquares = square.maybeAddRegularPolygonToBoundary(V1, RegularPolygon(4)).value
     validate(twoSquares) shouldBe Right(())
-  }
 
-  it should "fail if a vertex has no leaving edge" in {
+  it should "fail if a vertex has no leaving edge" in:
     val tiling = square
     tiling.vertices.head.leaving = None
     val result = validate(tiling)
@@ -26,9 +24,8 @@ class TilingValidationSpec2 extends AnyFlatSpec with Matchers with TilingTestHel
       result.isLeft shouldBe true,
       result.left.value.message should include("has no leaving edge")
     )
-  }
 
-  it should "fail if a vertex's leaving edge is not part of the tiling" in {
+  it should "fail if a vertex's leaving edge is not part of the tiling" in:
     val tiling = square
     val orphan = tiling.halfEdges.head
     tiling.vertices.head.leaving = Some(orphan)
@@ -37,9 +34,8 @@ class TilingValidationSpec2 extends AnyFlatSpec with Matchers with TilingTestHel
       result.isLeft shouldBe true,
       result.left.value.message should include("leaving edge is not part of this tiling")
     )
-  }
 
-  it should "fail if an edge has no twin" in {
+  it should "fail if an edge has no twin" in:
     val tiling = square
     tiling.halfEdges.head.twin = None
     val result = validate(tiling)
@@ -47,9 +43,8 @@ class TilingValidationSpec2 extends AnyFlatSpec with Matchers with TilingTestHel
       result.isLeft shouldBe true,
       result.left.value.message should include("has no twin")
     )
-  }
 
-  it should "fail if an edge has itself as twin" in {
+  it should "fail if an edge has itself as twin" in:
     val tiling = square
     val e = tiling.halfEdges.head
     e.twin = Some(e)
@@ -58,9 +53,8 @@ class TilingValidationSpec2 extends AnyFlatSpec with Matchers with TilingTestHel
       result.isLeft shouldBe true,
       result.left.value.message should include("has itself as twin")
     )
-  }
 
-  it should "fail if twin relationship is not symmetric" in {
+  it should "fail if twin relationship is not symmetric" in:
     val tiling = square
     val e    = tiling.halfEdges.head
     val twin = e.twin.get
@@ -70,9 +64,8 @@ class TilingValidationSpec2 extends AnyFlatSpec with Matchers with TilingTestHel
       result.isLeft shouldBe true,
       result.left.value.message should include("twin relationship is not symmetric")
     )
-  }
 
-  it should "fail if an edge's next/prev relationship is broken" in {
+  it should "fail if an edge's next/prev relationship is broken" in:
     val tiling = square
     val edge   = tiling.halfEdges.head
     edge.next.get.prev = None // Break the link
@@ -81,9 +74,8 @@ class TilingValidationSpec2 extends AnyFlatSpec with Matchers with TilingTestHel
       result.isLeft shouldBe true,
       result.left.value.message should include("Next/prev relationship broken")
     )
-  }
 
-  it should "fail if an edge's prev points outside the tiling" in {
+  it should "fail if an edge's prev points outside the tiling" in:
     val tiling = square
     val e = tiling.halfEdges.head
     val prevCopy = e.prev.get
@@ -93,9 +85,8 @@ class TilingValidationSpec2 extends AnyFlatSpec with Matchers with TilingTestHel
       result.isLeft shouldBe true,
       result.left.value.message should include("prev edge is not part of this tiling")
     )
-  }
 
-//  it should "fail if an edge's origin is not part of the tiling" in {
+//  it should "fail if an edge's origin is not part of the tiling" in:
 //    val tiling = square
 //    var e = tiling.halfEdges.head
 //    val vCopy = e.origin
@@ -107,7 +98,7 @@ class TilingValidationSpec2 extends AnyFlatSpec with Matchers with TilingTestHel
 //    )
 //  }
 
-  it should "fail if an edge references an incident face not part of the tiling" in {
+  it should "fail if an edge references an incident face not part of the tiling" in:
     val tiling = square
     val e = tiling.halfEdges.find(_.incidentFace.nonEmpty).get
     val fCopy = e.incidentFace.get
@@ -117,9 +108,8 @@ class TilingValidationSpec2 extends AnyFlatSpec with Matchers with TilingTestHel
       result.isLeft shouldBe true,
       result.left.value.message should include("references incident face not part of this tiling")
     )
-  }
 
-  it should "fail if a face edge does not point back to the face" in {
+  it should "fail if a face edge does not point back to the face" in:
     val tiling = square
     // Make an inner edge "forget" its face
     tiling.innerFaces.head.outerComponent.get.incidentFace = None
@@ -128,9 +118,8 @@ class TilingValidationSpec2 extends AnyFlatSpec with Matchers with TilingTestHel
       result.isLeft shouldBe true,
       result.left.value.message should include("references back")
     )
-  }
 
-  it should "fail if a face has a broken edge cycle" in {
+  it should "fail if a face has a broken edge cycle" in:
     val tiling = square
     val oc = tiling.innerFaces.head.outerComponent.get
     // Break cycle by removing next
@@ -140,9 +129,8 @@ class TilingValidationSpec2 extends AnyFlatSpec with Matchers with TilingTestHel
       result.isLeft shouldBe true,
       result.left.value.message should include("has a broken edge cycle")
     )
-  }
 
-  it should "fail if there is a face with no outer component edge" in {
+  it should "fail if there is a face with no outer component edge" in:
     val tiling = square
     tiling.innerFaces.head.outerComponent = None
     val result = validate(tiling)
@@ -150,9 +138,8 @@ class TilingValidationSpec2 extends AnyFlatSpec with Matchers with TilingTestHel
       result.isLeft shouldBe true,
       result.left.value.message should include("Face with no outer component edge")
     )
-  }
 
-  it should "fail if inner faces report holes" in {
+  it should "fail if inner faces report holes" in:
     val tiling = square
     tiling.innerFaces.head.innerComponents = Some(List(tiling.halfEdges.head))
     val result = validate(tiling)
@@ -160,9 +147,8 @@ class TilingValidationSpec2 extends AnyFlatSpec with Matchers with TilingTestHel
       result.isLeft shouldBe true,
       result.left.value.message should include("Face with inner holes")
     )
-  }
 
-  it should "fail if any half-edge has no angle defined" in {
+  it should "fail if any half-edge has no angle defined" in:
     val tiling = square
     tiling.halfEdges.head.angle = None
     val result = validate(tiling)
@@ -171,9 +157,8 @@ class TilingValidationSpec2 extends AnyFlatSpec with Matchers with TilingTestHel
       // The geometric validator short-circuits on first check
       result.left.value.message should include("Tiling has at least one half-edge with no angle defined")
     )
-  }
 
-  it should "fail if an inner face has an incorrect sum of angles" in {
+  it should "fail if an inner face has an incorrect sum of angles" in:
     val tiling = square
     // Tamper with an angle
     tiling.innerFaces.head.outerComponent.get.angle = Some(AngleDegree(89))
@@ -182,9 +167,8 @@ class TilingValidationSpec2 extends AnyFlatSpec with Matchers with TilingTestHel
       result.isLeft shouldBe true,
       result.left.value.message should include("The sum of interior angles is incorrect")
     )
-  }
 
-  it should "fail if an inner face has a full circle angle" in {
+  it should "fail if an inner face has a full circle angle" in:
     val tiling = square
     // Tamper with angles to make one a full circle while keeping the sum correct
     val edges  = tiling.innerFaces.head.halfEdges.value
@@ -197,9 +181,8 @@ class TilingValidationSpec2 extends AnyFlatSpec with Matchers with TilingTestHel
       result.isLeft shouldBe true,
       result.left.value.message should include("cannot have full circles as interior angles")
     )
-  }
 
-  it should "fail if the boundary angles do not sum correctly" in {
+  it should "fail if the boundary angles do not sum correctly" in:
     val twoSquares      = square.maybeAddRegularPolygonToBoundary(V1, RegularPolygon(4)).value
     // V2 is on the boundary. The inner edge from V2 belongs to the first square.
     val v2              = twoSquares.findVertexUnsafe(V2).get
@@ -218,9 +201,8 @@ class TilingValidationSpec2 extends AnyFlatSpec with Matchers with TilingTestHel
         (error.contains(faceError) || error.contains(boundaryError)) shouldBe true
       }
     )
-  }
 
-  it should "fail if a boundary angle is undefined" in {
+  it should "fail if a boundary angle is undefined" in:
     val tiling = square
     tiling.boundaryEdgesSafer.value.head.angle = None
     val result = validate(tiling)
@@ -228,9 +210,8 @@ class TilingValidationSpec2 extends AnyFlatSpec with Matchers with TilingTestHel
       result.isLeft shouldBe true,
       result.left.value.message should include("Tiling has at least one half-edge with no angle defined")
     )
-  }
 
-  it should "fail if a boundary angle is a full circle (360 degrees)" in {
+  it should "fail if a boundary angle is a full circle (360 degrees)" in:
     val tiling = square
     tiling.boundaryEdgesSafer.value.head.angle = Some(AngleDegree(360))
     val result = validate(tiling)
@@ -238,9 +219,8 @@ class TilingValidationSpec2 extends AnyFlatSpec with Matchers with TilingTestHel
       result.isLeft shouldBe true,
       result.left.value.message should include("Full circle boundary angles")
     )
-  }
 
-  it should "fail if a boundary angle is a full circle (0 degrees)" in {
+  it should "fail if a boundary angle is a full circle (0 degrees)" in:
     val tiling = square
     tiling.boundaryEdgesSafer.value.head.angle = Some(AngleDegree(0))
     val result = validate(tiling)
@@ -248,9 +228,8 @@ class TilingValidationSpec2 extends AnyFlatSpec with Matchers with TilingTestHel
       result.isLeft shouldBe true,
       result.left.value.message should include("Full circle boundary angles")
     )
-  }
 
-  it should "fail if boundary angles calculation fails at a vertex" in {
+  it should "fail if boundary angles calculation fails at a vertex" in:
     val tiling = square
     // Force boundaryVerticesSafer to compute and fail by breaking an inner reference
     val v = tiling.boundaryVertices.head
@@ -259,9 +238,8 @@ class TilingValidationSpec2 extends AnyFlatSpec with Matchers with TilingTestHel
     val result = validate(tiling)
     result.isLeft shouldBe true
     result.left.value.message should include("Boundary angles calculation failed")
-  }
 
-  it should "fail if angles around interior vertex do not sum to a full circle" in {
+  it should "fail if angles around interior vertex do not sum to a full circle" in:
     val tiling = square.maybeAddRegularPolygonToBoundary(V1, RegularPolygon(4)).value
     // pick an interior vertex (shared by two squares)
     val shared = tiling.vertices.find(v => !tiling.boundaryVertices.contains(v)).get
@@ -271,11 +249,10 @@ class TilingValidationSpec2 extends AnyFlatSpec with Matchers with TilingTestHel
     val result = validate(tiling)
     result.isLeft shouldBe true
     result.left.value.message should include("Angles around interior vertex")
-  }
 
   behavior of "TilingValidation.validateTopologically"
 
-  it should "catch outer face edges not reachable from its outer component" in {
+  it should "catch outer face edges not reachable from its outer component" in:
     val tiling = square
     // Mark an inner edge as outer by assigning outerFace, but keep outer traversal unchanged
     val innerEdge = tiling.innerFaces.head.halfEdges.value.head
@@ -283,11 +260,10 @@ class TilingValidationSpec2 extends AnyFlatSpec with Matchers with TilingTestHel
     val result = TilingValidation.validateTopologically(tiling)
     result.isLeft shouldBe true
     result.left.value.message should include("Outer face has edges not reachable from its outer component")
-  }
 
   behavior of "TilingValidation.validateGeometrically"
 
-  it should "succeed on valid tilings and detect both face and boundary issues independently" in {
+  it should "succeed on valid tilings and detect both face and boundary issues independently" in:
     val tiling = square
     TilingValidation.validateGeometrically(tiling) shouldBe Right(())
 
@@ -296,15 +272,13 @@ class TilingValidationSpec2 extends AnyFlatSpec with Matchers with TilingTestHel
     val r2 = TilingValidation.validateGeometrically(t2)
     r2.isLeft shouldBe true
     r2.left.value.message should include("Face")
-  }
 
   behavior of "TilingValidation.validateSpatially"
 
-  it should "succeed on valid tilings" in {
+  it should "succeed on valid tilings" in:
     TilingValidation.validateSpatially(square) shouldBe Right(())
-  }
 
-  it should "fail when boundary has vertices in the same position" in {
+  it should "fail when boundary has vertices in the same position" in:
     val tiling = square
     // Collapse two boundary vertices to same coords
     val b = tiling.boundaryVertices
@@ -313,9 +287,8 @@ class TilingValidationSpec2 extends AnyFlatSpec with Matchers with TilingTestHel
     val result = TilingValidation.validateSpatially(tiling)
     result.isLeft shouldBe true
     result.left.value.message should include("boundary with vertices in the same position")
-  }
 
-  it should "fail when an edge does not have unit length" in {
+  it should "fail when an edge does not have unit length" in:
     val tiling = square
     // Move one vertex slightly
     var v = tiling.halfEdges.head.twin.get.origin
@@ -323,4 +296,3 @@ class TilingValidationSpec2 extends AnyFlatSpec with Matchers with TilingTestHel
     val result = TilingValidation.validateSpatially(tiling)
     result.isLeft shouldBe true
     result.left.value.message should include("does not have unit length")
-  }
