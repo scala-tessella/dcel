@@ -9,7 +9,7 @@ class TilingDOTSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   behavior of "TilingDOT.toCompleteDOT"
 
-  it should "generate a DOT skeleton for an empty tiling" in {
+  it should "generate a DOT skeleton for an empty tiling" in:
     val dot = emptyTiling.toCompleteDOT
     allAssert(
       dot should include("digraph TilingDCEL"),
@@ -19,9 +19,8 @@ class TilingDOTSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       dot should include("subgraph cluster_halfedges"),
       dot.trim should endWith("}")
     )
-  }
 
-  it should "include all vertices, faces, and half-edges for a triangle" in {
+  it should "include all vertices, faces, and half-edges for a triangle" in:
     val dot          = triangle.toCompleteDOT
     val numVertices  = triangle.vertices.length
     val numFaces     = triangle.faces.length // includes outer face
@@ -36,9 +35,8 @@ class TilingDOTSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       faceNodeRegex.findAllIn(dot).size shouldBe numFaces,
       heNodeRegex.findAllIn(dot).size shouldBe numHalfEdges
     )
-  }
 
-  it should "emit expected relation edges for a triangle" in {
+  it should "emit expected relation edges for a triangle" in:
     val dot          = triangle.toCompleteDOT
     val numHalfEdges = triangle.halfEdges.length
     val numVertices  = triangle.vertices.length
@@ -62,9 +60,8 @@ class TilingDOTSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       // Outer component link present for each face with an outerComponent defined
       count("outer") shouldBe facesCount
     )
-  }
 
-  it should "use stable node prefixes v:, f:, e: and include known vertex ids" in {
+  it should "use stable node prefixes v:, f:, e: and include known vertex ids" in:
     val dot = triangle.toCompleteDOT
 
     allAssert(
@@ -77,10 +74,8 @@ class TilingDOTSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       // Half-edge node prefix present
       dot should include("e:")
     )
-  }
 
-  it should "produce consistent output for the same tiling" in {
+  it should "produce consistent output for the same tiling" in:
     val dot1 = square.toCompleteDOT
     val dot2 = square.toCompleteDOT
     dot1 shouldEqual dot2
-  }

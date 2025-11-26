@@ -11,17 +11,15 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
 
   behavior of "TilingTorusDCEL.unorderedBoundaryVertices"
 
-  it should "return the boundary of a 2x2 square net" in {
+  it should "return the boundary of a 2x2 square net" in:
     val torus = createSquareNet(2, 2)
     torus.unorderedBoundaryVertices.map(_.id) shouldBe List(V1, V2, V3, V4)
-  }
 
-  it should "return the boundary of a 3x2 square net" in {
+  it should "return the boundary of a 3x2 square net" in:
     val torus = createSquareNet(3, 2)
     torus.unorderedBoundaryVertices.map(_.id) shouldBe List(V1, V3, V4, VertexId("V6"))
-  }
 
-  it should "return the boundary of a 3x3 square net" in {
+  it should "return the boundary of a 3x3 square net" in:
     val torus = createSquareNet(3, 3)
     torus.unorderedBoundaryVertices.map(_.id) shouldBe List(
       V1,
@@ -33,11 +31,10 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
       VertexId("V8"),
       VertexId("V9")
     )
-  }
 
   behavior of "TilingTorusDCEL.findVertex/findFace"
 
-  it should "find existing vertices and faces" in {
+  it should "find existing vertices and faces" in:
     val torus = createSquareNet(2, 2)
     allAssert(
       torus.findVertex(V1).isRight shouldBe true,
@@ -49,27 +46,25 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
       torus.findFace(F3).isRight shouldBe true,
       torus.findFace(FaceId("F4")).isRight shouldBe true
     )
-  }
 
-  it should "fail on non-existing vertices and faces" in {
+  it should "fail on non-existing vertices and faces" in:
     val torus = createSquareNet(2, 2)
     allAssert(
       torus.findVertex(VertexId("VX")).isLeft shouldBe true,
       torus.findFace(FaceId("FX")).isLeft shouldBe true
     )
-  }
 
 //  behavior of "TilingTorusDCEL.toTilingDCEL"
 //
-//  it should "be converted" in {
+//  it should "be converted" in:
 //    val tiling = createSquareNet(4, 4).toTilingDCEL
 //    println(tiling)
 //    tiling.isRight shouldBe true
-//  }
+//
 
   behavior of "TilingTorusDCEL.fromTilingDCEL"
 
-  it should "be converted from a square" in {
+  it should "be converted from a square" in:
     val tilingDCEL = TilingBuilder.createRegularPolygon(RegularPolygon(4))
     val torus      = TilingTorusDCEL.fromTilingDCEL(tilingDCEL).value
 //    val scale: Double = 1.0 / 1.0
@@ -95,9 +90,8 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
 //      torus.toBox.width.almostEqual(1) shouldBe true,
 //      torus.toBox.height.almostEqual(1) shouldBe true
     )
-  }
 
-  it should "be converted from a 2x2 square" in {
+  it should "be converted from a 2x2 square" in:
     val tilingDCEL =
       TilingBuilder.createSimplePolygon(SimplePolygon(90, 90, 90, 90).multiplySidesBy(2)).toOption.get
     val torus      = TilingTorusDCEL.fromTilingDCEL(tilingDCEL).value
@@ -124,9 +118,8 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
 //      torus.toBox.width.almostEqual(2) shouldBe true,
 //      torus.toBox.height.almostEqual(2) shouldBe true
     )
-  }
 
-  it should "be converted from a 2x2 square net" in {
+  it should "be converted from a 2x2 square net" in:
     val tilingDCEL = TilingBuilder.createRhombusNet(2, 2)
     val torus      = TilingTorusDCEL.fromTilingDCEL(tilingDCEL).value
 //    val scale: Double = 1.0 / 2.0
@@ -151,9 +144,8 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
 //      torus.toBox.width.almostEqual(2) shouldBe true,
 //      torus.toBox.height.almostEqual(2) shouldBe true
     )
-  }
 
-  it should "be converted from a 3x3 square net" in {
+  it should "be converted from a 3x3 square net" in:
     val tilingDCEL = TilingBuilder.createRhombusNet(3, 3)
 //    println(tilingDCEL.toTorusCheck)
     val torus      = TilingTorusDCEL.fromTilingDCEL(tilingDCEL).value
@@ -172,9 +164,8 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
 //      torus.toBox.width.almostEqual(3) shouldBe true,
 //      torus.toBox.height.almostEqual(3) shouldBe true
     )
-  }
 
-  it should "be converted from a 3x2 square net" in {
+  it should "be converted from a 3x2 square net" in:
     val tilingDCEL = TilingBuilder.createRhombusNet(3, 2)
 //    println(tilingDCEL.toTorusCheck)
     val torus      = TilingTorusDCEL.fromTilingDCEL(tilingDCEL).value
@@ -186,9 +177,8 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
 //      torus.toBox.width.almostEqual(3) shouldBe true,
 //      torus.toBox.height.almostEqual(2) shouldBe true
     )
-  }
 
-  it should "be converted from a 2x1 hexagon net" in {
+  it should "be converted from a 2x1 hexagon net" in:
     val tilingDCEL = TilingBuilder.createHexagonNet(2, 1)
 //    println(tilingDCEL.toTorusCheck)
     val torus      = TilingTorusDCEL.fromTilingDCEL(tilingDCEL).value
@@ -213,9 +203,8 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
       torus.halfEdges.size shouldBe 12,
       torus.halfEdges.exists(_.isLoop.get) shouldBe false
     )
-  }
 
-  it should "be converted from a 2x2 hexagon net" in {
+  it should "be converted from a 2x2 hexagon net" in:
     val tilingDCEL     = TilingBuilder.createHexagonNet(2, 2)
 //    println(tilingDCEL.toTorusCheck)
     val torus          = TilingTorusDCEL.fromTilingDCEL(tilingDCEL).value
@@ -242,9 +231,8 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
       torus.halfEdges.size shouldBe 24,
       torus.halfEdges.exists(_.isLoop.get) shouldBe false
     )
-  }
 
-  it should "be converted from a 4x4 hexagon net" in {
+  it should "be converted from a 4x4 hexagon net" in:
     val tilingDCEL     = TilingBuilder.createHexagonNet(4, 4)
 //    println(tilingDCEL.toTorusCheck)
     val torus          = TilingTorusDCEL.fromTilingDCEL(tilingDCEL).value
@@ -257,9 +245,8 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
       torus.halfEdges.size shouldBe 96,
       torus.halfEdges.exists(_.isLoop.get) shouldBe false
     )
-  }
 
-  it should "be converted from a 8x8 hexagon net" in {
+  it should "be converted from a 8x8 hexagon net" in:
     val tilingDCEL = TilingBuilder.createHexagonNet(8, 8)
 //    println(tilingDCEL.toTorusCheck)
     val torus      = TilingTorusDCEL.fromTilingDCEL(tilingDCEL).value
@@ -272,9 +259,8 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
       torus.halfEdges.size shouldBe 384,
       torus.halfEdges.exists(_.isLoop.get) shouldBe false
     )
-  }
 
-  it should "be converted from a 1x1 triangle net" in {
+  it should "be converted from a 1x1 triangle net" in:
     val tilingDCEL = TilingBuilder.createTriangleNet(1, 1)
     val torus      = TilingTorusDCEL.fromTilingDCEL(tilingDCEL).value
     allAssert(
@@ -293,9 +279,8 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
       torus.halfEdges.size shouldBe 6,
       torus.halfEdges.forall(_.isLoop.get) shouldBe true
     )
-  }
 
-  it should "be converted from a 2x1 triangle net" in {
+  it should "be converted from a 2x1 triangle net" in:
     val tilingDCEL = TilingBuilder.createTriangleNet(2, 1)
     val torus      = TilingTorusDCEL.fromTilingDCEL(tilingDCEL).value
     allAssert(
@@ -318,4 +303,3 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
       torus.halfEdges.size shouldBe 12,
       torus.halfEdges.count(_.isLoop.get) shouldBe 4
     )
-  }
