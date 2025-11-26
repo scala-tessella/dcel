@@ -4,8 +4,6 @@ import io.github.scala_tessella.dcel.conversion.TilingSVG.toScalableVectorG
 import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.ACCURACY
 import io.github.scala_tessella.ring_seq.RingSeq.sliceO
 
-import scala.::
-
 /** Unit simple polygon with the given ordered interior angles */
 opaque type SimplePolygon = Vector[AngleDegree]
 
@@ -132,7 +130,8 @@ object SimplePolygon:
                 List(i, j, k)
 
         // separate the degenerate square results, where the first two indices are the same
-        val (sqr, hex) = halfIndices.partition((_: @unchecked) match { case i :: j :: _ => i == j })
+        val (sqr, hex) = halfIndices.partition:
+          (_: @unchecked) match { case i :: j :: _ => i == j }
 
         def completeHalf(ijk: List[Int]): List[Int] =
           ijk ::: ijk.map(_ + half)
@@ -145,7 +144,8 @@ object SimplePolygon:
 
           /** Checks that the 3 first segments fits into their opposites */
           def allSegmentsFitting(f: Vector[AngleDegree] => Vector[AngleDegree] = identity): Boolean =
-            (0 to 2).forall(i => areOpposite(segments(i), f(segments(i + 3))))
+            (0 to 2).forall: i =>
+              areOpposite(segments(i), f(segments(i + 3)))
 
           allSegmentsFitting() || allSegmentsFitting(_.reverse)
 
@@ -174,4 +174,5 @@ object SimplePolygon:
         case origin :: _ :: ac :: _ :: bd :: _ => Option(List(origin, ac, bd))
         case _                                 => None
       )
-        .map(i => ParallelogramTranslation.values.zip(i).toMap)
+        .map: i =>
+          ParallelogramTranslation.values.zip(i).toMap
