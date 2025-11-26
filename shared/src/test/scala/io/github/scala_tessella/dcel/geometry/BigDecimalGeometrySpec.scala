@@ -30,11 +30,10 @@ class BigDecimalGeometrySpec extends AnyFlatSpec with Matchers with TilingTestHe
 
   behavior of "SpatialGrid and IntersectionDetection"
 
-  it should "return false for empty segment collections" in {
+  it should "return false for empty segment collections" in:
     BigDecimalGeometry.IntersectionDetection.hasProperIntersection(Nil, Nil) shouldBe false
-  }
 
-  it should "detect no intersections for clearly disjoint sets" in {
+  it should "detect no intersections for clearly disjoint sets" in:
     val a1 = BigLineSegment(BigPoint(0, 0), BigPoint(1, 0))
     val a2 = BigLineSegment(BigPoint(0, 1), BigPoint(1, 1))
     val b1 = BigLineSegment(BigPoint(10, 10), BigPoint(11, 10))
@@ -44,9 +43,8 @@ class BigDecimalGeometrySpec extends AnyFlatSpec with Matchers with TilingTestHe
       List(b1, b2),
       cellSize = Some(BigDecimal(0.5))
     ) shouldBe false
-  }
 
-  it should "detect a proper intersection between two sets" in {
+  it should "detect a proper intersection between two sets" in:
     val s1 = BigLineSegment(BigPoint(0, 0), BigPoint(2, 2))
     val s2 = BigLineSegment(BigPoint(0, 2), BigPoint(2, 0))
     BigDecimalGeometry.IntersectionDetection.hasProperIntersection(
@@ -54,9 +52,8 @@ class BigDecimalGeometrySpec extends AnyFlatSpec with Matchers with TilingTestHe
       List(s2),
       cellSize = Some(BigDecimal(0.5))
     ) shouldBe true
-  }
 
-  it should "not treat touching endpoints as proper intersections" in {
+  it should "not treat touching endpoints as proper intersections" in:
     val s1 = BigLineSegment(BigPoint(0, 0), BigPoint(1, 0))
     val s2 = BigLineSegment(BigPoint(1, 0), BigPoint(1, 1))
     BigDecimalGeometry.IntersectionDetection.hasProperIntersection(
@@ -64,9 +61,8 @@ class BigDecimalGeometrySpec extends AnyFlatSpec with Matchers with TilingTestHe
       List(s2),
       cellSize = Some(BigDecimal(0.5))
     ) shouldBe false
-  }
 
-  it should "work with auto cell size estimation" in {
+  it should "work with auto cell size estimation" in:
     val A = List(
       BigLineSegment(BigPoint(0, 0), BigPoint(5, 0)),
       BigLineSegment(BigPoint(0, 1), BigPoint(5, 1))
@@ -76,4 +72,3 @@ class BigDecimalGeometrySpec extends AnyFlatSpec with Matchers with TilingTestHe
     )
     // A horizontal set crossed by a vertical segment at x=2
     BigDecimalGeometry.IntersectionDetection.hasProperIntersection(A, B) shouldBe true
-  }

@@ -20,7 +20,7 @@ class AngleDegreeSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   behavior of "AngleDegree arithmetic"
 
-  it should "add and subtract preserving exact Rational semantics" in {
+  it should "add and subtract preserving exact Rational semantics" in:
     val a = AngleDegree(90)
     val b = AngleDegree(45)
     allAssert(
@@ -28,7 +28,6 @@ class AngleDegreeSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       (a - b).toRational shouldBe Rational(45),
       (b - a).toRational shouldBe Rational(-45)
     )
-  }
 
   it should "negate (inverted) correctly" in
     allAssert(
@@ -97,7 +96,6 @@ class AngleDegreeSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   behavior of "AngleDegree collection helpers"
 
-  it should "sum a sequence exactly with sumExact" in {
+  it should "sum a sequence exactly with sumExact" in:
     val angles = Seq(AngleDegree(30), AngleDegree(60), AngleDegree(90))
     angles.sumExact.toRational shouldBe Rational(180)
-  }

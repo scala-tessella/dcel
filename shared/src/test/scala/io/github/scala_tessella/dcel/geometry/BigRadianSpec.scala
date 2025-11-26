@@ -28,7 +28,7 @@ class BigRadianSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   behavior of "BigRadian arithmetic"
 
-  it should "add and subtract" in {
+  it should "add and subtract" in:
     val a = BigRadian(1.2)
     val b = BigRadian(0.7)
     allAssert(
@@ -36,19 +36,17 @@ class BigRadianSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       (a - b).toBigDecimal shouldEqual BigDecimal(0.5),
       (b - a).toBigDecimal shouldEqual BigDecimal(-0.5)
     )
-  }
 
-  it should "multiply and divide by Int" in {
+  it should "multiply and divide by Int" in:
     val r = BigRadian(2.4)
     allAssert(
       (r * 2).toBigDecimal shouldEqual BigDecimal(4.8),
       (r / 2).toBigDecimal shouldEqual BigDecimal(1.2)
     )
-  }
 
   behavior of "BigRadian normalization and modulo"
 
-  it should "normalize to [0, TAU)" in {
+  it should "normalize to [0, TAU)" in:
     val twoPi = BigRadian.TAU.toBigDecimal
     val x     = BigRadian.TAU_4          // +pi/2
     val y     = BigRadian(-1.0)          // negative small
@@ -59,9 +57,8 @@ class BigRadianSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       y.normalizeTau.toBigDecimal < twoPi shouldBe true,
       (z.normalizeTau.toBigDecimal - BigDecimal(0.123)).abs <= acc shouldBe true
     )
-  }
 
-  it should "normalize to (-Pi, Pi]" in {
+  it should "normalize to (-Pi, Pi]" in:
     val nearPi   = BigRadian.TAU_2
     val overPi   = BigRadian.TAU_2 + BigRadian(0.001)
     val underNeg = BigRadian(-3.5) // arbitrary negative
@@ -74,23 +71,20 @@ class BigRadianSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       n2 <= pi && n2 > -pi shouldBe true,
       n3 <= pi && n3 > -pi shouldBe true
     )
-  }
 
-  it should "compute modTau consistent with remainder by TAU" in {
+  it should "compute modTau consistent with remainder by TAU" in:
     val r  = BigRadian.TAU_4 + BigRadian(0.3)
     val rt = r.modTau.toBigDecimal
     val ex = r.toBigDecimal % BigRadian.TAU.toBigDecimal
     rt shouldEqual ex
-  }
 
   behavior of "BigRadian comparisons and almostEquals"
 
-  it should "provide Ordering by underlying BigDecimal" in {
+  it should "provide Ordering by underlying BigDecimal" in:
     val xs = List(BigRadian(1.0), BigRadian(0.5), BigRadian(2.0)).sorted
     xs.map(_.toBigDecimal) shouldBe List(BigDecimal(0.5), BigDecimal(1.0), BigDecimal(2.0))
-  }
 
-  it should "check approximate equality with default accuracy" in {
+  it should "check approximate equality with default accuracy" in:
     val a = BigRadian(1.0)
     val b = BigRadian(1.0 + 1e-13)
     val c = BigRadian(1.0 + 1e-6)
@@ -98,16 +92,14 @@ class BigRadianSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       a.almostEquals(b) shouldBe true,
       a.almostEquals(c) shouldBe false
     )
-  }
 
-  it should "check approximate equality with custom accuracy" in {
+  it should "check approximate equality with custom accuracy" in:
     val a = BigRadian(2.0)
     val b = BigRadian(2.0000001)
     allAssert(
       a.almostEquals(b, BigDecimal(1e-5)) shouldBe true,
       a.almostEquals(b, BigDecimal(1e-8)) shouldBe false
     )
-  }
 
   behavior of "BigRadian with degrees interop (sanity)"
 
