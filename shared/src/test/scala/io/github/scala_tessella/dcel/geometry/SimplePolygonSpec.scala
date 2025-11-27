@@ -20,14 +20,14 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
   they should "be found for a square" in:
     simpleSquare.parallelogonIndices shouldBe List(0, 1, 2, 3)
 
-  they should "NOT be found for a pentagon" in :
+  they should "NOT be found for a pentagon" in:
     SimplePolygon(108, 108, 108, 108, 108).parallelogonIndices shouldBe Nil
 
   they should "NOT be found for a triangle of side 2" in:
     val doubledTriangle = simpleTriangle.multiplySidesBy(2)
     doubledTriangle.parallelogonIndices shouldBe Nil
 
-  they should "NOT be found for a triangle of side 4" in :
+  they should "NOT be found for a triangle of side 4" in:
     val quadrupledTriangle = simpleTriangle.multiplySidesBy(4)
     quadrupledTriangle.parallelogonIndices shouldBe Nil
 
