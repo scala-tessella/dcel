@@ -6,6 +6,7 @@ import io.github.scala_tessella.dcel.TilingEquivalency.*
 import io.github.scala_tessella.dcel.TilingValidation.validate
 import io.github.scala_tessella.dcel.geometry.{BigPoint, RegularPolygon}
 import io.github.scala_tessella.dcel.structure.VertexId
+import io.github.scala_tessella.ring_seq.RingSeq.reflectAt
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -405,8 +406,11 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
 
   it should "create a valid reflected copy" in:
     val reflected = shapeL.verticallyReflectedCopy
-    validate(reflected).isRight shouldBe true
-//    println(reflected.toSVG())
+    allAssert(
+      shapeL.boundaryVertices.map(_.id) shouldBe Vector(V1, V4, "V7", "V9", "V10", "V8", V3, "V5", "V6", V2),
+      validate(reflected).isRight shouldBe true,
+      reflected.boundaryVertices.map(_.id) shouldBe shapeL.boundaryVertices.map(_.id).reflectAt(1)
+    )
 
   behavior of "TilingDCEL.isReflectionOf"
 

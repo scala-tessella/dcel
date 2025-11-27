@@ -181,9 +181,13 @@ object TilingEquivalency:
         faceIdTransformer = faceIdTransformer
       )
 
-    /** Creates a geometric reflection of the tiling across the vertical axis of its bounding box. It achieves
-      * this by creating a deep copy of the tiling structure, while re-calculating the x-coordinates of all
-      * vertices and reversing the orientation of the half-edge connections
+    /** Creates a vertically reflected copy of the TilingDCEL based on a reflection axis that lies at the
+      * midpoint of the minimum and maximum y-coordinates of the vertices. All components (vertices,
+      * half-edges, faces) are copied and updated to establish consistent relationships in the reflected
+      * structure.
+      *
+      * @return
+      *   A new TilingDCEL instance representing the vertically reflected copy of the original.
       */
     def verticallyReflectedCopy: TilingDCEL =
       // Get all x-coordinates to find the bounding box
@@ -195,18 +199,77 @@ object TilingEquivalency:
       val maxY            = yCoords.max
       val reflectionAxisY = (minY + maxY) / 2
 
-      rawCopy(
-        // Reflecting vertex coordinates across the calculated horizontal axis
-        coordsTransformer = point => BigPoint(point.x, y = reflectionAxisY * 2 - point.y),
-        // In a reflected copy, the edge cycle around a vertex is reversed.
-        // The new `leaving` edge should be the one that PRECEDES the old `leaving` edge's twin.
-        vertexLeavingTransformer =
-          (newVertex, oldLeavingEdge, halfEdgeMap) =>
-            oldLeavingEdge.prev.flatMap(_.twin).foreach(newLeaving =>
-              newVertex.leaving = Some(halfEdgeMap(newLeaving))
-            ),
-        identity,
-        identity
+      // Create mapping from old to new components
+      val (vertexMap, halfEdgeMap, faceMap) =
+        createMaps(
+          coordsTransformer = point => BigPoint(point.x, y = reflectionAxisY * 2 - point.y),
+          vertexIdTransformer = identity,
+          faceIdTransformer = identity
+        )
+
+      // Wire HalfEdges with reversed orientation
+      tiling.halfEdges.foreach { oldEdge =>
+        val newEdge = halfEdgeMap(oldEdge)
+
+        oldEdge.twin.foreach { t =>
+          newEdge.twin = Some(halfEdgeMap(t))
+
+          // Incident Face: face on the right of oldEdge (which is incident to twin)
+          t.incidentFace.foreach { f =>
+
+            newEdge.incidentFace = Some(faceMap(f))
+          }
+
+          // Next: twin of prev of twin
+          t.prev.flatMap(_.twin).foreach { target =>
+
+            newEdge.next = Some(halfEdgeMap(target))
+          }
+
+          // Prev: twin of next of twin
+          t.next.flatMap(_.twin).foreach { target =>
+
+            newEdge.prev = Some(halfEdgeMap(target))
+          }
+
+          // Angle: angle of next of twin (which corresponds to the same corner in the new face)
+          t.next.foreach { tn =>
+
+            newEdge.angle = tn.angle
+          }
+        }
+      }
+
+      // Wire Vertices
+      tiling.vertices.foreach { oldVertex =>
+        val newVertex = vertexMap(oldVertex)
+        oldVertex.leaving.foreach { oldLeaving =>
+
+          newVertex.leaving = Some(halfEdgeMap(oldLeaving))
+        }
+      }
+
+      // Wire Faces
+      tiling.faces.foreach { oldFace =>
+        val newFace = faceMap(oldFace)
+
+        // Outer component needs to be flipped (use twin) to maintain face-on-left invariant
+        oldFace.outerComponent.flatMap(_.twin).foreach { target =>
+
+          newFace.outerComponent = Some(halfEdgeMap(target))
+        }
+
+        // Inner components
+        newFace.innerComponents = oldFace.innerComponents.map {
+          _.flatMap(_.twin).map(halfEdgeMap)
+        }
+      }
+
+      TilingDCEL(
+        vertices = tiling.vertices.map(vertexMap),
+        halfEdges = tiling.halfEdges.map(halfEdgeMap),
+        innerFaces = tiling.innerFaces.map(faceMap),
+        outerFace = faceMap(tiling.outerFace)
       )
 
     private def calculateBoundaryDistances: Map[Vertex, Int] =
