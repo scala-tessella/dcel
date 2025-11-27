@@ -238,7 +238,7 @@ final case class TilingDCEL private (
       Right(this)
     else
       boundarySimplePolygon.parallelogonDoubleIndicesAlt match
-        case None                   => Left(ValidationError("Tiling is not a parallelogon"))
+        case None                   => Left(ValidationError("Tiling is not a parallelogon, cannot fill the whole plane."))
         case Some((origin, repeat)) =>
           Right(this.rawDouble(boundaryVertices(origin), boundaryVertices(repeat)))
 
