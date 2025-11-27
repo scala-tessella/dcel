@@ -441,23 +441,13 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
         )
       )
 
-  behavior of "TilingDCEL.quadrupleArea"
+  behavior of "TilingDCEL.doubleArea"
 
   it should "keep an empty tiling" in:
-    TilingDCEL.empty.quadrupleArea.value.isEmpty shouldBe true
+    TilingDCEL.empty.doubleArea.value.isEmpty shouldBe true
 
-  it should "quadruple an hexagon" in:
-    val quadrupled = hexagon.quadrupleArea
-    val result     = quadrupled.value
-    allAssert(
-      result.halfEdges.size shouldBe 38,
-      result.vertices.size shouldBe 16,
-      result.innerFaces.size shouldBe 4,
-      TilingValidation.validate(result).isRight shouldBe true
-    )
-
-  it should "quadruple a square" in:
-    val doubled = square.quadrupleArea
+  it should "double a 2x1 square net along the longest segment" in:
+    val doubled = TilingBuilder.createRhombusNet(2, 1).doubleArea
     val result  = doubled.value
     allAssert(
       result.halfEdges.size shouldBe 24,
@@ -466,22 +456,32 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       TilingValidation.validate(result).isRight shouldBe true
     )
 
-  it should "quadruple a 2x2 square net" in:
-    val doubled = TilingBuilder.createRhombusNet(2, 2).quadrupleArea
+  it should "double a 1x2 square net along the longest segment" in:
+    val doubled = TilingBuilder.createRhombusNet(1, 2).doubleArea
     val result  = doubled.value
     allAssert(
-      result.halfEdges.size shouldBe 80,
-      result.vertices.size shouldBe 25,
-      result.innerFaces.size shouldBe 16,
+      result.halfEdges.size shouldBe 24,
+      result.vertices.size shouldBe 9,
+      result.innerFaces.size shouldBe 4,
       TilingValidation.validate(result).isRight shouldBe true
     )
 
-  it should "quadruple a 2x2 hexagon net" in:
-    val doubled = TilingBuilder.createHexagonNet(2, 2).quadrupleArea
+  it should "double a 3x2 hex net along the longest segment" in:
+    val doubled = TilingBuilder.createHexagonNet(3, 2).doubleArea
     val result  = doubled.value
     allAssert(
-      result.halfEdges.size shouldBe 126,
-      result.vertices.size shouldBe 48,
-      result.innerFaces.size shouldBe 16,
+      result.halfEdges.size shouldBe 98,
+      result.vertices.size shouldBe 38,
+      result.innerFaces.size shouldBe 12,
+      TilingValidation.validate(result).isRight shouldBe true
+    )
+
+  it should "double a 2x3 hex net along the longest segment" in:
+    val doubled = TilingBuilder.createHexagonNet(2, 3).doubleArea
+    val result  = doubled.value
+    allAssert(
+      result.halfEdges.size shouldBe 98,
+      result.vertices.size shouldBe 38,
+      result.innerFaces.size shouldBe 12,
       TilingValidation.validate(result).isRight shouldBe true
     )

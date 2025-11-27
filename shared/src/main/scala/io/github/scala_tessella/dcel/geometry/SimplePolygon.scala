@@ -4,8 +4,6 @@ import io.github.scala_tessella.dcel.conversion.TilingSVG.toScalableVectorG
 import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.ACCURACY
 import io.github.scala_tessella.ring_seq.RingSeq.sliceO
 
-import scala.::
-
 /** Unit simple polygon with the given ordered interior angles */
 opaque type SimplePolygon = Vector[AngleDegree]
 
@@ -151,7 +149,11 @@ object SimplePolygon:
 
         // give precedence to square results
         sqr.find(isParallelogon)
-          .orElse(hex.find(isParallelogon))
+//          .orElse(hex.find(isParallelogon))
+          // otherwise, find the result with the longest segment
+          .orElse(hex.filter(isParallelogon).maxByOption(ijk =>
+            List(ijk(1) - ijk(0), ijk(2) - ijk(1), ijk(0) + half - ijk(2)).max
+          ))
           .map(completeHalf(_).distinct)
           .getOrElse(Nil)
 
@@ -175,3 +177,12 @@ object SimplePolygon:
         case _                                 => None
       )
         .map(i => ParallelogramTranslation.values.zip(i).toMap)
+
+    def parallelogonDoubleIndicesAlt: Option[(Int, Int)] =
+      parallelogonIndices match
+        case a :: b :: c :: d :: Nil if (b - a) < (c - b)                                  => Some(a, b)
+        case a :: b :: c :: d :: Nil                                                       => Some(a, d)
+        case a :: b :: c :: d :: e :: f :: Nil if (b - a) >= (c - b) && (b - a) >= (d - c) => Some((a, e))
+        case a :: b :: c :: d :: e :: f :: Nil if (c - b) >= (b - a) && (c - b) >= (d - c) => Some((b, f))
+        case a :: b :: c :: d :: e :: f :: Nil                                             => Some((c, a))
+        case _                                                                             => None

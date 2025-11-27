@@ -8,7 +8,7 @@ import io.github.scala_tessella.dcel.TilingValidation.validate
 import io.github.scala_tessella.dcel.Tree
 import io.github.scala_tessella.dcel.conversion.TilingDOT.*
 import io.github.scala_tessella.dcel.conversion.TilingSVG.*
-import io.github.scala_tessella.dcel.geometry.SimplePolygon.ParallelogramTranslation
+//import io.github.scala_tessella.dcel.geometry.SimplePolygon.ParallelogramTranslation
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint, RegularPolygon, SimplePolygon}
 import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
 import io.github.scala_tessella.ring_seq.RingSeq.startAt
@@ -233,17 +233,14 @@ final case class TilingDCEL private (
   ): Either[TilingError, TilingDCEL] =
     this.deepCopy.addSimplePolygon(startVertexId, endVertexId, simple)
 
-  def quadrupleArea: Either[TilingError, TilingDCEL] =
+  def doubleArea: Either[TilingError, TilingDCEL] =
     if isEmpty then
       Right(this)
     else
-      boundarySimplePolygon.parallelogonTranslationIndices match
-        case None                     => Left(ValidationError("Tiling is not a parallelogon"))
-        case Some(boundaryIndexesMap) =>
-          val origin            = boundaryVertices(boundaryIndexesMap(ParallelogramTranslation.Identity))
-          val repeat            = boundaryVertices(boundaryIndexesMap(ParallelogramTranslation.SidesAC))
-          val repeatOnOtherAxis = boundaryVertices(boundaryIndexesMap(ParallelogramTranslation.SidesBD))
-          Right(this.rawDouble(origin, repeat).rawDouble(origin, repeatOnOtherAxis))
+      boundarySimplePolygon.parallelogonDoubleIndicesAlt match
+        case None                   => Left(ValidationError("Tiling is not a parallelogon"))
+        case Some((origin, repeat)) =>
+          Right(this.rawDouble(boundaryVertices(origin), boundaryVertices(repeat)))
 
   def maybeDeleteVertex(vertexId: VertexId): Either[TilingError, TilingDCEL] =
     this.deepCopy.deleteVertex(vertexId)
