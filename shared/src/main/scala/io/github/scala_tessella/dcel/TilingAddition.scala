@@ -542,11 +542,11 @@ object TilingAddition:
             case None             => Right(revisedTiling)
             case Some(holeFilled) => holeFilled.addRegularPolygon(startVertexId, endVertexId, polygon)
 
-    private[dcel] def rawDouble(origin: Vertex, repeat: Vertex): TilingDCEL =
+    private[dcel] def rawDouble(origin: Vertex, repeat: Vertex, withInversion: Boolean = false): TilingDCEL =
       // Compute the translation vector from origin to repeat
-      val delta                                   = repeat.coords - origin.coords
-      val coordsTranslation: BigPoint => BigPoint = _ + delta
-
+      val modifier: BigPoint => BigPoint            = if withInversion then _.scaled(-1.0) else identity
+      val delta                                     = repeat.coords - modifier(origin.coords)
+      val coordsTranslation: BigPoint => BigPoint   = modifier(_) + delta
       // Translate vertices: give completely fresh vertex ids
       val vertexIds                                 = tiling.vertices.map(_.id)
       val maxVertexId                               = vertexIds.map(vertexId => idFromVertexId(vertexId)).maxOption.get

@@ -83,7 +83,7 @@ object SimplePolygon:
     def canTileTorus: Boolean =
       parallelogonIndices.nonEmpty
 
-    private def isEquilateralTriangle: Boolean =
+    private[dcel] def isEquilateralTriangle: Boolean =
       angles.forall(angle => angle == AngleDegree(180) || angle == AngleDegree(60))
 
     /** Returns the indices of the vertices of the parallelogon, if found

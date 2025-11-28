@@ -238,8 +238,13 @@ final case class TilingDCEL private (
       Right(this)
     else
       boundarySimplePolygon.parallelogonDoubleIndicesAlt match
-        case None                   => Left(ValidationError("Tiling is not a parallelogon, cannot fill the whole plane."))
-        case Some((origin, repeat)) =>
+        case None if boundarySimplePolygon.isEquilateralTriangle =>
+          val angles = boundarySimplePolygon.toAngles
+          val origin = angles.indexWhere(_ == AngleDegree(60))
+          val repeat = (angles.size / 3) + origin
+          Right(this.rawDouble(boundaryVertices(origin), boundaryVertices(repeat), withInversion = true))
+        case None                                                => Left(ValidationError("Tiling is not a parallelogon, cannot fill the whole plane."))
+        case Some((origin, repeat))                              =>
           Right(this.rawDouble(boundaryVertices(origin), boundaryVertices(repeat)))
 
   def maybeDeleteVertex(vertexId: VertexId): Either[TilingError, TilingDCEL] =

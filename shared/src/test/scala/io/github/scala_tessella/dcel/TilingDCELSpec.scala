@@ -485,3 +485,25 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       result.innerFaces.size shouldBe 12,
       TilingValidation.validate(result).isRight shouldBe true
     )
+
+  it should "double a triangle" in:
+    val doubled = triangle.doubleArea
+    val result  = doubled.value
+    allAssert(
+      result.halfEdges.size shouldBe 10,
+      result.vertices.size shouldBe 4,
+      result.innerFaces.size shouldBe 2,
+      TilingValidation.validate(result).isRight shouldBe true
+    )
+
+  it should "double a larger triangle" in:
+    val doubled =
+      TilingBuilder.createSimplePolygon(180, 60, 180, 180, 60, 180, 180, 60, 180).toOption.get.doubleArea
+    val result  = doubled.value
+    println(result.toSVG())
+    allAssert(
+      result.halfEdges.size shouldBe 30,
+      result.vertices.size shouldBe 14,
+      result.innerFaces.size shouldBe 2,
+      TilingValidation.validate(result).isRight shouldBe true
+    )
