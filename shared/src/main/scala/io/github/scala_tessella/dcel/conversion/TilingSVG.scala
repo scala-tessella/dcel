@@ -11,7 +11,6 @@ import io.github.scala_tessella.dcel.geometry.{
 import io.github.scala_tessella.dcel.structure.{FaceId, HalfEdge, Vertex, VertexId}
 import io.github.scala_tessella.dcel.{TilingDCEL, TilingError}
 import io.github.scala_tessella.dcel.TilingUniformity.scanUniformityTree
-import io.github.scala_tessella.dcel.geometry.SimplePolygon.ParallelogramTranslation
 import spire.implicits.*
 
 import scala.collection.mutable
@@ -530,6 +529,18 @@ object TilingSVG:
 
       new PrettyPrinter(120, 2).format(svg)
 
+    /** Chooses from the result of the `parallelogonIndices` an origin index and two repeat ones to
+      * quadruplicate the tiling along its parallel segments.
+      *
+      * @return
+      *   a triple of boundary vertex indices, or None if the polygon is not a parallelogon
+      */
+    private def parallelogonTranslationIndices: Option[(Int, Int, Int)] =
+      simple.parallelogonIndices match
+        case a :: b :: c :: _ :: Nil    => Option((a, b, c))
+        case a :: _ :: c :: _ :: e :: _ => Option((a, c, e))
+        case _                          => None
+
     def toParallelogonTiling(
         strokeWidth: Double = 1.0,
         padding: Double = 30.0,
@@ -539,12 +550,12 @@ object TilingSVG:
         BigLineSegment(BigPoint.origin, BigPoint(1, 0)).unitPath(simple.toAngles)
 
       simple.parallelogonTranslationIndices match
-        case None                     => toScalableVectorG(strokeWidth, padding, scale)
-        case Some(boundaryIndexesMap) =>
+        case None              => toScalableVectorG(strokeWidth, padding, scale)
+        case Some((o, r1, r2)) =>
 
-          val origin            = vertices(boundaryIndexesMap(ParallelogramTranslation.Identity)).scaled(scale)
-          val repeat            = vertices(boundaryIndexesMap(ParallelogramTranslation.SidesAC)).scaled(scale)
-          val repeatOnOtherAxis = vertices(boundaryIndexesMap(ParallelogramTranslation.SidesBD)).scaled(scale)
+          val origin            = vertices(o).scaled(scale)
+          val repeat            = vertices(r1).scaled(scale)
+          val repeatOnOtherAxis = vertices(r2).scaled(scale)
 
 //          println(s"origin: $origin, repeat: $repeat, repeatOnOtherAxis: $repeatOnOtherAxis")
           val diffTwo   = (repeat - origin).scaled(1.1)
