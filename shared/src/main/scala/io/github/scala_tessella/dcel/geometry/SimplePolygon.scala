@@ -175,14 +175,26 @@ object SimplePolygon:
           List(a, c, e) :: List(b, d, f) :: connect(a, b, e) ::: connect(b, c, f) ::: connect(c, d, a)
         case _                                 => Nil
 
+    /** Chooses from the result of the `parallelogonIndices` an origin index and two repeat ones to
+      * quadruplicate the tiling along its parallel segments.
+      *
+      * @return
+      *   a triple of boundary vertex indices, or None if the polygon is not a parallelogon
+      */
     def parallelogonTranslationIndices: Option[Map[ParallelogramTranslation, Int]] =
       (parallelogonIndices match
-        case origin :: ac :: bd :: _ :: Nil    => Option(List(origin, ac, bd))
-        case origin :: _ :: ac :: _ :: bd :: _ => Option(List(origin, ac, bd))
-        case _                                 => None
+        case a :: b :: c :: _ :: Nil    => Option(List(a, b, c))
+        case a :: _ :: c :: _ :: e :: _ => Option(List(a, c, e))
+        case _                          => None
       )
         .map(i => ParallelogramTranslation.values.zip(i).toMap)
 
+    /** Chooses from the result of the `parallelogonIndices` an origin index and a repeat one to double the
+      * tiling along its longest parallel segment.
+      *
+      * @return
+      *   a pair of boundary vertex indices, or None if the polygon is not a parallelogon
+      */
     def parallelogonDoubleIndicesAlt: Option[(Int, Int)] =
       parallelogonIndices match
         case a :: b :: c :: d :: Nil if (b - a) < (c - b)                                  => Some(a, b)
