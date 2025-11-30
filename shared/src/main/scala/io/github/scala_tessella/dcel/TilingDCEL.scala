@@ -237,7 +237,7 @@ final case class TilingDCEL private (
     if isEmpty then
       Right(this)
     else
-      boundarySimplePolygon.parallelogonDoubleIndicesAlt match
+      boundarySimplePolygon.parallelogonDoubleIndices match
         case None if boundarySimplePolygon.isEquilateralTriangle =>
           val angles = boundarySimplePolygon.toAngles
           val origin = angles.indexWhere(_ == AngleDegree(60))

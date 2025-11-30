@@ -159,7 +159,12 @@ object SimplePolygon:
           .map(completeHalf(_).distinct)
           .getOrElse(Nil)
 
-    def parallelogonEquivalences: List[List[Int]] =
+    /** Groups all vertex indices according to their equivalence in the parallelogon structure.
+      *
+      * @return
+      *   A list of lists of indices
+      */
+    def parallelogonIndexClasses: List[List[Int]] =
       val n = angles.size
 
       // connect the other indices of the segment to those of its antiparallel counterpart
@@ -178,7 +183,7 @@ object SimplePolygon:
       * @return
       *   a pair of boundary vertex indices, or None if the polygon is not a parallelogon
       */
-    def parallelogonDoubleIndicesAlt: Option[(Int, Int)] =
+    def parallelogonDoubleIndices: Option[(Int, Int)] =
       parallelogonIndices match
         case a :: b :: c :: d :: Nil if (b - a) < (c - b)                                  => Some(a, b)
         case a :: b :: c :: d :: Nil                                                       => Some(a, d)

@@ -45,7 +45,7 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
     val square3x3 = simpleSquare.multiplySidesBy(3)
     allAssert(
       square3x3.parallelogonIndices shouldBe List(0, 3, 6, 9),
-      square3x3.parallelogonEquivalences shouldBe
+      square3x3.parallelogonIndexClasses shouldBe
         List(List(0, 3, 6, 9), List(1, 8), List(2, 7), List(4, 11), List(5, 10))
     )
 
@@ -79,7 +79,7 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
 //    println(twoJoinedHexs.toParallelogonTiling())
     allAssert(
       twoJoinedHexs.parallelogonIndices shouldBe List(0, 1, 4, 5, 6, 9),
-      twoJoinedHexs.parallelogonEquivalences shouldBe
+      twoJoinedHexs.parallelogonIndexClasses shouldBe
         List(List(0, 4, 6), List(1, 5, 9), List(2, 8), List(3, 7))
     )
 
@@ -104,7 +104,7 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
 //    println(sixtyFourJoinedHexs.toParallelogonTiling())
     allAssert(
       sixtyFourJoinedHexs.parallelogonIndices shouldBe List(0, 7, 22, 31, 38, 53),
-      sixtyFourJoinedHexs.parallelogonEquivalences shouldBe
+      sixtyFourJoinedHexs.parallelogonIndexClasses shouldBe
         List(
           List(0, 22, 38),
           List(7, 31, 53),
@@ -168,7 +168,7 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
 //    println(devil.toParallelogonTiling())
     allAssert(
       devil.parallelogonIndices shouldBe List(0, 2, 5, 7, 9, 12),
-      devil.parallelogonEquivalences shouldBe
+      devil.parallelogonIndexClasses shouldBe
         List(List(0, 5, 9), List(2, 7, 12), List(1, 8), List(3, 11), List(4, 10), List(6, 13))
     )
 
@@ -194,7 +194,7 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
 //    println(badge.toParallelogonTiling())
     allAssert(
       badge.parallelogonIndices shouldBe List(1, 4, 7, 10, 13, 16),
-      badge.parallelogonEquivalences shouldBe
+      badge.parallelogonIndexClasses shouldBe
         List(
           List(1, 7, 13),
           List(4, 10, 16),
