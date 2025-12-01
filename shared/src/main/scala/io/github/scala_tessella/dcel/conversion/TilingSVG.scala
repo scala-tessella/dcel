@@ -1,16 +1,11 @@
 package io.github.scala_tessella.dcel.conversion
 
 import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.*
-import io.github.scala_tessella.dcel.geometry.{
-  BigDecimalGeometry,
-  BigLineSegment,
-  BigPoint,
-  BigRadian,
-  SimplePolygon
-}
+import io.github.scala_tessella.dcel.geometry.{BigDecimalGeometry, BigLineSegment, BigPoint, BigRadian, SimplePolygon}
 import io.github.scala_tessella.dcel.structure.{FaceId, HalfEdge, Vertex, VertexId}
 import io.github.scala_tessella.dcel.{TilingDCEL, TilingError}
 import io.github.scala_tessella.dcel.TilingUniformity.scanUniformityTree
+import io.github.scala_tessella.dcel.geometry.SimplePolygon.AxisExitIndex
 import spire.implicits.*
 
 import scala.collection.mutable
@@ -461,7 +456,8 @@ object TilingSVG:
         vertices: List[BigPoint],
         strokeWidth: Double = 1.0,
         padding: Double = 30.0,
-        scale: Double = 50.0
+        scale: Double = 50.0,
+        showReflection: Boolean = false
     ): Elem =
 
       // Generate all elements
@@ -488,6 +484,17 @@ object TilingSVG:
 
         (circles, labels)
 
+      def axisVertex(aei: AxisExitIndex): BigPoint =
+        aei match
+          case i: Int => vertices(i)
+          case (i, j) => BigLineSegment(vertices(i), vertices(j)).midPoint
+
+      val reflections =
+        simple.reflectionAxesIndices.map: (i, j) =>
+          val (x1, y1) = axisVertex(i).toSvgCoords(scale)
+          val (x2, y2) = axisVertex(j).toSvgCoords(scale)
+          lineElem(x1, y1, x2, y2)
+
       // Build sections
       val boundarySection = boundaryPolygon.map(polygon =>
         createSvgSection(
@@ -497,6 +504,12 @@ object TilingSVG:
         )
       ).getOrElse(NodeSeq.Empty)
 
+      val reflection =
+        if showReflection then
+          createSvgSection("Reflection axes", reflections, attrs("stroke" -> "green", "stroke-dasharray" -> "2"))
+        else
+          NodeSeq.Empty
+
       val sections = List(
         boundarySection,
         createSvgSection("Vertices", vertexCircles, attrs("fill" -> "darkred")),
@@ -504,14 +517,16 @@ object TilingSVG:
           "Vertex Labels",
           vertexLabels,
           attrs("font-size" -> (strokeWidth * 8).toInt, "fill" -> "blue")
-        )
+        ),
+        reflection
       ).flatten
       gElem(sections)
 
     def toScalableVectorG(
         strokeWidth: Double = 1.0,
         padding: Double = 30.0,
-        scale: Double = 50.0
+        scale: Double = 50.0,
+        showReflection: Boolean = false
     ): String =
       val svg: Elem =
 
@@ -524,7 +539,7 @@ object TilingSVG:
           width = width.toString,
           height = height.toString,
           viewBox = viewBox.formatted,
-          children = Seq(gElem(section(vertices)))
+          children = Seq(gElem(section(vertices, showReflection = showReflection)))
         )
 
       new PrettyPrinter(120, 2).format(svg)
