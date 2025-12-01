@@ -1,10 +1,7 @@
 package io.github.scala_tessella.dcel.geometry
 
-import io.github.scala_tessella.dcel.conversion.TilingSVG.toParallelogonTiling
-import io.github.scala_tessella.dcel.geometry.SimplePolygon.ParallelogramTranslation.*
-import io.github.scala_tessella.dcel.{TilingBuilder, TilingTestHelpers}
+import io.github.scala_tessella.dcel.TilingTestHelpers
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, RegularPolygon, SimplePolygon}
-import io.github.scala_tessella.ring_seq.RingSeq.rotationsAndReflections
 import org.scalatest.Assertion
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
