@@ -99,15 +99,17 @@ object SimplePolygon:
               else ((i + half) % n, (i + 1 + half) % n)
             )
         case even =>
-          val s = symmetry.take(even / 2).map(i => (i, i + half))
-          val q = symmetry.take(even / 2 + 1).sliding(2).toList.collect {
+          symmetry.take(even / 2 + 1).sliding(2).toList.collect {
             case first :: second :: Nil =>
               val diff = second - first
               val isDiffEven = diff % 2 == 0
-              if isDiffEven then (first + diff / 2, first + diff / 2 + half)
-              else ((first + diff / 2, first + diff / 2 + 1), (first + diff / 2 + half, (first + diff / 2 + 1 + half) % n))
-          }
-          s ::: q
+              val start = first + diff / 2
+              List(
+                (first, first + half),
+                if isDiffEven then (start, start + half)
+                else ((start, start + 1), (start + half, (start + 1 + half) % n))
+              )
+          }.flatten
 
     /** Returns the indices of the vertices of the parallelogon, if found
       *

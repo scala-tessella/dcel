@@ -252,8 +252,8 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
     simpleSquare.reflectionAxesIndices shouldBe
       List(
         (0, 2),
-        (1, 3),
         ((0, 1), (2, 3)),
+        (1, 3),
         ((1, 2), (3, 0))
       )
 
@@ -261,8 +261,8 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
     simpleSquare.multiplySidesBy(2).reflectionAxesIndices shouldBe
       List(
         (0, 4),
-        (2, 6),
         (1, 5),
+        (2, 6),
         (3, 7)
       )
 
