@@ -2,7 +2,7 @@ package io.github.scala_tessella.dcel.geometry
 
 import io.github.scala_tessella.dcel.conversion.TilingSVG.toScalableVectorG
 import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.ACCURACY
-import io.github.scala_tessella.ring_seq.RingSeq.sliceO
+import io.github.scala_tessella.ring_seq.RingSeq.*
 
 /** Unit simple polygon with the given ordered interior angles */
 opaque type SimplePolygon = Vector[AngleDegree]
@@ -39,6 +39,8 @@ object SimplePolygon:
     apply(degrees.map(AngleDegree(_)).toVector)
 
   private val areFitting: (AngleDegree, AngleDegree) => Boolean = _ == _.inverted
+
+  type AxisExitIndex = Int | (Int, Int)
 
   extension (angles: SimplePolygon)
 
@@ -82,6 +84,30 @@ object SimplePolygon:
 
     private[dcel] def isEquilateralTriangle: Boolean =
       angles.forall(angle => angle == AngleDegree(180) || angle == AngleDegree(60))
+
+    def reflectionAxesIndices: List[(AxisExitIndex, AxisExitIndex)] =
+      val n = angles.size
+      val half = n / 2
+      val isEvenSize = n % 2 == 0
+      val symmetry: List[Int] = angles.symmetryIndices
+      symmetry.size match
+        case odd if odd % 2 != 0 =>
+          symmetry.map: i =>
+            (
+              i,
+              if isEvenSize then (i + n + half) % n
+              else ((i + half) % n, (i + 1 + half) % n)
+            )
+        case even =>
+          val s = symmetry.take(even / 2).map(i => (i, i + half))
+          val q = symmetry.take(even / 2 + 1).sliding(2).toList.collect {
+            case first :: second :: Nil =>
+              val diff = second - first
+              val isDiffEven = diff % 2 == 0
+              if isDiffEven then (first + diff / 2, first + diff / 2 + half)
+              else ((first + diff / 2, first + diff / 2 + 1), (first + diff / 2 + half, (first + diff / 2 + 1 + half) % n))
+          }
+          s ::: q
 
     /** Returns the indices of the vertices of the parallelogon, if found
       *
