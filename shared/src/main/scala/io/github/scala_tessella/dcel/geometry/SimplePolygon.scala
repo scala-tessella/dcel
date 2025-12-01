@@ -149,14 +149,14 @@ object SimplePolygon:
 
           allSegmentsFitting() || allSegmentsFitting(_.reverse)
 
-        def longestSegment(ijk: List[Int]): Int =
+        def maxSegmentLength(ijk: List[Int]): Int =
           List(ijk(1) - ijk(0), ijk(2) - ijk(1), ijk(0) + half - ijk(2)).max
-          
+
         // give precedence to square results
         sqr.find(isParallelogon)
 //          .orElse(hex.find(isParallelogon))
           // otherwise, find the result with the longest segment
-          .orElse(hex.filter(isParallelogon).maxByOption(longestSegment))
+          .orElse(hex.filter(isParallelogon).maxByOption(maxSegmentLength))
           .map(completeHalf(_).distinct)
           .getOrElse(Nil)
 
