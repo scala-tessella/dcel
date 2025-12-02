@@ -1,5 +1,6 @@
 package io.github.scala_tessella.dcel.geometry
 
+import io.github.scala_tessella.ring_seq.RingSeq.rotateRight
 object Symmetry:
 
   /** A location on the cyclic list where a symmetry axis can pass through.
@@ -21,13 +22,13 @@ object Symmetry:
       if list.isEmpty then 1
       else
         val n              = list.size
-        // Find the smallest shift 'k' (1 to n) that makes the list equal to itself
-        val smallestPeriod = (1 to n).find(k =>
+        // Find the smallest shift that makes the list equal to itself
+        val smallestPeriod =
+          (1 to n).find: shift =>
           // Optimization: We only need to check shifts that divide n
-          n % k == 0 && list.indices.forall(i => list(i) == list((i + k) % n))
-        ).getOrElse(n)
+            n % shift == 0 && list.rotateRight(shift) == list
 
-        n / smallestPeriod
+        n / smallestPeriod.getOrElse (n)
 
     /** Calculates the indices of the of axes of reflectional symmetry.
       *
