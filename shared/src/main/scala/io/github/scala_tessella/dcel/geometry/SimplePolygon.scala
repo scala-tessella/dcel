@@ -40,8 +40,6 @@ object SimplePolygon:
 
   private val areFitting: (AngleDegree, AngleDegree) => Boolean = _ == _.inverted
 
-  type AxisExitIndex = Int | (Int, Int)
-
   extension (angles: SimplePolygon)
 
     /** @return the underlying number of sides */
@@ -84,31 +82,6 @@ object SimplePolygon:
 
     private[dcel] def isEquilateralTriangle: Boolean =
       angles.forall(angle => angle == AngleDegree(180) || angle == AngleDegree(60))
-
-    /** Calculates the pairs of indices where each reflection axis passes through. */
-    def reflectionAxesIndices: List[(AxisExitIndex, AxisExitIndex)] =
-      val n = angles.size
-      val half = n / 2
-      val symmetry: List[Int] = angles.symmetryIndices
-      symmetry.size match
-        case odd if odd % 2 != 0 =>
-          symmetry.map: i =>
-            (
-              i,
-              if n % 2 == 0 then (i + half) % n
-              else ((i + half) % n, (i + 1 + half) % n)
-            )
-        case even =>
-          val groupedIndices = symmetry.take(even / 2 + 1).sliding(2).toList.collect:
-            case first :: second :: Nil =>
-              val diff = second - first
-              val start = first + diff / 2
-              List(
-                (first, first + half),
-                if diff % 2 == 0 then (start, start + half)
-                else ((start, start + 1), (start + half, (start + 1 + half) % n))
-              )
-          groupedIndices.flatten
 
     /** Returns the indices of the vertices of the parallelogon, if found
       *

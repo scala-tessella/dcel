@@ -1,11 +1,17 @@
 package io.github.scala_tessella.dcel.conversion
 
 import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.*
-import io.github.scala_tessella.dcel.geometry.{BigDecimalGeometry, BigLineSegment, BigPoint, BigRadian, SimplePolygon}
+import io.github.scala_tessella.dcel.geometry.{
+  BigDecimalGeometry,
+  BigLineSegment,
+  BigPoint,
+  BigRadian,
+  SimplePolygon
+}
 import io.github.scala_tessella.dcel.structure.{FaceId, HalfEdge, Vertex, VertexId}
 import io.github.scala_tessella.dcel.{TilingDCEL, TilingError}
 import io.github.scala_tessella.dcel.TilingUniformity.scanUniformityTree
-import io.github.scala_tessella.dcel.geometry.SimplePolygon.AxisExitIndex
+import io.github.scala_tessella.dcel.geometry.Symmetry.{AxisLocation, reflectionalSymmetryAxes}
 import spire.implicits.*
 
 import scala.collection.mutable
@@ -484,13 +490,13 @@ object TilingSVG:
 
         (circles, labels)
 
-      def axisVertex(aei: AxisExitIndex): BigPoint =
-        aei match
+      def axisVertex(location: AxisLocation): BigPoint =
+        location match
           case i: Int => vertices(i)
           case (i, j) => BigLineSegment(vertices(i), vertices(j)).midPoint
 
       val reflections =
-        simple.reflectionAxesIndices.map: (i, j) =>
+        simple.toAngles.toList.reflectionalSymmetryAxes.map: (i, j) =>
           val (x1, y1) = axisVertex(i).toSvgCoords(scale)
           val (x2, y2) = axisVertex(j).toSvgCoords(scale)
           lineElem(x1, y1, x2, y2)
@@ -506,7 +512,11 @@ object TilingSVG:
 
       val reflection =
         if showReflection then
-          createSvgSection("Reflection axes", reflections, attrs("stroke" -> "green", "stroke-dasharray" -> "2"))
+          createSvgSection(
+            "Reflection axes",
+            reflections,
+            attrs("stroke" -> "green", "stroke-dasharray" -> "2")
+          )
         else
           NodeSeq.Empty
 

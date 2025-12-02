@@ -3,6 +3,7 @@ package io.github.scala_tessella.dcel.geometry
 import io.github.scala_tessella.dcel.conversion.TilingSVG.{toParallelogonTiling, toScalableVectorG}
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, SimplePolygon}
 import io.github.scala_tessella.dcel.{TilingBuilder, TilingTestHelpers}
+import io.github.scala_tessella.ring_seq.RingSeq.*
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -229,50 +230,3 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
     val unit = SimplePolygon(60, 180, 120, 180, 120, 120, 180, 120, 120, 240)
 //    println(unit.toParallelogonTiling())
     unit.parallelogonIndices shouldBe List(0, 2, 3, 5, 7, 8)
-
-  behavior of "SimplePolygon.reflectionIndices"
-
-  they should "be found for a triangle" in:
-    simpleTriangle.reflectionAxesIndices shouldBe
-      List(
-        (0, (1, 2)),
-        (1, (2, 0)),
-        (2, (0, 1))
-      )
-
-  they should "be found for a doubled triangle" in :
-    simpleTriangle.multiplySidesBy(2).reflectionAxesIndices shouldBe
-      List(
-        (0, 3),
-        (2, 5),
-        (4, 1)
-      )
-
-  they should "be found for a square" in :
-    simpleSquare.reflectionAxesIndices shouldBe
-      List(
-        (0, 2),
-        ((0, 1), (2, 3)),
-        (1, 3),
-        ((1, 2), (3, 0))
-      )
-
-  they should "be found for a doubled square" in :
-    simpleSquare.multiplySidesBy(2).reflectionAxesIndices shouldBe
-      List(
-        (0, 4),
-        (1, 5),
-        (2, 6),
-        (3, 7)
-      )
-
-  they should "be found for a pentagon" in :
-    SimplePolygon(108, 108, 108, 108, 108).reflectionAxesIndices shouldBe
-      List(
-        (0, (2, 3)),
-        (1, (3, 4)),
-        (2, (4, 0)),
-        (3, (0, 1)),
-        (4, (1, 2))
-      )
-
