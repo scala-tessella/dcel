@@ -56,8 +56,15 @@ object Symmetry:
       *   A list where each pair represents the two points on the cycle where the axis passes.
       */
     def reflectionalSymmetryAxes: List[(AxisLocation, AxisLocation)] =
-      reflectionalSymmetryIndices.map { shift =>
-        val n          = list.size
+      val n = list.size
+
+      def edgeIndices(i: Int): (Int, Int) =
+        (i, (i + 1) % n)
+
+      def oppositeEdgeIndex(i: Int): Int =
+        (i + n / 2) % n
+
+      reflectionalSymmetryIndices.map: shift =>
         // The reflection maps index i to (n - 1 - shift - i) % n.
         // Fixed points satisfy 2*i == n - 1 - shift (mod n).
         // Let K = n - 1 - shift.
@@ -70,24 +77,23 @@ object Symmetry:
           val v               = (effectiveK * (n + 1) / 2) % n
           // The axis must also pass through the midpoint of the opposite edge.
           // Edge index e is the edge starting at (v + n / 2) % n.
-          val oppositeEdgeIdx = (v + n / 2)                % n
-          (v, (oppositeEdgeIdx, (oppositeEdgeIdx + 1) % n))
+          val oppositeEdgeIdx = oppositeEdgeIndex(v)
+          (v, edgeIndices(oppositeEdgeIdx))
         else
           // Even n
           if effectiveK % 2 == 0 then
             // K is even: 2*i = K (mod n) has two solutions for vertices.
             // i = K / 2 and i = K / 2 + n / 2.
             val v1 = effectiveK / 2
-            val v2 = (v1 + n / 2) % n
+            val v2 = oppositeEdgeIndex(v1)
             (v1, v2)
           else
             // K is odd: No vertex solutions. Axis passes through two edges.
             // The geometric location is K / 2 (half-integer).
             // Corresponding to edge (K - 1) / 2 and opposite edge.
             val e1 = (effectiveK - 1) / 2
-            val e2 = (e1 + n / 2) % n
-            ((e1, (e1 + 1) % n), (e2, (e2 + 1) % n))
-      }
+            val e2 = oppositeEdgeIndex(e1)
+            (edgeIndices(e1), edgeIndices(e2))
 
     /** Calculates the number of axes of reflectional symmetry.
       *
