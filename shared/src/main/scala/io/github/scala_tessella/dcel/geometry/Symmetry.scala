@@ -1,6 +1,6 @@
 package io.github.scala_tessella.dcel.geometry
 
-import io.github.scala_tessella.ring_seq.RingSeq.{rotateLeft, rotateRight}
+import io.github.scala_tessella.ring_seq.RingSeq.rotateLeft
 
 object Symmetry:
 
@@ -27,7 +27,7 @@ object Symmetry:
         val smallestPeriod =
           (1 to n).find: shift =>
             // Optimization: We only need to check shifts that divide n
-            n % shift == 0 && list.rotateRight(shift) == list
+            n % shift == 0 && list.rotateLeft(shift) == list
 
         n / smallestPeriod.getOrElse(n)
 
