@@ -16,8 +16,7 @@ import io.github.scala_tessella.ring_seq.SymmetryOps.{
   Edge => SymmetryEdge,
   Vertex => SymmetryVertex
 }
-import io.github.scala_tessella.ring_seq.RingSeq.reflectionalSymmetryAxes
-//import io.github.scala_tessella.dcel.geometry.Symmetry.{AxisLocation, reflectionalSymmetryAxes}
+import io.github.scala_tessella.ring_seq.RingSeq.{reflectionalSymmetryAxes, rotationalSymmetry}
 import spire.implicits.*
 
 import scala.collection.mutable
@@ -469,7 +468,8 @@ object TilingSVG:
         strokeWidth: Double = 1.0,
         padding: Double = 30.0,
         scale: Double = 50.0,
-        showReflection: Boolean = false
+        showReflection: Boolean = false,
+        showRotation: Boolean = false
     ): Elem =
 
       // Generate all elements
@@ -501,11 +501,25 @@ object TilingSVG:
           case vertex: SymmetryVertex => vertices(vertex.i)
           case edge: SymmetryEdge     => BigLineSegment(vertices(edge.i), vertices(edge.j)).midPoint
 
+      val angles = simple.toAngles
+
       val reflections =
-        simple.toAngles.toList.reflectionalSymmetryAxes.map: (location, oppositeLocation) =>
+        angles.reflectionalSymmetryAxes.map: (location, oppositeLocation) =>
           val (x1, y1) = axisVertex(location).toSvgCoords(scale)
           val (x2, y2) = axisVertex(oppositeLocation).toSvgCoords(scale)
           lineElem(x1, y1, x2, y2)
+
+      val rotations =
+        val rot = angles.rotationalSymmetry
+        if rot == 1 then NodeSeq.Empty
+        else
+          val seg = angles.size / rot
+          val first = (0 until seg).minBy(angles(_).toRational)
+          val ends = (0 until rot).map(first + _ * seg).map(vertices(_)).toList
+          val (x1, y1) = ends.centroid.toSvgCoords(scale)
+          ends.map: end =>
+            val (x2, y2) = end.toSvgCoords(scale)
+            lineElem(x1, y1, x2, y2)
 
       // Build sections
       val boundarySection = boundaryPolygon.map(polygon =>
@@ -526,6 +540,16 @@ object TilingSVG:
         else
           NodeSeq.Empty
 
+      val rotation =
+        if showRotation then
+          createSvgSection(
+            "Rotation axes",
+            rotations,
+            attrs("stroke" -> "orange", "stroke-width" -> "3", "stroke-dasharray" -> "1")
+          )
+        else
+          NodeSeq.Empty
+
       val sections = List(
         boundarySection,
         createSvgSection("Vertices", vertexCircles, attrs("fill" -> "darkred")),
@@ -534,7 +558,8 @@ object TilingSVG:
           vertexLabels,
           attrs("font-size" -> (strokeWidth * 8).toInt, "fill" -> "blue")
         ),
-        reflection
+        reflection,
+        rotation
       ).flatten
       gElem(sections)
 
@@ -542,7 +567,8 @@ object TilingSVG:
         strokeWidth: Double = 1.0,
         padding: Double = 30.0,
         scale: Double = 50.0,
-        showReflection: Boolean = false
+        showReflection: Boolean = false,
+        showRotation: Boolean = false
     ): String =
       val svg: Elem =
 
@@ -555,7 +581,7 @@ object TilingSVG:
           width = width.toString,
           height = height.toString,
           viewBox = viewBox.formatted,
-          children = Seq(gElem(section(vertices, showReflection = showReflection)))
+          children = Seq(gElem(section(vertices, showReflection = showReflection, showRotation = showRotation)))
         )
 
       new PrettyPrinter(120, 2).format(svg)
