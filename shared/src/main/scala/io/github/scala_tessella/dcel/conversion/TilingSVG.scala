@@ -16,7 +16,6 @@ import io.github.scala_tessella.ring_seq.SymmetryOps.{
   Edge => SymmetryEdge,
   Vertex => SymmetryVertex
 }
-import io.github.scala_tessella.ring_seq.RingSeq.{reflectionalSymmetryAxes, rotationalSymmetry}
 import spire.implicits.*
 
 import scala.collection.mutable
@@ -501,25 +500,21 @@ object TilingSVG:
           case vertex: SymmetryVertex => vertices(vertex.i)
           case edge: SymmetryEdge     => BigLineSegment(vertices(edge.i), vertices(edge.j)).midPoint
 
-      val angles = simple.toAngles
-
       val reflections =
-        angles.reflectionalSymmetryAxes.map: (location, oppositeLocation) =>
+        simple.reflectionalIndexPairs.map: (location, oppositeLocation) =>
           val (x1, y1) = axisVertex(location).toSvgCoords(scale)
           val (x2, y2) = axisVertex(oppositeLocation).toSvgCoords(scale)
           lineElem(x1, y1, x2, y2)
 
       val rotations =
-        val rot = angles.rotationalSymmetry
-        if rot == 1 then NodeSeq.Empty
-        else
-          val seg = angles.size / rot
-          val first = (0 until seg).minBy(angles(_).toRational)
-          val ends = (0 until rot).map(first + _ * seg).map(vertices(_)).toList
-          val (x1, y1) = ends.centroid.toSvgCoords(scale)
-          ends.map: end =>
-            val (x2, y2) = end.toSvgCoords(scale)
-            lineElem(x1, y1, x2, y2)
+        simple.rotationalIndices match
+          case _ :: Nil => NodeSeq.Empty
+          case indices  =>
+            val ends     = indices.map(vertices(_))
+            val (x1, y1) = ends.centroid.toSvgCoords(scale)
+            ends.map: end =>
+              val (x2, y2) = end.toSvgCoords(scale)
+              lineElem(x1, y1, x2, y2)
 
       // Build sections
       val boundarySection = boundaryPolygon.map(polygon =>
@@ -581,7 +576,8 @@ object TilingSVG:
           width = width.toString,
           height = height.toString,
           viewBox = viewBox.formatted,
-          children = Seq(gElem(section(vertices, showReflection = showReflection, showRotation = showRotation)))
+          children =
+            Seq(gElem(section(vertices, showReflection = showReflection, showRotation = showRotation)))
         )
 
       new PrettyPrinter(120, 2).format(svg)

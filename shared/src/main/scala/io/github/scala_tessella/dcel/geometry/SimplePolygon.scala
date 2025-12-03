@@ -3,6 +3,7 @@ package io.github.scala_tessella.dcel.geometry
 import io.github.scala_tessella.dcel.conversion.TilingSVG.toScalableVectorG
 import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.ACCURACY
 import io.github.scala_tessella.ring_seq.RingSeq.*
+import io.github.scala_tessella.ring_seq.SymmetryOps.AxisLocation
 
 /** Unit simple polygon with the given ordered interior angles */
 opaque type SimplePolygon = Vector[AngleDegree]
@@ -58,6 +59,21 @@ object SimplePolygon:
         throw new IllegalArgumentException("A simple polygon must have sides of at least unit length.")
       else
         SimplePolygon(angles.flatMap(_ +: Vector.fill(n - 1)(AngleDegree(180))))
+
+    def rotationalSymm: Int =
+      angles.rotationalSymmetry
+
+    def rotationalIndices: List[Int] =
+      val symmetryOrder = angles.rotationalSymm
+      val segmentSize   = angles.size / symmetryOrder
+      val first         = (0 until segmentSize).maxBy(angles(_).toRational)
+      (0 until symmetryOrder).toList.map(first + _ * segmentSize)
+
+    def reflectionalSymm: Int =
+      angles.symmetry
+
+    def reflectionalIndexPairs: List[(AxisLocation, AxisLocation)] =
+      angles.reflectionalSymmetryAxes
 
     /** Checks if the polygon can tile a torus.
       *

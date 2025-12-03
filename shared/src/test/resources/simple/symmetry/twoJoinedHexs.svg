@@ -1,0 +1,48 @@
+<svg width="235" height="189" viewBox="-55 -159.903811 235 189.903811" xmlns="http://www.w3.org/2000/svg">
+    <g>
+        <g>
+            <!-- Boundary Highlight -->
+            <g stroke="red" stroke-width="3.0" fill="none">
+                <polygon
+                        points="0,0 50,0 75,-43.30127 125,-43.30127 150,-86.60254 125,-129.903811 75,-129.903811 50,-86.60254 0,-86.60254 -25,-43.30127">
+                </polygon>
+            </g>
+            <!-- Vertices -->
+            <g fill="darkred">
+                <circle cx="0" cy="0" r="2.0"/>
+                <circle cx="50" cy="0" r="2.0"/>
+                <circle cx="75" cy="-43.30127" r="2.0"/>
+                <circle cx="125" cy="-43.30127" r="2.0"/>
+                <circle cx="150" cy="-86.60254" r="2.0"/>
+                <circle cx="125" cy="-129.903811" r="2.0"/>
+                <circle cx="75" cy="-129.903811" r="2.0"/>
+                <circle cx="50" cy="-86.60254" r="2.0"/>
+                <circle cx="0" cy="-86.60254" r="2.0"/>
+                <circle cx="-25" cy="-43.30127" r="2.0"/>
+            </g>
+            <!-- Vertex Labels -->
+            <g font-size="8" fill="blue">
+                <text x="2.5" y="-2.5">0</text>
+                <text x="52.5" y="-2.5">1</text>
+                <text x="77.5" y="-45.80127">2</text>
+                <text x="127.5" y="-45.80127">3</text>
+                <text x="152.5" y="-89.10254">4</text>
+                <text x="127.5" y="-132.403811">5</text>
+                <text x="77.5" y="-132.403811">6</text>
+                <text x="52.5" y="-89.10254">7</text>
+                <text x="2.5" y="-89.10254">8</text>
+                <text x="-22.5" y="-45.80127">9</text>
+            </g>
+            <!-- Reflection axes -->
+            <g stroke="green" stroke-dasharray="2">
+                <line x1="137.5" y1="-108.253175" x2="-12.5" y2="-21.650635"/>
+                <line x1="75" y1="-43.30127" x2="50" y2="-86.60254"/>
+            </g>
+            <!-- Rotation axes -->
+            <g stroke="orange" stroke-width="3" stroke-dasharray="1">
+                <line x1="62.5" y1="-64.951905" x2="75" y2="-43.30127"/>
+                <line x1="62.5" y1="-64.951905" x2="50" y2="-86.60254"/>
+            </g>
+        </g>
+    </g>
+</svg>

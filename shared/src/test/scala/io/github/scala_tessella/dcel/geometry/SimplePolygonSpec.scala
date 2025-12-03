@@ -4,8 +4,10 @@ import io.github.scala_tessella.dcel.conversion.TilingSVG.{toParallelogonTiling,
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, SimplePolygon}
 import io.github.scala_tessella.dcel.{TilingBuilder, TilingTestHelpers}
 import io.github.scala_tessella.ring_seq.RingSeq.*
+import io.github.scala_tessella.ring_seq.SymmetryOps.{Edge, Vertex}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers.shouldBe
 
 class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
@@ -230,3 +232,29 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
     val unit = SimplePolygon(60, 180, 120, 180, 120, 120, 180, 120, 120, 240)
 //    println(unit.toParallelogonTiling())
     unit.parallelogonIndices shouldBe List(0, 2, 3, 5, 7, 8)
+
+  behavior of "symmetry"
+
+  it must "be found in two joined hexs" in:
+
+    /** <img src="file:../../../../../../resources/simple/symmetry/twoJoinedHexs.svg"/> */
+    val simplePolygon = twoJoinedHexs
+//    println(twoJoinedHexs.toScalableVectorG(showReflection = true, showRotation = true))
+    allAssert(
+      simplePolygon.rotationalSymm shouldBe 2,
+      simplePolygon.rotationalIndices shouldBe List(2, 7),
+      simplePolygon.reflectionalSymm shouldBe 2,
+      simplePolygon.reflectionalIndexPairs shouldBe List((Edge(4, 5), Edge(9, 0)), (Vertex(2), Vertex(7)))
+    )
+
+  it must "be found in a bulb" in:
+
+    /** <img src="file:../../../../../../resources/simple/symmetry/bulb.svg"/> */
+    val simplePolygon = bulb
+    //    println(bulb.toScalableVectorG(showReflection = true, showRotation = true))
+    allAssert(
+      simplePolygon.rotationalSymm shouldBe 1,
+      simplePolygon.rotationalIndices shouldBe List(2),
+      simplePolygon.reflectionalSymm shouldBe 1,
+      simplePolygon.reflectionalIndexPairs shouldBe List((Edge(0, 1), Edge(5, 6)))
+    )
