@@ -3,11 +3,9 @@ package io.github.scala_tessella.dcel.geometry
 import io.github.scala_tessella.dcel.conversion.TilingSVG.{toParallelogonTiling, toScalableVectorG}
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, SimplePolygon}
 import io.github.scala_tessella.dcel.{TilingBuilder, TilingTestHelpers}
-import io.github.scala_tessella.ring_seq.RingSeq.*
 import io.github.scala_tessella.ring_seq.SymmetryOps.{Edge, Vertex}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.matchers.should.Matchers.shouldBe
 
 class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
