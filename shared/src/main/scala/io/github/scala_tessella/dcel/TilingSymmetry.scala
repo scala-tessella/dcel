@@ -71,7 +71,9 @@ object TilingSymmetry:
           (a.twin, b.twin)
         )
 
-        for (optNa, optNb) <- neighbors do
+        val neighborsIterator = neighbors.iterator
+        while neighborsIterator.hasNext do
+          val (optNa, optNb) = neighborsIterator.next()
           (optNa, optNb) match
             case (Some(na), Some(nb)) =>
               if visitedA.contains(na) then
@@ -101,9 +103,6 @@ object TilingSymmetry:
       // 2. Check each candidate shift
       // We iterate 0 to boundarySymm-1.
       // i=0 is Identity (shift 0), always true.
-      val validRotations = (0 until boundarySymm).count { i =>
+      (0 until boundarySymm).count: i =>
         val shiftIndex = i * step
         areStructurallyEquivalent(edges.head, edges(shiftIndex))
-      }
-
-      validRotations
