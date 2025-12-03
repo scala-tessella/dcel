@@ -11,7 +11,13 @@ import io.github.scala_tessella.dcel.geometry.{
 import io.github.scala_tessella.dcel.structure.{FaceId, HalfEdge, Vertex, VertexId}
 import io.github.scala_tessella.dcel.{TilingDCEL, TilingError}
 import io.github.scala_tessella.dcel.TilingUniformity.scanUniformityTree
-import io.github.scala_tessella.dcel.geometry.Symmetry.{AxisLocation, reflectionalSymmetryAxes}
+import io.github.scala_tessella.ring_seq.SymmetryOps.{
+  AxisLocation,
+  Edge => SymmetryEdge,
+  Vertex => SymmetryVertex
+}
+import io.github.scala_tessella.ring_seq.RingSeq.reflectionalSymmetryAxes
+//import io.github.scala_tessella.dcel.geometry.Symmetry.{AxisLocation, reflectionalSymmetryAxes}
 import spire.implicits.*
 
 import scala.collection.mutable
@@ -492,13 +498,13 @@ object TilingSVG:
 
       def axisVertex(location: AxisLocation): BigPoint =
         location match
-          case i: Int => vertices(i)
-          case (i, j) => BigLineSegment(vertices(i), vertices(j)).midPoint
+          case vertex: SymmetryVertex => vertices(vertex.i)
+          case edge: SymmetryEdge     => BigLineSegment(vertices(edge.i), vertices(edge.j)).midPoint
 
       val reflections =
-        simple.toAngles.toList.reflectionalSymmetryAxes.map: (i, j) =>
-          val (x1, y1) = axisVertex(i).toSvgCoords(scale)
-          val (x2, y2) = axisVertex(j).toSvgCoords(scale)
+        simple.toAngles.toList.reflectionalSymmetryAxes.map: (location, oppositeLocation) =>
+          val (x1, y1) = axisVertex(location).toSvgCoords(scale)
+          val (x2, y2) = axisVertex(oppositeLocation).toSvgCoords(scale)
           lineElem(x1, y1, x2, y2)
 
       // Build sections
