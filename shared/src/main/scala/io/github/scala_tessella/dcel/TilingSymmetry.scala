@@ -1,7 +1,7 @@
 package io.github.scala_tessella.dcel
 
 import io.github.scala_tessella.dcel.structure.{HalfEdge, VertexId}
-
+import io.github.scala_tessella.ring_seq.SymmetryOps.{Edge => SymEdge, Vertex => SymVertex}
 import scala.collection.mutable
 
 object TilingSymmetry:
@@ -60,6 +60,57 @@ object TilingSymmetry:
 
       true
 
+    /** Checks if the tiling structure starting at edge `a` is reflectionally equivalent to the structure
+     * starting at edge `b`.
+     *
+     * Performs a synchronized traversal (BFS) of both structures, comparing `a` with `b`'s reflection.
+     * Since reflection reverses orientation:
+     *   - `a.next` matches `b.prev`
+     *   - `a.prev` matches `b.next`
+     *   - `a.twin` matches `b.twin`
+     */
+    def areReflectionallyEquivalent(startA: HalfEdge, startB: HalfEdge): Boolean =
+      val queue = mutable.Queue[(HalfEdge, HalfEdge)]((startA, startB))
+      val visitedA = mutable.Map[HalfEdge, HalfEdge]()
+
+      visitedA.put(startA, startB): Unit
+
+      while queue.nonEmpty do
+        val (a, b) = queue.dequeue()
+
+        // 1. Compare Local Geometry (Angles)
+        if a.angle != b.angle then return false
+
+        // 2. Compare Topology
+        val aIsBoundary = tiling.isBoundaryEdge(a)
+        val bIsBoundary = tiling.isBoundaryEdge(b)
+        if aIsBoundary != bIsBoundary then return false
+
+        // 3. Compare Incident Face properties (if inner)
+        if !aIsBoundary then
+          if a.incidentFace.map(_.id) == tiling.outerFace.id then return false
+
+        // 4. Queue Neighbors
+        val neighbors = List(
+          (a.next, b.prev),
+          (a.twin, b.twin)
+        )
+
+        val neighborsIterator = neighbors.iterator
+        while neighborsIterator.hasNext do
+          val (optNa, optNb) = neighborsIterator.next()
+          (optNa, optNb) match
+            case (Some(na), Some(nb)) =>
+              if visitedA.contains(na) then
+                if visitedA(na) != nb then return false
+              else
+                visitedA.put(na, nb): Unit
+                queue.enqueue((na, nb))
+            case (None, None) => ()
+            case _ => return false
+
+      true
+
     /** Calculates the true rotational symmetry of the TilingDCEL. It checks which rotational symmetries of
       * the boundary are also preserved by the internal structure.
       */
@@ -88,4 +139,14 @@ object TilingSymmetry:
       (0 until symmetryOrder).toList.map(first + _ * segmentSize).map(boundaryVertexIds)
 
     def reflectionalSymm: Int =
-      ???
+      val edges = tiling.boundaryEdges.toVector
+      if edges.isEmpty then return 0
+
+      val axes = tiling.boundarySimplePolygon.reflectionalIndexPairs
+      axes.count: pair =>
+        val loc1 = pair._1
+        val (startA, startB) = loc1 match
+          case SymEdge(i, _) => (edges(i), edges(i).prev.get)
+          case SymVertex(i) => (edges(i), edges(i).prev.get)
+
+        areReflectionallyEquivalent(startA, startB)
