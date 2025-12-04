@@ -407,7 +407,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
   it should "create a valid reflected copy" in:
     val reflected = shapeL.verticallyReflectedCopy
     allAssert(
-      shapeL.boundaryVertices.map(_.id) shouldBe Vector(V1, V4, "V7", "V9", "V10", "V8", V3, "V5", "V6", V2),
+      shapeL.boundaryVertices.map(_.id) shouldBe Vector(V1, V4, "V7", "V9", "V10", "V8", V3, V5, V6, V2),
       validate(reflected).isRight shouldBe true,
       reflected.boundaryVertices.map(_.id) shouldBe shapeL.boundaryVertices.map(_.id).reflectAt(1)
     )

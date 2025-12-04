@@ -277,8 +277,8 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val result = tiling
       .deleteEdge(V1, V3).value
       .deleteEdge(V1, V4).value
-      .deleteEdge(V1, VertexId("V5")).value
-      .deleteEdge(V1, VertexId("V6"))
+      .deleteEdge(V1, V5).value
+      .deleteEdge(V1, V6)
     allAssert(
       result.isRight shouldBe true, {
         val newTiling = result.value
@@ -291,12 +291,12 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   /** <img src="file:../../../../../resources/deletableNonBoundaryPath.svg"/> */
   def deletableNonBoundaryPath: TilingDCEL =
     TilingBuilder.createRhombusNet(2, 2)
-      .deleteEdge(V4, VertexId("V5")).value
-      .deleteEdge(V5, VertexId("V6")).value
+      .deleteEdge(V4, V5).value
+      .deleteEdge(V5, V6).value
 
   it should "successfully delete a path of inner edges" in:
     val result = deletableNonBoundaryPath
-      .deleteEdge(V2, VertexId("V5"))
+      .deleteEdge(V2, V5)
     allAssert(
       result.isRight shouldBe true, {
         val newTiling = result.value
@@ -323,7 +323,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
   it should "delete an interior vertex" in:
     val result = TilingBuilder.createRhombusNet(2, 2)
-      .deleteVertex(VertexId("V5"))
+      .deleteVertex(V5)
     allAssert(
       result.isRight shouldBe true, {
         val newTiling = result.value

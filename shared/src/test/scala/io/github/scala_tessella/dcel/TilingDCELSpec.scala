@@ -96,7 +96,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val boundary = hexagon.boundaryVertices
     allAssert(
       boundary should have length 6,
-      boundary.map(_.id) should contain theSameElementsInOrderAs Vector(V1, "V6", "V5", V4, V3, V2)
+      boundary.map(_.id) should contain theSameElementsInOrderAs Vector(V1, V6, V5, V4, V3, V2)
     )
 
   behavior of "TilingDCEL.boundarySafe"
@@ -267,7 +267,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 //
 //  it should "return the DCEL around a boundary vertex of the bench" in:
 //    val result = bench.getPolygonVerticesAroundVertex(V1)
-//    result.value shouldBe List("V6", "V5", "V4", "V3", "V2", "V8", "V12", "V13", "V1", "V7")
+//    result.value shouldBe List(V6, V5, "V4", "V3", "V2", "V8", "V12", "V13", "V1", "V7")
 //  }
 //
 //  behavior of "TilingDCEL.groupedInnerVertices"
@@ -278,7 +278,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
 //  it should "group the inner vertices according to their adjacent polygons" in:
 //    holeInNet2.groupedInnerVertices.values.toList shouldBe List(
-//      List("V6", "V7", "V22", "V23"),
+//      List(V6, "V7", "V22", "V23"),
 //      List("V10", "V11", "V18", "V19"),
 //      List("V14", "V15")
 //    )
@@ -321,7 +321,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "calculate the uniformity of a holed net" in:
     holeInNet2.uniformityTree.flattenLeaves shouldBe List(
-      List("V6", "V7", "V22", "V23"),
+      List(V6, "V7", "V22", "V23"),
       List("V10", "V11", "V18", "V19"),
       List("V14", "V15")
     )

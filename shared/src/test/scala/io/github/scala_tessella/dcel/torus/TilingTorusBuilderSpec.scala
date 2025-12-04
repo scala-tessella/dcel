@@ -31,8 +31,8 @@ class TilingTorusBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHe
         V2   -> BigPoint(1, 0),
         V3   -> BigPoint(2, 0),
         V4   -> BigPoint(0, 1),
-        "V5" -> BigPoint(1, 1),
-        "V6" -> BigPoint(2, 1),
+        V5   -> BigPoint(1, 1),
+        V6   -> BigPoint(2, 1),
         "V7" -> BigPoint(0, 2),
         "V8" -> BigPoint(1, 2),
         "V9" -> BigPoint(2, 2)
@@ -46,14 +46,14 @@ class TilingTorusBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHe
     }.toMap shouldEqual
       Map(
         V1   -> List(V2, "V7", V3, V4),
-        V2   -> List(V3, "V8", V1, "V5"),
-        V3   -> List(V1, "V9", V2, "V6"),
-        V4   -> List("V5", V1, "V6", "V7"),
-        "V5" -> List("V6", V2, V4, "V8"),
-        "V6" -> List(V4, V3, "V5", "V9"),
+        V2   -> List(V3, "V8", V1, V5),
+        V3   -> List(V1, "V9", V2, V6),
+        V4   -> List(V5, V1, V6, "V7"),
+        V5   -> List(V6, V2, V4, "V8"),
+        V6   -> List(V4, V3, V5, "V9"),
         "V7" -> List("V8", V4, "V9", V1),
-        "V8" -> List("V9", "V5", "V7", V2),
-        "V9" -> List("V7", "V6", "V8", V3)
+        "V8" -> List("V9", V5, "V7", V2),
+        "V9" -> List("V7", V6, "V8", V3)
       )
 
   it should "create a 1x1 square net on a torus" in:
@@ -162,8 +162,8 @@ class TilingTorusBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHe
       V2    -> BigPoint(1, 0),
       V3    -> BigPoint(2, 0),
       V4    -> BigPoint(3, 0),
-      "V5"  -> BigPoint(0.5, 0.8660254037844386),
-      "V6"  -> BigPoint(1.5, 0.8660254037844386),
+      V5    -> BigPoint(0.5, 0.8660254037844386),
+      V6    -> BigPoint(1.5, 0.8660254037844386),
       "V7"  -> BigPoint(2.5, 0.8660254037844386),
       "V8"  -> BigPoint(3.5, 0.8660254037844386),
       "V9"  -> BigPoint(0, 1.7320508075688772),
@@ -186,17 +186,17 @@ class TilingTorusBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHe
       v.id -> v.adjacentVerticesUnsafe.map(_.id)
     }.toMap shouldEqual
       Map(
-        V1    -> List(V2, "V13", "V16", V4, "V8", "V5"),
-        V2    -> List("V5", "V6", V3, "V14", "V13", V1),
-        V3    -> List("V6", "V7", V4, "V15", "V14", V2),
+        V1    -> List(V2, "V13", "V16", V4, "V8", V5),
+        V2    -> List(V5, V6, V3, "V14", "V13", V1),
+        V3    -> List(V6, "V7", V4, "V15", "V14", V2),
         V4    -> List("V7", "V8", V1, "V16", "V15", V3),
-        "V5"  -> List(V1, "V8", "V9", "V10", "V6", V2),
-        "V6"  -> List(V2, "V5", "V10", "V11", "V7", V3),
-        "V7"  -> List(V3, "V6", "V11", "V12", "V8", V4),
-        "V8"  -> List(V1, V4, "V7", "V12", "V9", "V5"),
-        "V9"  -> List("V12", "V16", "V13", "V10", "V5", "V8"),
-        "V10" -> List("V5", "V9", "V13", "V14", "V11", "V6"),
-        "V11" -> List("V10", "V14", "V15", "V12", "V7", "V6"),
+        V5    -> List(V1, "V8", "V9", "V10", V6, V2),
+        V6    -> List(V2, V5, "V10", "V11", "V7", V3),
+        "V7"  -> List(V3, V6, "V11", "V12", "V8", V4),
+        "V8"  -> List(V1, V4, "V7", "V12", "V9", V5),
+        "V9"  -> List("V12", "V16", "V13", "V10", V5, "V8"),
+        "V10" -> List(V5, "V9", "V13", "V14", "V11", V6),
+        "V11" -> List("V10", "V14", "V15", "V12", "V7", V6),
         "V12" -> List("V11", "V15", "V16", "V9", "V8", "V7"),
         "V13" -> List("V9", "V16", V1, V2, "V14", "V10"),
         "V14" -> List("V10", "V13", V2, V3, "V15", "V11"),
@@ -278,8 +278,8 @@ class TilingTorusBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHe
       V2             -> BigPoint(1, 0),
       V3             -> BigPoint(1.5, 0.8660254037844386),
       V4             -> BigPoint(1, 1.7320508075688773),
-      VertexId("V5") -> BigPoint(0, 1.7320508075688773),
-      VertexId("V6") -> BigPoint(-0.5, 0.8660254037844386),
+      V5             -> BigPoint(0, 1.7320508075688773),
+      V6             -> BigPoint(-0.5, 0.8660254037844386),
       VertexId("V7") -> BigPoint(-0.5, -0.8660254037844386),
       VertexId("V8") -> BigPoint(1.5, 2.5980762113533159)
     )
@@ -294,14 +294,14 @@ class TilingTorusBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHe
       v.id -> v.adjacentVerticesUnsafe.map(_.id)
     }.toMap shouldEqual
       Map(
-        V1   -> List(V2, "V7", "V6"),
+        V1   -> List(V2, "V7", V6),
         V2   -> List("V8", V1, V3),
         V3   -> List(V2, V4, "V7"),
-        V4   -> List(V3, "V5", "V8"),
-        "V5" -> List(V4, "V6", "V7"),
-        "V6" -> List(V1, "V8", "V5"),
-        "V7" -> List(V3, V1, "V5"),
-        "V8" -> List(V4, V2, "V6")
+        V4   -> List(V3, V5, "V8"),
+        V5   -> List(V4, V6, "V7"),
+        V6   -> List(V1, "V8", V5),
+        "V7" -> List(V3, V1, V5),
+        "V8" -> List(V4, V2, V6)
       )
 
   it should "return the vertex coords of a 4x4 hexagon net" in:
@@ -311,8 +311,8 @@ class TilingTorusBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHe
         V2    -> BigPoint(1, 0),
         V3    -> BigPoint(1.5, 0.8660254037844386),
         V4    -> BigPoint(1, 1.7320508075688773),
-        "V5"  -> BigPoint(0, 1.7320508075688773),
-        "V6"  -> BigPoint(-0.5, 0.8660254037844386),
+        V5    -> BigPoint(0, 1.7320508075688773),
+        V6    -> BigPoint(-0.5, 0.8660254037844386),
         "V7"  -> BigPoint(2.5, 0.8660254037844386),
         "V8"  -> BigPoint(3, 1.7320508075688773),
         "V9"  -> BigPoint(2.5, 2.5980762113533159),
@@ -359,11 +359,11 @@ class TilingTorusBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHe
         "V21" -> List("V25", "V20", "V17"),
         "V10" -> List("V17", "V9", V4),
         V2    -> List(V1, V3, "V29"),
-        "V16" -> List("V13", "V22", "V6"),
+        "V16" -> List("V13", "V22", V6),
         "V31" -> List("V30", "V28", "V7"),
         "V11" -> List("V8", "V12", "V32"),
         "V25" -> List("V26", "V29", "V21"),
-        V4    -> List("V10", V3, "V5"),
+        V4    -> List("V10", V3, V5),
         "V15" -> List(V1, "V26", "V12"),
         "V29" -> List(V2, "V28", "V25"),
         "V13" -> List("V14", "V16", "V12"),
@@ -373,14 +373,14 @@ class TilingTorusBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHe
         "V7"  -> List(V3, "V8", "V31"),
         "V27" -> List("V26", "V18", "V32"),
         "V12" -> List("V13", "V15", "V11"),
-        "V19" -> List("V18", "V5", "V24"),
-        V1    -> List("V15", "V6", V2),
+        "V19" -> List("V18", V5, "V24"),
+        V1    -> List("V15", V6, V2),
         "V24" -> List("V30", "V19", "V22"),
-        "V6"  -> List("V16", "V5", V1),
+        V6    -> List("V16", V5, V1),
         "V17" -> List("V21", "V10", "V18"),
         "V20" -> List("V21", "V23", "V14"),
         "V8"  -> List("V11", "V7", "V9"),
-        "V5"  -> List("V19", V4, "V6"),
+        V5    -> List("V19", V4, V6),
         "V28" -> List("V29", "V31", "V23"),
         "V23" -> List("V28", "V22", "V20")
       )

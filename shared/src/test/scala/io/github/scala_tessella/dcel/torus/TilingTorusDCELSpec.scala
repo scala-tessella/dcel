@@ -17,7 +17,7 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
 
   it should "return the boundary of a 3x2 square net" in:
     val torus = createSquareNet(3, 2)
-    torus.unorderedBoundaryVertices.map(_.id) shouldBe List(V1, V3, V4, VertexId("V6"))
+    torus.unorderedBoundaryVertices.map(_.id) shouldBe List(V1, V3, V4, V6)
 
   it should "return the boundary of a 3x3 square net" in:
     val torus = createSquareNet(3, 3)
@@ -26,7 +26,7 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
       V2,
       V3,
       V4,
-      VertexId("V6"),
+      V6,
       VertexId("V7"),
       VertexId("V8"),
       VertexId("V9")
@@ -106,7 +106,7 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
       torus.facesWithIncorrectCoords.size shouldBe 1,
       torus.faces.map(_.getVerticesUnsafe.map(_.id)) shouldBe
         List(
-          List(V1, "V6", V1, "V8", V1, "V6", V1, "V8")
+          List(V1, V6, V1, "V8", V1, V6, V1, "V8")
         ),
       torus.faces.map(_.anglesUnsafe) shouldBe
         List(
@@ -133,10 +133,10 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
       torus.facesWithIncorrectCoords.size shouldBe 3,
       torus.faces.map(_.getVerticesUnsafe.map(_.id)) shouldBe
         List(
-          List(V1, "V8", "V5", V4),
-          List("V8", V1, V4, "V5"),
-          List(V4, "V5", "V8", V1),
-          List("V5", V4, V1, "V8")
+          List(V1, "V8", V5, V4),
+          List("V8", V1, V4, V5),
+          List(V4, V5, "V8", V1),
+          List(V5, V4, V1, "V8")
         ),
       torus.vertices.size shouldBe 4,
       torus.halfEdges.size shouldBe 16,
@@ -190,8 +190,8 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
       torus.faces.size shouldBe 2,
       torus.faces.map(_.getVerticesUnsafe.map(_.id)) shouldBe
         List(
-          List(V1, V2, V3, V2, V1, "V6"),
-          List(V3, "V6", V1, "V6", V3, V2)
+          List(V1, V2, V3, V2, V1, V6),
+          List(V3, V6, V1, V6, V3, V2)
         ),
       torus.faces.map(_.anglesUnsafe) shouldBe
         List(
@@ -215,10 +215,10 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
       torus.faces.size shouldBe 4,
       torus.faces.map(_.getVerticesUnsafe.map(_.id)) shouldBe
         List(
-          List(V1, V2, V3, V4, "V5", "V6"),
-          List(V3, "V13", V1, "V6", "V10", V4),
-          List("V5", V4, "V10", V2, V1, "V13"),
-          List("V10", "V6", "V5", "V13", V3, V2)
+          List(V1, V2, V3, V4, V5, V6),
+          List(V3, "V13", V1, V6, "V10", V4),
+          List(V5, V4, "V10", V2, V1, "V13"),
+          List("V10", V6, V5, "V13", V3, V2)
         ),
       torus.faces.map(_.anglesUnsafe) shouldBe
         List(
@@ -287,10 +287,10 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
       torus.faces.size shouldBe 4,
       torus.faces.map(_.getVerticesUnsafe.map(_.id)) shouldBe
         List(
-          List(V1, "V5", V1),
-          List("V5", "V5", V1),
-          List("V5", V1, "V5"),
-          List(V1, V1, "V5")
+          List(V1, V5, V1),
+          List(V5, V5, V1),
+          List(V5, V1, V5),
+          List(V1, V1, V5)
         ),
       torus.faces.map(_.anglesUnsafe) shouldBe
         List(
