@@ -1,7 +1,7 @@
 package io.github.scala_tessella.dcel
 
 import io.github.scala_tessella.dcel.TilingEquivalency.groupByBoundaryEquivalency
-import io.github.scala_tessella.dcel.structure.HalfEdge
+import io.github.scala_tessella.dcel.structure.{HalfEdge, VertexId}
 import io.github.scala_tessella.ring_seq.RingSeq.*
 
 import scala.collection.mutable
@@ -106,3 +106,11 @@ object TilingSymmetry:
       (0 until boundarySymm).count: i =>
         val shiftIndex = i * step
         areStructurallyEquivalent(edges.head, edges(shiftIndex))
+
+    def rotationalVertexIds: List[VertexId] =
+      val symmetryOrder     = rotationalSymm
+      val boundaryVertexIds = tiling.boundaryVertices.map(_.id)
+      val boundaryAngles    = tiling.boundarySimplePolygon.toAngles
+      val segmentSize       = boundaryAngles.size / symmetryOrder
+      val first             = (0 until segmentSize).maxBy(boundaryAngles(_).toRational)
+      (0 until symmetryOrder).toList.map(first + _ * segmentSize).map(boundaryVertexIds)
