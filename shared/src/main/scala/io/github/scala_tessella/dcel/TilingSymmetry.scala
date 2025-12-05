@@ -61,16 +61,16 @@ object TilingSymmetry:
       true
 
     /** Checks if the tiling structure starting at edge `a` is reflectionally equivalent to the structure
-     * starting at edge `b`.
-     *
-     * Performs a synchronized traversal (BFS) of both structures, comparing `a` with `b`'s reflection.
-     * Since reflection reverses orientation:
-     *   - `a.next` matches `b.prev`
-     *   - `a.prev` matches `b.next`
-     *   - `a.twin` matches `b.twin`
-     */
+      * starting at edge `b`.
+      *
+      * Performs a synchronized traversal (BFS) of both structures, comparing `a` with `b`'s reflection. Since
+      * reflection reverses orientation:
+      *   - `a.next` matches `b.prev`
+      *   - `a.prev` matches `b.next`
+      *   - `a.twin` matches `b.twin`
+      */
     def areReflectionallyEquivalent(startA: HalfEdge, startB: HalfEdge): Boolean =
-      val queue = mutable.Queue[(HalfEdge, HalfEdge)]((startA, startB))
+      val queue    = mutable.Queue[(HalfEdge, HalfEdge)]((startA, startB))
       val visitedA = mutable.Map[HalfEdge, HalfEdge]()
 
       visitedA.put(startA, startB): Unit
@@ -106,8 +106,8 @@ object TilingSymmetry:
               else
                 visitedA.put(na, nb): Unit
                 queue.enqueue((na, nb))
-            case (None, None) => ()
-            case _ => return false
+            case (None, None)         => ()
+            case _                    => return false
 
       true
 
@@ -144,9 +144,9 @@ object TilingSymmetry:
 
       val axes = tiling.boundarySimplePolygon.reflectionalIndexPairs
       axes.count: pair =>
-        val loc1 = pair._1
+        val loc1             = pair._1
         val (startA, startB) = loc1 match
           case SymEdge(i, _) => (edges(i), edges(i).prev.get)
-          case SymVertex(i) => (edges(i), edges(i).prev.get)
+          case SymVertex(i)  => (edges(i), edges(i).prev.get)
 
         areReflectionallyEquivalent(startA, startB)
