@@ -145,29 +145,13 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
     oneAsymmetricHole.reflectionalSymm shouldBe 0
 
   it should "calculate the reflectional symmetry for another modified 4x4 square" in:
-    val square4x4modified = TilingBuilder.createRhombusNet(4, 4)
-      .deleteEdge(V6, VertexId("V7")).value
-      .deleteEdge(VertexId("V17"), VertexId("V22")).value
-    square4x4modified.reflectionalSymm shouldBe 0
+    twoAsymmetricHoles.reflectionalSymm shouldBe 0
 
   it should "calculate the reflectional symmetry for a third modified 4x4 square" in:
-    val square4x4modified = TilingBuilder.createRhombusNet(4, 4)
-      .deleteEdge(V6, VertexId("V7")).value
-      .deleteEdge(VertexId("V17"), VertexId("V22")).value
-      .deleteEdge(VertexId("V19"), VertexId("V20")).value
-      .deleteEdge(VertexId("V4"), VertexId("V9")).value
-    square4x4modified.reflectionalSymm shouldBe 0
+    fourRotationalHoles.reflectionalSymm shouldBe 0
 
   it should "calculate the reflectional symmetry for a fourth modified 4x4 square" in:
-    val square4x4modified = TilingBuilder.createRhombusNet(4, 4)
-      .deleteEdge(V6, VertexId("V7")).value
-      .deleteEdge(VertexId("V19"), VertexId("V20")).value
-    square4x4modified.reflectionalSymm shouldBe 0
+    twoRotationalHoles.reflectionalSymm shouldBe 0
 
   it should "calculate the reflectional symmetry for a 4x4 square with two reflected holes" in :
-
-    /** <img src="file:../../../../../resources/symmetry/twoReflectionalHoles.svg"/> */
-    val square4x4modified = TilingBuilder.createRhombusNet(4, 4)
-      .deleteEdge(V6, VertexId("V7")).value
-      .deleteEdge(VertexId("V9"), VertexId("V10")).value
-    square4x4modified.reflectionalSymm shouldBe 1
+    twoReflectionalHoles.reflectionalSymm shouldBe 1
