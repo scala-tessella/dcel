@@ -67,36 +67,39 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
   it should "calculate the rotational symmetry for a 4x4 square with two asymmetrical holes" in:
     twoAsymmetricHoles.rotationalSymm shouldBe 1
 
-  it should "calculate the rotational symmetry for a 4x4 square with four rotated holes" in:
-
-    /** <img src="file:../../../../../resources/symmetry/fourRotationalHoles.svg"/> */
-    val square4x4modified = TilingBuilder.createRhombusNet(4, 4)
+  /** <img src="file:../../../../../resources/symmetry/fourRotationalHoles.svg"/> */
+  val fourRotationalHoles: TilingDCEL =
+    TilingBuilder.createRhombusNet(4, 4)
       .deleteEdge(V6, VertexId("V7")).value
       .deleteEdge(VertexId("V17"), VertexId("V22")).value
       .deleteEdge(VertexId("V19"), VertexId("V20")).value
       .deleteEdge(VertexId("V4"), VertexId("V9")).value
-    square4x4modified.rotationalSymm shouldBe 4
 
-  it should "calculate the rotational symmetry for a 4x4 square with two rotated holes" in:
+  it should "calculate the rotational symmetry for a 4x4 square with four rotated holes" in:
+    fourRotationalHoles.rotationalSymm shouldBe 4
 
-    /** <img src="file:../../../../../resources/symmetry/twoRotationalHoles.svg"/> */
-    val square4x4modified = TilingBuilder.createRhombusNet(4, 4)
+  /** <img src="file:../../../../../resources/symmetry/twoRotationalHoles.svg"/> */
+  val twoRotationalHoles: TilingDCEL =
+    TilingBuilder.createRhombusNet(4, 4)
       .deleteEdge(V6, VertexId("V7")).value
       .deleteEdge(VertexId("V19"), VertexId("V20")).value
+
+  it should "calculate the rotational symmetry for a 4x4 square with two rotated holes" in:
     allAssert(
-      square4x4modified.rotationalSymm shouldBe 2,
-      square4x4modified.rotationalVertexIds shouldBe List(V6, "V20")
+      twoRotationalHoles.rotationalSymm shouldBe 2,
+      twoRotationalHoles.rotationalVertexIds shouldBe List(V6, "V20")
     )
 
-  it should "calculate the rotational symmetry for a 4x4 square with two reflected holes" in :
-
-    /** <img src="file:../../../../../resources/symmetry/twoReflectionalHoles.svg"/> */
-    val square4x4modified = TilingBuilder.createRhombusNet(4, 4)
+  /** <img src="file:../../../../../resources/symmetry/twoReflectionalHoles.svg"/> */
+  val twoReflectionalHoles: TilingDCEL =
+    TilingBuilder.createRhombusNet(4, 4)
       .deleteEdge(V6, VertexId("V7")).value
       .deleteEdge(VertexId("V9"), VertexId("V10")).value
+
+  it should "calculate the rotational symmetry for a 4x4 square with two reflected holes" in :
     allAssert(
-      square4x4modified.rotationalSymm shouldBe 1,
-      square4x4modified.rotationalVertexIds shouldBe List(V6)
+      twoReflectionalHoles.rotationalSymm shouldBe 1,
+      twoReflectionalHoles.rotationalVertexIds shouldBe List(V6)
     )
 
   behavior of "TilingSymmetry.reflectionalSymm"
