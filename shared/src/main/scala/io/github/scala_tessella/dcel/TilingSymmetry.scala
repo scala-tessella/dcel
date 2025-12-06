@@ -1,7 +1,8 @@
 package io.github.scala_tessella.dcel
 
 import io.github.scala_tessella.dcel.structure.{HalfEdge, VertexId}
-import io.github.scala_tessella.ring_seq.SymmetryOps.{Edge => SymEdge, Vertex => SymVertex}
+import io.github.scala_tessella.ring_seq.SymmetryOps.{AxisLocation, Edge as SymEdge, Vertex as SymVertex}
+
 import scala.collection.mutable
 
 object TilingSymmetry:
@@ -140,15 +141,18 @@ object TilingSymmetry:
       val first             = (0 until segmentSize).maxBy(boundaryAngles(_).toRational)
       (0 until symmetryOrder).toList.map(first + _ * segmentSize).map(boundaryVertexIds)
 
-    def reflectionalSymm: Int =
+    def reflectionalVertexIds: List[(AxisLocation, AxisLocation)] =
       val edges = tiling.boundaryEdges.toVector
-      if edges.isEmpty then return 0
+      if edges.isEmpty then return Nil
 
       val axes = tiling.boundarySimplePolygon.reflectionalIndexPairs
-      axes.count: pair =>
-        val loc1             = pair._1
+      axes.filter: pair =>
+        val loc1 = pair._1
         val (startA, startB) = loc1 match
           case SymEdge(i, _) => (edges(i), edges(i))
-          case SymVertex(i)  => (edges(i), edges(i).prev.get)
+          case SymVertex(i) => (edges(i), edges(i).prev.get)
 
         areReflectionallyEquivalent(startA, startB)
+
+    def reflectionalSymm: Int =
+      reflectionalVertexIds.size
