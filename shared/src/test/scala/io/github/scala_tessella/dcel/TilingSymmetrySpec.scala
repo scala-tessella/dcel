@@ -96,7 +96,7 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
       .deleteEdge(V6, VertexId("V7")).value
       .deleteEdge(VertexId("V9"), VertexId("V10")).value
 
-  it should "calculate the rotational symmetry for a 4x4 square with two reflected holes" in :
+  it should "calculate the rotational symmetry for a 4x4 square with two reflected holes" in:
     allAssert(
       twoReflectionalHoles.rotationalSymm shouldBe 1,
       twoReflectionalHoles.rotationalVertexIds shouldBe List(V6)
@@ -153,5 +153,5 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
   it should "calculate the reflectional symmetry for a fourth modified 4x4 square" in:
     twoRotationalHoles.reflectionalSymm shouldBe 0
 
-  it should "calculate the reflectional symmetry for a 4x4 square with two reflected holes" in :
+  it should "calculate the reflectional symmetry for a 4x4 square with two reflected holes" in:
     twoReflectionalHoles.reflectionalSymm shouldBe 1

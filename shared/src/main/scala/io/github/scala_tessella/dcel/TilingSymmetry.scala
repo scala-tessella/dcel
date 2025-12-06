@@ -147,10 +147,10 @@ object TilingSymmetry:
 
       val axes = tiling.boundarySimplePolygon.reflectionalIndexPairs
       axes.filter: pair =>
-        val loc1 = pair._1
+        val loc1             = pair._1
         val (startA, startB) = loc1 match
           case SymEdge(i, _) => (edges(i), edges(i))
-          case SymVertex(i) => (edges(i), edges(i).prev.get)
+          case SymVertex(i)  => (edges(i), edges(i).prev.get)
 
         areReflectionallyEquivalent(startA, startB)
 
