@@ -79,7 +79,9 @@ object TilingSymmetry:
         val (a, b) = queue.dequeue()
 
         // 1. Compare Local Geometry (Angles)
-        if a.angle != b.angle then return false
+        // For reflection, we compare a's origin angle with b's destination angle (b.next's origin)
+        // because b is being traversed backwards relative to the reflection.
+        if a.angle != b.next.flatMap(_.angle) then return false
 
         // 2. Compare Topology
         val aIsBoundary = tiling.isBoundaryEdge(a)
