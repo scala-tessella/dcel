@@ -145,8 +145,8 @@ object TilingSymmetry:
 
     def reflectionalVertexIds: List[(BoundaryLocation, BoundaryLocation)] =
       val edges             = tiling.boundaryEdges.toVector
-      val boundaryVertexIds = tiling.boundaryVertices.map(_.id)
       if edges.isEmpty then return Nil
+      val boundaryVertexIds = tiling.boundaryVertices.map(_.id)
 
       val fromAxisToBoundary: AxisLocation => BoundaryLocation = {
         case SymVertex(i)  => boundaryVertexIds(i)
