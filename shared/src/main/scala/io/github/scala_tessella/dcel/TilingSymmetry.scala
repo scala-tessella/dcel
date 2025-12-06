@@ -146,7 +146,7 @@ object TilingSymmetry:
       axes.count: pair =>
         val loc1             = pair._1
         val (startA, startB) = loc1 match
-          case SymEdge(i, _) => (edges(i), edges(i).prev.get)
+          case SymEdge(i, j) => (edges(i), edges(j))
           case SymVertex(i)  => (edges(i), edges(i).prev.get)
 
         areReflectionallyEquivalent(startA, startB)
