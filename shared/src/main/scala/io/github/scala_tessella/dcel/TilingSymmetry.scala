@@ -144,15 +144,14 @@ object TilingSymmetry:
       (0 until symmetryOrder).toList.map(first + _ * segmentSize).map(boundaryVertexIds)
 
     def reflectionalVertexIds: List[(BoundaryLocation, BoundaryLocation)] =
-      val edges = tiling.boundaryEdges.toVector
+      val edges             = tiling.boundaryEdges.toVector
       val boundaryVertexIds = tiling.boundaryVertices.map(_.id)
       if edges.isEmpty then return Nil
 
-      val fromAxisToBoundary: AxisLocation => BoundaryLocation =
-        {
-          case SymVertex(i) => boundaryVertexIds(i)
-          case SymEdge(i, j) => (boundaryVertexIds(i), boundaryVertexIds(j))
-        }
+      val fromAxisToBoundary: AxisLocation => BoundaryLocation = {
+        case SymVertex(i)  => boundaryVertexIds(i)
+        case SymEdge(i, j) => (boundaryVertexIds(i), boundaryVertexIds(j))
+      }
 
       val axes = tiling.boundarySimplePolygon.reflectionalIndexPairs
       axes
@@ -162,7 +161,10 @@ object TilingSymmetry:
             case SymVertex(i)  => (edges(i), edges(i).prev.get)
           areReflectionallyEquivalent(startA, startB)
         }
-        .map { (loc1, loc2) => (fromAxisToBoundary(loc1), fromAxisToBoundary(loc2)) }
+        .map { (loc1, loc2) =>
+
+          (fromAxisToBoundary(loc1), fromAxisToBoundary(loc2))
+        }
 
     def reflectionalSymm: Int =
       reflectionalVertexIds.size
