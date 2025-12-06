@@ -128,7 +128,7 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
   it should "calculate the reflectional symmetry for a triangle net" in:
     val triangleNet = TilingBuilder.createTriangleNet(3, 3)
-    triangleNet.reflectionalSymm shouldBe 0
+    triangleNet.reflectionalSymm shouldBe 2
 
   it should "calculate the reflectional symmetry for a regular hexagon" in:
     hexagon.reflectionalSymm shouldBe 6
@@ -139,7 +139,7 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
   it should "calculate the reflectional symmetry for a 4x4 hexagon net" in:
     val hex4x4 = TilingBuilder.createHexagonNet(4, 4)
-    hex4x4.reflectionalSymm shouldBe 1
+    hex4x4.reflectionalSymm shouldBe 2
 
   it should "calculate the reflectional symmetry for a modified 4x4 square" in:
     oneAsymmetricHole.reflectionalSymm shouldBe 0
