@@ -7,7 +7,13 @@ import scala.collection.mutable
 
 object TilingSymmetry:
 
-  type BoundaryLocation = VertexId | (VertexId, VertexId)
+  /** A location on the boundary where a symmetry axis can pass through.
+    *   - Vertex: The axis passes directly through the element at this index.
+    *   - Edge: The axis passes between the elements at these indices.
+    */
+  sealed trait BoundaryLocation
+  case class BoundaryVertex(i: VertexId)            extends BoundaryLocation
+  case class BoundaryEdge(i: VertexId, j: VertexId) extends BoundaryLocation
 
   extension (tiling: TilingDCEL)
 
@@ -149,8 +155,8 @@ object TilingSymmetry:
       val boundaryVertexIds = tiling.boundaryVertices.map(_.id)
 
       val fromAxisToBoundary: AxisLocation => BoundaryLocation = {
-        case SymVertex(i)  => boundaryVertexIds(i)
-        case SymEdge(i, j) => (boundaryVertexIds(i), boundaryVertexIds(j))
+        case SymVertex(i)  => BoundaryVertex(boundaryVertexIds(i))
+        case SymEdge(i, j) => BoundaryEdge(boundaryVertexIds(i), boundaryVertexIds(j))
       }
 
       val axes = tiling.boundarySimplePolygon.reflectionalIndexPairs
