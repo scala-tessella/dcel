@@ -17,57 +17,74 @@ object TilingSymmetry:
 
   extension (tiling: TilingDCEL)
 
+    /** Generic graph isomorphism checker for tiling structures.
+      *
+      * @param startA
+      *   Starting edge in the first structure.
+      * @param startB
+      *   Starting edge in the second structure.
+      * @param compareAngles
+      *   Function to verify if two edges have compatible angles.
+      * @param getNeighbors
+      *   Function to map neighbors from edge A to edge B (handles orientation).
+      */
+    private def traverseAndCompare(
+        startA: HalfEdge,
+        startB: HalfEdge,
+        compareAngles: (HalfEdge, HalfEdge) => Boolean,
+        getNeighbors: (HalfEdge, HalfEdge) => List[(Option[HalfEdge], Option[HalfEdge])]
+    ): Boolean =
+      val queue   = mutable.Queue((startA, startB))
+      val visited = mutable.Map(startA -> startB)
+
+      while queue.nonEmpty do
+        val (a, b) = queue.dequeue()
+
+        // 1. Compare Local Geometry
+        if !compareAngles(a, b) then return false
+
+        // 2. Compare Topology (Boundary vs Inner)
+        if tiling.isBoundaryEdge(a) != tiling.isBoundaryEdge(b) then return false
+
+        // 3. Compare Incident Face properties (if inner)
+        if !tiling.isBoundaryEdge(a) then
+          // Check consistency of inner/outer face status
+          if a.incidentFace.map(_.id) == tiling.outerFace.id then return false
+
+        // 4. Traverse Neighbors
+        val neighborsIterator = getNeighbors(a, b).iterator
+        while neighborsIterator.hasNext do
+          val (optNa, optNb) = neighborsIterator.next()
+          (optNa, optNb) match
+            case (Some(na), Some(nb)) =>
+              if visited.contains(na) then
+                // Ensure consistency of existing mapping
+                if visited(na) != nb then return false
+              else
+                // Establish new mapping
+                visited(na) = nb
+                queue.enqueue((na, nb))
+            case (None, None)         => ()           // Consistent absence, both missing
+            case _                    => return false // Structural mismatch
+
+      true
+
     /** Checks if the tiling structure starting at edge `a` is isomorphic to the structure starting at edge
       * `b`.
       *
       * Performs a synchronized traversal (BFS) of both structures.
       */
     def areStructurallyEquivalent(startA: HalfEdge, startB: HalfEdge): Boolean =
-      val queue    = mutable.Queue[(HalfEdge, HalfEdge)]((startA, startB))
-      val visitedA = mutable.Map[HalfEdge, HalfEdge]() // Tracks mapping a -> b
-
-      visitedA.put(startA, startB): Unit
-
-      while queue.nonEmpty do
-        val (a, b) = queue.dequeue()
-
-        // 1. Compare Local Geometry (Angles)
-        if a.angle != b.angle then return false
-
-        // 2. Compare Topology (Boundary vs Inner)
-        val aIsBoundary = tiling.isBoundaryEdge(a)
-        val bIsBoundary = tiling.isBoundaryEdge(b)
-        if aIsBoundary != bIsBoundary then return false
-
-        // 3. Compare Incident Face properties (if inner)
-        if !aIsBoundary then
-          // Ideally check if face sizes match, but simpler:
-          // The traversal of 'next' edges will implicitly verify face structure.
-          if a.incidentFace.map(_.id) == tiling.outerFace.id then return false // Safety check
-
-        // 4. Queue Neighbors (Next, Prev, Twin)
-        // We define neighbors relative to the edge direction
-        val neighbors = List(
-          (a.next, b.next),
-          (a.twin, b.twin)
-        )
-
-        val neighborsIterator = neighbors.iterator
-        while neighborsIterator.hasNext do
-          val (optNa, optNb) = neighborsIterator.next()
-          (optNa, optNb) match
-            case (Some(na), Some(nb)) =>
-              if visitedA.contains(na) then
-                // If we've seen 'na' before, it MUST map to 'nb'
-                if visitedA(na) != nb then return false
-              else
-                // New correspondence found
-                visitedA.put(na, nb): Unit
-                queue.enqueue((na, nb))
-            case (None, None)         => ()           // Both missing (e.g. incomplete definitions), acceptable consistency
-            case _                    => return false // Structural mismatch (one has edge, other doesn't)
-
-      true
+      traverseAndCompare(
+        startA,
+        startB,
+        compareAngles = (a, b) => a.angle == b.angle,
+        getNeighbors = (a, b) =>
+          List(
+            (a.next, b.next), // Orientation preserved
+            (a.twin, b.twin)
+          )
+      )
 
     /** Checks if the tiling structure starting at edge `a` is reflectionally equivalent to the structure
       * starting at edge `b`.
@@ -79,48 +96,18 @@ object TilingSymmetry:
       *   - `a.twin` matches `b.twin`
       */
     def areReflectionallyEquivalent(startA: HalfEdge, startB: HalfEdge): Boolean =
-      val queue    = mutable.Queue[(HalfEdge, HalfEdge)]((startA, startB))
-      val visitedA = mutable.Map[HalfEdge, HalfEdge]()
-
-      visitedA.put(startA, startB): Unit
-
-      while queue.nonEmpty do
-        val (a, b) = queue.dequeue()
-
-        // 1. Compare Local Geometry (Angles)
-        // For reflection, we compare a's origin angle with b's destination angle (b.next's origin)
-        // because b is being traversed backwards relative to the reflection.
-        if a.angle != b.next.flatMap(_.angle) then return false
-
-        // 2. Compare Topology
-        val aIsBoundary = tiling.isBoundaryEdge(a)
-        val bIsBoundary = tiling.isBoundaryEdge(b)
-        if aIsBoundary != bIsBoundary then return false
-
-        // 3. Compare Incident Face properties (if inner)
-        if !aIsBoundary then
-          if a.incidentFace.map(_.id) == tiling.outerFace.id then return false
-
-        // 4. Queue Neighbors
-        val neighbors = List(
-          (a.next, b.prev),
-          (a.twin, b.twin)
-        )
-
-        val neighborsIterator = neighbors.iterator
-        while neighborsIterator.hasNext do
-          val (optNa, optNb) = neighborsIterator.next()
-          (optNa, optNb) match
-            case (Some(na), Some(nb)) =>
-              if visitedA.contains(na) then
-                if visitedA(na) != nb then return false
-              else
-                visitedA.put(na, nb): Unit
-                queue.enqueue((na, nb))
-            case (None, None)         => ()
-            case _                    => return false
-
-      true
+      traverseAndCompare(
+        startA,
+        startB,
+        // For reflection, b is traversed backwards. The "origin" angle of b (backwards)
+        // corresponds to the angle at b's destination in the graph, which is b.next.angle.
+        compareAngles = (a, b) => a.angle == b.next.flatMap(_.angle),
+        getNeighbors = (a, b) =>
+          List(
+            (a.next, b.prev), // Orientation reversed: next maps to prev
+            (a.twin, b.twin)
+          )
+      )
 
     /** Calculates the true rotational symmetry of the TilingDCEL. It checks which rotational symmetries of
       * the boundary are also preserved by the internal structure.
@@ -131,15 +118,13 @@ object TilingSymmetry:
 
       // 1. Get upper bound from boundary polygon
       val boundarySymm = tiling.boundarySimplePolygon.rotationalSymm
-      val totalEdges   = edges.size
-      val step         = totalEdges / boundarySymm
+      val step         = edges.size / boundarySymm
 
       // 2. Check each candidate shift
       // We iterate 0 to boundarySymm-1.
       // i=0 is Identity (shift 0), always true.
       (0 until boundarySymm).count: i =>
-        val shiftIndex = i * step
-        areStructurallyEquivalent(edges.head, edges(shiftIndex))
+        areStructurallyEquivalent(edges.head, edges(i * step))
 
     def rotationalVertexIds: List[VertexId] =
       val symmetryOrder     = rotationalSymm
