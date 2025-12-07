@@ -60,16 +60,16 @@ object SimplePolygon:
       else
         SimplePolygon(angles.flatMap(_ +: Vector.fill(n - 1)(AngleDegree(180))))
 
-    def rotationalSymm: Int =
+    def rotationalSymmetryOrder: Int =
       angles.rotationalSymmetry
 
     def rotationalIndices: List[Int] =
-      val symmetryOrder = angles.rotationalSymm
+      val symmetryOrder = angles.rotationalSymmetryOrder
       val segmentSize   = angles.size / symmetryOrder
       val first         = (0 until segmentSize).maxBy(angles(_).toRational)
       (0 until symmetryOrder).toList.map(first + _ * segmentSize)
 
-    def reflectionalSymm: Int =
+    def reflectionalSymmetryOrder: Int =
       angles.symmetry
 
     def reflectionalIndexPairs: List[(AxisLocation, AxisLocation)] =

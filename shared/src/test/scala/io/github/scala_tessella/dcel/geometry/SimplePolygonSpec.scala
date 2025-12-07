@@ -239,9 +239,9 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
     val simplePolygon = twoJoinedHexs
 //    println(twoJoinedHexs.toScalableVectorG(showReflection = true, showRotation = true))
     allAssert(
-      simplePolygon.rotationalSymm shouldBe 2,
+      simplePolygon.rotationalSymmetryOrder shouldBe 2,
       simplePolygon.rotationalIndices shouldBe List(2, 7),
-      simplePolygon.reflectionalSymm shouldBe 2,
+      simplePolygon.reflectionalSymmetryOrder shouldBe 2,
       simplePolygon.reflectionalIndexPairs shouldBe List((Edge(4, 5), Edge(9, 0)), (Vertex(2), Vertex(7)))
     )
 
@@ -251,8 +251,8 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
     val simplePolygon = bulb
     //    println(bulb.toScalableVectorG(showReflection = true, showRotation = true))
     allAssert(
-      simplePolygon.rotationalSymm shouldBe 1,
+      simplePolygon.rotationalSymmetryOrder shouldBe 1,
       simplePolygon.rotationalIndices shouldBe List(2),
-      simplePolygon.reflectionalSymm shouldBe 1,
+      simplePolygon.reflectionalSymmetryOrder shouldBe 1,
       simplePolygon.reflectionalIndexPairs shouldBe List((Edge(0, 1), Edge(5, 6)))
     )

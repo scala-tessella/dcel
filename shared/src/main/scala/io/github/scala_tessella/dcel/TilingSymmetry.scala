@@ -19,12 +19,12 @@ object TilingSymmetry:
     /** Calculates the rotational symmetry of the TilingDCEL. It checks which rotational symmetries of the
       * boundary are also preserved by the internal structure.
       */
-    def rotationalSymm: Int =
+    def rotationalSymmetryOrder: Int =
       val edges = tiling.boundaryEdges
       if edges.isEmpty then return 1
 
       // 1. Get upper bound from boundary polygon
-      val boundarySymm = tiling.boundarySimplePolygon.rotationalSymm
+      val boundarySymm = tiling.boundarySimplePolygon.rotationalSymmetryOrder
       val step         = edges.size / boundarySymm
 
       // 2. Check each candidate shift
@@ -34,7 +34,7 @@ object TilingSymmetry:
         edges.head.isStructurallyEquivalentTo(edges(i * step))
 
     def rotationalVertexIds: List[VertexId] =
-      val symmetryOrder     = rotationalSymm
+      val symmetryOrder     = rotationalSymmetryOrder
       val boundaryVertexIds = tiling.boundaryVertices.map(_.id)
       val boundaryAngles    = tiling.boundarySimplePolygon.toAngles
       val segmentSize       = boundaryAngles.size / symmetryOrder
@@ -47,7 +47,7 @@ object TilingSymmetry:
     }
 
     def rotationalVertexIdsAlt: List[BoundaryLocation] =
-      val symmetryOrder    = rotationalSymm
+      val symmetryOrder    = rotationalSymmetryOrder
       val boundaryVertices = tiling.boundaryVertices
 
       def coordsOf(axisLocation: AxisLocation): BigPoint =
@@ -89,5 +89,5 @@ object TilingSymmetry:
           (fromAxisToBoundary(boundaryVertexIds)(loc1), fromAxisToBoundary(boundaryVertexIds)(loc2))
         }
 
-    def reflectionalSymm: Int =
+    def reflectionalSymmetryOrder: Int =
       reflectionalVertexIds.size
