@@ -507,3 +507,11 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       result.innerFaces.size shouldBe 2,
       TilingValidation.validate(result).isRight shouldBe true
     )
+
+  behavior of "TilingDCEL.hasUnitRegularPolygonsOnly"
+
+  it should "succeed for a net" in:
+    net.hasUnitRegularPolygonsOnly shouldBe true
+
+  it should "fail for a holed net" in:
+    holeInNet2.hasUnitRegularPolygonsOnly shouldBe false

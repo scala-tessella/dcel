@@ -41,6 +41,9 @@ final case class TilingDCEL private (
   def faces: List[Face] =
     outerFace :: innerFaces
 
+  def hasUnitRegularPolygonsOnly: Boolean =
+    innerFaces.forall(_.hasEqualAnglesUnsafe)
+    
   private[dcel] def findVertexUnsafe(vertexId: VertexId): Option[Vertex] =
     vertices.find(_.id == vertexId)
 
