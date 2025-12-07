@@ -54,8 +54,7 @@ object TilingSymmetry:
         // 4. Traverse Neighbors
         val neighborsIterator = getNeighbors(a, b).iterator
         while neighborsIterator.hasNext do
-          val (optNa, optNb) = neighborsIterator.next()
-          (optNa, optNb) match
+          neighborsIterator.next() match
             case (Some(na), Some(nb)) =>
               if visited.contains(na) then
                 // Ensure consistency of existing mapping
