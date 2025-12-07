@@ -169,6 +169,42 @@ final class HalfEdge(
 
     true
 
+  /** Checks if the tiling structure starting at edge is isomorphic to the structure starting at another edge
+    *
+    * Performs a synchronized traversal (BFS) of both structures.
+    */
+  def isStructurallyEquivalentTo(that: HalfEdge): Boolean =
+    this.traverseAndCompare(
+      that,
+      compareAngles = (a, b) => a.angle == b.angle,
+      getNeighbors = (a, b) =>
+        List(
+          (a.next, b.next), // Orientation preserved
+          (a.twin, b.twin)
+        )
+    )
+
+  /** Checks if the tiling structure starting at edge is reflectionally equivalent to the structure starting
+    * at another edge.
+    *
+    * Performs a synchronized traversal (BFS) of both structures, comparing with the other's reflection. Since
+    * reflection reverses orientation:
+    *   - `a.next` matches `b.prev`
+    *   - `a.twin` matches `b.twin`
+    */
+  def isReflectionallyEquivalentTo(that: HalfEdge): Boolean =
+    this.traverseAndCompare(
+      that,
+      // For reflection, b is traversed backwards. The "origin" angle of b (backwards)
+      // corresponds to the angle at b's destination in the graph, which is b.next.angle.
+      compareAngles = (a, b) => a.angle == b.next.flatMap(_.angle),
+      getNeighbors = (a, b) =>
+        List(
+          (a.next, b.prev), // Orientation reversed: next maps to prev
+          (a.twin, b.twin)
+        )
+    )
+
 object HalfEdge:
 
   def apply(

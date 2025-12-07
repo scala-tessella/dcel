@@ -1,6 +1,6 @@
 package io.github.scala_tessella.dcel
 
-import io.github.scala_tessella.dcel.structure.{HalfEdge, VertexId}
+import io.github.scala_tessella.dcel.structure.VertexId
 import io.github.scala_tessella.ring_seq.SymmetryOps.{AxisLocation, Edge as SymEdge, Vertex as SymVertex}
 
 object TilingSymmetry:
@@ -15,46 +15,8 @@ object TilingSymmetry:
 
   extension (tiling: TilingDCEL)
 
-    /** Checks if the tiling structure starting at edge `a` is isomorphic to the structure starting at edge
-      * `b`.
-      *
-      * Performs a synchronized traversal (BFS) of both structures.
-      */
-    def areStructurallyEquivalent(startA: HalfEdge, startB: HalfEdge): Boolean =
-      startA.traverseAndCompare(
-        startB,
-        compareAngles = (a, b) => a.angle == b.angle,
-        getNeighbors = (a, b) =>
-          List(
-            (a.next, b.next), // Orientation preserved
-            (a.twin, b.twin)
-          )
-      )
-
-    /** Checks if the tiling structure starting at edge `a` is reflectionally equivalent to the structure
-      * starting at edge `b`.
-      *
-      * Performs a synchronized traversal (BFS) of both structures, comparing `a` with `b`'s reflection. Since
-      * reflection reverses orientation:
-      *   - `a.next` matches `b.prev`
-      *   - `a.prev` matches `b.next`
-      *   - `a.twin` matches `b.twin`
-      */
-    def areReflectionallyEquivalent(startA: HalfEdge, startB: HalfEdge): Boolean =
-      startA.traverseAndCompare(
-        startB,
-        // For reflection, b is traversed backwards. The "origin" angle of b (backwards)
-        // corresponds to the angle at b's destination in the graph, which is b.next.angle.
-        compareAngles = (a, b) => a.angle == b.next.flatMap(_.angle),
-        getNeighbors = (a, b) =>
-          List(
-            (a.next, b.prev), // Orientation reversed: next maps to prev
-            (a.twin, b.twin)
-          )
-      )
-
-    /** Calculates the true rotational symmetry of the TilingDCEL. It checks which rotational symmetries of
-      * the boundary are also preserved by the internal structure.
+    /** Calculates the rotational symmetry of the TilingDCEL. It checks which rotational symmetries of the
+      * boundary are also preserved by the internal structure.
       */
     def rotationalSymm: Int =
       val edges = tiling.boundaryEdges
@@ -68,7 +30,7 @@ object TilingSymmetry:
       // We iterate 0 to boundarySymm-1.
       // i=0 is Identity (shift 0), always true.
       (0 until boundarySymm).count: i =>
-        areStructurallyEquivalent(edges.head, edges(i * step))
+        edges.head.isStructurallyEquivalentTo(edges(i * step))
 
     def rotationalVertexIds: List[VertexId] =
       val symmetryOrder     = rotationalSymm
@@ -94,7 +56,7 @@ object TilingSymmetry:
           val (startA, startB) = loc1 match
             case SymEdge(i, _) => (edges(i), edges(i))
             case SymVertex(i)  => (edges(i), edges(i).prev.get)
-          areReflectionallyEquivalent(startA, startB)
+          startA.isReflectionallyEquivalentTo(startB)
         }
         .map { (loc1, loc2) =>
 
