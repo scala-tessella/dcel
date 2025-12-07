@@ -23,14 +23,14 @@ object TilingSymmetry:
       val edges = tiling.boundaryEdges
       if edges.isEmpty then return 1
 
-      // 1. Get upper bound from boundary polygon
-      val boundarySymm = tiling.boundarySimplePolygon.rotationalSymmetryOrder
-      val step         = edges.size / boundarySymm
+      // 1. Get upper bound from the boundary polygon
+      val boundarySym = tiling.boundarySimplePolygon.rotationalSymmetryOrder
+      val step        = edges.size / boundarySym
 
       // 2. Check each candidate shift
       // We iterate 0 to boundarySymm-1.
       // i=0 is Identity (shift 0), always true.
-      (0 until boundarySymm).count: i =>
+      (0 until boundarySym).count: i =>
         edges.head.isStructurallyEquivalentTo(edges(i * step))
 
     def rotationalVertexIds: List[VertexId] =
