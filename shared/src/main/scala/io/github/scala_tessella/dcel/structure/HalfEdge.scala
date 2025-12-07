@@ -129,6 +129,46 @@ final class HalfEdge(
   def hasIncidentFace(face: Face): Boolean =
     incidentFace.contains(face)
 
+  /** Generic graph isomorphism checker for tiling structures.
+    *
+    * @param that
+    *   Starting edge in the other structure.
+    * @param compareAngles
+    *   Function to verify if two edges have compatible angles.
+    * @param getNeighbors
+    *   Function to map neighbors from edge A to edge B (handles orientation).
+    */
+  private[dcel] def traverseAndCompare(
+      that: HalfEdge,
+      compareAngles: (HalfEdge, HalfEdge) => Boolean,
+      getNeighbors: (HalfEdge, HalfEdge) => List[(Option[HalfEdge], Option[HalfEdge])]
+  ): Boolean =
+    val queue   = mutable.Queue((this, that))
+    val visited = mutable.Map(this -> that)
+
+    while queue.nonEmpty do
+      val (a, b) = queue.dequeue()
+
+      // Compare Local Geometry
+      if !compareAngles(a, b) then return false
+
+      // Traverse Neighbors
+      val neighborsIterator = getNeighbors(a, b).iterator
+      while neighborsIterator.hasNext do
+        neighborsIterator.next() match
+          case (Some(na), Some(nb)) =>
+            if visited.contains(na) then
+              // Ensure consistency of existing mapping
+              if visited(na) != nb then return false
+            else
+              // Establish new mapping
+              visited(na) = nb
+              queue.enqueue((na, nb))
+          case (None, None)         => ()           // Consistent absence, both missing
+          case _                    => return false // Structural mismatch
+
+    true
+
 object HalfEdge:
 
   def apply(
