@@ -227,9 +227,6 @@ object TilingUniformity:
       def deepMap(key: List[Int], vertexIds: List[VertexId]): TailRec[Tree[List[VertexId]]] =
         val distance        = key.length
         val centeredTilings = vertexIds.map(id => id -> tiling.getDcelAtVertex(id, distance).toOption.get)
-        //      centeredTilings.filter((_, tiling) => TilingValidation.validate(tiling).isLeft).foreach((id, tiling) =>
-        //        println(s"Invalid tiling for vertex $id at distance $distance")
-        //      )
         val classes         = groupByBoundaryEquivalency(centeredTilings)
         val boundaryInfoMap = centeredTilings.map { case (vid, tiling) =>
           vid -> tiling.boundaryVertices.map(_.id).toSet
@@ -260,58 +257,6 @@ object TilingUniformity:
                   }
                 else
                   iterate(tail, Leaf(stuck) :: accumulated)
-
-        tailcall(iterate(partitioned.zipWithIndex, Nil)).map { children =>
-
-          Branch(Nil, children)
-        }
-
-      // Start from all inner vertices at the root
-      deepMap(Nil, tiling.innerVertices.map(_.id)).result
-
-    /** Calculates the uniformity of the tiling, each leaf a different class of vertices. */
-    def uniformityTreeUncompressedAlt(maxDistance: Option[Int] = None): Tree[List[VertexId]] =
-      val boundaryVertexIds = tiling.boundaryVertices.map(_.id)
-
-      // Tail-recursive helper using TailCalls
-      def deepMap(key: List[Int], vertexIds: List[VertexId]): TailRec[Tree[List[VertexId]]] =
-        val distance        = key.length
-        val centeredTilings = vertexIds.map(id => id -> tiling.getDcelAtVertex(id, distance).toOption.get)
-        //      centeredTilings.filter((_, tiling) => TilingValidation.validate(tiling).isLeft).foreach((id, tiling) =>
-        //        println(s"Invalid tiling for vertex $id at distance $distance")
-        //      )
-        val classes         = groupByBoundaryEquivalency(centeredTilings)
-        val boundaryInfoMap = centeredTilings.map { case (vid, tiling) =>
-          vid -> tiling.boundaryVertices.map(_.id).toSet
-        }.toMap
-        val partitioned     = classes.map(_.partition { vertexId =>
-          val localBoundaryVertexIds = boundaryInfoMap(vertexId)
-          boundaryVertexIds.toSet.intersect(localBoundaryVertexIds).isEmpty
-        })
-
-        // Process children with tail recursion
-        def iterate(
-            remaining: List[((List[VertexId], List[VertexId]), Int)],
-            accumulated: List[Tree[List[VertexId]]]
-        ): TailRec[List[Tree[List[VertexId]]]] =
-          remaining match
-            case Nil                                   => done(accumulated.reverse)
-            case _ if maxDistance.exists(_ < distance) =>
-              val allVertices = remaining.flatMap { case ((inner, stuck), _) =>
-                stuck ::: inner
-              }
-              done((Leaf(allVertices) :: accumulated).reverse)
-            case ((inner, stuck), index) :: tail       =>
-              if inner.nonEmpty then
-                val childKey = key :+ index
-                tailcall(deepMap(childKey, inner)).flatMap { childTree =>
-                  val updatedChild = childTree match
-                    case Leaf(_)                  => Leaf(stuck)
-                    case Branch(_, grandchildren) => Branch(stuck, grandchildren)
-                  iterate(tail, updatedChild :: accumulated)
-                }
-              else
-                iterate(tail, Leaf(stuck) :: accumulated)
 
         tailcall(iterate(partitioned.zipWithIndex, Nil)).map { children =>
 
@@ -368,83 +313,6 @@ object TilingUniformity:
                       }
                     else
                       iterate(tail, Leaf(stuck) :: accumulated)
-
-            tailcall(iterate(partitioned.zipWithIndex, Nil)).map { children =>
-              val result = Branch(Nil, children)
-              cache.put(cacheKey, result): Unit
-              result
-            }
-
-      // First, compute the full tree without limits
-      val fullTree       = deepMap(Nil, tiling.innerVertices.map(_.id), None).result
-      val fullCompressed = fullTree.compress(_ ::: _)
-
-      // Now collect trees at each depth, reusing cached computations
-      val results  = scala.collection.mutable.ListBuffer.empty[Tree[List[VertexId]]]
-      var depth    = 0
-      var continue = true
-
-      while continue do
-        val treeAtDepth = deepMap(Nil, tiling.innerVertices.map(_.id), Some(depth)).result
-        val compressed  = treeAtDepth.compress(_ ::: _)
-        results += compressed
-
-        if compressed == fullCompressed then
-          continue = false
-        else
-          depth += 1
-
-      results.toList
-
-    def scanUniformityTreeAlt: List[Tree[List[VertexId]]] =
-      val boundaryVertexIds = tiling.boundaryVertices.map(_.id)
-
-      // Cache to store computed subtrees for each (key, maxDepth) pair
-      val cache = scala.collection.mutable.HashMap[(List[Int], Option[Int]), Tree[List[VertexId]]]()
-
-      // Build tree with memoization
-      def deepMap(
-          key: List[Int],
-          vertexIds: List[VertexId],
-          maxDistance: Option[Int]
-      ): TailRec[Tree[List[VertexId]]] =
-        val cacheKey = (key, maxDistance)
-        cache.get(cacheKey) match
-          case Some(cached) => done(cached)
-          case None         =>
-            val distance        = key.length
-            val centeredTilings = vertexIds.map(id => id -> tiling.getDcelAtVertex(id, distance).toOption.get)
-            val classes         = groupByBoundaryEquivalency(centeredTilings)
-            val boundaryInfoMap = centeredTilings.map { case (vid, tiling) =>
-              vid -> tiling.boundaryVertices.map(_.id).toSet
-            }.toMap
-            val partitioned     = classes.map(_.partition { vertexId =>
-              val localBoundaryVertexIds = boundaryInfoMap(vertexId)
-              boundaryVertexIds.toSet.intersect(localBoundaryVertexIds).isEmpty
-            })
-
-            def iterate(
-                remaining: List[((List[VertexId], List[VertexId]), Int)],
-                accumulated: List[Tree[List[VertexId]]]
-            ): TailRec[List[Tree[List[VertexId]]]] =
-              remaining match
-                case Nil                                   => done(accumulated.reverse)
-                case _ if maxDistance.exists(_ < distance) =>
-                  val allVertices = remaining.flatMap { case ((inner, stuck), _) =>
-                    stuck ::: inner
-                  }
-                  done((Leaf(allVertices) :: accumulated).reverse)
-                case ((inner, stuck), index) :: tail       =>
-                  if inner.nonEmpty then
-                    val childKey = key :+ index
-                    tailcall(deepMap(childKey, inner, maxDistance)).flatMap { childTree =>
-                      val updatedChild = childTree match
-                        case Leaf(_)                  => Leaf(stuck)
-                        case Branch(_, grandchildren) => Branch(stuck, grandchildren)
-                      iterate(tail, updatedChild :: accumulated)
-                    }
-                  else
-                    iterate(tail, Leaf(stuck) :: accumulated)
 
             tailcall(iterate(partitioned.zipWithIndex, Nil)).map { children =>
               val result = Branch(Nil, children)
