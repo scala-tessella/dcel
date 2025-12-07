@@ -1,5 +1,6 @@
 package io.github.scala_tessella.dcel
 
+import io.github.scala_tessella.dcel.geometry.{BigLineSegment, BigPoint}
 import io.github.scala_tessella.dcel.structure.VertexId
 import io.github.scala_tessella.ring_seq.SymmetryOps.{AxisLocation, Edge as SymEdge, Vertex as SymVertex}
 
@@ -40,15 +41,40 @@ object TilingSymmetry:
       val first             = (0 until segmentSize).maxBy(boundaryAngles(_).toRational)
       (0 until symmetryOrder).toList.map(first + _ * segmentSize).map(boundaryVertexIds)
 
+    private def fromAxisToBoundary(boundaryVertexIds: Vector[VertexId]): AxisLocation => BoundaryLocation = {
+      case SymVertex(i)  => BoundaryVertex(boundaryVertexIds(i))
+      case SymEdge(i, j) => BoundaryEdge(boundaryVertexIds(i), boundaryVertexIds(j))
+    }
+
+    def rotationalVertexIdsAlt: List[BoundaryLocation] =
+      val symmetryOrder    = rotationalSymm
+      val boundaryVertices = tiling.boundaryVertices
+
+      def coordsOf(axisLocation: AxisLocation): BigPoint =
+        axisLocation match
+          case SymVertex(i)  => boundaryVertices(i).coords
+          case SymEdge(i, j) =>
+            BigLineSegment(boundaryVertices(i).coords, boundaryVertices(j).coords).midPoint
+
+      val boundaryVertexIds   = boundaryVertices.map(_.id)
+      val boundaryAngles      = tiling.boundarySimplePolygon.toAngles
+      val segmentSize         = boundaryAngles.size / symmetryOrder
+      val symVertices         = (0 until segmentSize).map(i => SymVertex(i)).toList
+      val symEdges            = (0 until segmentSize - 1).map(i => SymEdge(i, i + 1)).toList
+      val center              = boundaryVertices.map(_.coords).toList.centroid
+      val first: AxisLocation =
+        (symVertices ++ symEdges).minBy(x => BigLineSegment(coordsOf(x), center).length)
+      (0 until symmetryOrder).toList.map(i =>
+        val step = i * segmentSize
+        first match
+          case SymVertex(i)  => SymVertex(i + step)
+          case SymEdge(i, j) => SymEdge(i + step, j + step)
+      ).map(fromAxisToBoundary(boundaryVertexIds))
+
     def reflectionalVertexIds: List[(BoundaryLocation, BoundaryLocation)] =
       val edges             = tiling.boundaryEdges.toVector
       if edges.isEmpty then return Nil
       val boundaryVertexIds = tiling.boundaryVertices.map(_.id)
-
-      val fromAxisToBoundary: AxisLocation => BoundaryLocation = {
-        case SymVertex(i)  => BoundaryVertex(boundaryVertexIds(i))
-        case SymEdge(i, j) => BoundaryEdge(boundaryVertexIds(i), boundaryVertexIds(j))
-      }
 
       val axes = tiling.boundarySimplePolygon.reflectionalIndexPairs
       axes
@@ -60,7 +86,7 @@ object TilingSymmetry:
         }
         .map { (loc1, loc2) =>
 
-          (fromAxisToBoundary(loc1), fromAxisToBoundary(loc2))
+          (fromAxisToBoundary(boundaryVertexIds)(loc1), fromAxisToBoundary(boundaryVertexIds)(loc2))
         }
 
     def reflectionalSymm: Int =

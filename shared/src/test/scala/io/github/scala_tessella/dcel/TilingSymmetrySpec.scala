@@ -102,6 +102,32 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
       twoReflectionalHoles.rotationalVertexIds shouldBe List(V6)
     )
 
+  behavior of "TilingSymmetry.rotationalVertexIds"
+
+  it should "calculate the rotational vertex ids for a 4x4 square" in :
+    val square4x4 = TilingBuilder.createRhombusNet(4, 4)
+    square4x4.rotationalVertexIds shouldBe
+      List(V6, "V22", "V20", V4)
+    square4x4.rotationalVertexIdsAlt shouldBe
+      List(
+        BoundaryVertex(VertexId("V11")),
+        BoundaryVertex(VertexId("V23")),
+        BoundaryVertex(VertexId("V15")),
+        BoundaryVertex(V3)
+      )
+
+  it should "calculate the rotational vertex ids for a 3x3 square" in :
+    val square3x3 = TilingBuilder.createRhombusNet(3, 3)
+    square3x3.rotationalVertexIds shouldBe
+      List(V5, "V14", "V12", V3)
+    square3x3.rotationalVertexIdsAlt shouldBe
+      List(
+        BoundaryEdge(V5, VertexId("V9")),
+        BoundaryEdge(VertexId("V14"), VertexId("V15")),
+        BoundaryEdge(VertexId("V12"), VertexId("V8")),
+        BoundaryEdge(V3, V2)
+      )
+
   behavior of "TilingSymmetry.reflectionalSymm"
 
   it should "calculate the reflectional symmetry for a square" in:
