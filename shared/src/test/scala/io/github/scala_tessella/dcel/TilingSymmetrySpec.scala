@@ -2,6 +2,7 @@ package io.github.scala_tessella.dcel
 
 import io.github.scala_tessella.dcel.TilingDeletion.deleteEdge
 import io.github.scala_tessella.dcel.TilingSymmetry.*
+import io.github.scala_tessella.dcel.geometry.SimplePolygon
 import io.github.scala_tessella.dcel.structure.VertexId
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -39,7 +40,15 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
   it should "calculate the rotational symmetry for a regular hexagon" in:
     allAssert(
       hexagon.rotationalSymmetryOrder shouldBe 6,
-      hexagon.rotationalVertexIds shouldBe List(V1, V6, V5, V4, V3, V2)
+      hexagon.rotationalVertexIds shouldBe
+        List(
+          BoundaryVertex(V1),
+          BoundaryVertex(V6),
+          BoundaryVertex(V5),
+          BoundaryVertex(V4),
+          BoundaryVertex(V3),
+          BoundaryVertex(V2)
+        )
     )
 
   it should "calculate the rotational symmetry for a 2x1 hexagon net" in:
@@ -87,7 +96,8 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
   it should "calculate the rotational symmetry for a 4x4 square with two rotated holes" in:
     allAssert(
       twoRotationalHoles.rotationalSymmetryOrder shouldBe 2,
-      twoRotationalHoles.rotationalVertexIds shouldBe List(V6, "V20")
+      twoRotationalHoles.rotationalVertexIds shouldBe
+        List(BoundaryVertex(VertexId("V11")), BoundaryVertex(VertexId("V15")))
     )
 
   /** <img src="file:../../../../../resources/symmetry/twoReflectionalHoles.svg"/> */
@@ -99,7 +109,7 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
   it should "calculate the rotational symmetry for a 4x4 square with two reflected holes" in:
     allAssert(
       twoReflectionalHoles.rotationalSymmetryOrder shouldBe 1,
-      twoReflectionalHoles.rotationalVertexIds shouldBe List(V6)
+      twoReflectionalHoles.rotationalVertexIds shouldBe List(BoundaryVertex(VertexId("V11")))
     )
 
   behavior of "TilingSymmetry.rotationalVertexIds"
@@ -107,8 +117,6 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
   it should "calculate the rotational vertex ids for a 4x4 square" in:
     val square4x4 = TilingBuilder.createRhombusNet(4, 4)
     square4x4.rotationalVertexIds shouldBe
-      List(V6, "V22", "V20", V4)
-    square4x4.rotationalVertexIdsAlt shouldBe
       List(
         BoundaryVertex(VertexId("V11")),
         BoundaryVertex(VertexId("V23")),
@@ -119,13 +127,20 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
   it should "calculate the rotational vertex ids for a 3x3 square" in:
     val square3x3 = TilingBuilder.createRhombusNet(3, 3)
     square3x3.rotationalVertexIds shouldBe
-      List(V5, "V14", "V12", V3)
-    square3x3.rotationalVertexIdsAlt shouldBe
       List(
         BoundaryEdge(V5, VertexId("V9")),
         BoundaryEdge(VertexId("V14"), VertexId("V15")),
         BoundaryEdge(VertexId("V12"), VertexId("V8")),
         BoundaryEdge(V3, V2)
+      )
+
+  it should "calculate the rotational vertex ids for an equilateral triangle of sides 3" in:
+    val triangle3 = TilingBuilder.createSimplePolygon(SimplePolygon(60, 60, 60).multiplySidesBy(3)).value
+    triangle3.rotationalVertexIds shouldBe
+      List(
+        BoundaryEdge(VertexId("V9"), VertexId("V8")),
+        BoundaryEdge(VertexId("V6"), VertexId("V5")),
+        BoundaryEdge(VertexId("V3"), VertexId("V2"))
       )
 
   behavior of "TilingSymmetry.reflectionalSymm"

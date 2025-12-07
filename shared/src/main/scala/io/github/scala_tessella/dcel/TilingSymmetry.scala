@@ -33,20 +33,12 @@ object TilingSymmetry:
       (0 until boundarySym).count: i =>
         edges.head.isStructurallyEquivalentTo(edges(i * step))
 
-    def rotationalVertexIds: List[VertexId] =
-      val symmetryOrder     = rotationalSymmetryOrder
-      val boundaryVertexIds = tiling.boundaryVertices.map(_.id)
-      val boundaryAngles    = tiling.boundarySimplePolygon.toAngles
-      val segmentSize       = boundaryAngles.size / symmetryOrder
-      val first             = (0 until segmentSize).maxBy(boundaryAngles(_).toRational)
-      (0 until symmetryOrder).toList.map(first + _ * segmentSize).map(boundaryVertexIds)
-
     private def fromAxisToBoundary(boundaryVertexIds: Vector[VertexId]): AxisLocation => BoundaryLocation = {
       case SymVertex(i)  => BoundaryVertex(boundaryVertexIds(i))
       case SymEdge(i, j) => BoundaryEdge(boundaryVertexIds(i), boundaryVertexIds(j))
     }
 
-    def rotationalVertexIdsAlt: List[BoundaryLocation] =
+    def rotationalVertexIds: List[BoundaryLocation] =
       val symmetryOrder    = rotationalSymmetryOrder
       val boundaryVertices = tiling.boundaryVertices
 
