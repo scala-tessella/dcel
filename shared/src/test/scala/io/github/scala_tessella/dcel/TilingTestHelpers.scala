@@ -5,6 +5,8 @@ import io.github.scala_tessella.dcel.structure.{FaceId, VertexId}
 import org.scalatest.Assertions.succeed
 import org.scalatest.{Assertion, EitherValues}
 
+import scala.xml.{Elem, XML}
+
 /** A trait for test classes with helper methods to create tiling fixtures. */
 trait TilingTestHelpers extends EitherValues:
 
@@ -44,3 +46,20 @@ trait TilingTestHelpers extends EitherValues:
   val F1: FaceId = FaceId("F1")
   val F2: FaceId = FaceId("F2")
   val F3: FaceId = FaceId("F3")
+
+  private def saveFile(elem: Elem, filename: String)(extension: String): Unit =
+    XML.save(
+      s"shared/src/test/resources/$filename.$extension",
+      elem,
+      "UTF-8",
+      xmlDecl = extension match
+        case "svg" => true
+        case "html" => false
+        case _ => throw new Error
+    )
+
+  def saveFileSVG(elem: Elem, filename: String): Unit =
+    saveFile(elem, filename)("svg")
+
+  def saveFileHTML(elem: Elem, filename: String): Unit =
+    saveFile(elem, filename)("html")
