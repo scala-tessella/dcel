@@ -83,7 +83,7 @@ object TilingGenerator:
       else if tiling.vertices.size >= maxVertices then
         // 2. Check Success Condition
         // Check if fully surrounded vertices form exactly n classes
-        val classesCount   = tiling.uniformityTree.sizeLeaves
+        val classesCount = tiling.uniformityTree.sizeLeaves
 
         if classesCount == n && knownSigs.size == n then
           // Deduplicate
@@ -116,7 +116,7 @@ object TilingGenerator:
     if candidates.isEmpty then return Nil
 
     val (targetVertex, gap) = candidates.head
-    
+
     val maxFaceId = tiling.innerFaces.map(face => TilingBuilder.idFromFaceId(face.id)).max
 //    println(s"maxFaceId: $maxFaceId, targetVertex: $targetVertex, gap: $gap")
 
@@ -148,7 +148,7 @@ object TilingGenerator:
       // Check for dead angles (< 60 degrees) on the boundary
       val hasDeadAngles = newTiling.boundaryVertices.exists { v =>
         val currentAngle = v.currentInteriorAngleSumUnsafe(newTiling.outerFace)
-        val gap = AngleDegree(360) - currentAngle
+        val gap          = AngleDegree(360) - currentAngle
         gap.toRational > Rational(0) && gap.toRational < Rational(60)
       }
 
@@ -159,7 +159,7 @@ object TilingGenerator:
         // We need to check if any *new* vertices became internal
         val newInternalVertices =
           newTiling.innerVertices.filterNot(v => tiling.innerVertices.exists(_.id == v.id))
-        val newSigs = newInternalVertices.map(getSignature(newTiling, _))
+        val newSigs             = newInternalVertices.map(getSignature(newTiling, _))
 
         // If any new signature is invalid, discard this path
         if newSigs.forall(validSignatures.contains) then
@@ -181,25 +181,37 @@ object TilingGenerator:
 
       // take the first segment of boundary vertices
 
-      val boundaryVertices = tiling.boundaryVertices
-      if boundaryVertices.size % order != 0 then throw new IllegalArgumentException("Boundary not a multiple of order")
-      val step = boundaryVertices.size / order
+      val boundaryVertexIds = tiling.boundaryVertices.map(_.id)
+      if boundaryVertexIds.size % order != 0 then
+        throw new IllegalArgumentException("Boundary not a multiple of order")
+      val step = boundaryVertexIds.size / order
 
       // find in the segment the vertex with the lowest vertex id
-      val edgeStart = (0 until step).minBy(i => TilingBuilder.idFromVertexId(boundaryVertices(i).id))
+      val edgeStart =
+        (0 until step).minBy: index =>
+          TilingBuilder.idFromVertexId(boundaryVertexIds(index))
 
-      // find in the segment the vertex with the smallest interior angle sum
-      val angles = tiling.boundarySimplePolygon.toAngles
-      val edgeStartAlt = (0 until step).maxBy(i => angles(i).toRational)
+//      // find in the segment the vertex with the smallest interior angle sum
+//      val angles = tiling.boundarySimplePolygon.toAngles
+//      val edgeStartAlt = (0 until step).maxBy(i => angles(i).toRational)
 
       // try adding regular polygons of size 3, 4, 6, 12 to the edge starting at this vertex
-      val additions = List(3, 4, 6, 12)
-        .map(sides => tiling.maybeAddRegularPolygonToBoundary(boundaryVertices(edgeStart).id, RegularPolygon(sides)).map((sides, _)))
-        .flatMap(_.toOption)
+      val additions =
+        List(3, 4, 6, 12)
+          .map: sides =>
+            tiling.maybeAddRegularPolygonToBoundary(boundaryVertexIds(edgeStart), RegularPolygon(sides))
+              .map:
+                (sides, _)
+          .flatMap:
+            _.toOption
 
       // for the success cases, repeat the additional symmetrically to the other segments
-      additions.flatMap { case (sides, newTiling) =>
-        (1 until order).foldLeft(Option(newTiling)) { case (t, i) =>
-          t.flatMap(_.maybeAddRegularPolygonToBoundary(boundaryVertices(edgeStart + i * step).id, RegularPolygon(sides)).toOption)
-        }
-      }
+      additions.flatMap:
+        case (sides, grownTiling) =>
+          (1 until order).foldLeft(Option(grownTiling)):
+            case (maybeGrown, i) =>
+              maybeGrown.flatMap: grown =>
+                grown.maybeAddRegularPolygonToBoundary(
+                  boundaryVertexIds(edgeStart + i * step),
+                  RegularPolygon(sides)
+                ).toOption
