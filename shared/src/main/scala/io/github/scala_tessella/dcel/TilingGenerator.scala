@@ -94,7 +94,7 @@ object TilingGenerator:
         // 3. Expansion Step
         expand(tiling, knownSigs) match
           case nextStates =>
-            println(s"Expanding ${nextStates.size} states")
+//            println(s"Expanding ${nextStates.size} states")
             // Sort next states to prioritize "forced moves" (filling small gaps)
             // This is a crucial heuristic for performance
             queue.enqueueAll(nextStates)
@@ -173,3 +173,33 @@ object TilingGenerator:
     // Collect number of sides of incident faces
     val sides = edges.flatMap(_.incidentFace).filter(_ != tiling.outerFace).map(_.halfEdgesUnsafe.size)
     normalizeSignature(sides)
+
+  extension (tiling: TilingDCEL)
+
+    def expandRotationally(order: Int): List[TilingDCEL] =
+      if !List(2, 3, 4, 6).contains(order) then throw new IllegalArgumentException("Invalid order")
+
+      // take the first segment of boundary vertices
+
+      val boundaryVertices = tiling.boundaryVertices
+      if boundaryVertices.size % order != 0 then throw new IllegalArgumentException("Boundary not a multiple of order")
+      val step = boundaryVertices.size / order
+
+      // find in the segment the vertex with the lowest vertex id
+      val edgeStart = (0 until step).minBy(i => TilingBuilder.idFromVertexId(boundaryVertices(i).id))
+
+      // find in the segment the vertex with the smallest interior angle sum
+      val angles = tiling.boundarySimplePolygon.toAngles
+      val edgeStartAlt = (0 until step).maxBy(i => angles(i).toRational)
+
+      // try adding regular polygons of size 3, 4, 6, 12 to the edge starting at this vertex
+      val additions = List(3, 4, 6, 12)
+        .map(sides => tiling.maybeAddRegularPolygonToBoundary(boundaryVertices(edgeStart).id, RegularPolygon(sides)).map((sides, _)))
+        .flatMap(_.toOption)
+
+      // for the success cases, repeat the additional symmetrically to the other segments
+      additions.flatMap { case (sides, newTiling) =>
+        (1 until order).foldLeft(Option(newTiling)) { case (t, i) =>
+          t.flatMap(_.maybeAddRegularPolygonToBoundary(boundaryVertices(edgeStart + i * step).id, RegularPolygon(sides)).toOption)
+        }
+      }
