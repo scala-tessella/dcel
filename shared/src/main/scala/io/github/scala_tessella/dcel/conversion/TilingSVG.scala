@@ -647,10 +647,8 @@ object TilingSVG:
 
   extension (tiling: TilingDCEL)
 
-    /** Generates an SVG representation of the tiling. The width, height, and viewBox are automatically
-      * calculated to fit the tiling at the given scale.
-      */
-    def toScalableVectorGraphics(
+    /** Generates an SVG XML element. */
+    def toScalableVectorGraphicsElem(
         strokeWidth: Double = 1.0,
         padding: Double = 20.0,
         scale: Double = 50.0,
@@ -658,7 +656,7 @@ object TilingSVG:
         leavingEdgeMarkers: Boolean = false,
         faceIdsOnEdges: Boolean = false,
         showUniformity: Boolean = false
-    ): String =
+    ): Elem =
       val svg: Elem =
         if tiling.vertices.isEmpty then
           svgElem("0", "0", "0 0 0 0", Seq.empty)
@@ -776,7 +774,26 @@ object TilingSVG:
             children = Seq(gElem(sections))
           )
 
-      new PrettyPrinter(120, 2).format(svg)
+      svg
+
+    /** Generates an SVG representation of the tiling. The width, height, and viewBox are automatically
+     * calculated to fit the tiling at the given scale.
+     */
+    def toScalableVectorGraphics(
+        strokeWidth: Double = 1.0,
+        padding: Double = 20.0,
+        scale: Double = 50.0,
+        showHalfEdgeTraversal: Boolean = false,
+        leavingEdgeMarkers: Boolean = false,
+        faceIdsOnEdges: Boolean = false,
+        showUniformity: Boolean = false
+    ): String =
+      new PrettyPrinter(120, 2)
+        .format(
+          toScalableVectorGraphicsElem(
+            strokeWidth, padding, scale, showHalfEdgeTraversal, leavingEdgeMarkers, faceIdsOnEdges, showUniformity
+          )
+        )
 
     // New ergonomic overload using options
     def toScalableVectorGraphics(options: SvgOptions): String =
