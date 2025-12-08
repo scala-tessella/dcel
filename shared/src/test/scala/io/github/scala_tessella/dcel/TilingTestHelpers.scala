@@ -53,9 +53,9 @@ trait TilingTestHelpers extends EitherValues:
       elem,
       "UTF-8",
       xmlDecl = extension match
-        case "svg" => true
+        case "svg"  => true
         case "html" => false
-        case _ => throw new Error
+        case _      => throw new Error
     )
 
   def saveFileSVG(elem: Elem, filename: String): Unit =

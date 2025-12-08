@@ -36,22 +36,20 @@ class TilingGeneratorSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
 
   behavior of "TilingGenerator.expandRotationally"
 
-  it should "generate some tilings for an triangle" in :
+  it should "generate some tilings for an triangle" in:
     val found = triangle.expandRotationally(3)
     found.size shouldBe 4
 //    found.indices.foreach: i =>
 //      saveFileSVG(found(i).toScalableVectorGraphicsElem(), s"generator/tri$i")
 
-  it should "generate some tilings for a square" in :
+  it should "generate some tilings for a square" in:
     val found = square.expandRotationally(4)
     found.size shouldBe 3
 //    found.indices.foreach: i =>
 //      saveFileSVG(found(i).toScalableVectorGraphicsElem(), s"generator/sqr$i")
 
-  it should "generate some tilings for an hexagon" in :
+  it should "generate some tilings for an hexagon" in:
     val found = hexagon.expandRotationally(6)
     found.size shouldBe 3
 //    found.indices.foreach: i =>
 //      saveFileSVG(found(i).toScalableVectorGraphicsElem(), s"generator/hex$i")
-
-
