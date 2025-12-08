@@ -145,17 +145,27 @@ object TilingGenerator:
     // TilingAddition.addRegularPolygon checks for boundary intersections and holes.
 
     possibleMoves.collect { case Right(newTiling) =>
-      // Update signatures
-      // We need to check if any *new* vertices became internal
-      val newInternalVertices =
-        newTiling.innerVertices.filterNot(v => tiling.innerVertices.exists(_.id == v.id))
-      val newSigs             = newInternalVertices.map(getSignature(newTiling, _))
+      // Check for dead angles (< 60 degrees) on the boundary
+      val hasDeadAngles = newTiling.boundaryVertices.exists { v =>
+        val currentAngle = v.currentInteriorAngleSumUnsafe(newTiling.outerFace)
+        val gap = AngleDegree(360) - currentAngle
+        gap.toRational > Rational(0) && gap.toRational < Rational(60)
+      }
 
-      // If any new signature is invalid, discard this path
-      if newSigs.forall(validSignatures.contains) then
-        Some((newTiling, currentSigs ++ newSigs))
-      else
+      if hasDeadAngles then
         None
+      else
+        // Update signatures
+        // We need to check if any *new* vertices became internal
+        val newInternalVertices =
+          newTiling.innerVertices.filterNot(v => tiling.innerVertices.exists(_.id == v.id))
+        val newSigs = newInternalVertices.map(getSignature(newTiling, _))
+
+        // If any new signature is invalid, discard this path
+        if newSigs.forall(validSignatures.contains) then
+          Some((newTiling, currentSigs ++ newSigs))
+        else
+          None
     }.flatten
 
   private def getSignature(tiling: TilingDCEL, v: Vertex): VertexSignature =
