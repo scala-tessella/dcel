@@ -37,7 +37,12 @@ object SimplePolygon:
         angles
 
   def apply(degrees: Int*): SimplePolygon =
-    apply(degrees.map(AngleDegree(_)).toVector)
+    apply(
+      degrees
+        .map:
+          AngleDegree(_)
+        .toVector
+    )
 
   private val areFitting: (AngleDegree, AngleDegree) => Boolean = _ == _.inverted
 
