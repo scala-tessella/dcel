@@ -43,16 +43,20 @@ final class HalfEdge(
       ).getOrElse("")}"
 
   def destination: Option[Vertex] =
-    twin.map(_.origin)
+    twin.map:
+      _.origin
 
   def isLoop: Option[Boolean] =
-    destination.map(_ == origin)
+    destination.map:
+      _ == origin
 
   def endpointsAsVertices: Option[(Vertex, Vertex)] =
-    destination.map(dest => (origin, dest))
+    destination.map:
+      (origin, _)
 
   def key: Option[(VertexId, VertexId)] =
-    endpointsAsVertices.map((orig, dest) => (orig.id, dest.id))
+    endpointsAsVertices.map: (orig, dest) =>
+      (orig.id, dest.id)
 
   private[dcel] def linkWith(that: HalfEdge): Unit =
     this.next = Some(that)
@@ -253,10 +257,9 @@ object HalfEdge:
   extension (halfEdges: List[HalfEdge])
 
     private def linkIn(f: List[HalfEdge] => Iterator[List[HalfEdge]]): Unit =
-      f(halfEdges).foreach {
+      f(halfEdges).foreach:
         case e1 :: e2 :: Nil => e1.linkWith(e2)
         case _               => ()
-      }
 
     // Helper function to link edges in a cycle
     private[dcel] def linkInCycle(): Unit =
@@ -282,8 +285,10 @@ object HalfEdge:
 
     def interiorAnglesSum(outerFace: Face): AngleDegree =
       halfEdges
-        .filterNot(_.hasIncidentFace(outerFace))
-        .flatMap(_.angle)
+        .filterNot:
+          _.hasIncidentFace(outerFace)
+        .flatMap:
+          _.angle
         .sumExact
 
     def getPath(from: Vertex, to: Vertex): List[HalfEdge] =
@@ -317,16 +322,20 @@ object HalfEdge:
       val vertices   = (outDegrees.keySet ++ inDegrees.keySet).toList
 
       val startNodeCandidates =
-        vertices.filter(v => outDegrees.getOrElse(v, 0) - inDegrees.getOrElse(v, 0) == 1)
+        vertices.filter: v =>
+          outDegrees.getOrElse(v, 0) - inDegrees.getOrElse(v, 0) == 1
       val endNodeCandidates   =
-        vertices.filter(v => inDegrees.getOrElse(v, 0) - outDegrees.getOrElse(v, 0) == 1)
+        vertices.filter: v =>
+          inDegrees.getOrElse(v, 0) - outDegrees.getOrElse(v, 0) == 1
 
       val startVertexOpt =
         if startNodeCandidates.size == 1 && endNodeCandidates.size == 1 then
           startNodeCandidates.headOption
         else if startNodeCandidates.isEmpty && endNodeCandidates.isEmpty then
           // This must be a cycle (or disjoint cycles), so all vertices must be balanced
-          if vertices.forall(v => outDegrees.getOrElse(v, 0) == inDegrees.getOrElse(v, 0)) then
+          if vertices.forall: v =>
+              outDegrees.getOrElse(v, 0) == inDegrees.getOrElse(v, 0)
+          then
             halfEdges.headOption.map(_.origin)
           else
             None
@@ -338,7 +347,10 @@ object HalfEdge:
         val path          = mutable.ListBuffer.empty[HalfEdge]
 
         def findPath(u: Vertex): Unit =
-          while (edgesByOrigin.get(u).exists(_.nonEmpty))
+          while (
+            edgesByOrigin.get(u).exists:
+              _.nonEmpty
+          )
             val edge = edgesByOrigin(u).dequeue()
             findPath(edge.destination.get)
             path.prepend(edge)
@@ -357,7 +369,8 @@ object HalfEdge:
       ordered += current
       remaining -= current
       while remaining.nonEmpty do
-        val nextOpt = remaining.find(e => current.destination.contains(e.origin))
+        val nextOpt = remaining.find: e =>
+          current.destination.contains(e.origin)
         nextOpt match
           case Some(next) =>
             ordered += next

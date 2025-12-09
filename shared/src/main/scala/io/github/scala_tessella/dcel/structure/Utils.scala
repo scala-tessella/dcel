@@ -10,12 +10,10 @@ object Utils:
 
     while queue.nonEmpty do
       val current = queue.dequeue()
-      adjacency.getOrElse(current, Nil).foreach { neighbor =>
-
+      adjacency.getOrElse(current, Nil).foreach: neighbor =>
         if !visited.contains(neighbor) then
           visited += neighbor
           queue.enqueue(neighbor)
-      }
 
     visited.toSet
 
@@ -52,12 +50,10 @@ object Utils:
         return pathBuf.toList
 
       val neighbors = adjacency.getOrElse(current, Nil)
-      neighbors.foreach { neighbor =>
-
+      neighbors.foreach: neighbor =>
         if !excluded.contains(neighbor) && !visited.contains(neighbor) then
           visited += neighbor
           parent(neighbor) = current
           queue.enqueue(neighbor)
-      }
 
     Nil

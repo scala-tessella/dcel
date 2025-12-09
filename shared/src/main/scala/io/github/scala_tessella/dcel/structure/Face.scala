@@ -77,14 +77,18 @@ final class Face(
     halfEdgesUnsafe.map(_.angle.get)
 
   def angles: Either[TilingError, List[AngleDegree]] =
-    halfEdges.flatMap(list => list.map(_.angle.toRight(GeometryError("Cannot find interior angle"))).sequence)
+    halfEdges.flatMap:
+      _.map:
+        _.angle.toRight(GeometryError("Cannot find interior angle"))
+      .sequence
 
   private[dcel] def hasEqualAnglesUnsafe: Boolean =
     anglesUnsafe.toSet.size == 1
 
   /** Checks if the interior angles of the face are all equal. */
   def hasEqualAngles: Either[TilingError, Boolean] =
-    angles.map(_.toSet.size == 1)
+    angles.map:
+      _.toSet.size == 1
 
 object Face:
 
@@ -97,17 +101,14 @@ object Face:
   def outer: Face = Face(FaceId.outerId)
 
   def adjacencyMap(faces: List[Face]): Map[Face, List[Face]] =
-    faces.associate { face =>
-
-      face.halfEdges.getOrElse(List.empty)
-        .flatMap(edge =>
+    faces.associate:
+      _.halfEdges.getOrElse(List.empty)
+        .flatMap: edge =>
           for
             twin         <- edge.twin
             incidentFace <- twin.incidentFace
             if faces.contains(incidentFace)
           yield incidentFace
-        )
-    }
 
   extension (faces: List[Face])
 

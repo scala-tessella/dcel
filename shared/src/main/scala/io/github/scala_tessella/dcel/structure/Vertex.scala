@@ -51,24 +51,32 @@ final class Vertex(
     incidentEdgesUnsafe.interiorAnglesSum(outerFace)
 
   def currentInteriorAngleSum(outerFace: Face): Either[TopologyError, AngleDegree] =
-    incidentEdges.map(_.interiorAnglesSum(outerFace))
+    incidentEdges.map: halfEdge =>
+      halfEdge.interiorAnglesSum(outerFace)
 
   def degree: Int = incidentEdgesUnsafe.length
 
   def isThread: Boolean = degree == 2
 
   private[dcel] def adjacentVerticesUnsafe: List[Vertex] =
-    incidentEdgesUnsafe.flatMap(_.destination)
+    incidentEdgesUnsafe.flatMap: halfEdge =>
+      halfEdge.destination
 
   // Safe helper returning all distinct adjacent vertices
   def adjacentVertices: Either[TopologyError, List[Vertex]] =
-    incidentEdges.map(_.flatMap(_.destination).distinct)
+    incidentEdges.map: halfEdges =>
+      halfEdges
+        .flatMap: halfEdge =>
+          halfEdge.destination
+        .distinct
 
   private[dcel] def incidentFacesUnsafe: List[Face] =
-    incidentEdgesUnsafe.flatMap(_.incidentFace)
+    incidentEdgesUnsafe.flatMap: halfEdge =>
+      halfEdge.incidentFace
 
   private[dcel] def findEdgeBetweenUnsafe(other: Vertex): Option[HalfEdge] =
-    incidentEdgesUnsafe.find(_.destination.contains(other))
+    incidentEdgesUnsafe.find: halfEdge =>
+      halfEdge.destination.contains(other)
 
 object Vertex:
 
@@ -86,16 +94,15 @@ object Vertex:
       sharedVertices: Set[Vertex]
   ): Map[Vertex, List[Vertex]] =
     boundaryEdges
-      .filter(edge => sharedVertices.contains(edge.origin))
-      .groupBy(_.origin)
+      .filter: halfEdge =>
+        sharedVertices.contains(halfEdge.origin)
+      .groupBy: halfEdge =>
+        halfEdge.origin
       .view
-      .mapValues { edges =>
-
-        edges.flatMap { edge =>
-          val destination = edge.twin.get.origin
+      .mapValues: halfEdges =>
+        halfEdges.flatMap: halfEdge =>
+          val destination = halfEdge.twin.get.origin
           Option.when(sharedVertices.contains(destination))(destination)
-        }
-      }
       .toMap
 
   extension (vertices: List[Vertex])
