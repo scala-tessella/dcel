@@ -112,9 +112,8 @@ object TilingSVG:
 
   // Helper to create MetaData more idiomatically
   private def attrs(tuples: (String, Any)*): MetaData =
-    tuples.foldRight[MetaData](Null) { case ((key, value), acc) =>
-      new UnprefixedAttribute(key, value.toString, acc)
-    }
+    tuples.foldRight[MetaData](Null):
+      case ((key, value), acc) => new UnprefixedAttribute(key, value.toString, acc)
 
   // New: a small wrapper to avoid passing `null` at call sites.
   // prefix = None means “no namespace prefix”
@@ -201,56 +200,55 @@ object TilingSVG:
       ViewBox(minX - padding, minY - padding, (maxX - minX) + 2 * padding, (maxY - minY) + 2 * padding)
 
   private def createHalfEdgeArrows(halfEdges: List[HalfEdge], config: SvgConfig): Seq[Elem] =
-    halfEdges.flatMap { halfEdge =>
-
+    halfEdges.flatMap: halfEdge =>
       for
         destination <- halfEdge.destination
         arrow       <- createArrow(halfEdge.origin.coords, destination.coords, config.scale, config.strokeWidth * 3)
       yield polygonElem(arrow.formatted)
-    }
 
   private def createEdgeLines(tilingDCEL: TilingDCEL, scale: Double): Seq[Elem] =
     val drawnEdges = mutable.Set.empty[HalfEdge]
-    tilingDCEL.halfEdges.flatMap { edge =>
-
-      if drawnEdges.contains(edge) || edge.twin.isEmpty then None
+    tilingDCEL.halfEdges.flatMap: halfEdge =>
+      if drawnEdges.contains(halfEdge) || halfEdge.twin.isEmpty then None
       else
-        val twin     = edge.twin.get
-        drawnEdges ++= List(edge, twin)
-        val (x1, y1) = edge.origin.coords.toSvgCoords(scale)
+        val twin     = halfEdge.twin.get
+        drawnEdges ++= List(halfEdge, twin)
+        val (x1, y1) = halfEdge.origin.coords.toSvgCoords(scale)
         val (x2, y2) = twin.origin.coords.toSvgCoords(scale)
         Some(lineElem(x1, y1, x2, y2))
-    }
 
   private def createAngleLabels(tilingDCEL: TilingDCEL, config: SvgConfig): (Seq[Elem], Seq[Elem]) =
-    val innerAngleLabels = tilingDCEL.innerFaces.flatMap { face =>
-      val centroid = calculateCentroid(face.getVerticesUnsafe)
-      face.halfEdgesUnsafe.map { halfEdge =>
-        val direction = calculateDirection(halfEdge.origin.coords, centroid)
-        createAngleLabel(halfEdge, direction, config)
-      }
-    }
+    val innerAngleLabels =
+      tilingDCEL.innerFaces.flatMap: face =>
+        val centroid = calculateCentroid(face.getVerticesUnsafe)
+        face.halfEdgesUnsafe.map: halfEdge =>
+          val direction = calculateDirection(halfEdge.origin.coords, centroid)
+          createAngleLabel(halfEdge, direction, config)
 
-    val outerAngleLabels = tilingDCEL.boundaryEdges.map { halfEdge =>
+    val outerAngleLabels = tilingDCEL.boundaryEdges.map: halfEdge =>
       val centroid         = tilingDCEL.innerFaces.headOption
-        .map(_.getVerticesUnsafe)
-        .filter(_.nonEmpty)
-        .map(calculateCentroid)
+        .map:
+          _.getVerticesUnsafe
+        .filter:
+          _.nonEmpty
+        .map:
+          calculateCentroid
         .getOrElse(BigPoint(0, 0))
       val inwardDirection  = calculateDirection(halfEdge.origin.coords, centroid)
       val outwardDirection = BigPoint(-inwardDirection.x, -inwardDirection.y)
       createAngleLabel(halfEdge, outwardDirection, config)
-    }
 
     (innerAngleLabels, outerAngleLabels)
 
   private def createBoundaryElements(tilingDCEL: TilingDCEL, config: SvgConfig): Option[Elem] =
     tilingDCEL.boundaryVertices match
       case vertices if vertices.nonEmpty =>
-        val points = vertices.map { v =>
-          val (x, y) = v.coords.toSvgCoords(config.scale)
-          s"$x,$y"
-        }.mkString(" ")
+        val points =
+          vertices
+            .map: vertex =>
+              val (x, y) = vertex.coords.toSvgCoords(config.scale)
+              s"$x,$y"
+            .mkString(" ")
         Some(polygonElem(points))
       case _                             => None
 
@@ -313,47 +311,46 @@ object TilingSVG:
     val circles =
       if config.showUniformity then
         val classes  = tilingDCEL.uniformityTree.flattenLeaves
-        val indexMap = classes.zipWithIndex.flatMap((vertexIds, index) => vertexIds.map((_, index))).toMap
-        tilingDCEL.vertices.map { v =>
-          val index      = indexMap.get(v.id)
+        val indexMap = classes.zipWithIndex
+          .flatMap: (vertexIds, index) =>
+            vertexIds.map((_, index))
+          .toMap
+        tilingDCEL.vertices.map: vertex =>
+          val index      = indexMap.get(vertex.id)
           val multiplier = if index.isDefined then 20 else 2
-          val (cx, cy)   = v.coords.toSvgCoords(config.scale)
+          val (cx, cy)   = vertex.coords.toSvgCoords(config.scale)
           circleElem(
             cx,
             cy,
             (config.strokeWidth * multiplier).toString,
             attrs("fill" -> index.map(uniformColorMap).getOrElse("red"))
           )
-        }
       else
-        tilingDCEL.vertices.map { v =>
-          val (cx, cy) = v.coords.toSvgCoords(config.scale)
+        tilingDCEL.vertices.map: vertex =>
+          val (cx, cy) = vertex.coords.toSvgCoords(config.scale)
           circleElem(cx, cy, (config.strokeWidth * 2).toString)
-        }
 
-    val labels = tilingDCEL.vertices.map { v =>
-      val point = v.coords.scaled(config.scale).flippedY
-      val x     = (point.x + config.strokeWidth * 2.5).format
-      val y     = (point.y - config.strokeWidth * 2.5).format
-      textAt(x, y, v.id.value)
-    }
+    val labels =
+      tilingDCEL.vertices.map: vertex =>
+        val point = vertex.coords.scaled(config.scale).flippedY
+        val x     = (point.x + config.strokeWidth * 2.5).format
+        val y     = (point.y - config.strokeWidth * 2.5).format
+        textAt(x, y, vertex.id.value)
 
     (circles, labels)
 
   private def createSimpleVertexElements(vertices: List[Vertex], config: SvgConfig): (Seq[Elem], Seq[Elem]) =
 
     val circles =
-      vertices.map { v =>
-        val (cx, cy) = v.coords.toSvgCoords(config.scale)
+      vertices.map: vertex =>
+        val (cx, cy) = vertex.coords.toSvgCoords(config.scale)
         circleElem(cx, cy, (config.strokeWidth * 4).toString)
-      }
 
-    val labels = vertices.map { v =>
-      val point = v.coords.scaled(config.scale).flippedY
+    val labels = vertices.map: vertex =>
+      val point = vertex.coords.scaled(config.scale).flippedY
       val x     = (point.x + config.strokeWidth * 2.5).format
       val y     = (point.y - config.strokeWidth * 2.5).format
-      textAt(x, y, v.id.value)
-    }
+      textAt(x, y, vertex.id.value)
 
     (circles, labels)
 
@@ -363,35 +360,32 @@ object TilingSVG:
   ): (Seq[Elem], Seq[Elem]) =
 
     val circles =
-      vertices.map(_._1).map { v =>
-        val (cx, cy) = v.coords.toSvgCoords(config.scale)
+      vertices.map(_._1).map: vertex =>
+        val (cx, cy) = vertex.coords.toSvgCoords(config.scale)
         circleElem(cx, cy, (config.strokeWidth * 4).toString)
-      }
 
-    val labels = vertices.map { (v, index) =>
-      val point = v.coords.scaled(config.scale).flippedY
+    val labels = vertices.map: (vertex, index) =>
+      val point = vertex.coords.scaled(config.scale).flippedY
       val x     = (point.x + config.strokeWidth * 2.5).format
       val y     = (point.y - config.strokeWidth * 2.5).format
-      textAt(x, y, s"${v.id.value} - $index")
-    }
+      textAt(x, y, s"${vertex.id.value} - $index")
 
     (circles, labels)
 
   private def createFaceLabels(tilingDCEL: TilingDCEL, config: SvgConfig): Seq[Elem] =
-    tilingDCEL.innerFaces.map { face =>
+    tilingDCEL.innerFaces.map: face =>
       val (x, y) = calculateCentroid(face.getVerticesUnsafe).toSvgCoords(config.scale)
       textAt(x, y, face.id.value)
-    }
 
   private def createTraversalArrows(tilingDCEL: TilingDCEL, config: SvgConfig): Seq[Elem] =
     if !config.showHalfEdgeTraversal then Nil
     else
-      tilingDCEL.innerFaces.flatMap { face =>
+      tilingDCEL.innerFaces.flatMap: face =>
         val halfEdges = face.halfEdgesUnsafe
         if halfEdges.length <= 1 then Nil
         else
           val looped = halfEdges :+ halfEdges.head
-          looped.sliding(2).flatMap {
+          looped.sliding(2).flatMap:
             case he1 :: he2 :: Nil =>
               for
                 dest1 <- he1.destination
@@ -401,14 +395,11 @@ object TilingSVG:
                 arrow <- createArrow(mid1, mid2, config.scale, config.strokeWidth * 2.5)
               yield polygonElem(arrow.formatted)
             case _                 => None
-          }
-      }
 
   private def createLeavingEdgeMarkers(tilingDCEL: TilingDCEL, config: SvgConfig): Seq[Elem] =
     if !config.leavingEdgeMarkers then Nil
     else
-      tilingDCEL.vertices.flatMap { vertex =>
-
+      tilingDCEL.vertices.flatMap: vertex =>
         for
           edge  <- vertex.leaving
           dest  <- edge.destination
@@ -419,13 +410,11 @@ object TilingSVG:
                      config.strokeWidth * 2
                    )
         yield polygonElem(arrow.formatted)
-      }
 
   private def createFaceIdsOnEdges(tilingDCEL: TilingDCEL, config: SvgConfig): Seq[Elem] =
     if !config.faceIdsOnEdges then Nil
     else
-      tilingDCEL.halfEdges.flatMap { edge =>
-
+      tilingDCEL.halfEdges.flatMap: edge =>
         for
           dest <- edge.destination
           face <- edge.incidentFace
@@ -458,7 +447,6 @@ object TilingSVG:
           val textY = (BigDecimal(midY) - perpY).format
 
           textAt(textX, textY, face.id.value)
-      }
 
   extension (simple: SimplePolygon)
 
@@ -473,25 +461,25 @@ object TilingSVG:
 
       // Generate all elements
       val boundaryPolygon =
-        val points = vertices.map { v =>
-          val (x, y) = v.toSvgCoords(scale)
-          s"$x,$y"
-        }.mkString(" ")
+        val points =
+          vertices
+            .map: vertex =>
+              val (x, y) = vertex.toSvgCoords(scale)
+              s"$x,$y"
+            .mkString(" ")
         Some(polygonElem(points))
 
       val (vertexCircles, vertexLabels) = // createVertexElements(tiling, config)
         val circles =
-          vertices.map { v =>
-            val (cx, cy) = v.toSvgCoords(scale)
+          vertices.map: vertex =>
+            val (cx, cy) = vertex.toSvgCoords(scale)
             circleElem(cx, cy, (strokeWidth * 2).toString)
-          }
 
-        val labels = vertices.indices.map { index =>
+        val labels = vertices.indices.map: index =>
           val point = vertices(index).scaled(scale).flippedY
           val x     = (point.x + strokeWidth * 2.5).format
           val y     = (point.y - strokeWidth * 2.5).format
           textAt(x, y, s"$index") // - ${simple.toAngles(index)}°")
-        }
 
         (circles, labels)
 
@@ -510,20 +498,23 @@ object TilingSVG:
         simple.rotationalIndices match
           case _ :: Nil => NodeSeq.Empty
           case indices  =>
-            val ends     = indices.map(vertices(_))
+            val ends     = indices.map: index =>
+              vertices(index)
             val (x1, y1) = ends.centroid.toSvgCoords(scale)
             ends.map: end =>
               val (x2, y2) = end.toSvgCoords(scale)
               lineElem(x1, y1, x2, y2)
 
       // Build sections
-      val boundarySection = boundaryPolygon.map(polygon =>
-        createSvgSection(
-          "Boundary Highlight",
-          Seq(polygon),
-          attrs("stroke" -> "red", "stroke-width" -> strokeWidth * 3, "fill" -> "none")
-        )
-      ).getOrElse(NodeSeq.Empty)
+      val boundarySection =
+        boundaryPolygon
+          .map: polygon =>
+            createSvgSection(
+              "Boundary Highlight",
+              Seq(polygon),
+              attrs("stroke" -> "red", "stroke-width" -> strokeWidth * 3, "fill" -> "none")
+            )
+          .getOrElse(NodeSeq.Empty)
 
       val reflection =
         if showReflection then
@@ -833,13 +824,16 @@ object TilingSVG:
 
       // Build per-step vertex->colorIndex map
       val vertexToColorAtStep: Map[Int, Map[VertexId, Int]] =
-        trees.zipWithIndex.map { case (tree, stepIndex) =>
-          val leaves = tree.flattenLeaves
-          val m      = leaves.zipWithIndex.flatMap { case (vertexIds, colorIndex) =>
-            vertexIds.map(vid => vid -> colorIndex)
-          }.toMap
-          stepIndex -> m
-        }.toMap
+        trees.zipWithIndex
+          .map: (tree, stepIndex) =>
+            val leaves = tree.flattenLeaves
+            val m      =
+              leaves.zipWithIndex
+                .flatMap: (vertexIds, colorIndex) =>
+                  vertexIds.map(vid => vid -> colorIndex)
+                .toMap
+            stepIndex -> m
+          .toMap
 
       // ViewBox
       val vertices        = tiling.vertices.map(_.coords)
@@ -880,21 +874,32 @@ object TilingSVG:
         val vid         = vertex.id
         val (x, y)      = vertex.coords.toSvgCoords(scale)
         val colorSeqIdx =
-          (0 until totalSteps).map(i => vertexToColorAtStep.get(i).flatMap(_.get(vid)).getOrElse(0))
-        val colorSeq    = colorSeqIdx.map(ci => uniformColorMap.getOrElse(ci, "gray"))
+          (0 until totalSteps)
+            .map: i =>
+              vertexToColorAtStep.get(i)
+                .flatMap:
+                  _.get(vid)
+                .getOrElse(0)
+
+        val colorSeq =
+          colorSeqIdx
+            .map: ci =>
+              uniformColorMap.getOrElse(ci, "gray")
 
         // Determine visibility at each step: visible if vertex is in the tree at that distance
-        val visibilitySeq = (0 until totalSteps).map { i =>
-          val verticesAtStep = trees(i).flattenLeaves.flatten.toSet
-          if verticesAtStep.contains(vid) then "visible" else "hidden"
-        }
+        val visibilitySeq =
+          (0 until totalSteps).map: i =>
+            val verticesAtStep = trees(i).flattenLeaves.flatten.toSet
+            if verticesAtStep.contains(vid) then "visible" else "hidden"
 
         sb.append(
           s"""    <circle cx="$x" cy="$y" r="$vertexRadius" fill="${colorSeq.head}" visibility="${visibilitySeq.head}">"""
         ).append("\n"): Unit
 
         // Build keyTimes: allocate time proportionally, hold last value during pause
-        val stepTimes   = (0 until totalSteps).map(i => f"${i * stepDuration / cycleDuration}%.4f")
+        val stepTimes   =
+          (0 until totalSteps).map: i =>
+            f"${i * stepDuration / cycleDuration}%.4f"
         val endAnimTime = f"${animationDuration / cycleDuration}%.4f"
         val keyTimes    = (stepTimes :+ endAnimTime :+ "1").mkString(";")
 
@@ -944,7 +949,10 @@ object TilingSVG:
         val keyTimes    = (stepTimes :+ endAnimTime :+ "1").mkString(";")
 
         val visValues        =
-          (0 until totalSteps).map(j => if j == i then "visible" else "hidden") :+ "hidden" :+ "hidden"
+          (0 until totalSteps)
+            .map: j =>
+              if j == i then "visible" else "hidden"
+          :+ "hidden" :+ "hidden"
         val visibilityValues = visValues.mkString(";")
 
         sb.append(
@@ -967,18 +975,19 @@ object TilingSVG:
       val classesLabelY = viewBox.minY + BigDecimal(35)
 
       for i <- 0 until totalSteps do
-        val stepTimes   = (0 until totalSteps).map(j =>
+        val stepTimes   = (0 until totalSteps).map: j =>
           f"${
               j * stepDuration / cycleDuration
             }%.4f"
-        )
         val endAnimTime = f"${
             animationDuration / cycleDuration
           }%.4f"
         val keyTimes    = (stepTimes :+ endAnimTime :+ "1").mkString(";")
 
         val visValues        =
-          (0 until totalSteps).map(j => if j == i then "visible" else "hidden") :+ "hidden" :+ "hidden"
+          (0 until totalSteps).map: j =>
+            if j == i then "visible" else "hidden"
+          :+ "hidden" :+ "hidden"
         val visibilityValues = visValues.mkString(";")
 
         val numClasses = trees(i).sizeLeaves
@@ -1009,43 +1018,68 @@ object TilingSVG:
 
       val halfEdgeIds: Map[HalfEdge, Int] = tiling.halfEdges.zipWithIndex.toMap
 
-      val vertexNodes  = tiling.vertices.map { v =>
+      val vertexNodes  = tiling.vertices.map: vertex =>
         val attrsList = List(
-          Some("id" -> v.id.value),
-          Some("x"  -> v.coords.x.toString),
-          Some("y"  -> v.coords.y.toString),
-          v.leaving.flatMap(halfEdgeIds.get).map(id => "leaving" -> id)
+          Some("id" -> vertex.id.value),
+          Some("x"  -> vertex.coords.x.toString),
+          Some("y"  -> vertex.coords.y.toString),
+          vertex.leaving
+            .flatMap:
+              halfEdgeIds.get
+            .map: id =>
+              "leaving" -> id
         ).flatten
         elem("vertex", attrs(attrsList*))
-      }
       val verticesElem = elem("vertices", children = vertexNodes)
 
-      val halfEdgeNodes = tiling.halfEdges.zipWithIndex.map { case (he, id) =>
-        val attrsList = List(
-          Some("id"     -> id),
-          Some("origin" -> he.origin.id.value),
-          he.twin.flatMap(halfEdgeIds.get).map(twinId => "twin" -> twinId),
-          he.next.flatMap(halfEdgeIds.get).map(nextId => "next" -> nextId),
-          he.prev.flatMap(halfEdgeIds.get).map(prevId => "prev" -> prevId),
-          he.incidentFace.map(f => "face" -> f.id.value),
-          he.angle.map(a => "angle" -> a.toRational)
-        ).flatten
-        elem("half-edge", attrs(attrsList*))
-      }
+      val halfEdgeNodes =
+        tiling.halfEdges.zipWithIndex
+          .map: (he, id) =>
+            val attrsList = List(
+              Some("id"     -> id),
+              Some("origin" -> he.origin.id.value),
+              he.twin
+                .flatMap:
+                  halfEdgeIds.get
+                .map: twinId =>
+                  "twin" -> twinId,
+              he.next
+                .flatMap:
+                  halfEdgeIds.get
+                .map: nextId =>
+                  "next" -> nextId,
+              he.prev
+                .flatMap:
+                  halfEdgeIds.get
+                .map: prevId =>
+                  "prev" -> prevId,
+              he.incidentFace.map: f =>
+                "face" -> f.id.value,
+              he.angle.map: a =>
+                "angle" -> a.toRational
+            ).flatten
+            elem("half-edge", attrs(attrsList*))
       val halfEdgesElem = elem("half-edges", children = halfEdgeNodes)
 
-      val faceNodes = tiling.faces.map { f =>
+      val faceNodes = tiling.faces.map: f =>
         val attrsList = List(
           Some("id" -> f.id.value),
-          f.outerComponent.flatMap(halfEdgeIds.get).map(id => "outer-component" -> id)
+          f.outerComponent
+            .flatMap:
+              halfEdgeIds.get
+            .map: id =>
+              "outer-component" -> id
         ).flatten
-        val innerIds  = f.innerComponents.flatMap(_.flatMap(halfEdgeIds.get))
+        val innerIds  =
+          f.innerComponents
+            .flatMap: maybeHalfEdge =>
+              maybeHalfEdge.flatMap: halfEdge =>
+                halfEdgeIds.get(halfEdge)
         val allAttrs  = if innerIds.nonEmpty then
           attrsList :+ ("inner-components" -> innerIds.mkString(","))
         else
           attrsList
         elem("face", attrs(allAttrs*))
-      }
       val facesElem = elem("faces", children = faceNodes)
 
       val dcelElem = elem(

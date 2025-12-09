@@ -22,26 +22,20 @@ object TilingDOT:
       sb.append("  node [shape=circle, fontname=\"Helvetica\"];\n\n")
 
       // Emit all vertices as nodes
-      tiling.vertices.foreach { v =>
-
+      tiling.vertices.foreach: v =>
         sb.append(s"""  "${vNodeId(v)}" [label="${v.id.value}"];\n""")
-      }
       sb.append("\n")
 
       // Boundary (outer-face) edges: directed edges along the boundary half-edges
       val boundaryEdges = tiling.boundaryEdges
-      boundaryEdges.foreach { he =>
-
-        he.destination.foreach { dst =>
-
+      boundaryEdges.foreach: he =>
+        he.destination.foreach: dst =>
           sb.append(s"""  "${vNodeId(he.origin)}" -> "${vNodeId(dst)}";\n""")
-        }
-      }
 
       // Inner edges: add a single undirected-looking edge per twin pair (dir=none)
       // Exclude any pair that is on the boundary
       val innerPairsEmitted = scala.collection.mutable.HashSet.empty[(String, String)]
-      tiling.halfEdges.foreach { he =>
+      tiling.halfEdges.foreach: he =>
         val isBoundary = tiling.isBoundaryEdge(he)
         val twinOpt    = he.twin
         val dstOpt     = he.destination
@@ -55,7 +49,6 @@ object TilingDOT:
             innerPairsEmitted += pair
             // Use a directed edge with dir=none to appear undirected in GraphViz
             sb.append(s"""  "${pair._1}" -> "${pair._2}" [dir=none];\n""")
-      }
 
       sb.append("}\n")
       sb.toString
@@ -68,7 +61,10 @@ object TilingDOT:
       // Half-edges do not have IDs; use their index in tiling.halfEdges
       val heIndex: Map[HalfEdge, Int]  = tiling.halfEdges.zipWithIndex.toMap
       def eNodeId(e: HalfEdge): String =
-        heIndex.get(e).map(i => s"e:$i").getOrElse(s"e:unknown")
+        heIndex.get(e)
+          .map: index =>
+            s"e:$index"
+          .getOrElse(s"e:unknown")
 
       val sb = new StringBuilder
 
@@ -95,11 +91,10 @@ object TilingDOT:
       sb.append("    label=\"Faces\";\n")
       sb.append("    color=lightgreen;\n")
       sb.append("    node [shape=diamond, style=filled, fillcolor=\"#eaffea\", fontname=\"Helvetica\"];\n")
-      tiling.faces.foreach { f =>
-        val id    = fNodeId(f)
-        val label = s"F ${f.id.value}"
+      tiling.faces.foreach: face =>
+        val id    = fNodeId(face)
+        val label = s"F ${face.id.value}"
         sb.append(s"""    "$id" [label="$label"];\n""")
-      }
       sb.append("  }\n\n")
 
       // Subgraph for half-edges
@@ -107,67 +102,48 @@ object TilingDOT:
       sb.append("    label=\"HalfEdges\";\n")
       sb.append("    color=lightgrey;\n")
       sb.append("    node [shape=box, style=filled, fillcolor=\"#f5f5f5\", fontname=\"Helvetica\"];\n")
-      tiling.halfEdges.foreach { e =>
-        val id    = eNodeId(e)
-        val idx   = heIndex.getOrElse(e, -1)
+      tiling.halfEdges.foreach: halfEdge =>
+        val id    = eNodeId(halfEdge)
+        val idx   = heIndex.getOrElse(halfEdge, -1)
         val label = s"HE $idx"
         sb.append(s"""    "$id" [label="$label"];\n""")
-      }
       sb.append("  }\n\n")
 
       // Edges describing topology relations
 
       // Vertex -> leaving half-edge
-      tiling.vertices.foreach { v =>
-
-        v.leaving.foreach { e =>
-
+      tiling.vertices.foreach: v =>
+        v.leaving.foreach: e =>
           sb.append(s"""  "${vNodeId(v)}" -> "${eNodeId(e)}" [label="leaving"];\n""")
-        }
-      }
 
       // HalfEdge relations: origin, destination, twin, next, prev, incident face
-      tiling.halfEdges.foreach { e =>
+      tiling.halfEdges.foreach: e =>
         // origin
         sb.append(s"""  "${eNodeId(e)}" -> "${vNodeId(e.origin)}" [label="origin"];\n""")
 
         // destination (if twin available)
-        e.destination.foreach { d =>
-
+        e.destination.foreach: d =>
           sb.append(s"""  "${eNodeId(e)}" -> "${vNodeId(d)}" [label="dest"];\n""")
-        }
 
         // twin (directed both ways to capture the symmetric relation explicitly)
-        e.twin.foreach { t =>
-
+        e.twin.foreach: t =>
           sb.append(s"""  "${eNodeId(e)}" -> "${eNodeId(t)}" [label="twin"];\n""")
-        }
 
         // next / prev (directed links along the face cycle)
-        e.next.foreach { n =>
-
+        e.next.foreach: n =>
           sb.append(s"""  "${eNodeId(e)}" -> "${eNodeId(n)}" [label="next"];\n""")
-        }
-        e.prev.foreach { p =>
 
+        e.prev.foreach: p =>
           sb.append(s"""  "${eNodeId(e)}" -> "${eNodeId(p)}" [label="prev"];\n""")
-        }
 
         // incident face
-        e.incidentFace.foreach { f =>
-
+        e.incidentFace.foreach: f =>
           sb.append(s"""  "${eNodeId(e)}" -> "${fNodeId(f)}" [label="face"];\n""")
-        }
-      }
 
       // Face -> outer component; Face -> inner components (if any)
-      tiling.faces.foreach { f =>
-
-        f.outerComponent.foreach { start =>
-
+      tiling.faces.foreach: f =>
+        f.outerComponent.foreach: start =>
           sb.append(s"""  "${fNodeId(f)}" -> "${eNodeId(start)}" [label="outer"];\n""")
-        }
-      }
 //      tiling.faces.foreach { f =>
 //        // innerComponents is List[Option[HalfEdge]]; include all present
 //        val inner = f match
