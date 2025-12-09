@@ -35,26 +35,37 @@ final case class TilingDCEL private (
     vertices.isEmpty
 
   def coordinates: Map[VertexId, BigPoint] =
-    vertices.map(vertex => vertex.id -> vertex.coords).toMap
+    vertices
+      .map: vertex =>
+        vertex.id -> vertex.coords
+      .toMap
 
   /** @return a list of all faces, both inner and outer */
   def faces: List[Face] =
     outerFace :: innerFaces
 
   def hasUnitRegularPolygonsOnly: Boolean =
-    innerFaces.forall(_.hasEqualAnglesUnsafe)
+    innerFaces.forall: face =>
+      face.hasEqualAnglesUnsafe
 
   private[dcel] def findVertexUnsafe(vertexId: VertexId): Option[Vertex] =
-    vertices.find(_.id == vertexId)
+    vertices.find: vertex =>
+      vertex.id == vertexId
 
   def findVertex(vertexId: VertexId): Either[NotFoundError, Vertex] =
     findVertexUnsafe(vertexId).toRight(NotFoundError("Vertex", vertexId.value))
 
   def findFace(faceId: FaceId): Either[NotFoundError, Face] =
-    faces.find(_.id == faceId).toRight(NotFoundError("Face", faceId.value))
+    faces
+      .find: face =>
+        face.id == faceId
+      .toRight(NotFoundError("Face", faceId.value))
 
   def findInnerFace(faceId: FaceId): Either[NotFoundError, Face] =
-    innerFaces.find(_.id == faceId).toRight(NotFoundError("Inner face", faceId.value))
+    innerFaces
+      .find: face =>
+        face.id == faceId
+      .toRight(NotFoundError("Inner face", faceId.value))
 
   /** Checks if the given edge is on the boundary.
     * @return
@@ -82,7 +93,8 @@ final case class TilingDCEL private (
     yield (v1, v2, edge)
 
   def innerFacesVertices: List[(FaceId, List[Vertex])] =
-    innerFaces.map(face => (face.id, face.getVerticesUnsafe))
+    innerFaces.map: face =>
+      (face.id, face.getVerticesUnsafe)
 
   def findInnerFaceVertices(faceId: FaceId): Either[NotFoundError, List[Vertex]] =
     for
@@ -92,7 +104,8 @@ final case class TilingDCEL private (
   private[dcel] def getAnglesAtVertexUnsafe(vertexId: VertexId): List[AngleDegree] =
     val vertex = findVertexUnsafe(vertexId).get
     val edges  = vertex.incidentEdgesUnsafe
-    edges.map(_.angle.get)
+    edges.map: halfEdge =>
+      halfEdge.angle.get
 
   /** Returns the ordered angles at the given vertex.
     *
@@ -108,10 +121,13 @@ final case class TilingDCEL private (
     val vertex        = findVertexUnsafe(vertexId).get
     val edges         = vertex.incidentEdgesUnsafe
     val filteredEdges =
-      edges.indexWhere(isBoundaryEdge) match
+      edges.indexWhere:
+        isBoundaryEdge
+      match
         case -1 => edges
         case i  => edges.startAt(i).tail
-    filteredEdges.map(_.angle.get)
+    filteredEdges.map: halfEdge =>
+      halfEdge.angle.get
 
   /** Returns the ordered inner angles at the given vertex.
     *
@@ -136,7 +152,7 @@ final case class TilingDCEL private (
     *   specified vertex is not found.
     */
   def getDcelAtVertex(vertexId: VertexId, distance: Int = 0): Either[NotFoundError, TilingDCEL] =
-    this.getStructureAtVertex(vertexId, distance).map {
+    this.getStructureAtVertex(vertexId, distance).map:
       case (newVertices, newHalfEdges, localOuter, newInnerFaces) =>
         TilingDCEL(
           vertices = newVertices,
@@ -144,10 +160,10 @@ final case class TilingDCEL private (
           innerFaces = newInnerFaces,
           outerFace = localOuter
         )
-    }
 
   def uniformityTree: Tree[List[VertexId]] =
-    this.uniformityTreeUncompressed().compress(_ ::: _)
+    this.uniformityTreeUncompressed().compress:
+      _ ::: _
 
   def hasConnectedFaces: Boolean =
     innerFaces.isConnected
@@ -169,7 +185,8 @@ final case class TilingDCEL private (
   /** For validation purposes only. */
   private[dcel] def boundaryVerticesSafer: Either[TopologyError, Vector[Vertex]] =
     outerFace.outerComponent match
-      case Some(startEdge) => startEdge.faceTraversal(_.origin).map(_.toVector)
+      case Some(startEdge) => startEdge.faceTraversal(_.origin).map:
+          _.toVector
       case None            => Right(Vector.empty)
 
   /** All vertices in the tiling, except those on the outer boundary. */
@@ -189,7 +206,12 @@ final case class TilingDCEL private (
       case None            => Right(List.empty)
 
   def boundarySimplePolygon: SimplePolygon =
-    SimplePolygon(boundaryEdges.map(_.angle.get.conjugate).toVector)
+    SimplePolygon(
+      boundaryEdges
+        .map: halfEdge =>
+          halfEdge.angle.get.conjugate
+        .toVector
+    )
 
   /** Adds a regular polygon to the tiling along the outer boundary.
     *
@@ -334,7 +356,8 @@ object TilingDCEL:
       outerFace: Face
   ): Either[TilingError, TilingDCEL] =
     val candidateTiling = apply(vertices, halfEdges, innerFaces, outerFace)
-    validate(candidateTiling).map(_ => candidateTiling)
+    validate(candidateTiling).map: _ =>
+      candidateTiling
 
   def empty: TilingDCEL =
     TilingDCEL(
