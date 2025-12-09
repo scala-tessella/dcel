@@ -99,9 +99,10 @@ object BigPoint:
     def centroid: BigPoint =
       if points.nonEmpty then
         // single pass reduce to avoid building intermediate lists
-        val (sx, sy) = points.foldLeft((BigDecimal(0), BigDecimal(0))) { case ((ax, ay), p) =>
-          (ax + p.x, ay + p.y)
-        }
+        val (sx, sy) =
+          points
+            .foldLeft((BigDecimal(0), BigDecimal(0))):
+              case ((ax, ay), p) => (ax + p.x, ay + p.y)
         BigPoint(sx / points.length, sy / points.length)
       else
         BigPoint.origin // origin (0,0)
@@ -136,7 +137,9 @@ object BigPoint:
               while j <= 1 && !found do
                 grid.get((cx + i, cy + j)) match
                   case Some(neighbors) =>
-                    if neighbors.exists(_.almostEquals(p, accuracy)) then
+                    if neighbors.exists: neighborBigPoint =>
+                        neighborBigPoint.almostEquals(p, accuracy)
+                    then
                       found = true
                   case None            => ()
                 j += 1
@@ -153,7 +156,11 @@ object BigPoint:
       val n = points.length
       if n < 4 then return true // Triangles cannot self-intersect
 
-      val segments = (0 until n).iterator.map(i => BigLineSegment(points(i), points((i + 1) % n))).toArray
+      val segments =
+        (0 until n)
+          .iterator.map: i =>
+            BigLineSegment(points(i), points((i + 1) % n))
+          .toArray
 
       boundary:
         var i = 0
@@ -173,8 +180,9 @@ object BigPoint:
         BigDecimal(0)
       else
         val sum =
-          points.slidingO(2).map {
-            (_: @unchecked) match
-              case p1 :: p2 :: Nil => p1.x * p2.y - p2.x * p1.y
-          }.sum
+          points.slidingO(2)
+            .map:
+              (_: @unchecked) match
+                case p1 :: p2 :: Nil => p1.x * p2.y - p2.x * p1.y
+            .sum
         sum.abs / 2

@@ -66,8 +66,10 @@ object SimplePolygon:
     def rotationalIndices: List[Int] =
       val symmetryOrder = angles.rotationalSymmetryOrder
       val segmentSize   = angles.size / symmetryOrder
-      val first         = (0 until segmentSize).maxBy(angles(_).toRational)
-      (0 until symmetryOrder).toList.map(first + _ * segmentSize)
+      val first         = (0 until segmentSize).maxBy: index =>
+        angles(index).toRational
+      (0 until symmetryOrder).toList.map: index =>
+        first + index * segmentSize
 
     def reflectionalSymmetryOrder: Int =
       angles.symmetry
@@ -97,7 +99,8 @@ object SimplePolygon:
       parallelogonIndices.nonEmpty
 
     private[dcel] def isEquilateralTriangle: Boolean =
-      angles.forall(angle => angle == AngleDegree(180) || angle == AngleDegree(60))
+      angles.forall: angle =>
+        angle == AngleDegree(180) || angle == AngleDegree(60)
 
     /** Returns the indices of the vertices of the parallelogon, if found
       *
@@ -113,7 +116,8 @@ object SimplePolygon:
         val turns: Vector[AngleDegree] = toTurns
 
         def areOpposite(xs: Vector[AngleDegree], ys: Vector[AngleDegree]): Boolean =
-          xs.lazyZip(ys).forall(areFitting)
+          xs.lazyZip(ys).forall: (xAngles, yAngles) =>
+            areFitting(xAngles, yAngles)
 
         // Slices the circular `turns` vector.
         def circularSlice(start: Int, stop: Int): Vector[AngleDegree] =
@@ -146,17 +150,19 @@ object SimplePolygon:
                 List(i, j, k)
 
         // separate the degenerate square results, where the first two indices are the same
-        val (sqr, hex) = halfIndices.partition:
-          (_: @unchecked) match { case i :: j :: _ => i == j }
+        val (sqr, hex) = halfIndices.partition: indexes =>
+          (indexes: @unchecked) match
+            case i :: j :: _ => i == j
 
         def completeHalf(ijk: List[Int]): List[Int] =
           ijk ::: ijk.map(_ + half)
 
         def isParallelogon(ijk: List[Int]): Boolean =
           val startStops = completeHalf(ijk) :+ (ijk.head + n)
-          val segments   = startStops.sliding(2).collect {
-            case start :: stop :: Nil => circularSlice(start, stop)
-          }.toVector
+          val segments   = startStops.sliding(2)
+            .collect:
+              case start :: stop :: Nil => circularSlice(start, stop)
+            .toVector
 
           /** Checks that the 3 first segments fits into their opposites */
           def allSegmentsFitting(f: Vector[AngleDegree] => Vector[AngleDegree] = identity): Boolean =
@@ -169,11 +175,20 @@ object SimplePolygon:
           List(ijk(1) - ijk(0), ijk(2) - ijk(1), ijk(0) + half - ijk(2)).max
 
         // give precedence to square results
-        sqr.find(isParallelogon)
+        sqr
+          .find:
+            isParallelogon
 //          .orElse(hex.find(isParallelogon))
           // otherwise, find the result with the longest segment
-          .orElse(hex.filter(isParallelogon).maxByOption(maxSegmentLength))
-          .map(completeHalf(_).distinct)
+          .orElse(
+            hex
+              .filter:
+                isParallelogon
+              .maxByOption:
+                maxSegmentLength
+          )
+          .map:
+            completeHalf(_).distinct
           .getOrElse(Nil)
 
     /** Groups all vertex indices according to their equivalence in the parallelogon structure.
@@ -186,7 +201,8 @@ object SimplePolygon:
 
       // connect the other indices of the segment to those of its antiparallel counterpart
       def connect(i0: Int, i1: Int, i3: Int): List[List[Int]] =
-        (1 until i1 - i0).toList.map(i => List(i0 + i, (i3 - i + n) % n))
+        (1 until i1 - i0).toList.map: i =>
+          List(i0 + i, (i3 - i + n) % n)
 
       parallelogonIndices match
         case sqr @ a :: b :: c :: d :: Nil     => sqr :: connect(a, b, d) ::: connect(b, c, a)

@@ -62,7 +62,10 @@ object BigLineSegment:
       val thisPoints = Set(segment.p1, segment.p2)
       val thatPoints = Set(that.p1, that.p2)
 
-      if thisPoints.exists(p1 => thatPoints.exists(p2 => p1.almostEquals(p2))) then
+      if thisPoints.exists: p1 =>
+          thatPoints.exists: p2 =>
+            p1.almostEquals(p2)
+      then
         false
       else
         val (o1, o2, o3, o4) = orientations(that)
