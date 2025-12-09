@@ -56,13 +56,12 @@ object TilingDeletion:
             Right(performFaceDeletion(faceToDelete, edgeClassification))
           else
             val vertices = faceToDelete.getVerticesUnsafe
-            vertices.foldLeft(Right(tiling): Either[TilingError, TilingDCEL]) {
-              (either, vertex) =>
-
-                either.flatMap(_.deleteVertex(vertex.id)) match
-                  case Left(error) if error == NotFoundError("Vertex", vertex.id.value) => either
-                  case other                                                            => other
-            }
+            vertices.foldLeft(Right(tiling): Either[TilingError, TilingDCEL]): (either, vertex) =>
+              either.flatMap:
+                _.deleteVertex(vertex.id)
+              match
+                case Left(error) if error == NotFoundError("Vertex", vertex.id.value) => either
+                case other                                                            => other
       yield result
 
     private def classifyFaceEdges(face: Face): Either[TilingError, EdgeClassification] =
