@@ -4,18 +4,18 @@ object Utils:
 
   extension [E, A](eithers: List[Either[E, A]])
     def sequence: Either[E, List[A]] =
-      eithers.foldRight(Right(Nil): Either[E, List[A]]) { (e, acc) =>
-
+      eithers.foldRight(Right(Nil): Either[E, List[A]]): (e, acc) =>
         for
           xs <- acc
           x  <- e
         yield x :: xs
-      }
 
   extension [A](opt: Option[A])
     def traverse[E, B](f: A => Either[E, B]): Either[E, Option[B]] =
       opt match
-        case Some(a) => f(a).map(Some(_))
+        case Some(a) =>
+          f(a).map: b =>
+            Some(b)
         case None    => Right(None)
 
   extension [A](seq: Seq[A])
@@ -30,7 +30,13 @@ object Utils:
       *   {{{List(1, 2).associate(_ + 1) // Map(1 -> 2, 2 -> 3)}}}
       */
     def associate[T](f: A => T): Map[A, T] =
-      seq.iterator.map(elem => elem -> f(elem)).toMap
+      seq.iterator
+        .map: elem =>
+          elem -> f(elem)
+        .toMap
 
     def associateValues[T](f: A => T): Map[T, A] =
-      seq.iterator.map(elem => f(elem) -> elem).toMap
+      seq.iterator
+        .map: elem =>
+          f(elem) -> elem
+        .toMap

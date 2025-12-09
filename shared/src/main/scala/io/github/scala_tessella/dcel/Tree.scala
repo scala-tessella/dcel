@@ -39,7 +39,11 @@ enum Tree[A]:
   def fold[B](fLeaf: A => B, fBranch: A => B, gBranch: List[B] => B): B =
     this match
       case Leaf(value)             => fLeaf(value)
-      case Branch(value, children) => gBranch(fBranch(value) :: children.map(_.fold(fLeaf, fBranch, gBranch)))
+      case Branch(value, children) =>
+        gBranch(
+          fBranch(value) :: children.map: child =>
+            child.fold(fLeaf, fBranch, gBranch)
+        )
 
   /** Same as fold but with the branch case in a single function; more ergonomic in some occasions.
     *
@@ -53,7 +57,12 @@ enum Tree[A]:
   def foldAlt[B](leaf: A => B, branch: (A, List[B]) => B): B =
     this match
       case Leaf(value)             => leaf(value)
-      case Branch(value, children) => branch(value, children.map(_.foldAlt(leaf, branch)))
+      case Branch(value, children) =>
+        branch(
+          value,
+          children.map: child =>
+            child.foldAlt(leaf, branch)
+        )
 
   /** Same as fold but tail recursive.
     * @see
@@ -93,7 +102,8 @@ enum Tree[A]:
         case Leaf(value)             => done(leaf(value))
         case Branch(value, children) =>
           tailcall(iterate(children))
-            .map(iteratedChildren => branch(value, iteratedChildren))
+            .map: iteratedChildren =>
+              branch(value, iteratedChildren)
 
     deepMap(this).result
 
@@ -117,7 +127,11 @@ enum Tree[A]:
 //    this match
 //      case Leaf(value)             => value == element
 //      case Branch(value, children) => value == element || children.exists(_.contains(element))
-    simpleFold(_ == element, _.exists(identity))
+    simpleFold(
+      _ == element,
+      _.exists:
+        identity
+    )
 
   /** Maps leaf and branch values using separate functions.
     *
@@ -185,10 +199,16 @@ enum Tree[A]:
       case Branch(_, children) =>
         val shrunk: A =
           fLeaves(children.map(_.value))
-        if children.forall(_.isLeaf) then
+        if children.forall: child =>
+            child.isLeaf
+        then
           Leaf(shrunk)
         else
-          Branch(shrunk, children.map(_.shrink(fLeaves)))
+          Branch(
+            shrunk,
+            children.map: child =>
+              child.shrink(fLeaves)
+          )
 
   /** Substitutes branch values with op on leaves. */
   def shrinkAll(fLeaves: List[A] => A): Tree[A] =
@@ -196,8 +216,13 @@ enum Tree[A]:
       value => Leaf(value),
       (_, children) =>
         val shrunk: A =
-          fLeaves(children.map(_.value))
-        if children.forall(_.isLeaf) then
+          fLeaves(
+            children.map: child =>
+              child.value
+          )
+        if children.forall: child =>
+            child.isLeaf
+        then
           Leaf(shrunk)
         else
           Branch(shrunk, children)
@@ -261,7 +286,9 @@ enum Tree[A]:
       node match
         case Leaf(_)                 => node
         case Branch(value, children) =>
-          if children.isEmpty || children.exists(_.isLeaf) then
+          if children.isEmpty || children.exists: child =>
+              child.isLeaf
+          then
             node
           else
             Branch(
@@ -299,11 +326,10 @@ enum Tree[A]:
       tree match
         case Leaf(_)             => ()
         case Branch(_, children) =>
-          children.foreach(child =>
+          children.foreach: child =>
             ordinal += 1
             elements ::= s"$assignedOrdinal -- $ordinal"
             loop(ordinal, child)
-          )
 
     loop(ordinal, this)
     ("graph G {" :: ("}" :: elements).reverse).mkString("\n")
@@ -348,7 +374,12 @@ object Tree:
     */
   def unfold[A, B](seed: A)(stop: A => Boolean, fLeaf: A => B, fBranch: A => B, next: A => List[A]): Tree[B] =
     if stop(seed) then Leaf(fLeaf(seed))
-    else Branch(fBranch(seed), next(seed).map(unfold(_)(stop, fLeaf, fBranch, next)))
+    else
+      Branch(
+        fBranch(seed),
+        next(seed).map:
+          unfold(_)(stop, fLeaf, fBranch, next)
+      )
 
   /** Same as unfold but with tail recursion for better performance with large trees. */
   def tailRecUnfold[A, B](seed: A)(
@@ -366,7 +397,8 @@ object Tree:
         done(Leaf(fLeaf(initial)))
       else
         tailcall(iterate(next(initial)))
-          .map(values => Branch(fBranch(initial), values))
+          .map: values =>
+            Branch(fBranch(initial), values)
 
     deepMap(seed).result
 
