@@ -97,7 +97,7 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
     allAssert(
       twoRotationalHoles.rotationalSymmetryOrder shouldBe 2,
       twoRotationalHoles.rotationalVertexIds shouldBe
-        List(BoundaryVertex(VertexId("V11")), BoundaryVertex(VertexId("V15")))
+        List(BoundaryVertex(V1), BoundaryVertex(VertexId("V25")))
     )
 
   /** <img src="file:../../../../../resources/symmetry/twoReflectionalHoles.svg"/> */
@@ -109,7 +109,7 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
   it should "calculate the rotational symmetry for a 4x4 square with two reflected holes" in:
     allAssert(
       twoReflectionalHoles.rotationalSymmetryOrder shouldBe 1,
-      twoReflectionalHoles.rotationalVertexIds shouldBe List(BoundaryVertex(VertexId("V11")))
+      twoReflectionalHoles.rotationalVertexIds shouldBe List(BoundaryVertex(V1))
     )
 
   behavior of "TilingSymmetry.rotationalVertexIds"
@@ -118,29 +118,29 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val square4x4 = TilingBuilder.createRhombusNet(4, 4)
     square4x4.rotationalVertexIds shouldBe
       List(
-        BoundaryVertex(VertexId("V11")),
-        BoundaryVertex(VertexId("V23")),
-        BoundaryVertex(VertexId("V15")),
-        BoundaryVertex(V3)
+        BoundaryVertex(V1),
+        BoundaryVertex(VertexId("V21")),
+        BoundaryVertex(VertexId("V25")),
+        BoundaryVertex(V5)
       )
 
   it should "calculate the rotational vertex ids for a 3x3 square" in:
     val square3x3 = TilingBuilder.createRhombusNet(3, 3)
     square3x3.rotationalVertexIds shouldBe
       List(
-        BoundaryEdge(V5, VertexId("V9")),
-        BoundaryEdge(VertexId("V14"), VertexId("V15")),
-        BoundaryEdge(VertexId("V12"), VertexId("V8")),
-        BoundaryEdge(V3, V2)
+        BoundaryVertex(V1),
+        BoundaryVertex(VertexId("V13")),
+        BoundaryVertex(VertexId("V16")),
+        BoundaryVertex(V4)
       )
 
   it should "calculate the rotational vertex ids for an equilateral triangle of sides 3" in:
     val triangle3 = TilingBuilder.createSimplePolygon(SimplePolygon(60, 60, 60).multiplySidesBy(3)).value
     triangle3.rotationalVertexIds shouldBe
       List(
-        BoundaryEdge(VertexId("V9"), VertexId("V8")),
-        BoundaryEdge(VertexId("V6"), VertexId("V5")),
-        BoundaryEdge(VertexId("V3"), VertexId("V2"))
+        BoundaryVertex(V1),
+        BoundaryVertex(VertexId("V7")),
+        BoundaryVertex(V4)
       )
 
   behavior of "TilingSymmetry.reflectionalSymm"
