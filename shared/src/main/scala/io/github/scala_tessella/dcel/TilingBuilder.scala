@@ -77,17 +77,18 @@ object TilingBuilder:
     val n = points.length
 
     // Create vertices from the calculated points
-    val vertices = points.zipWithIndex.map { case (p, i) =>
+    val vertices = points.zipWithIndex.map: (p, i) =>
       Vertex(vertexIdV(i + 1), p)
-    }
 
     // Create the two faces: one for the polygon, one for the outside
     val polygonFace = Face(FaceId.firstInnerId)
     val outerFace   = Face.outer
 
     // Create all inner and outer half-edges, indexed by their origin vertex
-    val innerEdges = vertices.map(HalfEdge.apply(_))
-    val outerEdges = vertices.map(HalfEdge.apply(_))
+    val innerEdges = vertices.map: vertex =>
+      HalfEdge.apply(vertex)
+    val outerEdges = vertices.map: vertex =>
+      HalfEdge.apply(vertex)
 
     // Link all components together
     for (i <- vertices.indices)
@@ -155,15 +156,13 @@ object TilingBuilder:
     val v_vec_x = spire.math.cos(rad)
     val v_vec_y = spire.math.sin(rad)
 
-    val points = Array.tabulate(height + 1, width + 1) { (j, i) =>
-
+    val points = Array.tabulate(height + 1, width + 1): (j, i) =>
       BigPoint(BigDecimal(i) + v_vec_x * j, v_vec_y * j)
-    }
 
-    val vertices = Array.tabulate(height + 1, width + 1) { (j, i) =>
+    val vertices = Array.tabulate(height + 1, width + 1): (j, i) =>
       val id = j * (width + 1) + i + 1
       Vertex(vertexIdV(id), points(j)(i))
-    }
+
     (points, vertices)
 
   private def createTwinPair(v1: Vertex, v2: Vertex): (HalfEdge, HalfEdge) =
@@ -177,14 +176,11 @@ object TilingBuilder:
       width: Int,
       vertices: Array[Array[Vertex]]
   ): (Array[Array[(HalfEdge, HalfEdge)]], Array[Array[(HalfEdge, HalfEdge)]]) =
-    val horizontal = Array.tabulate(height + 1, width) { (j, i) =>
-
+    val horizontal = Array.tabulate(height + 1, width): (j, i) =>
       createTwinPair(vertices(j)(i), vertices(j)(i + 1))
-    }
-    val vSlope = Array.tabulate(height, width + 1) { (j, i) =>
-
+    val vSlope     = Array.tabulate(height, width + 1): (j, i) =>
       createTwinPair(vertices(j)(i), vertices(j + 1)(i))
-    }
+
     (horizontal, vSlope)
 
   // Set leaving edges for vertices
@@ -215,10 +211,8 @@ object TilingBuilder:
       outerEdge.angle = Some(innerAnglesSum.conjugate)
 
   private def netFaces(height: Int, width: Int): Array[Array[Face]] =
-    Array.tabulate(height, width) { (j, i) =>
-
+    Array.tabulate(height, width): (j, i) =>
       Face(faceIdF(j * width + i + 1))
-    }
 
   // Link outer face boundary
   private def linkOuterFace(
@@ -238,14 +232,22 @@ object TilingBuilder:
     // Left boundary
     for (j <- (0 until height).reverse) innerBoundaryEdgesCCW += vSlope(j)(0)._2
 
-    val outerBoundaryCW = innerBoundaryEdgesCCW.toList.map(_.twin.get).reverse
+    val outerBoundaryCW =
+      innerBoundaryEdgesCCW.toList
+        .map: halfEdge =>
+          halfEdge.twin.get
+        .reverse
     outerBoundaryCW.linkInCycle()
-    outerBoundaryCW.foreach(_.incidentFace = Some(fOuter))
+    outerBoundaryCW.foreach: halfEdge =>
+      halfEdge.incidentFace = Some(fOuter)
     fOuter.outerComponent = outerBoundaryCW.headOption
     outerBoundaryCW
 
   private def toHalfEdges(pairs: Array[Array[(HalfEdge, HalfEdge)]]): List[HalfEdge] =
-    pairs.flatMap(row => row.flatMap(p => List(p._1, p._2))).toList
+    pairs
+      .flatMap: row =>
+        row.flatMap(p => List(p._1, p._2))
+      .toList
 
   private def netHalfEdges(
       horizontal: Array[Array[(HalfEdge, HalfEdge)]],
@@ -275,19 +277,15 @@ object TilingBuilder:
     val (points, vertices) = pointsVertices(height, width, triangleAngle)
 
     // Two triangular faces per rhombus cell
-    val faces = Array.tabulate(height, width, 2) { (j, i, k) =>
-
+    val faces  = Array.tabulate(height, width, 2): (j, i, k) =>
       Face(faceIdF((j * width + i) * 2 + k + 1))
-    }
     val fOuter = Face.outer
 
     val (horizontal, vSlope) = horizontalAndVSlope(height, width, vertices)
 
     // These diagonals split each rhombus into two equilateral triangles
-    val diagonals = Array.tabulate(height, width) { (j, i) =>
-
+    val diagonals = Array.tabulate(height, width): (j, i) =>
       createTwinPair(vertices(j)(i + 1), vertices(j + 1)(i))
-    }
 
     // Set leaving edges for vertices
     setLeavingEdges(height, width, vertices, horizontal, vSlope)
@@ -393,7 +391,8 @@ object TilingBuilder:
     // Interior angles per vertex in CCW order: [alpha, beta, beta, alpha, beta, beta]
     // Exterior turns at vertices: exterior(k) = 180 - interior(k)
     val exteriorAngles: Array[AngleDegree] =
-      Array(alpha, beta, beta, alpha, beta, beta).map(_.supplement)
+      Array(alpha, beta, beta, alpha, beta, beta).map:
+        _.supplement
 
     // IMPORTANT: The exterior turn exterior(k) is applied at vertex k to go from edge k to edge (k+1).
     // Edge headings h(k) are the directions of edges (k) from vertex k to k+1.
@@ -469,8 +468,13 @@ object TilingBuilder:
     do
       val face       = faces(j)(i)
       val b          = baseTriple(i, j)
-      val cornerKeys = (0 until 6).map(k => addTriples(b, cornerTriples(k))).toList
-      val corners    = cornerKeys.map(getOrCreateVertexByTriple)
+      val cornerKeys =
+        (0 until 6)
+          .map: k =>
+            addTriples(b, cornerTriples(k))
+          .toList
+      val corners    = cornerKeys.map:
+        getOrCreateVertexByTriple
 
       val cornerAngles: Array[AngleDegree] =
         Array(alpha, beta, beta, alpha, beta, beta)
@@ -483,21 +487,20 @@ object TilingBuilder:
         }
 
       edgesCCW.linkInCycle()
-      edgesCCW.zipWithIndex.foreach { case (e, k) =>
+      edgesCCW.zipWithIndex.foreach: (e, k) =>
         e.incidentFace = Some(face)
         e.angle = Some(cornerAngles(k))
-      }
       face.outerComponent = edgesCCW.headOption
 
     val allVertices  = vertexByTriple.values.toList
     val allHalfEdges = halfEdgeByDir.values.toList
 
-    allVertices.foreach { v =>
+    allVertices.foreach: v =>
+      v.leaving = allHalfEdges.find:
+        _.origin eq v
 
-      v.leaving = allHalfEdges.find(_.origin eq v)
-    }
-
-    val boundaryEdgesCW = allHalfEdges.filter(_.incidentFace.isEmpty)
+    val boundaryEdgesCW = allHalfEdges.filter:
+      _.incidentFace.isEmpty
 
     val boundaryOrdered = boundaryEdgesCW.orderBoundary
 
@@ -506,12 +509,12 @@ object TilingBuilder:
       boundaryOrdered.foreach(_.incidentFace = Some(fOuter))
       fOuter.outerComponent = boundaryOrdered.headOption
 
-      boundaryOrdered.foreach { outerEdge =>
+      boundaryOrdered.foreach: outerEdge =>
         val v              = outerEdge.origin
-        val incidentAtV    = allHalfEdges.filter(_.origin eq v)
+        val incidentAtV    = allHalfEdges.filter:
+          _.origin eq v
         val innerAnglesSum = incidentAtV.interiorAnglesSum(fOuter)
         outerEdge.angle = Some(innerAnglesSum.conjugate)
-      }
 
     TilingDCEL(
       vertices = allVertices,
@@ -536,10 +539,8 @@ object TilingBuilder:
     val end                       = start + step * (sides * (if areEven then 1 else 2) - 1)
     val vertexIds: List[VertexId] =
       Range(start, end, step).map(i => s"V$i").map(VertexId(_)).toList
-    vertexIds.foldLeft(first) { (ring, vertexId) =>
-
+    vertexIds.foldLeft(first): (ring, vertexId) =>
       ring.addRegularPolygonToBoundary(vertexId, polygon).toOption.get
-    }
 
   def createHoledTriangleNet(width: Int, height: Int)(f: (Int, Int) => Boolean): TilingDCEL =
     val transform: (Int, Int) => VertexId = (x, y) => vertexIdV(x + 1 + y * (width + 1))
@@ -549,7 +550,9 @@ object TilingBuilder:
         x <- 0 to width
         if f(x, y)
       yield transform(x, y)
-    holes.foldLeft(Right(createTriangleNet(width, height)): Either[TilingError, TilingDCEL])(
-      (either, vertexId) =>
-        either.flatMap(tilingDCEL => tilingDCEL.maybeDeleteVertex(vertexId))
-    ).toOption.getOrElse(TilingDCEL.empty)
+    holes
+      .foldLeft(Right(createTriangleNet(width, height)): Either[TilingError, TilingDCEL]):
+        (either, vertexId) =>
+          either.flatMap: tilingDCEL =>
+            tilingDCEL.maybeDeleteVertex(vertexId)
+      .toOption.getOrElse(TilingDCEL.empty)
