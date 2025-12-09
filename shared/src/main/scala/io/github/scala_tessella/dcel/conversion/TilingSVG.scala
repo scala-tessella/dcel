@@ -777,8 +777,8 @@ object TilingSVG:
       svg
 
     /** Generates an SVG representation of the tiling. The width, height, and viewBox are automatically
-     * calculated to fit the tiling at the given scale.
-     */
+      * calculated to fit the tiling at the given scale.
+      */
     def toScalableVectorGraphics(
         strokeWidth: Double = 1.0,
         padding: Double = 20.0,
@@ -791,7 +791,13 @@ object TilingSVG:
       new PrettyPrinter(120, 2)
         .format(
           toScalableVectorGraphicsElem(
-            strokeWidth, padding, scale, showHalfEdgeTraversal, leavingEdgeMarkers, faceIdsOnEdges, showUniformity
+            strokeWidth,
+            padding,
+            scale,
+            showHalfEdgeTraversal,
+            leavingEdgeMarkers,
+            faceIdsOnEdges,
+            showUniformity
           )
         )
 

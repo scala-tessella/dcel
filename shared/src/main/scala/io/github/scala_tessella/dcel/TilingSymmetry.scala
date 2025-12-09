@@ -33,10 +33,9 @@ object TilingSymmetry:
       (0 until boundarySym).count: i =>
         edges.head.isStructurallyEquivalentTo(edges(i * step))
 
-    private def fromAxisToBoundary(boundaryVertexIds: Vector[VertexId]): AxisLocation => BoundaryLocation = {
+    private def fromAxisToBoundary(boundaryVertexIds: Vector[VertexId]): AxisLocation => BoundaryLocation =
       case SymVertex(i)  => BoundaryVertex(boundaryVertexIds(i))
       case SymEdge(i, j) => BoundaryEdge(boundaryVertexIds(i), boundaryVertexIds(j))
-    }
 
     def rotationalVertexIds: List[BoundaryLocation] =
       val symmetryOrder    = rotationalSymmetryOrder
@@ -57,30 +56,28 @@ object TilingSymmetry:
       val first: AxisLocation =
         (symVertices ++ symEdges).maxBy: location =>
           BigLineSegment(coordsOf(location), center).length
-      (0 until symmetryOrder).toList.map(i =>
-        val step = i * segmentSize
-        first match
-          case SymVertex(i)  => SymVertex(i + step)
-          case SymEdge(i, j) => SymEdge(i + step, j + step)
-      ).map(fromAxisToBoundary(boundaryVertexIds))
+      (0 until symmetryOrder).toList
+        .map: i =>
+          val step = i * segmentSize
+          first match
+            case SymVertex(i)  => SymVertex(i + step)
+            case SymEdge(i, j) => SymEdge(i + step, j + step)
+        .map:
+          fromAxisToBoundary(boundaryVertexIds)
 
     def reflectionalVertexIds: List[(BoundaryLocation, BoundaryLocation)] =
       val edges             = tiling.boundaryEdges.toVector
       if edges.isEmpty then return Nil
       val boundaryVertexIds = tiling.boundaryVertices.map(_.id)
-
-      val axes = tiling.boundarySimplePolygon.reflectionalIndexPairs
+      val axes              = tiling.boundarySimplePolygon.reflectionalIndexPairs
       axes
-        .filter { (loc1, _) =>
+        .filter: (loc1, _) =>
           val (startA, startB) = loc1 match
             case SymEdge(i, _) => (edges(i), edges(i))
             case SymVertex(i)  => (edges(i), edges(i).prev.get)
           startA.isReflectionallyEquivalentTo(startB)
-        }
-        .map { (loc1, loc2) =>
-
+        .map: (loc1, loc2) =>
           (fromAxisToBoundary(boundaryVertexIds)(loc1), fromAxisToBoundary(boundaryVertexIds)(loc2))
-        }
 
     def reflectionalSymmetryOrder: Int =
       reflectionalVertexIds.size
