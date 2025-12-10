@@ -151,7 +151,11 @@ object TilingUniformity:
             boundaryStubs += b
 
         val keyOf: HalfEdge => (VertexId, VertexId) = he => (he.origin.id, he.destination.get.id)
-        val stubByKey                               = boundaryStubs.map(b => keyOf(b) -> b).toMap
+        val stubByKey                               =
+          boundaryStubs
+            .map: halfEdge =>
+              keyOf(halfEdge) -> halfEdge
+            .toMap
 
         def nextBoundaryOf(b: HalfEdge): Option[HalfEdge] =
           val innerPrev = b.twin.get.prev.get
@@ -195,13 +199,10 @@ object TilingUniformity:
           val loop = start.faceTraversalUnsafe[HalfEdge]()
           loop.foreach: be =>
             val v           = be.origin
-            val incidentAtV = newHalf.filter:
-              _.origin eq v
+            val incidentAtV = newHalf.filter(_.origin eq v)
             val innerSum    = incidentAtV
-              .filterNot:
-                _.hasIncidentFace(localOuter)
-              .flatMap:
-                _.angle
+              .filterNot(_.hasIncidentFace(localOuter))
+              .flatMap(_.angle)
               .sumExact
             be.angle = Some(innerSum.conjugate)
 
@@ -325,9 +326,17 @@ object TilingUniformity:
               result
 
       // First, compute the full tree without limits
-      val fullTree       = deepMap(Nil, tiling.innerVertices.map(_.id), None).result
-      val fullCompressed = fullTree.compress:
-        _ ::: _
+      val fullTree       =
+        deepMap(
+          Nil,
+          tiling.innerVertices.map { vertex =>
+
+            vertex.id
+          },
+          None
+        ).result
+      val fullCompressed =
+        fullTree.compress(_ ::: _)
 
       // Now collect trees at each depth, reusing cached computations
       val results  = scala.collection.mutable.ListBuffer.empty[Tree[List[VertexId]]]
@@ -335,9 +344,16 @@ object TilingUniformity:
       var continue = true
 
       while continue do
-        val treeAtDepth = deepMap(Nil, tiling.innerVertices.map(_.id), Some(depth)).result
-        val compressed  = treeAtDepth.compress:
-          _ ::: _
+        val treeAtDepth =
+          deepMap(
+            Nil,
+            tiling.innerVertices.map { vertex =>
+
+              vertex.id
+            },
+            Some(depth)
+          ).result
+        val compressed  = treeAtDepth.compress(_ ::: _)
         results += compressed
 
         if compressed == fullCompressed then
