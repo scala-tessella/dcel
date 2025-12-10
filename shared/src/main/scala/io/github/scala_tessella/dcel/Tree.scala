@@ -79,7 +79,7 @@ enum Tree[A]:
 //        case Nil => done(Nil)
 //        case h :: t =>
 //          tailcall(deepMap(h)) //it calls with mutual recursion deepMap which maps over children of node
-//            .flatMap(node => iterate(t).map(node :: _)) //you can flat map over TailRec
+//            .flatMap { node => iterate(t).map { node :: _ } } //you can flat map over TailRec
 
     // recursively visits all branches
     def deepMap(node: Tree[A]): TailRec[B] =
