@@ -935,3 +935,16 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val result = threeDecagons
       .maybeAddSimplePolygonToBoundary(VertexId("V3"), attachingSimplePolygon)
     result.isLeft shouldBe false
+
+  behavior of "TilingBuilder.maybeAddRegularPolygonToBoundary"
+
+  /**  <img src="file:../../../../../resources/threeDodecagons.svg"/> */
+  val bench: TilingDCEL =
+    TilingBuilder.createRegularPolygon(RegularPolygon(12))
+      .maybeAddRegularPolygonToBoundary(V3, RegularPolygon(12)).value
+      .maybeAddRegularPolygonToBoundary(VertexId("V11"), RegularPolygon(12)).value
+
+  it should "add a fourth dodecagon creating two holes" in:
+    val result = bench.maybeAddRegularPolygonToBoundary(V1, RegularPolygon(12))
+    println(result)
+    result.isRight shouldBe true
