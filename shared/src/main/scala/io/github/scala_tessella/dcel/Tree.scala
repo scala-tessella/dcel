@@ -199,8 +199,7 @@ enum Tree[A]:
       case Branch(_, children) =>
         val shrunk: A =
           fLeaves(children.map: child =>
-            child.value
-          )
+            child.value)
         if children.forall: child =>
             child.isLeaf
         then
