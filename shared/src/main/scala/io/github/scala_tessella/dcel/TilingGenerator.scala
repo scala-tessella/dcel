@@ -209,7 +209,7 @@ object TilingGenerator:
           .flatMap: either =>
             either.toOption
 
-      // for the success cases, repeat the additional symmetrically to the other segments
+      // for the success cases, repeat the addition symmetrically to the other segments
       additions.flatMap: (sides, grownTiling) =>
         (1 until order).foldLeft(Option(grownTiling)): (maybeGrown, i) =>
           maybeGrown.flatMap: grown =>
