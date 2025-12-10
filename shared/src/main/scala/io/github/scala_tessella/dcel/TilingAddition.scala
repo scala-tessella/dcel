@@ -247,7 +247,8 @@ object TilingAddition:
         (pathBack, false)
 
     private def calculateHolePolygonAngles(holePath: List[HalfEdge]): List[AngleDegree] =
-      val holeAngles       = holePath.map(_.angle.get)
+      val holeAngles       = holePath.map: halfEdge =>
+        halfEdge.angle.get
       val sumOfOtherAngles = holeAngles.tail.sumExact
       val closingAngle     = SimplePolygon.alphaSum(holeAngles.length) - sumOfOtherAngles
       closingAngle :: holeAngles.tail

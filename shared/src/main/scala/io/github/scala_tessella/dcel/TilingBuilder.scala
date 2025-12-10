@@ -538,7 +538,7 @@ object TilingBuilder:
     val step                      = sides - 2
     val end                       = start + step * (sides * (if areEven then 1 else 2) - 1)
     val vertexIds: List[VertexId] =
-      Range(start, end, step).map(i => s"V$i").map(VertexId(_)).toList
+      Range(start, end, step).map { i => vertexIdV(i) }.toList
     vertexIds.foldLeft(first): (ring, vertexId) =>
       ring.addRegularPolygonToBoundary(vertexId, polygon).toOption.get
 
