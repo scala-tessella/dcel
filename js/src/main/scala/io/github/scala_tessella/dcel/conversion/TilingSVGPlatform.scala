@@ -186,10 +186,9 @@ object TilingSVGPlatform:
                                       id.toString
                                     ))
                                   .sequence
-                            yield
-                              f.innerComponents =
-                                icEdges.map: halfEdge =>
-                                  Some(halfEdge)
+                            yield f.innerComponents =
+                              icEdges.map: halfEdge =>
+                                Some(halfEdge)
                  yield ()
                .sequence
 
