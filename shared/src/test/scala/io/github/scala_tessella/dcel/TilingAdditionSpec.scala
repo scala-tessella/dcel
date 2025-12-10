@@ -925,26 +925,35 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       144, 144, 144, 144, 144, 144, 144, 144, 24, 240, 240, 240, 240, 24
     ).map(AngleDegree(_)).rotateLeft(7))
 
-  /** <img src="file:../../../../../resources/attaching.svg"/> */
+  /** Attaching shape <img src="file:../../../../../resources/attaching.svg"/> */
   def attaching: TilingDCEL =
     TilingBuilder.createSimplePolygon(attachingSimplePolygon).value
 
   it should "add an irregular polygon forming another irregular polygon" in:
 
-    /** <img src="file:../../../../../resources/attached.svg"/> */
-    val result = threeDecagons
+    /** Attached shape <img src="file:../../../../../resources/attached.svg"/> */
+    val attached = threeDecagons
       .maybeAddSimplePolygonToBoundary(VertexId("V3"), attachingSimplePolygon)
-    result.isLeft shouldBe false
+    attached.isLeft shouldBe false
 
   behavior of "TilingBuilder.maybeAddRegularPolygonToBoundary"
 
-  /**  <img src="file:../../../../../resources/threeDodecagons.svg"/> */
-  val bench: TilingDCEL =
+  /** Tiling with three dodecagons <img src="file:../../../../../resources/threeDodecagons.svg"/>
+   */
+  val threeDodecagons: TilingDCEL =
     TilingBuilder.createRegularPolygon(RegularPolygon(12))
       .maybeAddRegularPolygonToBoundary(V3, RegularPolygon(12)).value
       .maybeAddRegularPolygonToBoundary(VertexId("V11"), RegularPolygon(12)).value
 
+  it should "laterally add a fourth dodecagon creating two holes" in :
+    val result = threeDodecagons.maybeAddRegularPolygonToBoundary(VertexId("V21"), RegularPolygon(12))
+    result.value.innerFaces.size shouldBe 6
+
+  it should "add from the other side a fourth dodecagon creating two holes" in :
+    val result = threeDodecagons.maybeAddRegularPolygonToBoundary(VertexId("V23"), RegularPolygon(12))
+    result.value.innerFaces.size shouldBe 6
+
   it should "add a fourth dodecagon creating two holes" in:
-    val result = bench.maybeAddRegularPolygonToBoundary(V1, RegularPolygon(12))
+    val result = threeDodecagons.maybeAddRegularPolygonToBoundary(V1, RegularPolygon(12))
     println(result)
     result.isRight shouldBe true
