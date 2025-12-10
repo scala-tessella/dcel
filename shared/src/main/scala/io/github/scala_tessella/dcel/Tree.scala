@@ -86,8 +86,8 @@ enum Tree[A]:
       node match
         case Leaf(value)             => done(fLeaf(value))
         case Branch(value, children) =>
-          tailcall(iterate(children))
-            .map(iteratedChildren => gBranch(fBranch(value) :: iteratedChildren))
+          tailcall(iterate(children)).map: iteratedChildren =>
+            gBranch(fBranch(value) :: iteratedChildren)
 
     deepMap(this).result // unwrap result to plain node
 
@@ -198,7 +198,9 @@ enum Tree[A]:
       case Leaf(_)             => this
       case Branch(_, children) =>
         val shrunk: A =
-          fLeaves(children.map(_.value))
+          fLeaves(children.map: child =>
+            child.value
+          )
         if children.forall: child =>
             child.isLeaf
         then
@@ -349,8 +351,10 @@ object Tree:
     nodes match
       case Nil    => done(Nil)
       case h :: t =>
-        tailcall(deepMap(h))                                      // it calls with mutual recursion deepMap which maps over children of node
-          .flatMap(node => iterateRaw(t, deepMap).map(node :: _)) // you can flat map over TailRec
+        // calls with mutual recursion deepMap which maps over children of node
+        tailcall(deepMap(h)).flatMap: node => // you can flat map over TailRec
+          iterateRaw(t, deepMap).map: nodes =>
+            node :: nodes
 
   /** Builds up a tree from a seed value using co-recursion. This is the dual of fold - an abstraction over
     * structural co-recursion.
