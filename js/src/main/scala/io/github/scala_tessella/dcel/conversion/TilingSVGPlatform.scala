@@ -61,9 +61,12 @@ object TilingSVGPlatform:
       Left(ValidationError("<faces> not found"))
     else
 
-      val vertexAttrs    = vertexAttrStrs.map(parseAttrs)
-      val halfEdgeAttrs0 = halfEdgeAttrStrs.map(parseAttrs)
-      val faceAttrs      = faceAttrStrs.map(parseAttrs)
+      val vertexAttrs    = vertexAttrStrs.map: string =>
+        parseAttrs(string)
+      val halfEdgeAttrs0 = halfEdgeAttrStrs.map: string =>
+        parseAttrs(string)
+      val faceAttrs      = faceAttrStrs.map: string =>
+        parseAttrs(string)
 
       // Build vertices
       for
@@ -183,7 +186,10 @@ object TilingSVGPlatform:
                                       id.toString
                                     ))
                                   .sequence
-                            yield f.innerComponents = icEdges.map(Some(_))
+                            yield
+                              f.innerComponents =
+                                icEdges.map: halfEdge =>
+                                  Some(halfEdge)
                  yield ()
                .sequence
 
