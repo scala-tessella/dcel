@@ -35,13 +35,13 @@ object TilingUniformity:
         visited += center
         queue.enqueue((center, 0))
         while queue.nonEmpty do
-          val (v, dist) = queue.dequeue()
+          val (vertex, dist) = queue.dequeue()
           if dist < d then
-            v.incidentEdgesUnsafe.foreach: he =>
-              he.destination.foreach: nb =>
-                if !visited.contains(nb) then
-                  visited += nb
-                  queue.enqueue((nb, dist + 1))
+            vertex.incidentEdgesUnsafe.foreach: halfEdge =>
+              halfEdge.destination.foreach: destinationVertex =>
+                if !visited.contains(destinationVertex) then
+                  visited += destinationVertex
+                  queue.enqueue((destinationVertex, dist + 1))
         visited.toSet
 
       for
@@ -54,22 +54,22 @@ object TilingUniformity:
         var selectedInnerFaces: Set[Face] =
           tiling.innerFaces
             .filter: face =>
-              val vs = face.getVerticesUnsafe
-              vs.exists:
-                inRadius.contains
+              face.getVerticesUnsafe.exists: vertex =>
+                inRadius.contains(vertex)
             .toSet
 
         // 2b) Iteratively find and add "hole" faces
         // A hole face has all its vertices already in our vertex set but wasn't selected
         var changed = true
         while changed do
-          val currentVertices = selectedInnerFaces
-            .flatMap:
-              _.getVerticesUnsafe
+          val currentVertices =
+            selectedInnerFaces
+              .flatMap: face =>
+                face.getVerticesUnsafe
           val holeFaces       = tiling.innerFaces.filter: face =>
             !selectedInnerFaces.contains(face) &&
-              face.getVerticesUnsafe.forall:
-                currentVertices.contains
+              face.getVerticesUnsafe.forall: vertex =>
+                currentVertices.contains(vertex)
           if holeFaces.nonEmpty then
             selectedInnerFaces ++= holeFaces
           else
@@ -223,15 +223,13 @@ object TilingUniformity:
         val centeredTilings = vertexIds.map: id =>
           id -> tiling.getDcelAtVertex(id, distance).toOption.get
         val classes         = groupByBoundaryEquivalency(centeredTilings)
-        val boundaryInfoMap = centeredTilings
-          .map: (vid, tiling) =>
-            vid -> tiling.boundaryVertices
-              .map:
-                _.id
-              .toSet
-          .toMap
-        val partitioned     = classes
-          .map:
+        val boundaryInfoMap =
+          centeredTilings
+            .map: (vertexId, tiling) =>
+              vertexId -> tiling.boundaryVertices.map(_.id).toSet
+            .toMap
+        val partitioned     =
+          classes.map:
             _.partition: vertexId =>
               val localBoundaryVertexIds = boundaryInfoMap(vertexId)
               boundaryVertexIds.toSet.intersect(localBoundaryVertexIds).isEmpty
@@ -282,23 +280,20 @@ object TilingUniformity:
           case Some(cached) => done(cached)
           case None         =>
             val distance        = key.length
-            val centeredTilings = vertexIds
-              .map: id =>
+            val centeredTilings =
+              vertexIds.map: id =>
                 id -> tiling.getDcelAtVertex(id, distance).toOption.get
             val classes         = groupByBoundaryEquivalency(centeredTilings)
-            val boundaryInfoMap = centeredTilings
-              .map: (vid, tiling) =>
-                vid -> tiling.boundaryVertices
-                  .map:
-                    _.id
-                  .toSet
-              .toMap
+            val boundaryInfoMap =
+              centeredTilings
+                .map: (vertexId, tiling) =>
+                  vertexId -> tiling.boundaryVertices.map(_.id).toSet
+                .toMap
             val partitioned     =
-              classes
-                .map:
-                  _.partition: vertexId =>
-                    val localBoundaryVertexIds = boundaryInfoMap(vertexId)
-                    boundaryVertexIds.toSet.intersect(localBoundaryVertexIds).isEmpty
+              classes.map:
+                _.partition: vertexId =>
+                  val localBoundaryVertexIds = boundaryInfoMap(vertexId)
+                  boundaryVertexIds.toSet.intersect(localBoundaryVertexIds).isEmpty
 
             def iterate(
                 remaining: List[((List[VertexId], List[VertexId]), Int)],
@@ -329,10 +324,7 @@ object TilingUniformity:
       val fullTree       =
         deepMap(
           Nil,
-          tiling.innerVertices.map { vertex =>
-
-            vertex.id
-          },
+          tiling.innerVertices.map(vertex => vertex.id),
           None
         ).result
       val fullCompressed =
@@ -347,10 +339,7 @@ object TilingUniformity:
         val treeAtDepth =
           deepMap(
             Nil,
-            tiling.innerVertices.map { vertex =>
-
-              vertex.id
-            },
+            tiling.innerVertices.map(vertex => vertex.id),
             Some(depth)
           ).result
         val compressed  = treeAtDepth.compress(_ ::: _)
