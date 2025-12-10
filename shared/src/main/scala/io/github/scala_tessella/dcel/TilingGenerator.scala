@@ -206,12 +206,16 @@ object TilingGenerator:
             _.toOption
 
       // for the success cases, repeat the additional symmetrically to the other segments
-      additions.flatMap:
-        case (sides, grownTiling) =>
-          (1 until order).foldLeft(Option(grownTiling)):
-            case (maybeGrown, i) =>
-              maybeGrown.flatMap: grown =>
-                grown.maybeAddRegularPolygonToBoundary(
-                  boundaryVertexIds(edgeStart + i * step),
-                  RegularPolygon(sides)
-                ).toOption
+      additions.flatMap: (sides, grownTiling) =>
+        (1 until order).foldLeft(Option(grownTiling)): (maybeGrown, i) =>
+          maybeGrown.flatMap: grown =>
+            grown.maybeAddRegularPolygonToBoundary(
+              boundaryVertexIds(edgeStart + i * step),
+              RegularPolygon(sides)
+            ).toOption
+
+  extension (tilings: List[TilingDCEL])
+    def expandRotationallyMore(order: Int, steps: Int = 1): List[TilingDCEL] =
+      (0 until steps).foldLeft(tilings): (grownTilings, _) =>
+        grownTilings.flatMap:
+          _.expandRotationally(order)

@@ -1,6 +1,6 @@
 package io.github.scala_tessella.dcel
 
-import io.github.scala_tessella.dcel.TilingGenerator.expandRotationally
+import io.github.scala_tessella.dcel.TilingGenerator.{expandRotationally, expandRotationallyMore}
 import io.github.scala_tessella.dcel.conversion.TilingSVG.toScalableVectorGraphicsElem
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -53,3 +53,15 @@ class TilingGeneratorSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
     found.size shouldBe 3
 //    found.indices.foreach: i =>
 //      saveFileSVG(found(i).toScalableVectorGraphicsElem(), s"generator/hex$i")
+
+  it should "generate 2-step tilings for an hexagon" in:
+    val found = List(hexagon).expandRotationallyMore(6, 2)
+    found.size shouldBe 7
+//    found.indices.foreach: i =>
+//      saveFileSVG(found(i).toScalableVectorGraphicsElem(), s"generator/hex2$i")
+
+  it should "generate 3-step tilings for an hexagon" in:
+    val found = List(hexagon).expandRotationallyMore(6, 3)
+    found.size shouldBe 7
+//    found.indices.foreach: i =>
+//      saveFileSVG(found(i).toScalableVectorGraphicsElem(), s"generator/hex3$i")
