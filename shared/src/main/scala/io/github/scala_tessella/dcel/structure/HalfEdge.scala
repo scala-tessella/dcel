@@ -38,21 +38,26 @@ final class HalfEdge(
   override def hashCode(): Int = System.identityHashCode(this)
 
   override def toString: String =
-    s"HalfEdge ${origin.id} -> ${destination.map(_.id).getOrElse("?")}${validate().swap.map(error =>
-        s" [${error.message}]"
-      ).getOrElse("")}"
+    val validationErrorSuffix =
+      validate().toErrorSuffix
+    val destinationStr        =
+      destination
+        .map: vertex =>
+          vertex.id.value
+        .getOrElse("?")
+    s"HalfEdge ${origin.id} -> $destinationStr$validationErrorSuffix"
 
   def destination: Option[Vertex] =
-    twin.map:
-      _.origin
+    twin.map: halfEdge =>
+      halfEdge.origin
 
   def isLoop: Option[Boolean] =
-    destination.map:
-      _ == origin
+    destination.map: halfEdge =>
+      halfEdge == origin
 
   def endpointsAsVertices: Option[(Vertex, Vertex)] =
-    destination.map:
-      (origin, _)
+    destination.map: halfEdge =>
+      (origin, halfEdge)
 
   def key: Option[(VertexId, VertexId)] =
     endpointsAsVertices.map: (orig, dest) =>
@@ -270,12 +275,12 @@ object HalfEdge:
       linkIn(_.sliding(2))
 
     private[dcel] def setIncidentFace(face: Face): Unit =
-      halfEdges.foreach:
-        _.incidentFace = Some(face)
+      halfEdges.foreach: halfEdge =>
+        halfEdge.incidentFace = Some(face)
 
     private[dcel] def setAngle(angle: AngleDegree): Unit =
-      halfEdges.foreach:
-        _.angle = Some(angle)
+      halfEdges.foreach: halfEdge =>
+        halfEdge.angle = Some(angle)
 
     private[dcel] def linkFace(face: Face, angle: AngleDegree): Unit =
       halfEdges.linkInCycle()
@@ -317,8 +322,18 @@ object HalfEdge:
       if halfEdges.isEmpty then return Some(Nil)
       if halfEdges.exists(_.destination.isEmpty) then return None
 
-      val outDegrees = halfEdges.groupBy(_.origin).view.mapValues(_.size)
-      val inDegrees  = halfEdges.groupMap(_.destination.get)(_ => 1).view.mapValues(_.sum)
+      val outDegrees = halfEdges
+        .groupBy:
+          _.origin
+        .view
+        .mapValues:
+          _.size
+      val inDegrees  = halfEdges
+        .groupMap(_.destination.get): _ =>
+          1
+        .view
+        .mapValues:
+          _.sum
       val vertices   = (outDegrees.keySet ++ inDegrees.keySet).toList
 
       val startNodeCandidates =
@@ -342,8 +357,16 @@ object HalfEdge:
         else
           None
 
-      startVertexOpt.flatMap { startVertex =>
-        val edgesByOrigin = mutable.Map.from(halfEdges.groupBy(_.origin).view.mapValues(mutable.Queue.from))
+      startVertexOpt.flatMap: startVertex =>
+        val edgesByOrigin = mutable.Map
+          .from(
+            halfEdges
+              .groupBy:
+                _.origin
+              .view
+              .mapValues: halfEdges =>
+                mutable.Queue.from(halfEdges)
+          )
         val path          = mutable.ListBuffer.empty[HalfEdge]
 
         def findPath(u: Vertex): Unit =
@@ -359,7 +382,6 @@ object HalfEdge:
 
         if path.size == halfEdges.size then Some(path.toList)
         else None // Graph is not connected
-      }
 
     def orderBoundary: List[HalfEdge] =
       if halfEdges.isEmpty then return Nil
@@ -369,8 +391,8 @@ object HalfEdge:
       ordered += current
       remaining -= current
       while remaining.nonEmpty do
-        val nextOpt = remaining.find: e =>
-          current.destination.contains(e.origin)
+        val nextOpt = remaining.find: halfEdge =>
+          current.destination.contains(halfEdge.origin)
         nextOpt match
           case Some(next) =>
             ordered += next

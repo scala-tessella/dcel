@@ -26,9 +26,9 @@ final class Vertex(
   override def hashCode(): Int = id.value.hashCode
 
   override def toString: String =
-    s"Vertex $id at coords (${coords.x.format}, ${coords.y.format})${validate().swap.map(error =>
-        s" [${error.message}]"
-      ).getOrElse("")}"
+    val validationErrorSuffix =
+      validate().toErrorSuffix
+    s"Vertex $id at coords (${coords.x.format}, ${coords.y.format})$validationErrorSuffix"
 
   def isComplete: Boolean =
     leaving.isDefined

@@ -27,13 +27,9 @@ final class Face(
   override def hashCode(): Int = id.value.hashCode
 
   override def toString: String =
-    val possibleErrorSuffix =
-      validate()
-        .swap
-        .map: error =>
-          s" [${error.message}]"
-        .getOrElse("")
-    s"Face $id$possibleErrorSuffix"
+    val validationErrorSuffix =
+      validate().toErrorSuffix
+    s"Face $id$validationErrorSuffix"
 
   def isOuter: Boolean =
     id == FaceId.outerId

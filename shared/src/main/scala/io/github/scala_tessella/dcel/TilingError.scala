@@ -34,3 +34,11 @@ object TilingError:
           case SpatialError(message)     => "spatial"
           case NotFoundError(entity, id) => ""
       f(s"Multiple $errorType errors: ${errors.mkString("; ")}")
+
+  extension (either: Either[TilingError, Unit])
+    def toErrorSuffix: String =
+      either
+        .swap
+        .map: error =>
+          s" [${error.message}]"
+        .getOrElse("")
