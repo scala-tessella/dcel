@@ -47,7 +47,7 @@ object TilingSymmetry:
           case SymEdge(i, j) =>
             BigLineSegment(boundaryVertices(i).coords, boundaryVertices(j).coords).midPoint
 
-      val boundaryVertexIds = boundaryVertices.map(_.id)
+      val boundaryVertexIds = boundaryVertices.map { vertex => vertex.id }
       val boundaryAngles    = tiling.boundarySimplePolygon.toAngles
       val segmentSize       = boundaryAngles.size / symmetryOrder
       val symVertices       = (0 until segmentSize).map { i =>
@@ -58,7 +58,7 @@ object TilingSymmetry:
 
         SymEdge(i, i + 1)
       }.toList
-      val center              = boundaryVertices.map(_.coords).toList.centroid
+      val center              = boundaryVertices.map { vertex => vertex.coords }.toList.centroid
       val first: AxisLocation =
         (symVertices ++ symEdges).maxBy: location =>
           BigLineSegment(coordsOf(location), center).length
@@ -74,7 +74,7 @@ object TilingSymmetry:
     def reflectionalVertexIds: List[(BoundaryLocation, BoundaryLocation)] =
       val edges             = tiling.boundaryEdges.toVector
       if edges.isEmpty then return Nil
-      val boundaryVertexIds = tiling.boundaryVertices.map(_.id)
+      val boundaryVertexIds = tiling.boundaryVertices.map { vertex => vertex.id }
       val axes              = tiling.boundarySimplePolygon.reflectionalIndexPairs
       axes
         .filter: (loc1, _) =>
