@@ -27,7 +27,13 @@ final class Face(
   override def hashCode(): Int = id.value.hashCode
 
   override def toString: String =
-    s"Face $id${validate().swap.map(error => s" [${error.message}]").getOrElse("")}"
+    val possibleErrorSuffix =
+      validate()
+        .swap
+        .map: error =>
+          s" [${error.message}]"
+        .getOrElse("")
+    s"Face $id$possibleErrorSuffix"
 
   def isOuter: Boolean =
     id == FaceId.outerId
@@ -35,22 +41,27 @@ final class Face(
   // Area calculation
   def area: BigDecimal =
     val vertices = getVertices.getOrElse(List.empty)
-    vertices.map(_.coords).area
+    vertices
+      .map: vertex =>
+        vertex.coords
+      .area
 
   def hasHoles: Boolean =
     innerComponents.nonEmpty
 
   def validate(): Either[IncompleteError, Unit] =
-    val errors =
+    val emptyOuterError   =
       List(
         Option.when(outerComponent.isEmpty)("Missing outer component edge")
-      ).flatten ++
-        (if innerComponents.exists(_.isEmpty) then
-           List("One or more inner component edge references are missing")
-         else Nil)
-
-    if errors.isEmpty then Right(())
-    else Left(IncompleteError(errors.mkString(", ")))
+      ).flatten
+    val missingInnerError =
+      if innerComponents.exists(_.isEmpty) then
+        List("One or more inner component edge references are missing")
+      else
+        Nil
+    emptyOuterError ::: missingInnerError match
+      case Nil    => Right(())
+      case errors => Left(IncompleteError(errors.mkString(", ")))
 
   private[dcel] def getVerticesUnsafe: List[Vertex] =
     outerComponent.get.faceTraversalUnsafe(_.origin)
@@ -77,18 +88,20 @@ final class Face(
     halfEdgesUnsafe.map(_.angle.get)
 
   def angles: Either[TilingError, List[AngleDegree]] =
-    halfEdges.flatMap:
-      _.map:
-        _.angle.toRight(GeometryError("Cannot find interior angle"))
-      .sequence
+    halfEdges
+      .flatMap: edges =>
+        edges
+          .map: edge =>
+            edge.angle.toRight(GeometryError("Cannot find interior angle"))
+          .sequence
 
   private[dcel] def hasEqualAnglesUnsafe: Boolean =
     anglesUnsafe.toSet.size == 1
 
   /** Checks if the interior angles of the face are all equal. */
   def hasEqualAngles: Either[TilingError, Boolean] =
-    angles.map:
-      _.toSet.size == 1
+    angles.map: interiorAngles =>
+      interiorAngles.toSet.size == 1
 
 object Face:
 
@@ -96,16 +109,17 @@ object Face:
       id: FaceId,
       outerComponent: Option[HalfEdge] = None,
       innerComponents: List[Option[HalfEdge]] = Nil
-  ): Face = new Face(id, outerComponent, innerComponents)
+  ): Face =
+    new Face(id, outerComponent, innerComponents)
 
   def outer: Face = Face(FaceId.outerId)
 
   def adjacencyMap(faces: List[Face]): Map[Face, List[Face]] =
-    faces.associate:
-      _.halfEdges.getOrElse(List.empty)
-        .flatMap: edge =>
+    faces.associate: face =>
+      face.halfEdges.getOrElse(List.empty)
+        .flatMap: halfEdge =>
           for
-            twin         <- edge.twin
+            twin         <- halfEdge.twin
             incidentFace <- twin.incidentFace
             if faces.contains(incidentFace)
           yield incidentFace

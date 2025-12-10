@@ -638,7 +638,9 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       }
     )
 
-  /** Irregular hole almost joined by side <img src="file:../../../../../resources/irregularHoleAlmostJoinedBySide.svg"/> */
+  /** Irregular hole almost joined by side <img
+    * src="file:../../../../../resources/irregularHoleAlmostJoinedBySide.svg"/>
+    */
   def irregularHoleAlmostJoinedBySide: TilingDCEL =
     hexagon
       .maybeAddRegularPolygonToBoundary(V6, RegularPolygon(6)).value
@@ -648,7 +650,9 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       .maybeAddRegularPolygonToBoundary(VertexId("V19"), RegularPolygon(6)).value
       .maybeAddRegularPolygonToBoundary(VertexId("V23"), RegularPolygon(6)).value
 
-  /** Irregular hole almost joined by vertex <img src="file:../../../../../resources/irregularHoleAlmostJoinedByVertex.svg"/> */
+  /** Irregular hole almost joined by vertex <img
+    * src="file:../../../../../resources/irregularHoleAlmostJoinedByVertex.svg"/>
+    */
   def irregularHoleAlmostJoinedByVertex: TilingDCEL =
     irregularHoleAlmostJoinedBySide
       .maybeAddRegularPolygonToBoundary(VertexId("V27"), RegularPolygon(3)).value
@@ -665,7 +669,8 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       }
     )
 
-  /** Regular hole almost joined <img src="file:../../../../../resources/regularHoleAlmostJoinedBySide.svg"/> */
+  /** Regular hole almost joined <img src="file:../../../../../resources/regularHoleAlmostJoinedBySide.svg"/>
+    */
   def regularHoleAlmostJoinedBySide: TilingDCEL =
     commonBench
       .maybeAddRegularPolygonToBoundary(VertexId("V9"), RegularPolygon(3)).value
@@ -696,7 +701,9 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       }
     )
 
-  /** Regular holes almost joined by side <img src="file:../../../../../resources/regularHolesAlmostJoinedBySide.svg"/> */
+  /** Regular holes almost joined by side <img
+    * src="file:../../../../../resources/regularHolesAlmostJoinedBySide.svg"/>
+    */
   def regularHolesAlmostJoinedBySide: TilingDCEL =
     hexagon
       .maybeAddRegularPolygonToBoundary(V6, RegularPolygon(6)).value
@@ -835,7 +842,9 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       List(120, 180, 180, 180, 120, 120, 180, 120, 60, 180, 300, 180, 180, 300, 180, 60, 120, 180, 120)
     TilingBuilder.createSimplePolygon(angles*).value
 
-  /** Another almost joined by vertex <img src="file:../../../../../resources/anotherAlmostJoinedByVertex.svg"/> */
+  /** Another almost joined by vertex <img
+    * src="file:../../../../../resources/anotherAlmostJoinedByVertex.svg"/>
+    */
   def anotherAlmostJoinedByVertex: TilingDCEL =
     base.addRegularPolygonToBoundary(VertexId("V16"), RegularPolygon(3)).value
 
@@ -939,17 +948,17 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   behavior of "TilingBuilder.maybeAddRegularPolygonToBoundary"
 
   /** Tiling with three dodecagons <img src="file:../../../../../resources/threeDodecagons.svg"/>
-   */
+    */
   def threeDodecagons: TilingDCEL =
     TilingBuilder.createRegularPolygon(RegularPolygon(12))
       .maybeAddRegularPolygonToBoundary(V3, RegularPolygon(12)).value
       .maybeAddRegularPolygonToBoundary(VertexId("V11"), RegularPolygon(12)).value
 
-  it should "laterally add a fourth dodecagon creating two holes" in :
+  it should "laterally add a fourth dodecagon creating two holes" in:
     val result = threeDodecagons.maybeAddRegularPolygonToBoundary(VertexId("V21"), RegularPolygon(12))
     result.value.innerFaces.size shouldBe 6
 
-  it should "add from the other side a fourth dodecagon creating two holes" in :
+  it should "add from the other side a fourth dodecagon creating two holes" in:
     val result = threeDodecagons.maybeAddRegularPolygonToBoundary(VertexId("V23"), RegularPolygon(12))
     result.value.innerFaces.size shouldBe 6
 

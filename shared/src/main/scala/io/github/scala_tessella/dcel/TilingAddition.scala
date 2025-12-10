@@ -2,7 +2,13 @@ package io.github.scala_tessella.dcel
 
 import io.github.scala_tessella.dcel.TilingBuilder.*
 import io.github.scala_tessella.dcel.TilingEquivalency.*
-import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigLineSegment, BigPoint, RegularPolygon, SimplePolygon}
+import io.github.scala_tessella.dcel.geometry.{
+  AngleDegree,
+  BigLineSegment,
+  BigPoint,
+  RegularPolygon,
+  SimplePolygon
+}
 import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
 import io.github.scala_tessella.ring_seq.RingSeq.{rotateRight, slidingO}
 
@@ -387,7 +393,7 @@ object TilingAddition:
       maybeHoleClosure.map: (v_match, v_new) =>
         val (holeAngles, startingVertexId, endingVertexId) =
           tiling.holeAnglesWithDirection(v_match, v_new, containerFace)
-        val simplePolygon =
+        val simplePolygon                                  =
           SimplePolygon(holeAngles.toVector)
         clone.addSimplePolygonUnsafe(startingVertexId, endingVertexId, simplePolygon).get
 
