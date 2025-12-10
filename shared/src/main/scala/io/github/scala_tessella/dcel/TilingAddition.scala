@@ -7,7 +7,6 @@ import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, 
 import io.github.scala_tessella.ring_seq.RingSeq.{rotateRight, slidingO}
 
 import scala.annotation.tailrec
-import scala.util.{Failure, Success, Try}
 
 object TilingAddition:
 
