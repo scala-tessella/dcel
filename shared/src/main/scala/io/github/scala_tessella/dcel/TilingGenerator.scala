@@ -199,23 +199,29 @@ object TilingGenerator:
       val additions =
         List(3, 4, 6, 12)
           .map: sides =>
-            tiling.maybeAddRegularPolygonToBoundary(boundaryVertexIds(edgeStart), RegularPolygon(sides))
-              .map:
-                (sides, _)
-          .flatMap:
-            _.toOption
+            tiling
+              .maybeAddRegularPolygonToBoundary(
+                boundaryVertexIds(edgeStart),
+                RegularPolygon(sides)
+              )
+              .map: tilingDCEL =>
+                (sides, tilingDCEL)
+          .flatMap: either =>
+            either.toOption
 
       // for the success cases, repeat the additional symmetrically to the other segments
       additions.flatMap: (sides, grownTiling) =>
         (1 until order).foldLeft(Option(grownTiling)): (maybeGrown, i) =>
           maybeGrown.flatMap: grown =>
-            grown.maybeAddRegularPolygonToBoundary(
-              boundaryVertexIds(edgeStart + i * step),
-              RegularPolygon(sides)
-            ).toOption
+            grown
+              .maybeAddRegularPolygonToBoundary(
+                boundaryVertexIds(edgeStart + i * step),
+                RegularPolygon(sides)
+              )
+              .toOption
 
   extension (tilings: List[TilingDCEL])
     def expandRotationallyMore(order: Int, steps: Int = 1): List[TilingDCEL] =
       (0 until steps).foldLeft(tilings): (grownTilings, _) =>
-        grownTilings.flatMap:
-          _.expandRotationally(order)
+        grownTilings.flatMap: grownTiling =>
+          grownTiling.expandRotationally(order)
