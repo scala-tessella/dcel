@@ -150,7 +150,12 @@ object TilingAddition:
               case j  => (verticesPairs(i), edgesPairs(j))
       val vertexIds     =
         decoded.map: (verticesPair, edgesPair) =>
-          (verticesPair.map(_.id), edgesPair.map(_.origin.id))
+          (
+            verticesPair.map: vertex =>
+              vertex.id,
+            edgesPair.map: halfEdge =>
+              halfEdge.origin.id
+          )
       val edges         =
         vertexIds.map: (e1, e2) =>
           s"${e1.head}-${e1(1)} with ${e2.head}-${e2(1)}"
@@ -686,7 +691,8 @@ object TilingAddition:
             nf.outerComponent = Some(edgeMap(startOld))
           nf.innerComponents =
             of.innerComponents.map: maybeHalfEdge =>
-              maybeHalfEdge.map(edgeMap)
+              maybeHalfEdge.map: halfEdge =>
+                edgeMap(halfEdge)
 
       // 3.e – (re)wire twins purely by endpoints in the merged graph
       val dirBuckets =
