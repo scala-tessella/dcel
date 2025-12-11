@@ -966,3 +966,17 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val result = threeDodecagons.maybeAddRegularPolygonToBoundary(V1, RegularPolygon(12))
     println(result)
     result.isRight shouldBe true
+
+  it should "add a fourth dodecagon creating one hole having previously filled one" in:
+    val result =
+      threeDodecagons
+        .maybeAddRegularPolygonToBoundary(VertexId("V11"), RegularPolygon(3)).value
+        .maybeAddRegularPolygonToBoundary(V1, RegularPolygon(12))
+    result.value.innerFaces.size shouldBe 6
+
+  it should "add a fourth dodecagon creating one hole having previously filled the other" in :
+    val result =
+      threeDodecagons
+        .maybeAddRegularPolygonToBoundary(V2, RegularPolygon(3)).value
+        .maybeAddRegularPolygonToBoundary(V1, RegularPolygon(12))
+    result.value.innerFaces.size shouldBe 6
