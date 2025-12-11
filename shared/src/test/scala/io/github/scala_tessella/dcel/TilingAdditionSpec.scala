@@ -980,3 +980,17 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
         .maybeAddRegularPolygonToBoundary(V2, RegularPolygon(3)).value
         .maybeAddRegularPolygonToBoundary(V1, RegularPolygon(12))
     result.value.innerFaces.size shouldBe 6
+
+  /** Tiling with two pots <img src="file:../../../../../resources/twoPots.svg"/>
+   */
+  def twoPots: TilingDCEL =
+    TilingBuilder
+      .createSimplePolygon(90, 180, 180, 180, 180, 90, 180, 90, 90, 270, 270, 90, 90, 270, 270, 90, 90, 180).value
+
+  def lid: SimplePolygon =
+    SimplePolygon(180, 180, 180, 90, 90, 180, 180, 180, 180, 90, 90, 180)
+
+  it should "have the lid covering two square holes" in:
+    val result = twoPots.maybeAddSimplePolygonToBoundary(VertexId("V13"), lid)
+    println(result)
+    result.isRight shouldBe true
