@@ -240,7 +240,7 @@ object TilingUniformity:
             accumulated: List[Tree[List[VertexId]]]
         ): TailRec[List[Tree[List[VertexId]]]] =
           if maxDistance.exists:
-            _ < distance
+              _ < distance
           then
             done:
               accumulated.reverse

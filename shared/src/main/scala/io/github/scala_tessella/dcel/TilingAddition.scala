@@ -630,12 +630,11 @@ object TilingAddition:
       // Representative id -> merged Vertex
       val repToVertex = mutable.HashMap.empty[VertexId, Vertex]
 
-      allOldVertices.foreach { v =>
-        val r = repOf(v.id)
+      allOldVertices.foreach: vertex =>
+        val r = repOf(vertex.id)
         if !repToVertex.contains(r) then
           // Use coordinates of the first encountered vertex in that equivalence class
-          repToVertex(r) = Vertex(r, v.coords)
-      }
+          repToVertex(r) = Vertex(r, vertex.coords)
 
       // Every old vertex id maps to its merged vertex
       val newVertexOfId: Map[VertexId, Vertex] =
@@ -736,7 +735,8 @@ object TilingAddition:
               val oId = e.origin.id
               val dId = d.id
               if oId.value <= dId.value then ((oId, dId), e) else ((dId, oId), e)
-          .groupMap(_._1)(_._2)
+          .groupMap((vertexIdPair, _) => vertexIdPair): (_, halfEdge) =>
+            halfEdge
 
       byUndirected.values.foreach: edges =>
         // Partition by direction (origin,dest)
@@ -807,13 +807,13 @@ object TilingAddition:
       // -----------------------------------------------------------------------
       val allNewEdges = allNewEdgesNoDuplicates
 
-      newVertices.foreach: v =>
+      newVertices.foreach: vertex =>
         // Prefer a boundary edge as leaving if available, else any incident edge
         val boundaryLeaving = boundaryEdges.find:
-          _.origin eq v
+          _.origin eq vertex
         val anyLeaving      = allNewEdges.find:
-          _.origin eq v
-        v.leaving = boundaryLeaving.orElse(anyLeaving)
+          _.origin eq vertex
+        vertex.leaving = boundaryLeaving.orElse(anyLeaving)
 
       // -----------------------------------------------------------------------
       // 6. Build merged faces lists and validate
@@ -886,10 +886,9 @@ object TilingAddition:
     // Find pairs of vertices (one from boundary, one new) that share coordinates
     val sharedVertices =
       newVertices
-        .sameCoords(
+        .sameCoords:
           boundaryEdges.map: halfEdge =>
             halfEdge.origin
-        )
         .map: vertexPair =>
           vertexPair.swap
 
