@@ -242,14 +242,19 @@ object TilingUniformity:
           if maxDistance.exists:
               _ < distance
           then
-            done(accumulated.reverse)
+            done:
+              accumulated.reverse
           else
             remaining match
-              case Nil                             => done(accumulated.reverse)
+              case Nil                             =>
+                done:
+                  accumulated.reverse
               case ((inner, stuck), index) :: tail =>
                 if inner.nonEmpty then
                   val childKey = key :+ index
-                  tailcall(deepMap(childKey, inner)).flatMap: childTree =>
+                  tailcall:
+                    deepMap(childKey, inner)
+                  .flatMap: childTree =>
                     val updatedChild = childTree match
                       case Leaf(_)                  => Leaf(stuck)
                       case Branch(_, grandchildren) => Branch(stuck, grandchildren)
@@ -300,14 +305,19 @@ object TilingUniformity:
                 accumulated: List[Tree[List[VertexId]]]
             ): TailRec[List[Tree[List[VertexId]]]] =
               if maxDistance.exists(_ < distance) then
-                done(accumulated.reverse)
+                done:
+                  accumulated.reverse
               else
                 remaining match
-                  case Nil                             => done(accumulated.reverse)
+                  case Nil                             =>
+                    done:
+                      accumulated.reverse
                   case ((inner, stuck), index) :: tail =>
                     if inner.nonEmpty then
                       val childKey = key :+ index
-                      tailcall(deepMap(childKey, inner, maxDistance)).flatMap: childTree =>
+                      tailcall:
+                        deepMap(childKey, inner, maxDistance)
+                      .flatMap: childTree =>
                         val updatedChild = childTree match
                           case Leaf(_)                  => Leaf(stuck)
                           case Branch(_, grandchildren) => Branch(stuck, grandchildren)
@@ -315,7 +325,9 @@ object TilingUniformity:
                     else
                       iterate(tail, Leaf(stuck) :: accumulated)
 
-            tailcall(iterate(partitioned.zipWithIndex, Nil)).map: children =>
+            tailcall:
+              iterate(partitioned.zipWithIndex, Nil)
+            .map: children =>
               val result = Branch(Nil, children)
               cache.put(cacheKey, result): Unit
               result
