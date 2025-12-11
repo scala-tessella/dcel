@@ -878,7 +878,7 @@ object TilingAddition:
     * @param newVertices
     *   the added vertices
     */
-  private def findHoleClosure(
+  private[dcel] def findHoleClosure(
       startVertex: Vertex,
       boundaryEdges: List[HalfEdge],
       newVertices: List[Vertex]
