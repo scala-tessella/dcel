@@ -94,13 +94,11 @@ object TilingSVG:
       val arrowSizeBD    = BigDecimal(arrowSize)
       val baseOffset     = arrowSizeBD * BigDecimal(0.4)
 
-      val tip   = scaledMidPoint.plus(BigPoint(unitDirection.x * arrowSizeBD, -unitDirection.y * arrowSizeBD))
+      val tip   = scaledMidPoint + BigPoint(unitDirection.x * arrowSizeBD, -unitDirection.y * arrowSizeBD)
       val base1 =
-        scaledMidPoint.plus(BigPoint(unitPerpendicular.x * baseOffset, -unitPerpendicular.y * baseOffset))
-      val base2 = scaledMidPoint.plus(BigPoint(
-        unitPerpendicular.x * (-baseOffset),
-        -unitPerpendicular.y * (-baseOffset)
-      ))
+        scaledMidPoint + BigPoint(unitPerpendicular.x * baseOffset, -unitPerpendicular.y * baseOffset)
+      val base2 =
+        scaledMidPoint + BigPoint(unitPerpendicular.x * -baseOffset, -unitPerpendicular.y * -baseOffset)
 
       Some(Arrow(tip.x.format, tip.y.format, base1.x.format, base1.y.format, base2.x.format, base2.y.format))
 

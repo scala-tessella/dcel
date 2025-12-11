@@ -146,7 +146,7 @@ object BigDecimalGeometry:
       }
 
       // Create a bounding box for all segments
-      val allPoints = segments1.flatMap(s => List(s.p1, s.p2)) ++ segments2.flatMap(s => List(s.p1, s.p2))
+      val allPoints = segments1.toPoints ++ segments2.toPoints
       val bounds    = BigBox.fromPoints(allPoints).expand(actualCellSize)
 
       // Create a spatial grid and add the larger collection
@@ -182,7 +182,9 @@ object BigDecimalGeometry:
 
         // If both collections are very small, use a brute force approach
         if segments1.length * segments2.length <= 100 then
-          segments1.exists(s1 => segments2.exists(s2 => s1.properlyIntersects(s2)))
+          segments1.exists: s1 =>
+            segments2.exists: s2 =>
+              s1.properlyIntersects(s2)
         else
 
           val (smaller, grid) = smallerAndSpatialGrid(segments1, segments2, cellSize)

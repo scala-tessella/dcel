@@ -35,8 +35,7 @@ class BigPointSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       s.x shouldBe BigDecimal(4),
       s.y shouldBe BigDecimal(6),
       d.x shouldBe BigDecimal(2),
-      d.y shouldBe BigDecimal(2),
-      a.plus(b) shouldBe s // compatibility alias
+      d.y shouldBe BigDecimal(2)
     )
 
   it should "compute dot and cross products" in:

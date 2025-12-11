@@ -47,12 +47,21 @@ object BigPoint:
     inline def y: BigDecimal =
       point.y
 
+    private def zipWith(op: (BigDecimal, BigDecimal) => BigDecimal)(that: BigPoint): BigPoint =
+      (op(point.x, that.x), op(point.y, that.y))
+
+    private def zipWith(op: (BigDecimal, BigDecimal) => BigDecimal)(value: BigDecimal): BigPoint =
+      (op(point.x, value), op(point.y, value))
+
     // Provide common vector-like ops and keep names consistent
     def +(that: BigPoint): BigPoint =
-      (point.x + that.x, point.y + that.y)
+      zipWith(_ + _)(that)
 
     def -(that: BigPoint): BigPoint =
-      (point.x - that.x, point.y - that.y)
+      zipWith(_ - _)(that)
+
+    def /(divisor: BigDecimal): BigPoint =
+      zipWith(_ / _)(divisor)
 
     def dot(that: BigPoint): BigDecimal =
       point.x * that.x + point.y * that.y
@@ -60,9 +69,9 @@ object BigPoint:
     def cross(that: BigPoint): BigDecimal =
       point.x * that.y - point.y * that.x
 
-    /** Sum of two points (kept for source compatibility, prefer +) */
-    def plus(that: BigPoint): BigPoint =
-      (point.x + that.x, point.y + that.y)
+//    /** Sum of two points (kept for source compatibility, prefer +) */
+//    def plus(that: BigPoint): BigPoint =
+//      (point.x + that.x, point.y + that.y)
 
     /** Tests whether this `BigPoint` is approximately equal to another, within given accuracy. */
     def almostEquals(that: BigPoint, accuracy: Double = ACCURACY): Boolean =
@@ -71,7 +80,7 @@ object BigPoint:
 
     /** New point moved by polar coordinates */
     def plusPolar(rho: BigDecimal)(theta: BigRadian): BigPoint =
-      plus(BigPoint.fromPolar(rho, theta))
+      point + BigPoint.fromPolar(rho, theta)
 
     /** New point moved by distance 1.0 */
     def plusPolarUnit: BigRadian => BigPoint =
@@ -88,8 +97,8 @@ object BigPoint:
     def hasUnitDistanceTo(other: BigPoint): Boolean =
       distanceTo(other).almostEqual(BigDecimal(1.0))
 
-    def scaled(scale: Double): BigPoint =
-      (point.x * scale, point.y * scale)
+    def scaled(scale: BigDecimal): BigPoint =
+      point.zipWith(_ * _)(scale)
 
     def flippedY: BigPoint =
       (point.x, -point.y)
@@ -99,11 +108,11 @@ object BigPoint:
     def centroid: BigPoint =
       if points.nonEmpty then
         // single pass reduce to avoid building intermediate lists
-        val (sx, sy) =
+        val summed =
           points
-            .foldLeft((BigDecimal(0), BigDecimal(0))):
-              case ((ax, ay), p) => (ax + p.x, ay + p.y)
-        BigPoint(sx / points.length, sy / points.length)
+            .foldLeft(BigPoint.origin):
+              case (total, point) => total + point
+        summed / points.length
       else
         BigPoint.origin // origin (0,0)
 

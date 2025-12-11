@@ -69,4 +69,7 @@ object AngleDegree:
   extension (degrees: Seq[AngleDegree])
 
     def sumExact: AngleDegree =
-      degrees.map(_.toRational).sum
+      degrees
+        .map:
+          _.toRational
+        .sum

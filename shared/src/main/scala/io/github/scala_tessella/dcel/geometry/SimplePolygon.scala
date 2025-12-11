@@ -63,7 +63,11 @@ object SimplePolygon:
       if n < 1 then
         throw new IllegalArgumentException("A simple polygon must have sides of at least unit length.")
       else
-        SimplePolygon(angles.flatMap(_ +: Vector.fill(n - 1)(AngleDegree(180))))
+        val straightAngles = Vector.fill(n - 1)(AngleDegree(180))
+        SimplePolygon(
+          angles.flatMap: angle =>
+            angle +: straightAngles
+        )
 
     def rotationalSymmetryOrder: Int =
       angles.rotationalSymmetry
@@ -185,13 +189,12 @@ object SimplePolygon:
             isParallelogon
 //          .orElse(hex.find(isParallelogon))
           // otherwise, find the result with the longest segment
-          .orElse(
+          .orElse:
             hex
               .filter:
                 isParallelogon
               .maxByOption:
                 maxSegmentLength
-          )
           .map:
             completeHalf(_).distinct
           .getOrElse(Nil)

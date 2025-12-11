@@ -52,8 +52,10 @@ class TilingValidationComprehensiveSpec extends AnyFlatSpec with Matchers with T
     val tiling = square
     tiling.vertices.head.leaving = None
     val res    = validateCompleteness(tiling)
-    res.isLeft shouldBe true
-    res.left.value.message shouldBe "Vertex V1 at coords (0, 0) [Missing leaving edge]"
+    allAssert(
+      res.isLeft shouldBe true,
+      res.left.value.message shouldBe "Vertex V1 at coords (0, 0) [Missing leaving edge]"
+    )
 
   it should "fail when a vertex leaving edge does not originate from that vertex" in:
     val tiling = square
@@ -244,7 +246,7 @@ class TilingValidationComprehensiveSpec extends AnyFlatSpec with Matchers with T
     val tiling2 = TilingDCEL(
       vertices = tiling.vertices.map(vertex =>
         if vertex.id == V2 then
-          Vertex(id = vertex.id, coords = v1.coords.plus(BigPoint(10, 10)), leaving = vertex.leaving)
+          Vertex(id = vertex.id, coords = v1.coords + BigPoint(10, 10), leaving = vertex.leaving)
         else vertex
       ),
       halfEdges = tiling.halfEdges,
