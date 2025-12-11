@@ -84,9 +84,13 @@ enum Tree[A]:
     // recursively visits all branches
     def deepMap(node: Tree[A]): TailRec[B] =
       node match
-        case Leaf(value)             => done(fLeaf(value))
+        case Leaf(value)             =>
+          done:
+            fLeaf(value)
         case Branch(value, children) =>
-          tailcall(iterate(children)).map: iteratedChildren =>
+          tailcall:
+            iterate(children)
+          .map: iteratedChildren =>
             gBranch(fBranch(value) :: iteratedChildren)
 
     deepMap(this).result // unwrap result to plain node
@@ -99,11 +103,14 @@ enum Tree[A]:
 
     def deepMap(node: Tree[A]): TailRec[B] =
       node match
-        case Leaf(value)             => done(leaf(value))
+        case Leaf(value)             =>
+          done:
+            leaf(value)
         case Branch(value, children) =>
-          tailcall(iterate(children))
-            .map: iteratedChildren =>
-              branch(value, iteratedChildren)
+          tailcall:
+            iterate(children)
+          .map: iteratedChildren =>
+            branch(value, iteratedChildren)
 
     deepMap(this).result
 
@@ -276,7 +283,8 @@ enum Tree[A]:
         case Branch(value, children) =>
           Branch(
             value,
-            if children.last.isLeaf then children.init else children.init :+ loop(f(children.last))
+            if children.last.isLeaf then children.init
+            else children.init :+ loop(f(children.last))
           )
 
     loop(this)
@@ -294,7 +302,8 @@ enum Tree[A]:
           else
             Branch(
               value,
-              if children.last.children.isEmpty then children.init else children.init :+ loop(children.last)
+              if children.last.children.isEmpty then children.init
+              else children.init :+ loop(children.last)
             )
 
     loop(this)
@@ -351,7 +360,9 @@ object Tree:
       case Nil    => done(Nil)
       case h :: t =>
         // calls with mutual recursion deepMap which maps over children of node
-        tailcall(deepMap(h)).flatMap: node => // you can flat map over TailRec
+        tailcall:
+          deepMap(h)
+        .flatMap: node => // you can flat map over TailRec
           iterateRaw(t, deepMap).map: nodes =>
             node :: nodes
 
@@ -397,11 +408,13 @@ object Tree:
 
     def deepMap(initial: A): TailRec[Tree[B]] =
       if stop(initial) then
-        done(Leaf(fLeaf(initial)))
+        done:
+          Leaf(fLeaf(initial))
       else
-        tailcall(iterate(next(initial)))
-          .map: values =>
-            Branch(fBranch(initial), values)
+        tailcall:
+          iterate(next(initial))
+        .map: values =>
+          Branch(fBranch(initial), values)
 
     deepMap(seed).result
 
