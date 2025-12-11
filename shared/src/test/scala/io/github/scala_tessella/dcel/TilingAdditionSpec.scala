@@ -6,7 +6,7 @@ import io.github.scala_tessella.dcel.TilingDeletion.*
 import io.github.scala_tessella.dcel.TilingEquivalency.*
 import io.github.scala_tessella.dcel.TilingValidation.validate
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint, RegularPolygon, SimplePolygon}
-import io.github.scala_tessella.dcel.structure.{FaceId, VertexId}
+import io.github.scala_tessella.dcel.structure.{FaceId, Vertex, VertexId}
 import io.github.scala_tessella.ring_seq.RingSeq.*
 import org.scalatest.Assertion
 import org.scalatest.flatspec.AnyFlatSpec
@@ -995,14 +995,60 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     println(result)
     result.isRight shouldBe true
 
-  it should "have the lid covering one remaining square hole" in :
+  it should "have the lid covering one remaining square hole" in:
     val result = twoPots
       .maybeAddRegularPolygonToBoundary(VertexId("V16"), RegularPolygon(4)).value
       .maybeAddSimplePolygonToBoundary(VertexId("V13"), rectangularLid)
     result.value.innerFaces.size shouldBe 4
 
-  it should "have the lid covering the other remaining square hole" in :
+  it should "have the lid covering the other remaining square hole" in:
     val result = twoPots
       .maybeAddRegularPolygonToBoundary(VertexId("V12"), RegularPolygon(4)).value
       .maybeAddSimplePolygonToBoundary(VertexId("V13"), rectangularLid)
     result.value.innerFaces.size shouldBe 4
+
+  behavior of "TilingAddition.findHoleClosure"
+
+  it should "return in the wrong case" in:
+    val startVertex = Vertex(VertexId("V13"), BigPoint(2, 2))
+    val boundaryEdges = twoPots.outerFace.halfEdgesUnsafe
+    val newVertices =
+      List(
+        Vertex(VertexId("V19"), BigPoint(1, 2)),
+        Vertex(VertexId("V20"), BigPoint(-0, 2)),
+        Vertex(VertexId("V21"), BigPoint(0, 3)),
+        Vertex(VertexId("V22"), BigPoint(1, 3)),
+        Vertex(VertexId("V23"), BigPoint(2, 3)),
+        Vertex(VertexId("V24"), BigPoint(3, 3)),
+        Vertex(VertexId("V25"), BigPoint(4, 3)),
+        Vertex(VertexId("V26"), BigPoint(5, 3)),
+        Vertex(VertexId("V27"), BigPoint(5, 2)),
+        Vertex(VertexId("V28"), BigPoint(4, 2))
+      )
+    findHoleClosure(startVertex, boundaryEdges, newVertices) shouldBe
+      Some(
+        boundaryEdges(2).origin,
+        newVertices(1)
+      )
+
+  it should "return in the right case" in :
+    val startVertex = Vertex(VertexId("V13"), BigPoint(2, 2))
+    val boundaryEdges =
+      twoPots.maybeAddRegularPolygonToBoundary(VertexId("V16"), RegularPolygon(4)).value
+        .outerFace.halfEdgesUnsafe
+    val newVertices =
+      List(
+        Vertex(VertexId("V19"), BigPoint(0, 3)),
+        Vertex(VertexId("V20"), BigPoint(1, 3)),
+        Vertex(VertexId("V21"), BigPoint(2, 3)),
+        Vertex(VertexId("V22"), BigPoint(3, 3)),
+        Vertex(VertexId("V23"), BigPoint(4, 3)),
+        Vertex(VertexId("V24"), BigPoint(5, 3)),
+        Vertex(VertexId("V25"), BigPoint(5, 2)),
+        Vertex(VertexId("V26"), BigPoint(4, 2))
+      )
+    findHoleClosure(startVertex, boundaryEdges, newVertices) shouldBe
+      Some(
+        boundaryEdges(8).origin,
+        newVertices(7)
+      )
