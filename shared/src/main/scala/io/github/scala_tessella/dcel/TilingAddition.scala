@@ -896,30 +896,32 @@ object TilingAddition:
       case Nil  => None
       case many =>
         // Get the indices of the new vertices that are shared
-        val indices = many.map: (_, secondVertex) =>
-          newVertices.indexOf(secondVertex)
+        val newVertexIndices = many.map: (_, newVertex) =>
+          newVertices.indexOf(newVertex)
 
         // Find the last vertex from the initial contiguous block of shared vertices
-        val forwardContiguousCount = indices.zip(indices.tail)
-          .takeWhile: (a, b) =>
-            a + 1 == b
-          .length
+        val forwardContiguousCount =
+          newVertexIndices.zip(newVertexIndices.tail)
+            .takeWhile: (a, b) =>
+              a + 1 == b
+            .length
         val endOfFirstBlock        = many(forwardContiguousCount)
 
         // Find the first vertex from the final contiguous block of shared vertices
-        val backwardContiguousCount = indices.reverse.zip(indices.reverse.tail)
-          .takeWhile: (a, b) =>
-            a - 1 == b
-          .length
+        val backwardContiguousCount =
+          newVertexIndices.reverse.zip(newVertexIndices.reverse.tail)
+            .takeWhile: (a, b) =>
+              a - 1 == b
+            .length
         val startOfLastBlock        = many(many.length - 1 - backwardContiguousCount)
 
         // Determine which closure point results in a smaller path on the boundary
-        def shortestPathLength(to: Vertex): Int =
+        def shortestBoundaryPathLength(to: Vertex): Int =
           val pathLength = boundaryEdges.getPath(from = startVertex, to = to).length
           math.min(pathLength, boundaryEdges.length - pathLength)
 
-        val forwardPathLength  = shortestPathLength(endOfFirstBlock._1)
-        val backwardPathLength = shortestPathLength(startOfLastBlock._1)
+        val forwardPathLength  = shortestBoundaryPathLength(endOfFirstBlock._1)
+        val backwardPathLength = shortestBoundaryPathLength(startOfLastBlock._1)
 
         if forwardPathLength < backwardPathLength then
           Some(endOfFirstBlock)

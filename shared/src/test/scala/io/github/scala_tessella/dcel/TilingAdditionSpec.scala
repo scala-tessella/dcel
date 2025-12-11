@@ -974,7 +974,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
         .maybeAddRegularPolygonToBoundary(V1, RegularPolygon(12))
     result.value.innerFaces.size shouldBe 6
 
-  it should "add a fourth dodecagon creating one hole having previously filled the other" in :
+  it should "add a fourth dodecagon creating one hole having previously filled the other" in:
     val result =
       threeDodecagons
         .maybeAddRegularPolygonToBoundary(V2, RegularPolygon(3)).value
@@ -982,10 +982,12 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     result.value.innerFaces.size shouldBe 6
 
   /** Tiling with two pots <img src="file:../../../../../resources/twoPots.svg"/>
-   */
+    */
   def twoPots: TilingDCEL =
     TilingBuilder
-      .createSimplePolygon(90, 180, 180, 180, 180, 90, 180, 90, 90, 270, 270, 90, 90, 270, 270, 90, 90, 180).value
+      .createSimplePolygon(
+        90, 180, 180, 180, 180, 90, 180, 90, 90, 270, 270, 90, 90, 270, 270, 90, 90, 180
+      ).value
 
   def rectangularLid: SimplePolygon =
     SimplePolygon(180, 180, 180, 90, 90, 180, 180, 180, 180, 90, 90, 180)
@@ -1010,9 +1012,9 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   behavior of "TilingAddition.findHoleClosure"
 
   it should "return in the wrong case" in:
-    val startVertex = Vertex(VertexId("V13"), BigPoint(2, 2))
+    val startVertex   = Vertex(VertexId("V13"), BigPoint(2, 2))
     val boundaryEdges = twoPots.outerFace.halfEdgesUnsafe
-    val newVertices =
+    val newVertices   =
       List(
         Vertex(VertexId("V19"), BigPoint(1, 2)),
         Vertex(VertexId("V20"), BigPoint(-0, 2)),
@@ -1031,12 +1033,12 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
         newVertices(1)
       )
 
-  it should "return in the right case" in :
-    val startVertex = Vertex(VertexId("V13"), BigPoint(2, 2))
+  it should "return in the right case" in:
+    val startVertex   = Vertex(VertexId("V13"), BigPoint(2, 2))
     val boundaryEdges =
       twoPots.maybeAddRegularPolygonToBoundary(VertexId("V16"), RegularPolygon(4)).value
         .outerFace.halfEdgesUnsafe
-    val newVertices =
+    val newVertices   =
       List(
         Vertex(VertexId("V19"), BigPoint(0, 3)),
         Vertex(VertexId("V20"), BigPoint(1, 3)),
