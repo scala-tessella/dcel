@@ -892,12 +892,13 @@ object TilingAddition:
       boundaryEdges: List[HalfEdge],
       newVertices: List[Vertex]
   ): Option[OldNewVertexPair] =
+    val boundaryVertices =
+      boundaryEdges.map: halfEdge =>
+        halfEdge.origin
+
     // Find pairs of vertices (one from boundary, one new) that share coordinates
     val sharedVertices: List[OldNewVertexPair] =
-      newVertices
-        .sameCoords:
-          boundaryEdges.map: halfEdge =>
-            halfEdge.origin
+      newVertices.sameCoords(boundaryVertices)
         .map: vertexPair =>
           vertexPair.swap
 
