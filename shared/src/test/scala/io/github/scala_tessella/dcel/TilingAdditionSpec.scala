@@ -1027,11 +1027,15 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
         Vertex(VertexId("V27"), BigPoint(5, 2)),
         Vertex(VertexId("V28"), BigPoint(4, 2))
       )
-    findHoleClosure(startVertex, boundaryEdges, newVertices) shouldBe
-      Some(
-        boundaryEdges(2).origin,
-        newVertices(1)
-      )
+    allAssert(
+      boundaryEdges(2).origin.id shouldEqual "V17",
+      newVertices(1).id shouldEqual "V20",
+      findHoleClosure(startVertex, boundaryEdges, newVertices) shouldBe
+        Some(
+          boundaryEdges(2).origin,
+          newVertices(1)
+        )
+    )
 
   it should "return in the right case" in:
     val startVertex   = Vertex(VertexId("V13"), BigPoint(2, 2))
@@ -1049,8 +1053,12 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
         Vertex(VertexId("V25"), BigPoint(5, 2)),
         Vertex(VertexId("V26"), BigPoint(4, 2))
       )
-    findHoleClosure(startVertex, boundaryEdges, newVertices) shouldBe
-      Some(
-        boundaryEdges(8).origin,
-        newVertices(7)
-      )
+    allAssert(
+      boundaryEdges(2).origin.id shouldEqual "V17",
+      newVertices(1).id shouldEqual "V20",
+      findHoleClosure(startVertex, boundaryEdges, newVertices) shouldBe
+        Some(
+          boundaryEdges(8).origin,
+          newVertices(7)
+        )
+    )
