@@ -163,6 +163,8 @@ object TilingAddition:
     else
       Right(())
 
+  private type OldNewVertexPair = (oldVertex: Vertex, newVertex: Vertex)
+
   extension (tiling: TilingDCEL)
 
     private def nextFaceId: FaceId =
@@ -198,7 +200,7 @@ object TilingAddition:
         angles: List[AngleDegree],
         points: List[BigPoint],
         boundaryEdges: List[HalfEdge]
-    ): Either[TilingError, (TilingDCEL, TilingDCEL, Face, Option[(Vertex, Vertex)])] =
+    ): Either[TilingError, (TilingDCEL, TilingDCEL, Face, Option[OldNewVertexPair])] =
       val containerFace = edgeToBuildOn.incidentFace.get
 
       for
@@ -217,7 +219,7 @@ object TilingAddition:
           )
         _                                           <- checkForBoundaryIntersections(adjustedTempVertices, boundaryEdges)
         result                                      <-
-          val maybeHoleClosure: Option[(Vertex, Vertex)] =
+          val maybeHoleClosure: Option[OldNewVertexPair] =
             findHoleClosure(startVertex, boundaryEdges, tempVertices)
           val deepCopiedOriginal: TilingDCEL             =
             if maybeHoleClosure.isDefined then tiling.deepCopy
@@ -268,6 +270,9 @@ object TilingAddition:
     ): (List[AngleDegree], VertexId, VertexId) =
       val boundaryEdges = containerFace.halfEdgesUnsafe
 
+//      println(s"v_match.id = ${v_match.id}, v_new.id = ${v_new.id}")
+//      println(s"boundaryEdges.map(_.origin.id) = ${boundaryEdges.map(_.origin.id)}")
+
       // 1. Determine the shorter path (the "hole") on the boundary between the two vertices.
       val pathFwd  = boundaryEdges.getPath(from = v_match, to = v_new)
       val pathBack = boundaryEdges.getPath(from = v_new, to = v_match)
@@ -277,6 +282,10 @@ object TilingAddition:
 
       // 2. Calculate the internal angles for a new polygon that would fill this hole.
       val polygonAngles = calculateHolePolygonAngles(holePath)
+
+//      if polygonAngles.head.isFullCircle then
+//        println(s"polygonAngles = $polygonAngles")
+//        throw new Error("First angle is full circle")
 
       // 3. Determine the starting vertex and adjust angle order based on the path direction.
       if isForward then
@@ -388,7 +397,7 @@ object TilingAddition:
     private def maybeFilled(
         clone: TilingDCEL,
         containerFace: Face,
-        maybeHoleClosure: Option[(Vertex, Vertex)]
+        maybeHoleClosure: Option[OldNewVertexPair]
     ): Option[TilingDCEL] =
       maybeHoleClosure.map: (v_match, v_new) =>
         val (holeAngles, startingVertexId, endingVertexId) =
@@ -420,7 +429,7 @@ object TilingAddition:
         endVertexId: VertexId,
         simple: SimplePolygon
     ): Either[TilingError, TilingDCEL] =
-      val either: Either[TilingError, (TilingDCEL, TilingDCEL, Face, Option[(Vertex, Vertex)])] =
+      val either: Either[TilingError, (TilingDCEL, TilingDCEL, Face, Option[OldNewVertexPair])] =
         for
           (startVertex, endVertex, edgeToBuildOn) <-
             tiling.findVerticesAndEdgeBetween(startVertexId, endVertexId)
@@ -529,7 +538,7 @@ object TilingAddition:
         endVertexId: VertexId,
         polygon: RegularPolygon
     ): Either[TilingError, TilingDCEL] =
-      val either: Either[TilingError, (TilingDCEL, TilingDCEL, Face, Option[(Vertex, Vertex)])] =
+      val either: Either[TilingError, (TilingDCEL, TilingDCEL, Face, Option[OldNewVertexPair])] =
         for
           (startVertex, endVertex, edgeToBuildOn) <-
             tiling.findVerticesAndEdgeBetween(startVertexId, endVertexId)
@@ -882,9 +891,9 @@ object TilingAddition:
       startVertex: Vertex,
       boundaryEdges: List[HalfEdge],
       newVertices: List[Vertex]
-  ): Option[(Vertex, Vertex)] =
+  ): Option[OldNewVertexPair] =
     // Find pairs of vertices (one from boundary, one new) that share coordinates
-    val sharedVertices =
+    val sharedVertices: List[OldNewVertexPair] =
       newVertices
         .sameCoords:
           boundaryEdges.map: halfEdge =>
@@ -892,41 +901,61 @@ object TilingAddition:
         .map: vertexPair =>
           vertexPair.swap
 
-    sharedVertices match
-      case Nil  => None
-      case many =>
-        // Get the indices of the new vertices that are shared
-        val newVertexIndices = many.map: (_, newVertex) =>
-          newVertices.indexOf(newVertex)
+//    println(s"startVertex: $startVertex")
+//    println(s"newVertices: $newVertices")
+//    println(s"sharedVertices: $sharedVertices")
 
-        // Find the last vertex from the initial contiguous block of shared vertices
-        val forwardContiguousCount =
-          newVertexIndices.zip(newVertexIndices.tail)
-            .takeWhile: (a, b) =>
-              a + 1 == b
-            .length
-        val endOfFirstBlock        = many(forwardContiguousCount)
+    if sharedVertices.isEmpty then
+      return None
 
-        // Find the first vertex from the final contiguous block of shared vertices
-        val backwardContiguousCount =
-          newVertexIndices.reverse.zip(newVertexIndices.reverse.tail)
-            .takeWhile: (a, b) =>
-              a - 1 == b
-            .length
-        val startOfLastBlock        = many(many.length - 1 - backwardContiguousCount)
+    // Get the indices of the new vertices that are shared
+    val newVertexIndices = sharedVertices.map: pair =>
+      newVertices.indexOf(pair.newVertex)
 
-        // Determine which closure point results in a smaller path on the boundary
-        def shortestBoundaryPathLength(to: Vertex): Int =
-          val pathLength = boundaryEdges.getPath(from = startVertex, to = to).length
-          math.min(pathLength, boundaryEdges.length - pathLength)
+    // Find the last vertex from the initial contiguous block of shared vertices
+    val forwardContiguousCount =
+      newVertexIndices.zip(newVertexIndices.tail)
+        .takeWhile: (a, b) =>
+          a + 1 == b
+        .length
+    val endOfFirstBlock        = sharedVertices(forwardContiguousCount)
+//    println(s"endOfFirstBlock: $endOfFirstBlock")
 
-        val forwardPathLength  = shortestBoundaryPathLength(endOfFirstBlock._1)
-        val backwardPathLength = shortestBoundaryPathLength(startOfLastBlock._1)
+    // Find the first vertex from the final contiguous block of shared vertices
+    val backwardContiguousCount =
+      newVertexIndices.reverse.zip(newVertexIndices.reverse.tail)
+        .takeWhile: (a, b) =>
+          a - 1 == b
+        .length
+    val startOfLastBlock        = sharedVertices(sharedVertices.length - 1 - backwardContiguousCount)
+//    println(s"startOfLastBlock: $startOfLastBlock")
+//
+//    val boundaryVertices = boundaryEdges.map(_.origin)
+//    val startIndex = boundaryVertices.indexOf(startVertex)
+////        println(s"x: $startIndex")
+//    val found =
+//      boundaryVertices.indices.find(i => sharedVertices.map(_._1).contains(boundaryVertices.applyO(i + startIndex))).get
+////        println(s"found: $found")
+//    val isReversed: Boolean =
+//      sharedVertices.size > 2 &&
+//        startOfLastBlock._1 != boundaryVertices(found) && endOfFirstBlock._1 != boundaryVertices(found)
+//    println(s"isReversed: $isReversed")
+////        if isReversed then
+////          throw new RuntimeException("This is going to fail")
 
-        if forwardPathLength < backwardPathLength then
-          Some(endOfFirstBlock)
-        else
-          Some(startOfLastBlock)
+    // Determine which closure point results in a smaller path on the boundary
+    def shortestBoundaryPathLength(to: Vertex): Int =
+      val pathLength = boundaryEdges.getPath(from = startVertex, to = to).length
+      math.min(pathLength, boundaryEdges.length - pathLength)
+
+    val forwardPathLength  = shortestBoundaryPathLength(endOfFirstBlock.oldVertex)
+    val backwardPathLength = shortestBoundaryPathLength(startOfLastBlock.oldVertex)
+//    println(s"forwardPathLength: $forwardPathLength, backwardPathLength: $backwardPathLength")
+
+    if forwardPathLength < backwardPathLength then
+      Some(endOfFirstBlock)
+    else
+      Some(startOfLastBlock)
 
   private def additionalElements(
       edgeToBuildOn: HalfEdge,
