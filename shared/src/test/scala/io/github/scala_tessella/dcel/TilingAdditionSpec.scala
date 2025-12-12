@@ -701,8 +701,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       }
     )
 
-  /** Regular holes almost joined by side <img
-    * src="file:../../../../../resources/regularHolesAlmostJoinedBySide.svg"/>
+  /** Regular holes almost joined by side <img src="file:../../../../../resources/regularHolesAlmostJoinedBySide.svg"/>
     */
   def regularHolesAlmostJoinedBySide: TilingDCEL =
     hexagon
