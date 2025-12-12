@@ -992,10 +992,18 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   def rectangularLid: SimplePolygon =
     SimplePolygon(180, 180, 180, 90, 90, 180, 180, 180, 180, 90, 90, 180)
 
-  it should "have the lid covering two square holes" in:
+  it should "have the lid covering two square holes when attached to the middle" in:
     val result = twoPots.maybeAddSimplePolygonToBoundary(VertexId("V13"), rectangularLid)
     println(result)
     result.isRight shouldBe true
+
+  it should "have the lid covering two square holes when attached on the left" in :
+    val result = twoPots.maybeAddSimplePolygonToBoundary(VertexId("V17"), SimplePolygon(rectangularLid.toAngles.rotateRight(2)))
+    result.value.innerFaces.size shouldBe 4
+
+  it should "have the lid covering two square holes when attached on the right" in :
+    val result = twoPots.maybeAddSimplePolygonToBoundary(VertexId("V9"), SimplePolygon(rectangularLid.toAngles.rotateLeft(2)))
+    result.value.innerFaces.size shouldBe 4
 
   it should "have the lid covering one remaining square hole" in:
     val result = twoPots
