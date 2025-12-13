@@ -1,6 +1,6 @@
 package io.github.scala_tessella.dcel
 
-import io.github.scala_tessella.dcel.TilingEquivalency.isBoundaryEquivalentTo
+import io.github.scala_tessella.dcel.TilingEquivalency.{hasSameSizesOf, isBoundaryEquivalentTo}
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, RegularPolygon}
 import io.github.scala_tessella.dcel.structure.Vertex
 import io.github.scala_tessella.ring_seq.RingSeq.rotationsAndReflections
@@ -179,11 +179,19 @@ object TilingGenerator:
     def distinctByBoundaryEquivalency: List[TilingDCEL] =
       tilings
         .foldLeft(List.empty[TilingDCEL]): (acc, tiling) =>
-          if acc.exists(_.isBoundaryEquivalentTo(tiling)) then
+          if acc.exists: t =>
+              t.hasSameSizesOf(tiling) && t.isBoundaryEquivalentTo(tiling)
+          then
             acc
           else
             tiling :: acc
         .reverse
+
+  extension (tilingsCollections: List[List[TilingDCEL]])
+
+    def distinctByBoundaryEquivalency2: List[TilingDCEL] =
+      ???
+
 
   extension (tiling: TilingDCEL)
 
@@ -233,8 +241,13 @@ object TilingGenerator:
 
   extension (tilings: List[TilingDCEL])
     def expandRotationallyMore(order: Int, steps: Int = 1): List[TilingDCEL] =
-      (0 until steps).foldLeft(tilings): (grownTilings, _) =>
+      (0 until steps).foldLeft(tilings): (grownTilings, step) =>
         grownTilings
           .flatMap: grownTiling =>
             grownTiling.expandRotationally(order)
-          .distinctByBoundaryEquivalency  
+              .filter: t =>
+                t.innerFaces.size == 1 + order * (step + 1)
+              .filter: t =>
+                t.boundarySimplePolygon.toAngles.forall: angle =>
+                  angle.toRational <= Rational(300)
+          .distinctByBoundaryEquivalency

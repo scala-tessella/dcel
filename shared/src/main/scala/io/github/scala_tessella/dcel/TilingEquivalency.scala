@@ -296,7 +296,7 @@ object TilingEquivalency:
         }
       distances.toMap
 
-    private def hasSameSizesOf(other: TilingDCEL): Boolean =
+    private[dcel] def hasSameSizesOf(other: TilingDCEL): Boolean =
       tiling.vertices.size == other.vertices.size
         && tiling.innerFaces.size == other.innerFaces.size
         && tiling.halfEdges.size == other.halfEdges.size
