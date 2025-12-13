@@ -701,7 +701,8 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       }
     )
 
-  /** Regular holes almost joined by side <img src="file:../../../../../resources/regularHolesAlmostJoinedBySide.svg"/>
+  /** Regular holes almost joined by side <img
+    * src="file:../../../../../resources/regularHolesAlmostJoinedBySide.svg"/>
     */
   def regularHolesAlmostJoinedBySide: TilingDCEL =
     hexagon
@@ -996,7 +997,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     println(result)
     result.isRight shouldBe true
 
-  it should "have the lid covering two square holes when attached on the left" in :
+  it should "have the lid covering two square holes when attached on the left" in:
     val result =
       twoPots.maybeAddSimplePolygonToBoundary(
         VertexId("V17"),
@@ -1004,7 +1005,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       )
     result.value.innerFaces.size shouldBe 4
 
-  it should "have the lid covering two square holes when attached on the right" in :
+  it should "have the lid covering two square holes when attached on the right" in:
     val result =
       twoPots.maybeAddSimplePolygonToBoundary(
         VertexId("V9"),
@@ -1025,11 +1026,12 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     result.value.innerFaces.size shouldBe 4
 
   /** Tiling with three pots <img src="file:../../../../../resources/threePots.svg"/>
-   */
+    */
   def threePots: TilingDCEL =
     TilingBuilder
       .createSimplePolygon(
-        90, 180, 180, 180, 180, 180, 180, 90, 180, 90, 90, 270, 270, 90, 90, 270, 270, 90, 90, 270, 270, 90, 90, 180
+        90, 180, 180, 180, 180, 180, 180, 90, 180, 90, 90, 270, 270, 90, 90, 270, 270, 90, 90, 270, 270, 90,
+        90, 180
       ).value
 
   def rectangularThreeLid: SimplePolygon =
