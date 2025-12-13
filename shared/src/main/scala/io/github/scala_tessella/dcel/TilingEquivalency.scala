@@ -38,6 +38,21 @@ object TilingEquivalency:
     (newVertex, oldLeavingEdge, halfEdgeMap) =>
       newVertex.leaving = Some(halfEdgeMap(oldLeavingEdge))
 
+  // Compare only boundary vertex signatures (angles around each boundary vertex)
+  given Ordering[AngleDegree] with
+    def compare(x: AngleDegree, y: AngleDegree): Int =
+      x.toRational.compare(y.toRational)
+
+  extension (vertex: Vertex)
+
+    private def incidentAngles: List[AngleDegree] =
+      vertex.incidentEdgesUnsafe.flatMap: halfEdge =>
+        halfEdge.angle
+
+    private def getBoundaryVertexSignature: List[AngleDegree] =
+      incidentAngles.rotationsAndReflections.min
+
+
   extension (tiling: TilingDCEL)
 
     private def createMaps(
@@ -432,14 +447,10 @@ object TilingEquivalency:
         def compare(x: AngleDegree, y: AngleDegree): Int =
           x.toRational.compare(y.toRational)
 
-      def getBoundaryVertexSignature(vertex: Vertex): List[AngleDegree] =
-        val angles = vertex.incidentEdgesUnsafe.flatMap(_.angle)
-        angles.rotationsAndReflections.min
-
       def getBoundarySignatures(t: TilingDCEL) =
         t.boundaryVertices
           .map:
-            getBoundaryVertexSignature
+            _.getBoundaryVertexSignature
           .groupMapReduce(identity)(_ => 1):
             _ + _
 
