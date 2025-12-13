@@ -52,16 +52,40 @@ class TilingGeneratorSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
     val found = hexagon.expandRotationally(6)
     found.size shouldBe 3
 //    found.indices.foreach: i =>
-//      saveFileSVG(found(i).toScalableVectorGraphicsElem(), s"generator/hex$i")
+//      saveFileSVG(found(i).toScalableVectorGraphicsElem(), s"generator/hex1/hex1_$i")
 
   it should "generate 2-step tilings for an hexagon" in:
     val found = List(hexagon).expandRotationallyMore(6, 2)
     found.size shouldBe 7
 //    found.indices.foreach: i =>
-//      saveFileSVG(found(i).toScalableVectorGraphicsElem(), s"generator/hex2$i")
+//      saveFileSVG(found(i).toScalableVectorGraphicsElem(), s"generator/hex2/hex2_$i")
 
   it should "generate 3-step tilings for an hexagon" in:
     val found = List(hexagon).expandRotationallyMore(6, 3)
-    found.size shouldBe 7
+    found.size shouldBe 10
 //    found.indices.foreach: i =>
-//      saveFileSVG(found(i).toScalableVectorGraphicsElem(), s"generator/hex3$i")
+//      saveFileSVG(found(i).toScalableVectorGraphicsElem(), s"generator/hex3/hex3_$i")
+
+  it should "generate 4-step tilings for an hexagon" in:
+    val found = List(hexagon).expandRotationallyMore(6, 4)
+    found.size shouldBe 24
+//    found.indices.foreach: i =>
+//      saveFileSVG(found(i).toScalableVectorGraphicsElem(), s"generator/hex4/hex4_$i")
+
+  it should "generate 5-step tilings for an hexagon" in :
+    val found = List(hexagon).expandRotationallyMore(6, 5)
+    found.size shouldBe 35
+//    found.indices.foreach: i =>
+//      saveFileSVG(found(i).toScalableVectorGraphicsElem(), s"generator/hex5/hex5_$i")
+
+  it should "generate 6-step tilings for an hexagon" in :
+    val found = List(hexagon).expandRotationallyMore(6, 6)
+    found.size shouldBe 42
+//    found.indices.foreach: i =>
+//      saveFileSVG(found(i).toScalableVectorGraphicsElem(), s"generator/hex6/hex6_$i")
+
+  it should "generate 7-step tilings for an hexagon" in :
+    val found = List(hexagon).expandRotationallyMore(6, 7)
+    found.size shouldBe 70
+//    found.indices.foreach: i =>
+//      saveFileSVG(found(i).toScalableVectorGraphicsElem(), s"generator/hex7/hex7_$i")

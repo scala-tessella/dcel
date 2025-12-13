@@ -174,6 +174,17 @@ object TilingGenerator:
     val sides = edges.flatMap(_.incidentFace).filter(_ != tiling.outerFace).map(_.halfEdgesUnsafe.size)
     normalizeSignature(sides)
 
+  extension (tilings: List[TilingDCEL])
+
+    def distinctByBoundaryEquivalency: List[TilingDCEL] =
+      tilings
+        .foldLeft(List.empty[TilingDCEL]): (acc, tiling) =>
+          if acc.exists(_.isBoundaryEquivalentTo(tiling)) then
+            acc
+          else
+            tiling :: acc
+        .reverse
+
   extension (tiling: TilingDCEL)
 
     def expandRotationally(order: Int): List[TilingDCEL] =
@@ -223,5 +234,7 @@ object TilingGenerator:
   extension (tilings: List[TilingDCEL])
     def expandRotationallyMore(order: Int, steps: Int = 1): List[TilingDCEL] =
       (0 until steps).foldLeft(tilings): (grownTilings, _) =>
-        grownTilings.flatMap: grownTiling =>
-          grownTiling.expandRotationally(order)
+        grownTilings
+          .flatMap: grownTiling =>
+            grownTiling.expandRotationally(order)
+          .distinctByBoundaryEquivalency  
