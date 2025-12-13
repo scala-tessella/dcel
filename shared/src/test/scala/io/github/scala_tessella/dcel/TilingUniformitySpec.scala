@@ -14,7 +14,7 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
 
   it should "find an uniform 1 tiling" in:
 
-    /** <img src="file:../../../../../resources/uniform1.svg"/> */
+    /** Uniform 1 <img src="file:../../../../../resources/uniform1.svg"/> */
     val result = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => (i + 3 * j) % 7 == 0)
     allAssert(
       result.uniformityTree.sizeLeaves shouldBe 1,
@@ -23,7 +23,7 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
 
   it should "find the same tiling with opposite chirality by inverting the axes" in:
 
-    /** <img src="file:../../../../../resources/uniform1_specular.svg"/> */
+    /** Uniform 1 specular <img src="file:../../../../../resources/uniform1_specular.svg"/> */
     val result = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => (j + 3 * i) % 7 == 0)
     allAssert(
       result.uniformityTree.sizeLeaves shouldBe 1,
@@ -32,7 +32,7 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
 
   it should "find an uniform 2 tiling" in:
 
-    /** <img src="file:../../../../../resources/uniform2.svg"/> */
+    /** Uniform 2 <img src="file:../../../../../resources/uniform2.svg"/> */
     val result = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => i % 3 == 0 && j % 3 == 0)
     allAssert(
       result.uniformityTree.sizeLeaves shouldBe 2,
@@ -41,7 +41,7 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
 
   it should "find an uniform 3 tiling" in:
 
-    /** <img src="file:../../../../../resources/uniform3.svg"/> */
+    /** Uniform 3 <img src="file:../../../../../resources/uniform3.svg"/> */
     val result = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => (i + 4 * j) % 7 == 0)
     allAssert(
       result.uniformityTree.sizeLeaves shouldBe 3,
@@ -50,7 +50,7 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
 
   it should "find an uniform 4 tiling" in:
 
-    /** <img src="file:../../../../../resources/uniform4.svg"/> */
+    /** Uniform 4 <img src="file:../../../../../resources/uniform4.svg"/> */
     val result = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => (i + 7 * j) % 9 == 0)
     allAssert(
       result.uniformityTree.sizeLeaves shouldBe 4,
@@ -59,14 +59,14 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
 
   it should "find an uniform 5 tiling" in:
 
-    /** <img src="file:../../../../../resources/uniform5.svg"/> */
+    /** Uniform 5 <img src="file:../../../../../resources/uniform5.svg"/> */
     val result = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => i % 10 == (j * 8) % 10)
     allAssert(
       result.uniformityTree.sizeLeaves shouldBe 5,
       result.innerFaces.size shouldBe 120
     )
 
-  /** <img src="file:../../../../../resources/uniform6.svg"/> */
+  /** Uniform 6 <img src="file:../../../../../resources/uniform6.svg"/> */
   val uniformity6: TilingDCEL = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => (i + 3 * j) % 13 == 0)
 
   it should "find an uniform 6 tiling" in:
@@ -133,7 +133,7 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
 
   it should "find that 3.3.6.6.i has uniformity 5" in:
 
-    /** <img src="file:../../../../../resources/uniform5_3.3.6.6.i.svg"/> */
+    /** Uniform 5 3.3.6.6.i <img src="file:../../../../../resources/uniform5_3.3.6.6.i.svg"/> */
     val result =
       TilingBuilder.createHoledTriangleNet(9, 11)((i, j) => (i - j) % 3 == 0)
         .maybeAddRegularPolygon(VertexId("V24"), VertexId("V25"), RegularPolygon(3)).value
@@ -430,10 +430,8 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
 
   it should "efficiently scan uniformity at all distances" in:
     uniformity6.scanUniformityTree shouldEqual
-      (0 to 3).toList.map { distance =>
-
+      (0 to 3).toList.map: distance =>
         uniformity6.uniformityTreeUncompressed(Option(distance)).compress(_ ::: _)
-      }
 
   it should "scan uniformity leaves at all distances" in:
     uniformity6.scanUniformityTree.map(_.flattenLeaves) shouldEqual
