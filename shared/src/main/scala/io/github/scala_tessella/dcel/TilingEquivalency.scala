@@ -10,29 +10,32 @@ import scala.collection.mutable
 
 object TilingEquivalency:
 
-  private def toMultiset[T](list: List[T]): Map[T, Int] =
-    list.groupMapReduce(identity)(_ => 1)(_ + _)
+  extension[T] (seq: Seq[T])
+
+    private def toMultiset: Map[T, Int] =
+      seq.groupMapReduce(identity)(_ => 1):
+        _ + _
 
   /** Group the elements in classes of equivalent TilingDCEL. Uses boundary-only comparison for efficiency in
     * uniformity calculations.
     */
   def groupByBoundaryEquivalency[A](associatedTilings: List[(A, TilingDCEL)]): List[List[A]] =
     associatedTilings
-      .foldLeft(List.empty[(TilingDCEL, List[A])]) { case (classes, (elem, tiling)) =>
-        classes.indexWhere { case (representative, _) =>
-          tiling.isBoundaryEquivalentTo(representative)
-        } match
-          case -1 =>
-            // No equivalent class found, create a new one
-            classes :+ (tiling, List(elem))
-          case i  =>
-            // Found an equivalent class at index i, add vertexId to it
-            val (representative, elems) = classes(i)
-            classes.updated(i, (representative, elem :: elems))
-      }
-      .map { case (_, elems) =>
+      .foldLeft(List.empty[(TilingDCEL, List[A])]):
+        case (classes, (elem, tiling)) =>
+          classes
+            .indexWhere: (representative, _) =>
+              tiling.isBoundaryEquivalentTo(representative)
+            match
+              case -1 =>
+                // No equivalent class found, create a new one
+                classes :+ (tiling, List(elem))
+              case i  =>
+                // Found an equivalent class at index i, add vertexId to it
+                val (representative, elems) = classes(i)
+                classes.updated(i, (representative, elem :: elems))
+      .map: (_, elems) =>
         elems.reverse
-      }
 
   private val defaultLeavingTransformer: (Vertex, HalfEdge, Map[HalfEdge, HalfEdge]) => Unit =
     (newVertex, oldLeavingEdge, halfEdgeMap) =>
@@ -61,21 +64,17 @@ object TilingEquivalency:
         faceIdTransformer: FaceId => FaceId
     ): (Map[Vertex, Vertex], Map[HalfEdge, HalfEdge], Map[Face, Face]) =
       val vertexMap   =
-        tiling.vertices.associate { v =>
-
+        tiling.vertices.associate: vertex =>
           Vertex(
-            id = vertexIdTransformer(v.id),
-            coords = coordsTransformer(v.coords)
+            id = vertexIdTransformer(vertex.id),
+            coords = coordsTransformer(vertex.coords)
           )
-        }
-      val halfEdgeMap = tiling.halfEdges.associate(he => HalfEdge(vertexMap(he.origin)))
+      val halfEdgeMap =
+        tiling.halfEdges.associate: halfEdge =>
+          HalfEdge(vertexMap(halfEdge.origin))
       val faceMap     =
-        tiling.faces.associate { f =>
-
-          Face(
-            id = faceIdTransformer(f.id)
-          )
-        }
+        tiling.faces.associate: face =>
+          Face(id = faceIdTransformer(face.id))
       (vertexMap, halfEdgeMap, faceMap)
 
     private def copyHalfEdgeRelationships(
@@ -83,51 +82,33 @@ object TilingEquivalency:
         faceMap: Map[Face, Face]
     ): Unit =
       // Copy all relationships for half-edges
-      tiling.halfEdges.foreach { oldEdge =>
+      tiling.halfEdges.foreach: oldEdge =>
         val newEdge = halfEdgeMap(oldEdge)
-
         // Copy twin relationship
-        oldEdge.twin.foreach { oldTwin =>
-
+        oldEdge.twin.foreach: oldTwin =>
           newEdge.twin = Some(halfEdgeMap(oldTwin))
-        }
-
         // Copy incident face
-        oldEdge.incidentFace.foreach { oldFace =>
-
+        oldEdge.incidentFace.foreach: oldFace =>
           newEdge.incidentFace = Some(faceMap(oldFace))
-        }
-
         // Copy next relationship
-        oldEdge.next.foreach { oldNext =>
-
+        oldEdge.next.foreach: oldNext =>
           newEdge.next = Some(halfEdgeMap(oldNext))
-        }
-
         // Copy prev relationship
-        oldEdge.prev.foreach { oldPrev =>
-
+        oldEdge.prev.foreach: oldPrev =>
           newEdge.prev = Some(halfEdgeMap(oldPrev))
-        }
-
         // Copy angle
         newEdge.angle = oldEdge.angle
-      }
 
     private def copyFaceRelationships(halfEdgeMap: Map[HalfEdge, HalfEdge], faceMap: Map[Face, Face]): Unit =
-      tiling.faces.foreach { oldFace =>
+      tiling.faces.foreach: oldFace =>
         val newFace = faceMap(oldFace)
-        oldFace.outerComponent.foreach { oldOuterComponent =>
-
+        oldFace.outerComponent.foreach: oldOuterComponent =>
           newFace.outerComponent = Some(halfEdgeMap(oldOuterComponent))
-        }
 
         // Copy inner components
-        newFace.innerComponents = oldFace.innerComponents.map { optionalInnerComponent =>
-
-          optionalInnerComponent.map(halfEdgeMap)
-        }
-      }
+        newFace.innerComponents = oldFace.innerComponents.map: optionalInnerComponent =>
+          optionalInnerComponent.map:
+            halfEdgeMap
 
     private def copyVertexRelationships(
         vertexLeavingTransformer: (Vertex, HalfEdge, Map[HalfEdge, HalfEdge]) => Unit,
@@ -135,13 +116,10 @@ object TilingEquivalency:
         halfEdgeMap: Map[HalfEdge, HalfEdge]
     ): Unit =
       // Copy vertex-leaving edge relationships
-      tiling.vertices.foreach { oldVertex =>
+      tiling.vertices.foreach: oldVertex =>
         val newVertex = vertexMap(oldVertex)
-        oldVertex.leaving.foreach { oldLeavingEdge =>
-
+        oldVertex.leaving.foreach: oldLeavingEdge =>
           vertexLeavingTransformer(newVertex, oldLeavingEdge, halfEdgeMap)
-        }
-      }
 
     private def rawCopy(
         coordsTransformer: BigPoint => BigPoint,
@@ -384,7 +362,7 @@ object TilingEquivalency:
         }
 
         // 5. The final result is the multiset of the stable signatures.
-        toMultiset(signatures.values.toList)
+        signatures.values.toList.toMultiset
 
       computeCanonicalSignature(tiling) == computeCanonicalSignature(other)
 
@@ -400,7 +378,7 @@ object TilingEquivalency:
       isEquivalentRawTo(
         other,
         _.map(_.halfEdgesUnsafe.size).sorted,
-        (vertices, face) => toMultiset(vertices.map(getVertexSignature(_, face)))
+        (vertices, face) => vertices.map(getVertexSignature(_, face)).toMultiset
       )
 
     def isEquivalentTo(other: TilingDCEL): Boolean =
@@ -419,8 +397,8 @@ object TilingEquivalency:
 
       tiling.isEquivalentRawTo(
         other,
-        faces => toMultiset(faces.map(getFaceSignature)),
-        (vertices, _) => toMultiset(vertices.map(getVertexSignature))
+        faces => faces.map(getFaceSignature).toMultiset,
+        (vertices, _) => vertices.map(getVertexSignature).toMultiset
       )
 
     /** Fast equivalence check for uniformity calculation that only compares boundary layers.
@@ -451,8 +429,7 @@ object TilingEquivalency:
         t.boundaryVertices
           .map:
             _.getBoundaryVertexSignature
-          .groupMapReduce(identity)(_ => 1):
-            _ + _
+          .toMultiset
 
       getBoundarySignatures(tiling) == getBoundarySignatures(other)
 
