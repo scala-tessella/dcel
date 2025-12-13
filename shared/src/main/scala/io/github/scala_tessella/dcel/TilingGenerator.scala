@@ -189,9 +189,20 @@ object TilingGenerator:
 
   extension (tilingsCollections: List[List[TilingDCEL]])
 
+    /** Iterates through the groups and adds only the tilings that are not already present in the accumulator.
+     *  Since each group is already distinct, we skip checking for duplicates within the same group.
+     *
+     * @return Sequence of distinct tilings
+     */
     def distinctByBoundaryEquivalency2: List[TilingDCEL] =
-      ???
-
+      tilingsCollections
+        .foldLeft(List.empty[TilingDCEL]): (acc, group) =>
+          val newUnique = group.filterNot: tiling =>
+            acc.exists: existing =>
+              existing.hasSameSizesOf(tiling) && existing.isBoundaryEquivalentTo(tiling)
+          newUnique.foldLeft(acc): (list, tiling) =>
+            tiling :: list
+        .reverse
 
   extension (tiling: TilingDCEL)
 
@@ -243,11 +254,11 @@ object TilingGenerator:
     def expandRotationallyMore(order: Int, steps: Int = 1): List[TilingDCEL] =
       (0 until steps).foldLeft(tilings): (grownTilings, step) =>
         grownTilings
-          .flatMap: grownTiling =>
+          .map: grownTiling =>
             grownTiling.expandRotationally(order)
               .filter: t =>
                 t.innerFaces.size == 1 + order * (step + 1)
               .filter: t =>
                 t.boundarySimplePolygon.toAngles.forall: angle =>
                   angle.toRational <= Rational(300)
-          .distinctByBoundaryEquivalency
+          .distinctByBoundaryEquivalency2
