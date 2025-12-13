@@ -902,36 +902,18 @@ object TilingAddition:
         .map: vertexPair =>
           vertexPair.swap
 
-//    println(s"startVertex: $startVertex")
-//    println(s"newVertices: $newVertices")
-//    println(s"sharedVertices: $sharedVertices")
-
     if sharedVertices.isEmpty then
       return None
-
-//    // Get the indices of the new vertices that are shared
-//    val newVertexIndices = sharedVertices.map: pair =>
-//      newVertices.indexOf(pair.newVertex)
 
     val oldVertexIndices = sharedVertices.map: pair =>
       boundaryVertices.indexOf(pair.oldVertex)
 
-    val forwardContiguousCount2 =
+    val forwardContiguousCount =
       oldVertexIndices.zip(oldVertexIndices.tail)
         .takeWhile: (a, b) =>
           a + 1 == b
         .length
-    val endOfFirstBlock2 = sharedVertices(forwardContiguousCount2)
-
-//    // Find the last vertex from the initial contiguous block of shared vertices
-//    val forwardContiguousCount =
-//      newVertexIndices.zip(newVertexIndices.tail)
-//        .takeWhile: (a, b) =>
-//          a + 1 == b
-//        .length
-//    val endOfFirstBlock        = sharedVertices(forwardContiguousCount)
-//    println(s"endOfFirstBlock: $endOfFirstBlock")
-//    println(s"endOfFirstBlock2: $endOfFirstBlock2")
+    val endOfFirstBlock = sharedVertices(forwardContiguousCount)
 
     // Find the first vertex from the final contiguous block of shared vertices
     val backwardContiguousCount2 =
@@ -939,44 +921,20 @@ object TilingAddition:
         .takeWhile: (a, b) =>
           a - 1 == b
         .length
-    val startOfLastBlock2 = sharedVertices(sharedVertices.length - 1 - backwardContiguousCount2)
-
-//    // Find the first vertex from the final contiguous block of shared vertices
-//    val backwardContiguousCount =
-//      newVertexIndices.reverse.zip(newVertexIndices.reverse.tail)
-//        .takeWhile: (a, b) =>
-//          a - 1 == b
-//        .length
-//    val startOfLastBlock        = sharedVertices(sharedVertices.length - 1 - backwardContiguousCount)
-//    println(s"startOfLastBlock: $startOfLastBlock")
-//    println(s"startOfLastBlock2: $startOfLastBlock2")
-
-//    val boundaryVertices = boundaryEdges.map(_.origin)
-//    val startIndex = boundaryVertices.indexOf(startVertex)
-////        println(s"x: $startIndex")
-//    val found =
-//      boundaryVertices.indices.find(i => sharedVertices.map(_._1).contains(boundaryVertices.applyO(i + startIndex))).get
-////        println(s"found: $found")
-//    val isReversed: Boolean =
-//      sharedVertices.size > 2 &&
-//        startOfLastBlock._1 != boundaryVertices(found) && endOfFirstBlock._1 != boundaryVertices(found)
-//    println(s"isReversed: $isReversed")
-////        if isReversed then
-////          throw new RuntimeException("This is going to fail")
+    val startOfLastBlock = sharedVertices(sharedVertices.length - 1 - backwardContiguousCount2)
 
     // Determine which closure point results in a smaller path on the boundary
     def shortestBoundaryPathLength(to: Vertex): Int =
       val pathLength = boundaryEdges.getPath(from = startVertex, to = to).length
       math.min(pathLength, boundaryEdges.length - pathLength)
 
-    val forwardPathLength  = shortestBoundaryPathLength(endOfFirstBlock2.oldVertex)
-    val backwardPathLength = shortestBoundaryPathLength(startOfLastBlock2.oldVertex)
-//    println(s"forwardPathLength: $forwardPathLength, backwardPathLength: $backwardPathLength")
+    val forwardPathLength  = shortestBoundaryPathLength(endOfFirstBlock.oldVertex)
+    val backwardPathLength = shortestBoundaryPathLength(startOfLastBlock.oldVertex)
 
     if forwardPathLength < backwardPathLength then
-      Some(endOfFirstBlock2)
+      Some(endOfFirstBlock)
     else
-      Some(startOfLastBlock2)
+      Some(startOfLastBlock)
 
   private def additionalElements(
       edgeToBuildOn: HalfEdge,
