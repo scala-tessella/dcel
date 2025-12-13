@@ -436,15 +436,14 @@ object TilingEquivalency:
         val angles = vertex.incidentEdgesUnsafe.flatMap(_.angle)
         angles.rotationsAndReflections.min
 
-      val thisBoundarySignatures = tiling.boundaryVertices
-        .map(getBoundaryVertexSignature)
-        .groupMapReduce(identity)(_ => 1)(_ + _)
+      def getBoundarySignatures(t: TilingDCEL) =
+        t.boundaryVertices
+          .map:
+            getBoundaryVertexSignature
+          .groupMapReduce(identity)(_ => 1):
+            _ + _
 
-      val otherBoundarySignatures = other.boundaryVertices
-        .map(getBoundaryVertexSignature)
-        .groupMapReduce(identity)(_ => 1)(_ + _)
-
-      thisBoundarySignatures == otherBoundarySignatures
+      getBoundarySignatures(tiling) == getBoundarySignatures(other)
 
     def isReflectionOf(other: TilingDCEL): Boolean =
       ???
