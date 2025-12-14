@@ -5,6 +5,7 @@ import io.github.scala_tessella.dcel.Tree.{Branch, Leaf}
 import io.github.scala_tessella.dcel.geometry.RegularPolygon
 import io.github.scala_tessella.dcel.structure.VertexId
 import io.github.scala_tessella.dcel.conversion.TilingSVG.toUniformityAnimation
+import io.github.scala_tessella.dcel.conversion.TilingSVGPlatform
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -425,6 +426,13 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
   it should "find at distance 4" in:
     uniformity6.uniformityTreeUncompressed(Option(4)).compress(_ ::: _) shouldEqual
       uniformity6.uniformityTreeUncompressed(Option(3)).compress(_ ::: _)
+
+  it should "find uniformity 1 in a problematic tiling" in :
+    val xmlMetadata = loadFile(s"metadata/3.6.3.6_uniformity_issue.xml")
+
+    /** Uniformity issue <img src="file:../../../../../resources/uniformityIssue.svg"/> */
+    val tiling = TilingSVGPlatform.fromMetadata(xmlMetadata).value
+    tiling.uniformityTree.sizeLeaves shouldBe 1
 
   behavior of "TilingDCEL.scanUniformityTree"
 
