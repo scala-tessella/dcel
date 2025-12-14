@@ -41,14 +41,19 @@ object TilingEquivalency:
     (newVertex, oldLeavingEdge, halfEdgeMap) =>
       newVertex.leaving = Some(halfEdgeMap(oldLeavingEdge))
 
+  extension (angles: List[AngleDegree])
+
+    private def canonicalSequence: List[AngleDegree] =
+      angles.rotationsAndReflections.min
+
   extension (vertex: Vertex)
 
     private def incidentAngles: List[AngleDegree] =
       vertex.incidentEdgesUnsafe.flatMap: halfEdge =>
         halfEdge.angle
 
-    private def getBoundaryVertexSignature: List[AngleDegree] =
-      incidentAngles.rotationsAndReflections.min
+    private def signature: List[AngleDegree] =
+      vertex.incidentAngles.canonicalSequence
 
   extension (tiling: TilingDCEL)
 
@@ -377,19 +382,13 @@ object TilingEquivalency:
 
     def isEquivalentTo(other: TilingDCEL): Boolean =
 
-      def getCanonicalAngleSequence(angles: List[AngleDegree]): List[AngleDegree] =
-        angles.rotationsAndReflections.min
-
       def getFaceSignature(face: Face): List[AngleDegree] =
-        getCanonicalAngleSequence(face.halfEdgesUnsafe.flatMap(_.angle))
-
-      def getVertexSignature(vertex: Vertex): List[AngleDegree] =
-        getCanonicalAngleSequence(vertex.incidentEdgesUnsafe.flatMap(_.angle))
+        face.halfEdgesUnsafe.flatMap(_.angle).canonicalSequence
 
       tiling.isEquivalentRawTo(
         other,
         faces => faces.map(getFaceSignature).toMultiset,
-        (vertices, _) => vertices.map(getVertexSignature).toMultiset
+        (vertices, _) => vertices.map(signature).toMultiset
       )
 
     /** Fast equivalence check for uniformity calculation that only compares boundary layers.
@@ -416,10 +415,10 @@ object TilingEquivalency:
         def compare(x: AngleDegree, y: AngleDegree): Int =
           x.toRational.compare(y.toRational)
 
-      def getBoundarySignatures(t: TilingDCEL) =
-        t.boundaryVertices
+      def getBoundarySignatures(tilingDCEL: TilingDCEL) =
+        tilingDCEL.boundaryVertices
           .map:
-            _.getBoundaryVertexSignature
+            _.signature
           .toMultiset
 
       getBoundarySignatures(tiling) == getBoundarySignatures(other)
