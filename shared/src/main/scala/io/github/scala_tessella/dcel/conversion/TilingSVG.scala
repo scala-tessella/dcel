@@ -637,7 +637,7 @@ object TilingSVG:
   extension (tiling: TilingDCEL)
 
     /** Generates an SVG XML element. */
-    def toScalableVectorGraphicsElem(
+    def toScalableVectorGraphicsXml(
         strokeWidth: Double = 1.0,
         padding: Double = 20.0,
         scale: Double = 50.0,
@@ -779,7 +779,7 @@ object TilingSVG:
     ): String =
       new PrettyPrinter(120, 2)
         .format(
-          toScalableVectorGraphicsElem(
+          toScalableVectorGraphicsXml(
             strokeWidth,
             padding,
             scale,
@@ -1012,7 +1012,7 @@ object TilingSVG:
       * an SVG. This metadata includes all vertices, half-edges, and faces, along with their properties and
       * relationships, ensuring that the [[TilingDCEL]] can be fully reconstructed later.
       */
-    def toMetadata: String =
+    def toMetadataXml: Elem =
 
       val halfEdgeIds: Map[HalfEdge, Int] = tiling.halfEdges.zipWithIndex.toMap
 
@@ -1060,14 +1060,15 @@ object TilingSVG:
       val halfEdgesElem = elem("half-edges", children = halfEdgeNodes)
 
       val faceNodes = tiling.faces.map: f =>
-        val attrsList = List(
-          Some("id" -> f.id.value),
-          f.outerComponent
-            .flatMap:
-              halfEdgeIds.get
-            .map: id =>
-              "outer-component" -> id
-        ).flatten
+        val attrsList =
+          List(
+            Some("id" -> f.id.value),
+            f.outerComponent
+              .flatMap:
+                halfEdgeIds.get
+              .map: id =>
+                "outer-component" -> id
+          ).flatten
         val innerIds  =
           f.innerComponents
             .flatMap: maybeHalfEdge =>
@@ -1080,14 +1081,15 @@ object TilingSVG:
         elem("face", attrs(allAttrs*))
       val facesElem = elem("faces", children = faceNodes)
 
-      val dcelElem = elem(
+      elem(
         "tessella-dcel",
         children = Seq(verticesElem, halfEdgesElem, facesElem),
         prefix = Some("tessella"),
         scope = NamespaceBinding("tessella", "https://github.com/scala-tessella/tessella", TopScope)
       )
-
-      dcelElem.toString
+      
+    def toMetadata: String =
+      toMetadataXml.toString
 
   /** Deserializes the XML metadata that includes all vertices, half-edges, and faces, along with their
     * properties and relationships, and fully reconstructs the complete structure of a [[TilingDCEL]].
