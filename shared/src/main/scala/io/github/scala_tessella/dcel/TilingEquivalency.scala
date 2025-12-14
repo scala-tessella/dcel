@@ -417,8 +417,8 @@ object TilingEquivalency:
 
       def getBoundarySignatures(tilingDCEL: TilingDCEL) =
         tilingDCEL.boundaryVertices
-          .map:
-            _.signature
+          .map: vertex =>
+            vertex.signature
           .toMultiset
 
       getBoundarySignatures(tiling) == getBoundarySignatures(other)
