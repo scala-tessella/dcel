@@ -10,6 +10,10 @@ opaque type AngleDegree = Rational
 
 object AngleDegree:
 
+  given Ordering[AngleDegree] with
+    def compare(x: AngleDegree, y: AngleDegree): Int =
+      x.toRational.compare(y.toRational)
+
   private val R180: Rational = Rational(180)
 
   private val R360: Rational = Rational(360)

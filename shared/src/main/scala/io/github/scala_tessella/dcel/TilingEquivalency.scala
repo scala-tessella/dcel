@@ -10,7 +10,7 @@ import scala.collection.mutable
 
 object TilingEquivalency:
 
-  extension[T] (seq: Seq[T])
+  extension [T](seq: Seq[T])
 
     private def toMultiset: Map[T, Int] =
       seq.groupMapReduce(identity)(_ => 1):
@@ -23,28 +23,23 @@ object TilingEquivalency:
     associatedTilings
       .foldLeft(List.empty[(TilingDCEL, List[A])]):
         case (classes, (elem, tiling)) =>
-          classes
+          val index = classes
             .indexWhere: (representative, _) =>
               tiling.isBoundaryEquivalentTo(representative)
-            match
-              case -1 =>
-                // No equivalent class found, create a new one
-                classes :+ (tiling, List(elem))
-              case i  =>
-                // Found an equivalent class at index i, add vertexId to it
-                val (representative, elems) = classes(i)
-                classes.updated(i, (representative, elem :: elems))
+          index match
+            case -1 =>
+              // No equivalent class found, create a new one
+              classes :+ (tiling, List(elem))
+            case i  =>
+              // Found an equivalent class at index i, add vertexId to it
+              val (representative, elems) = classes(i)
+              classes.updated(i, (representative, elem :: elems))
       .map: (_, elems) =>
         elems.reverse
 
   private val defaultLeavingTransformer: (Vertex, HalfEdge, Map[HalfEdge, HalfEdge]) => Unit =
     (newVertex, oldLeavingEdge, halfEdgeMap) =>
       newVertex.leaving = Some(halfEdgeMap(oldLeavingEdge))
-
-  // Compare only boundary vertex signatures (angles around each boundary vertex)
-  given Ordering[AngleDegree] with
-    def compare(x: AngleDegree, y: AngleDegree): Int =
-      x.toRational.compare(y.toRational)
 
   extension (vertex: Vertex)
 
@@ -54,7 +49,6 @@ object TilingEquivalency:
 
     private def getBoundaryVertexSignature: List[AngleDegree] =
       incidentAngles.rotationsAndReflections.min
-
 
   extension (tiling: TilingDCEL)
 
@@ -382,9 +376,6 @@ object TilingEquivalency:
       )
 
     def isEquivalentTo(other: TilingDCEL): Boolean =
-      given Ordering[AngleDegree] with
-        def compare(x: AngleDegree, y: AngleDegree): Int =
-          x.toRational.compare(y.toRational)
 
       def getCanonicalAngleSequence(angles: List[AngleDegree]): List[AngleDegree] =
         angles.rotationsAndReflections.min
