@@ -6,7 +6,7 @@ import org.scalatest.Assertions.succeed
 import org.scalatest.{Assertion, EitherValues}
 
 import scala.xml.{Elem, XML}
-
+import scala.io.Source.fromFile
 /** A trait for test classes with helper methods to create tiling fixtures. */
 trait TilingTestHelpers extends EitherValues:
 
@@ -53,13 +53,21 @@ trait TilingTestHelpers extends EitherValues:
       elem,
       "UTF-8",
       xmlDecl = extension match
+        case "xml"  => true
         case "svg"  => true
         case "html" => false
         case _      => throw new Error
     )
+
+  def saveFileXML(elem: Elem, filename: String): Unit =
+    saveFile(elem, filename)("xml")
 
   def saveFileSVG(elem: Elem, filename: String): Unit =
     saveFile(elem, filename)("svg")
 
   def saveFileHTML(elem: Elem, filename: String): Unit =
     saveFile(elem, filename)("html")
+
+  def loadFile(filename: String): String =
+    val source = fromFile(s"shared/src/test/resources/$filename", "UTF-8")
+    try source.mkString finally source.close()
