@@ -410,11 +410,6 @@ object TilingEquivalency:
       if tiling.boundaryEdges.size != other.boundaryEdges.size then
         return false
 
-      // Compare only boundary vertex signatures (angles around each boundary vertex)
-      given Ordering[AngleDegree] with
-        def compare(x: AngleDegree, y: AngleDegree): Int =
-          x.toRational.compare(y.toRational)
-
       def getBoundarySignatures(tilingDCEL: TilingDCEL) =
         tilingDCEL.boundaryVertices
           .map: vertex =>
