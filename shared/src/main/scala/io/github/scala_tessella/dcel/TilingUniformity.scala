@@ -111,8 +111,8 @@ object TilingUniformity:
           val cycle = face.outerComponent.get.faceTraversalUnsafe[HalfEdge]()
           cycle.foreach: he =>
             val nh = heMap(he.key.get)
-            he.twin.foreach: t =>
-              val tk = t.key.get
+            he.twin.foreach: twin =>
+              val tk = twin.key.get
               if heMap.contains(tk) then
                 val nt = heMap(tk)
                 nh.twin = Some(nt)
@@ -181,10 +181,11 @@ object TilingUniformity:
         // Fix boundary angles from inner incident angles
         localOuter.outerComponent.foreach: start =>
           val loop = start.faceTraversalUnsafe[HalfEdge]()
-          loop.foreach: be =>
-            val vertex      = be.origin
-            val incidentAtV = newHalf.filter: halfEdge =>
-              halfEdge.origin eq vertex
+          loop.foreach: boundaryEdge =>
+            val vertex      = boundaryEdge.origin
+            val incidentAtV =
+              newHalf.filter: halfEdge =>
+                halfEdge.origin eq vertex
             val innerSum    =
               incidentAtV
                 .filterNot: halfEdge =>
@@ -192,7 +193,7 @@ object TilingUniformity:
                 .flatMap: halfEdge =>
                   halfEdge.angle
                 .sumExact
-            be.angle = Some(innerSum.conjugate)
+            boundaryEdge.angle = Some(innerSum.conjugate)
 
         (
           newVertices,
