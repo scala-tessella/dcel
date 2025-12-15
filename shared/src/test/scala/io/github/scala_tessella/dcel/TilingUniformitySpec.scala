@@ -540,6 +540,14 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
         )
       )
 
+  it should "find the structure at distance 3 originating from vertex V7" in:
+    val struct = problematicTiling.getDcelAtVertex(VertexId("V7"), 3).value
+    struct.innerFaces.size shouldBe 39
+
+  it should "find the structure at distance 3 originating from vertex V1" in:
+    val struct = problematicTiling.getDcelAtVertex(V1, 3).value
+    struct.innerFaces.size shouldBe 39
+
   behavior of "TilingDCEL.scanUniformityTree"
 
   it should "efficiently scan uniformity at all distances" in:
