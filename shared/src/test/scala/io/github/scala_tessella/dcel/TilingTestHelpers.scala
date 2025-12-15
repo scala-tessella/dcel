@@ -7,6 +7,7 @@ import org.scalatest.{Assertion, EitherValues}
 
 import scala.xml.{Elem, XML}
 import scala.io.Source.fromFile
+
 /** A trait for test classes with helper methods to create tiling fixtures. */
 trait TilingTestHelpers extends EitherValues:
 
@@ -70,4 +71,5 @@ trait TilingTestHelpers extends EitherValues:
 
   def loadFile(filename: String): String =
     val source = fromFile(s"shared/src/test/resources/$filename", "UTF-8")
-    try source.mkString finally source.close()
+    try source.mkString
+    finally source.close()

@@ -185,7 +185,7 @@ object TilingUniformity:
             val vertex      = be.origin
             val incidentAtV = newHalf.filter: halfEdge =>
               halfEdge.origin eq vertex
-            val innerSum    = 
+            val innerSum    =
               incidentAtV
                 .filterNot: halfEdge =>
                   halfEdge.hasIncidentFace(localOuter)
