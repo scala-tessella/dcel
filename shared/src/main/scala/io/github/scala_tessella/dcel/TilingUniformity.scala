@@ -28,27 +28,11 @@ object TilingUniformity:
     ): Either[NotFoundError, (List[Vertex], List[HalfEdge], Face, List[Face])] =
       val d = math.max(0, distance)
 
-      // BFS on vertices to get all vertices within distance d from the center
-      def bfsVertices(center: Vertex): Set[Vertex] =
-        val visited = scala.collection.mutable.LinkedHashSet.empty[Vertex]
-        val queue   = scala.collection.mutable.Queue.empty[(Vertex, Int)]
-        visited += center
-        queue.enqueue((center, 0))
-        while queue.nonEmpty do
-          val (vertex, dist) = queue.dequeue()
-          if dist < d then
-            vertex.incidentEdgesUnsafe.foreach: halfEdge =>
-              halfEdge.destination.foreach: destinationVertex =>
-                if !visited.contains(destinationVertex) then
-                  visited += destinationVertex
-                  queue.enqueue((destinationVertex, dist + 1))
-        visited.toSet
-
       for
         center <- tiling.findVertex(vertexId)
       yield
         // 1) Collect vertex set in the radius
-        val inRadius: Set[Vertex] = bfsVertices(center)
+        val inRadius: Set[Vertex] = center.bfsVertices(d)
 
         // 2) Collect all inner faces that are incident to at least one vertex in the set
         var selectedInnerFaces: Set[Face] =

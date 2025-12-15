@@ -78,6 +78,23 @@ final class Vertex(
     incidentEdgesUnsafe.find: halfEdge =>
       halfEdge.destination.contains(other)
 
+  // BFS to get all vertices within distance
+  def bfsVertices(distance: Int): Set[Vertex] =
+    val visited = scala.collection.mutable.LinkedHashSet.empty[Vertex]
+    val queue = scala.collection.mutable.Queue.empty[(Vertex, Int)]
+    visited += this
+    queue.enqueue((this, 0))
+    while queue.nonEmpty do
+      val (vertex, dist) = queue.dequeue()
+      if dist < distance then
+        vertex.incidentEdgesUnsafe.foreach: halfEdge =>
+          halfEdge.destination.foreach: destinationVertex =>
+            if !visited.contains(destinationVertex) then
+              visited += destinationVertex
+              queue.enqueue((destinationVertex, dist + 1))
+    visited.toSet
+
+
 object Vertex:
 
   def apply(
