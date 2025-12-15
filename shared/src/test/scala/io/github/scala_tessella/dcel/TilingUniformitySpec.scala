@@ -427,13 +427,19 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
     uniformity6.uniformityTreeUncompressed(Option(4)).compress(_ ::: _) shouldEqual
       uniformity6.uniformityTreeUncompressed(Option(3)).compress(_ ::: _)
 
-  it should "find uniformity 1 in a problematic tiling" in :
-    val xmlMetadata = loadFile(s"metadata/3.6.3.6_uniformity_issue.xml")
+  behavior of "problematic tiling"
 
-    /** Uniformity issue <img src="file:../../../../../resources/uniformityIssue.svg"/> */
-    val tiling = TilingSVGPlatform.fromMetadata(xmlMetadata).value
-//    tiling.uniformityTree.sizeLeaves shouldBe 1
-    tiling.scanUniformityTree shouldEqual
+  val xmlMetadata = loadFile(s"metadata/3.6.3.6_uniformity_issue.xml")
+
+  /** Uniformity issue <img src="file:../../../../../resources/uniformityIssue.svg"/> */
+  def problematicTiling: TilingDCEL = TilingSVGPlatform.fromMetadata(xmlMetadata).value
+  //    tiling.uniformityTree.sizeLeaves shouldBe 1
+
+  it should "have uniformity 1" in:
+    problematicTiling.uniformityTree.sizeLeaves shouldBe 1
+
+  it should "scan uniformity in a problematic tiling" in:
+    problematicTiling.scanUniformityTree shouldEqual
       List(
         Leaf(
           List("V38", "V39", "V41", "V42", "V44", "V45", "V47", "V48", "V50", "V51", "V53", "V54", "V55", "V56", "V57", "V58", "V59", "V60", "V61", "V62", "V63", "V64", "V65", "V66", "V67", "V68", "V69", "V70", "V71", "V72")
@@ -456,6 +462,56 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
           List(
             Leaf(List("V1", "V2", "V3", "V4", "V5", "V6")),
             Leaf(List("V7", "V8", "V9", "V10", "V11", "V12"))
+          )
+        )
+      )
+
+  it should "find uniformity at distance 2 in a problematic tiling" in :
+    problematicTiling.uniformityTreeUncompressed(Option(2)) shouldBe
+      Branch(
+        List(),
+        List(
+          Branch(
+            List("V38", "V39", "V41", "V42", "V44", "V45", "V47", "V48", "V50", "V51", "V53", "V54", "V55", "V56", "V57", "V58", "V59", "V60", "V61", "V62", "V63", "V64", "V65", "V66", "V67", "V68", "V69", "V70", "V71", "V72"),
+            List(
+              Branch(
+                List("V31", "V32", "V33", "V34", "V35", "V36", "V37", "V40", "V43", "V46", "V49", "V52"),
+                List(
+                  Branch(
+                    List("V13", "V14", "V15", "V16", "V17", "V18", "V19", "V20", "V21", "V22", "V23", "V24", "V25", "V26", "V27", "V28", "V29", "V30"),
+                    List()
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+
+  it should "find uniformity at distance 3 in a problematic tiling" in:
+    problematicTiling.uniformityTreeUncompressed(Option(3)) shouldBe
+      Branch(
+        List(),
+        List(
+          Branch(
+            List("V38", "V39", "V41", "V42", "V44", "V45", "V47", "V48", "V50", "V51", "V53", "V54", "V55", "V56", "V57", "V58", "V59", "V60", "V61", "V62", "V63", "V64", "V65", "V66", "V67", "V68", "V69", "V70", "V71", "V72"),
+            List(
+              Branch(
+                List("V31", "V32", "V33", "V34", "V35", "V36", "V37", "V40", "V43", "V46", "V49", "V52"),
+                List(
+                  Branch(
+                    List("V13", "V14", "V15", "V16", "V17", "V18", "V19", "V20", "V21", "V22", "V23", "V24", "V25", "V26", "V27", "V28", "V29", "V30"),
+                    List(
+                      Branch(
+                        List(),
+                        List()
+                      ),
+                      Leaf(List("V7", "V8", "V9", "V10", "V11", "V12"))
+                    )
+                  )
+                )
+              )
+            )
           )
         )
       )
