@@ -42,22 +42,22 @@ object TilingUniformity:
                 inRadius.contains(vertex)
             .toSet
 
-        // 2b) Iteratively find and add "hole" faces
-        // A hole face has all its vertices already in our vertex set but wasn't selected
-        var changed = true
-        while changed do
-          val currentVertices =
-            selectedInnerFaces
-              .flatMap: face =>
-                face.getVerticesUnsafe
-          val holeFaces       = tiling.innerFaces.filter: face =>
-            !selectedInnerFaces.contains(face) &&
-              face.getVerticesUnsafe.forall: vertex =>
-                currentVertices.contains(vertex)
-          if holeFaces.nonEmpty then
-            selectedInnerFaces ++= holeFaces
-          else
-            changed = false
+//        // 2b) Iteratively find and add "hole" faces
+//        // A hole face has all its vertices already in our vertex set but wasn't selected
+//        var changed = true
+//        while changed do
+//          val currentVertices =
+//            selectedInnerFaces
+//              .flatMap: face =>
+//                face.getVerticesUnsafe
+//          val holeFaces       = tiling.innerFaces.filter: face =>
+//            !selectedInnerFaces.contains(face) &&
+//              face.getVerticesUnsafe.forall: vertex =>
+//                currentVertices.contains(vertex)
+//          if holeFaces.nonEmpty then
+//            selectedInnerFaces ++= holeFaces
+//          else
+//            changed = false
 
         // 3) Build a local DCEL from those faces, cloning only the necessary vertices/edges/faces
         val vMap  = scala.collection.mutable.HashMap[VertexId, Vertex]()
@@ -182,12 +182,16 @@ object TilingUniformity:
         localOuter.outerComponent.foreach: start =>
           val loop = start.faceTraversalUnsafe[HalfEdge]()
           loop.foreach: be =>
-            val v           = be.origin
-            val incidentAtV = newHalf.filter(_.origin eq v)
-            val innerSum    = incidentAtV
-              .filterNot(_.hasIncidentFace(localOuter))
-              .flatMap(_.angle)
-              .sumExact
+            val vertex      = be.origin
+            val incidentAtV = newHalf.filter: halfEdge =>
+              halfEdge.origin eq vertex
+            val innerSum    = 
+              incidentAtV
+                .filterNot: halfEdge =>
+                  halfEdge.hasIncidentFace(localOuter)
+                .flatMap: halfEdge =>
+                  halfEdge.angle
+                .sumExact
             be.angle = Some(innerSum.conjugate)
 
         (

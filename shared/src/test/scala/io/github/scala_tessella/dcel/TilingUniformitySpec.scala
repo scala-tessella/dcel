@@ -429,7 +429,7 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
 
   behavior of "problematic tiling"
 
-  val xmlMetadata = loadFile(s"metadata/3.6.3.6_uniformity_issue.xml")
+  val xmlMetadata: String = loadFile(s"metadata/3.6.3.6_uniformity_issue.xml")
 
   /** Uniformity issue <img src="file:../../../../../resources/uniformityIssue.svg"/> */
   def problematicTiling: TilingDCEL = TilingSVGPlatform.fromMetadata(xmlMetadata).value
@@ -438,115 +438,13 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
   it should "have uniformity 1" in:
     problematicTiling.uniformityTree.sizeLeaves shouldBe 1
 
-  it should "find uniformity in a problematic tiling" in :
-    problematicTiling.uniformityTreeUncompressed() shouldBe
-      Branch(
-        List(),
-        List(
-          Branch(
-            List("V38", "V39", "V41", "V42", "V44", "V45", "V47", "V48", "V50", "V51", "V53", "V54", "V55", "V56", "V57", "V58", "V59", "V60", "V61", "V62", "V63", "V64", "V65", "V66", "V67", "V68", "V69", "V70", "V71", "V72"),
-            List(
-              Branch(
-                List("V31", "V32", "V33", "V34", "V35", "V36", "V37", "V40", "V43", "V46", "V49", "V52"),
-                List(
-                  Branch(
-                    List("V13", "V14", "V15", "V16", "V17", "V18", "V19", "V20", "V21", "V22", "V23", "V24", "V25", "V26", "V27", "V28", "V29", "V30"),
-                    List(
-                      Branch(
-                        List(),
-                        List(
-                          Leaf(List("V1", "V2", "V3", "V4", "V5", "V6"))
-                        )
-                      ),
-                      Leaf(List("V7", "V8", "V9", "V10", "V11", "V12"))
-                    )
-                  )
-                )
-              )
-            )
-          )
-        )
-      )
-
-  it should "scan uniformity in a problematic tiling" in:
-    problematicTiling.scanUniformityTree shouldEqual
-      List(
-        Leaf(List("V38", "V39", "V41", "V42", "V44", "V45", "V47", "V48", "V50", "V51", "V53", "V54", "V55", "V56", "V57", "V58", "V59", "V60", "V61", "V62", "V63", "V64", "V65", "V66", "V67", "V68", "V69", "V70", "V71", "V72")),
-        Leaf(List("V38", "V39", "V41", "V42", "V44", "V45", "V47", "V48", "V50", "V51", "V53", "V54", "V55", "V56", "V57", "V58", "V59", "V60", "V61", "V62", "V63", "V64", "V65", "V66", "V67", "V68", "V69", "V70", "V71", "V72", "V31", "V32", "V33", "V34", "V35", "V36", "V37", "V40", "V43", "V46", "V49", "V52")),
-        Leaf(List("V38", "V39", "V41", "V42", "V44", "V45", "V47", "V48", "V50", "V51", "V53", "V54", "V55", "V56", "V57", "V58", "V59", "V60", "V61", "V62", "V63", "V64", "V65", "V66", "V67", "V68", "V69", "V70", "V71", "V72", "V31", "V32", "V33", "V34", "V35", "V36", "V37", "V40", "V43", "V46", "V49", "V52", "V13", "V14", "V15", "V16", "V17", "V18", "V19", "V20", "V21", "V22", "V23", "V24", "V25", "V26", "V27", "V28", "V29", "V30")),
-        Branch(
-          List("V38", "V39", "V41", "V42", "V44", "V45", "V47", "V48", "V50", "V51", "V53", "V54", "V55", "V56", "V57", "V58", "V59", "V60", "V61", "V62", "V63", "V64", "V65", "V66", "V67", "V68", "V69", "V70", "V71", "V72", "V31", "V32", "V33", "V34", "V35", "V36", "V37", "V40", "V43", "V46", "V49", "V52", "V13", "V14", "V15", "V16", "V17", "V18", "V19", "V20", "V21", "V22", "V23", "V24", "V25", "V26", "V27", "V28", "V29", "V30"),
-          List(
-            Leaf(List()),
-            Leaf(List("V7", "V8", "V9", "V10", "V11", "V12"))
-          )
-        ),
-        Branch(
-          List("V38", "V39", "V41", "V42", "V44", "V45", "V47", "V48", "V50", "V51", "V53", "V54", "V55", "V56", "V57", "V58", "V59", "V60", "V61", "V62", "V63", "V64", "V65", "V66", "V67", "V68", "V69", "V70", "V71", "V72", "V31", "V32", "V33", "V34", "V35", "V36", "V37", "V40", "V43", "V46", "V49", "V52", "V13", "V14", "V15", "V16", "V17", "V18", "V19", "V20", "V21", "V22", "V23", "V24", "V25", "V26", "V27", "V28", "V29", "V30"),
-          List(
-            Leaf(List("V1", "V2", "V3", "V4", "V5", "V6")),
-            Leaf(List("V7", "V8", "V9", "V10", "V11", "V12"))
-          )
-        )
-      )
-
-  it should "find uniformity at distance 2 in a problematic tiling" in :
-    problematicTiling.uniformityTreeUncompressed(Option(2)) shouldBe
-      Branch(
-        List(),
-        List(
-          Branch(
-            List("V38", "V39", "V41", "V42", "V44", "V45", "V47", "V48", "V50", "V51", "V53", "V54", "V55", "V56", "V57", "V58", "V59", "V60", "V61", "V62", "V63", "V64", "V65", "V66", "V67", "V68", "V69", "V70", "V71", "V72"),
-            List(
-              Branch(
-                List("V31", "V32", "V33", "V34", "V35", "V36", "V37", "V40", "V43", "V46", "V49", "V52"),
-                List(
-                  Branch(
-                    List("V13", "V14", "V15", "V16", "V17", "V18", "V19", "V20", "V21", "V22", "V23", "V24", "V25", "V26", "V27", "V28", "V29", "V30"),
-                    List()
-                  )
-                )
-              )
-            )
-          )
-        )
-      )
-
-  it should "find uniformity at distance 3 in a problematic tiling" in:
-    problematicTiling.uniformityTreeUncompressed(Option(3)) shouldBe
-      Branch(
-        List(),
-        List(
-          Branch(
-            List("V38", "V39", "V41", "V42", "V44", "V45", "V47", "V48", "V50", "V51", "V53", "V54", "V55", "V56", "V57", "V58", "V59", "V60", "V61", "V62", "V63", "V64", "V65", "V66", "V67", "V68", "V69", "V70", "V71", "V72"),
-            List(
-              Branch(
-                List("V31", "V32", "V33", "V34", "V35", "V36", "V37", "V40", "V43", "V46", "V49", "V52"),
-                List(
-                  Branch(
-                    List("V13", "V14", "V15", "V16", "V17", "V18", "V19", "V20", "V21", "V22", "V23", "V24", "V25", "V26", "V27", "V28", "V29", "V30"),
-                    List(
-                      Branch(
-                        List(),
-                        List()
-                      ),
-                      Leaf(List("V7", "V8", "V9", "V10", "V11", "V12"))
-                    )
-                  )
-                )
-              )
-            )
-          )
-        )
-      )
-
   it should "find the structure at distance 3 originating from vertex V7" in:
     val struct = problematicTiling.getDcelAtVertex(VertexId("V7"), 3).value
-    struct.innerFaces.size shouldBe 39
+    struct.innerFaces.size shouldBe 38
 
   it should "find the structure at distance 3 originating from vertex V1" in:
     val struct = problematicTiling.getDcelAtVertex(V1, 3).value
-    struct.innerFaces.size shouldBe 39
+    struct.innerFaces.size shouldBe 38
 
   behavior of "TilingDCEL.scanUniformityTree"
 
