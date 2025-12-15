@@ -220,13 +220,14 @@ object TilingUniformity:
       // Tail-recursive helper using TailCalls
       def deepMap(key: List[Int], vertexIds: List[VertexId]): TailRec[Tree[List[VertexId]]] =
         val distance        = key.length
-        val centeredTilings = vertexIds.map: id =>
-          id -> tiling.getDcelAtVertex(id, distance).toOption.get
+        val centeredTilings =
+          vertexIds.map: vertexId =>
+            vertexId -> tiling.getDcelAtVertex(vertexId, distance).toOption.get
         val classes         = groupByBoundaryEquivalency(centeredTilings)
         val boundaryInfoMap =
           centeredTilings
-            .map: (vertexId, tiling) =>
-              vertexId -> tiling.boundaryVertices.map(_.id).toSet
+            .map: (vertexId, centeredTiling) =>
+              vertexId -> centeredTiling.boundaryVertices.map(_.id).toSet
             .toMap
         val partitioned     =
           classes.map:
@@ -255,9 +256,10 @@ object TilingUniformity:
                   tailcall:
                     deepMap(childKey, inner)
                   .flatMap: childTree =>
-                    val updatedChild = childTree match
-                      case Leaf(_)                  => Leaf(stuck)
-                      case Branch(_, grandchildren) => Branch(stuck, grandchildren)
+                    val updatedChild =
+                      childTree match
+                        case Leaf(_)                  => Leaf(stuck)
+                        case Branch(_, grandchildren) => Branch(stuck, grandchildren)
                     iterate(tail, updatedChild :: accumulated)
                 else
                   iterate(tail, Leaf(stuck) :: accumulated)
