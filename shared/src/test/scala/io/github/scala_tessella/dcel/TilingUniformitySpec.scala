@@ -468,7 +468,6 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
         )
       )
 
-
   it should "scan uniformity in a problematic tiling" in:
     problematicTiling.scanUniformityTree shouldEqual
       List(
