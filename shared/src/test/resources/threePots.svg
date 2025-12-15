@@ -1,0 +1,203 @@
+<svg width="390" height="140" viewBox="-20 -120 390 140" xmlns="http://www.w3.org/2000/svg">
+    <g>
+        <!-- Edges -->
+        <g stroke="black" stroke-width="1.0">
+            <line x1="0" y1="0" x2="50" y2="0"/>
+            <line x1="50" y1="0" x2="100" y2="0"/>
+            <line x1="100" y1="0" x2="150" y2="0"/>
+            <line x1="150" y1="0" x2="200" y2="0"/>
+            <line x1="200" y1="0" x2="250" y2="0"/>
+            <line x1="250" y1="0" x2="300" y2="0"/>
+            <line x1="300" y1="0" x2="350" y2="0"/>
+            <line x1="350" y1="0" x2="350" y2="-50"/>
+            <line x1="350" y1="-50" x2="350" y2="-100"/>
+            <line x1="350" y1="-100" x2="300" y2="-100"/>
+            <line x1="300" y1="-100" x2="300" y2="-50"/>
+            <line x1="300" y1="-50" x2="250" y2="-50"/>
+            <line x1="250" y1="-50" x2="250" y2="-100"/>
+            <line x1="250" y1="-100" x2="200" y2="-100"/>
+            <line x1="200" y1="-100" x2="200" y2="-50"/>
+            <line x1="200" y1="-50" x2="150" y2="-50"/>
+            <line x1="150" y1="-50" x2="150" y2="-100"/>
+            <line x1="150" y1="-100" x2="100" y2="-100"/>
+            <line x1="100" y1="-100" x2="100" y2="-50"/>
+            <line x1="100" y1="-50" x2="50" y2="-50"/>
+            <line x1="50" y1="-50" x2="50" y2="-100"/>
+            <line x1="50" y1="-100" x2="-0" y2="-100"/>
+            <line x1="-0" y1="-100" x2="-0" y2="-50"/>
+            <line x1="-0" y1="-50" x2="0" y2="0"/>
+        </g>
+        <!-- Boundary Highlight -->
+        <g stroke="red" stroke-width="3.0" fill="none">
+            <polygon
+                    points="0,0 -0,-50 -0,-100 50,-100 50,-50 100,-50 100,-100 150,-100 150,-50 200,-50 200,-100 250,-100 250,-50 300,-50 300,-100 350,-100 350,-50 350,0 300,0 250,0 200,0 150,0 100,0 50,0">
+            </polygon>
+        </g>
+        <!-- Inner Face Half-Edge Direction Arrows -->
+        <g fill="blue" stroke="blue" stroke-width="0.5">
+            <polygon points="28,0 25,-1.2 25,1.2"/>
+            <polygon points="78,0 75,-1.2 75,1.2"/>
+            <polygon points="128,0 125,-1.2 125,1.2"/>
+            <polygon points="178,0 175,-1.2 175,1.2"/>
+            <polygon points="228,0 225,-1.2 225,1.2"/>
+            <polygon points="278,0 275,-1.2 275,1.2"/>
+            <polygon points="328,0 325,-1.2 325,1.2"/>
+            <polygon points="350,-28 348.8,-25 351.2,-25"/>
+            <polygon points="350,-78 348.8,-75 351.2,-75"/>
+            <polygon points="322,-100 325,-98.8 325,-101.2"/>
+            <polygon points="300,-72 301.2,-75 298.8,-75"/>
+            <polygon points="272,-50 275,-48.8 275,-51.2"/>
+            <polygon points="250,-78 248.8,-75 251.2,-75"/>
+            <polygon points="222,-100 225,-98.8 225,-101.2"/>
+            <polygon points="200,-72 201.2,-75 198.8,-75"/>
+            <polygon points="172,-50 175,-48.8 175,-51.2"/>
+            <polygon points="150,-78 148.8,-75 151.2,-75"/>
+            <polygon points="122,-100 125,-98.8 125,-101.2"/>
+            <polygon points="100,-72 101.2,-75 98.8,-75"/>
+            <polygon points="72,-50 75,-48.8 75,-51.2"/>
+            <polygon points="50,-78 48.8,-75 51.2,-75"/>
+            <polygon points="22,-100 25,-98.8 25,-101.2"/>
+            <polygon points="-0,-72 1.2,-75 -1.2,-75"/>
+            <polygon points="-0,-22 1.2,-25 -1.2,-25"/>
+        </g>
+        <!-- Outer Face Half-Edge Direction Arrows -->
+        <g fill="black" stroke="black" stroke-width="0.5">
+            <polygon points="-0,-28 -1.2,-25 1.2,-25"/>
+            <polygon points="-0,-78 -1.2,-75 1.2,-75"/>
+            <polygon points="28,-100 25,-101.2 25,-98.8"/>
+            <polygon points="50,-72 51.2,-75 48.8,-75"/>
+            <polygon points="78,-50 75,-51.2 75,-48.8"/>
+            <polygon points="100,-78 98.8,-75 101.2,-75"/>
+            <polygon points="128,-100 125,-101.2 125,-98.8"/>
+            <polygon points="150,-72 151.2,-75 148.8,-75"/>
+            <polygon points="178,-50 175,-51.2 175,-48.8"/>
+            <polygon points="200,-78 198.8,-75 201.2,-75"/>
+            <polygon points="228,-100 225,-101.2 225,-98.8"/>
+            <polygon points="250,-72 251.2,-75 248.8,-75"/>
+            <polygon points="278,-50 275,-51.2 275,-48.8"/>
+            <polygon points="300,-78 298.8,-75 301.2,-75"/>
+            <polygon points="328,-100 325,-101.2 325,-98.8"/>
+            <polygon points="350,-72 351.2,-75 348.8,-75"/>
+            <polygon points="350,-22 351.2,-25 348.8,-25"/>
+            <polygon points="322,-0 325,1.2 325,-1.2"/>
+            <polygon points="272,-0 275,1.2 275,-1.2"/>
+            <polygon points="222,-0 225,1.2 225,-1.2"/>
+            <polygon points="172,-0 175,1.2 175,-1.2"/>
+            <polygon points="122,-0 125,1.2 125,-1.2"/>
+            <polygon points="72,-0 75,1.2 75,-1.2"/>
+            <polygon points="22,-0 25,1.2 25,-1.2"/>
+        </g>
+        <!-- Vertices -->
+        <g fill="red">
+            <circle cx="0" cy="0" r="2.0"/>
+            <circle cx="50" cy="0" r="2.0"/>
+            <circle cx="100" cy="0" r="2.0"/>
+            <circle cx="150" cy="0" r="2.0"/>
+            <circle cx="200" cy="0" r="2.0"/>
+            <circle cx="250" cy="0" r="2.0"/>
+            <circle cx="300" cy="0" r="2.0"/>
+            <circle cx="350" cy="0" r="2.0"/>
+            <circle cx="350" cy="-50" r="2.0"/>
+            <circle cx="350" cy="-100" r="2.0"/>
+            <circle cx="300" cy="-100" r="2.0"/>
+            <circle cx="300" cy="-50" r="2.0"/>
+            <circle cx="250" cy="-50" r="2.0"/>
+            <circle cx="250" cy="-100" r="2.0"/>
+            <circle cx="200" cy="-100" r="2.0"/>
+            <circle cx="200" cy="-50" r="2.0"/>
+            <circle cx="150" cy="-50" r="2.0"/>
+            <circle cx="150" cy="-100" r="2.0"/>
+            <circle cx="100" cy="-100" r="2.0"/>
+            <circle cx="100" cy="-50" r="2.0"/>
+            <circle cx="50" cy="-50" r="2.0"/>
+            <circle cx="50" cy="-100" r="2.0"/>
+            <circle cx="-0" cy="-100" r="2.0"/>
+            <circle cx="-0" cy="-50" r="2.0"/>
+        </g>
+        <!-- Vertex Labels -->
+        <g font-size="8" fill="darkblue">
+            <text x="2.5" y="-2.5">V1</text>
+            <text x="52.5" y="-2.5">V2</text>
+            <text x="102.5" y="-2.5">V3</text>
+            <text x="152.5" y="-2.5">V4</text>
+            <text x="202.5" y="-2.5">V5</text>
+            <text x="252.5" y="-2.5">V6</text>
+            <text x="302.5" y="-2.5">V7</text>
+            <text x="352.5" y="-2.5">V8</text>
+            <text x="352.5" y="-52.5">V9</text>
+            <text x="352.5" y="-102.5">V10</text>
+            <text x="302.5" y="-102.5">V11</text>
+            <text x="302.5" y="-52.5">V12</text>
+            <text x="252.5" y="-52.5">V13</text>
+            <text x="252.5" y="-102.5">V14</text>
+            <text x="202.5" y="-102.5">V15</text>
+            <text x="202.5" y="-52.5">V16</text>
+            <text x="152.5" y="-52.5">V17</text>
+            <text x="152.5" y="-102.5">V18</text>
+            <text x="102.5" y="-102.5">V19</text>
+            <text x="102.5" y="-52.5">V20</text>
+            <text x="52.5" y="-52.5">V21</text>
+            <text x="52.5" y="-102.5">V22</text>
+            <text x="2.5" y="-102.5">V23</text>
+            <text x="2.5" y="-52.5">V24</text>
+        </g>
+        <!-- Face Labels -->
+        <g font-size="6" fill="green" text-anchor="middle" dominant-baseline="middle">
+            <text x="175" y="-50">F1</text>
+        </g>
+        <!-- Inner Angle Labels -->
+        <g font-size="5" fill="purple" text-anchor="middle" dominant-baseline="middle">
+            <text x="7.692192" y="-2.197769">90°</text>
+            <text x="57.427814" y="-2.971125">180°</text>
+            <text x="106.656402" y="-4.437602">180°</text>
+            <text x="153.577709" y="-7.155418">180°</text>
+            <text x="196.422291" y="-7.155418">180°</text>
+            <text x="243.343598" y="-4.437602">180°</text>
+            <text x="292.572186" y="-2.971125">180°</text>
+            <text x="342.307808" y="-2.197769">90°</text>
+            <text x="342" y="-50">180°</text>
+            <text x="342.307808" y="-97.802231">90°</text>
+            <text x="292.572186" y="-97.028875">90°</text>
+            <text x="292" y="-50">270°</text>
+            <text x="242" y="-50">270°</text>
+            <text x="243.343598" y="-95.562398">90°</text>
+            <text x="196.422291" y="-92.844582">90°</text>
+            <text x="192" y="-50">270°</text>
+            <text x="158" y="-50">270°</text>
+            <text x="153.577709" y="-92.844582">90°</text>
+            <text x="106.656402" y="-95.562398">90°</text>
+            <text x="108" y="-50">270°</text>
+            <text x="58" y="-50">270°</text>
+            <text x="57.427814" y="-97.028875">90°</text>
+            <text x="7.692192" y="-97.802231">90°</text>
+            <text x="8" y="-50">180°</text>
+        </g>
+        <!-- Outer Angle Labels -->
+        <g font-size="5" fill="orange" text-anchor="middle" dominant-baseline="middle">
+            <text x="-7.692192" y="2.197769">270°</text>
+            <text x="-8" y="-50">180°</text>
+            <text x="-7.692192" y="-102.197769">270°</text>
+            <text x="42.572186" y="-102.971125">270°</text>
+            <text x="42" y="-50">90°</text>
+            <text x="92" y="-50">90°</text>
+            <text x="93.343598" y="-104.437602">270°</text>
+            <text x="146.422291" y="-107.155418">270°</text>
+            <text x="142" y="-50">90°</text>
+            <text x="208" y="-50">90°</text>
+            <text x="203.577709" y="-107.155418">270°</text>
+            <text x="256.656402" y="-104.437602">270°</text>
+            <text x="258" y="-50">90°</text>
+            <text x="308" y="-50">90°</text>
+            <text x="307.427814" y="-102.971125">270°</text>
+            <text x="357.692192" y="-102.197769">270°</text>
+            <text x="358" y="-50">180°</text>
+            <text x="357.692192" y="2.197769">270°</text>
+            <text x="307.427814" y="2.971125">180°</text>
+            <text x="256.656402" y="4.437602">180°</text>
+            <text x="203.577709" y="7.155418">180°</text>
+            <text x="146.422291" y="7.155418">180°</text>
+            <text x="93.343598" y="4.437602">180°</text>
+            <text x="42.572186" y="2.971125">180°</text>
+        </g>
+    </g>
+</svg>
