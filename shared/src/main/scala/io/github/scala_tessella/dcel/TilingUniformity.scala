@@ -92,19 +92,19 @@ object TilingUniformity:
         selectedInnerFaces.foreach: face =>
           val nf                 = fMap(face.id)
           val cycle              = face.outerComponent.get.faceTraversalUnsafe[HalfEdge]()
-          var firstNew: HalfEdge = null
-          var prevNew: HalfEdge  = null
+          var firstNew: Option[HalfEdge] = None
+          var prevNew: Option[HalfEdge]  = None
           cycle.foreach: he =>
             val nh = heMap(he.key.get)
             nh.incidentFace = Some(nf)
-            if firstNew eq null then firstNew = nh
-            if prevNew != null then
-              prevNew.next = Some(nh)
-              nh.prev = Some(prevNew)
-            prevNew = nh
-          prevNew.next = Some(firstNew)
-          firstNew.prev = Some(prevNew)
-          nf.outerComponent = Some(firstNew)
+            if firstNew.isEmpty then firstNew = Option(nh)
+            if prevNew.isDefined then
+              prevNew.get.next = Some(nh)
+              nh.prev = Some(prevNew.get)
+            prevNew = Some(nh)
+          prevNew.get.next = firstNew
+          firstNew.get.prev = prevNew
+          nf.outerComponent = firstNew
 
         // Third pass: wire twins for inner-inner edges
         selectedInnerFaces.foreach: face =>
