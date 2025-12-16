@@ -256,22 +256,24 @@ object TilingGenerator:
               .toOption
 
   extension (tilings: List[TilingDCEL])
+
     def expandRotationallyMore(order: Int, steps: Int = 1, uniformity: Option[Int] = None): List[TilingDCEL] =
-      val onePolygonStart =
-        tilings.forall:
-          _.innerFaces.size == 1
+      val startingSize =
+        tilings.size
 
       (0 until steps).foldLeft(tilings): (grownTilings, step) =>
-        grownTilings
-          .map: grownTiling =>
-            grownTiling.expandRotationally(order)
-              .filter: t =>
-                !onePolygonStart || t.innerFaces.size == 1 + order * (step + 1)
-              .filter: t =>
-                t.boundarySimplePolygon.toAngles.forall: angle =>
-                  angle.toRational <= Rational(300)
-              .filter: t =>
-                uniformity match
-                  case Some(value) => /*t.gonality <= value && */ t.uniformityTree.sizeLeaves <= value
-                  case None        => true
+        val (growable, alreadyGrownWithHoleFilling) = grownTilings.partition: tiling =>
+          tiling.innerFaces.size == startingSize + order * step
+        val nowGrown =
+          growable
+            .map: tiling =>
+              tiling.expandRotationally(order)
+                .filter: expandedTiling =>
+                  expandedTiling.boundarySimplePolygon.toAngles.forall: angle =>
+                    angle.toRational <= Rational(300)
+                .filter: expandedTiling =>
+                  uniformity match
+                    case Some(value) => /*t.gonality <= value && */ expandedTiling.uniformityTree.sizeLeaves <= value
+                    case None => true
+        (alreadyGrownWithHoleFilling :: nowGrown)
           .distinctByBoundaryEquivalency2
