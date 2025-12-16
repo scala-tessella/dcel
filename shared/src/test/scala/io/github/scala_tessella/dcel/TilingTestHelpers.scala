@@ -37,6 +37,11 @@ trait TilingTestHelpers extends EitherValues:
   def hexagon: TilingDCEL =
     TilingBuilder.createRegularPolygon(RegularPolygon(6))
 
+  /** Tiling with a single regular dodecagon <img src="file:../../../../../resources/dodecagon.svg"/>
+   */
+  def dodecagon: TilingDCEL =
+    TilingBuilder.createRegularPolygon(RegularPolygon(12))
+
   val V1: VertexId = VertexId("V1")
   val V2: VertexId = VertexId("V2")
   val V3: VertexId = VertexId("V3")
