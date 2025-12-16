@@ -759,9 +759,6 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       }
     )
 
-  def dodecagon: TilingDCEL =
-    TilingBuilder.createRegularPolygon(RegularPolygon(12))
-
   it should "fail for widening" in:
     val result = dodecagon.addRegularPolygon(V1, V2, RegularPolygon(13))
 
