@@ -1087,7 +1087,7 @@ object TilingSVG:
         prefix = Some("tessella"),
         scope = NamespaceBinding("tessella", "https://github.com/scala-tessella/tessella", TopScope)
       )
-      
+
     def toMetadata: String =
       toMetadataXml.toString
 

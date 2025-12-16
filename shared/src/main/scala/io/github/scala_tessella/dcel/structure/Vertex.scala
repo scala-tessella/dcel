@@ -81,7 +81,7 @@ final class Vertex(
   // BFS to get all vertices within distance
   def bfsVertices(distance: Int): Set[Vertex] =
     val visited = scala.collection.mutable.LinkedHashSet.empty[Vertex]
-    val queue = scala.collection.mutable.Queue.empty[(Vertex, Int)]
+    val queue   = scala.collection.mutable.Queue.empty[(Vertex, Int)]
     visited += this
     queue.enqueue((this, 0))
     while queue.nonEmpty do
@@ -93,7 +93,6 @@ final class Vertex(
               visited += destinationVertex
               queue.enqueue((destinationVertex, dist + 1))
     visited.toSet
-
 
 object Vertex:
 

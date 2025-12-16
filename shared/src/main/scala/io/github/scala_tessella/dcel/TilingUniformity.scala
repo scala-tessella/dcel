@@ -90,8 +90,8 @@ object TilingUniformity:
 
         // Second pass: set next/prev/incidentFace for the inner faces
         selectedInnerFaces.foreach: face =>
-          val nf                 = fMap(face.id)
-          val cycle              = face.outerComponent.get.faceTraversalUnsafe[HalfEdge]()
+          val nf                         = fMap(face.id)
+          val cycle                      = face.outerComponent.get.faceTraversalUnsafe[HalfEdge]()
           var firstNew: Option[HalfEdge] = None
           var prevNew: Option[HalfEdge]  = None
           cycle.foreach: he =>
