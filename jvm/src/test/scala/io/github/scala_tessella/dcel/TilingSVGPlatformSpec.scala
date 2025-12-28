@@ -35,8 +35,7 @@ class TilingSVGPlatformSpec extends AnyFlatSpec with Matchers with TilingTestHel
       metadataXml.prefix shouldBe "tessella", {
         val vertices = metadataXml \ "vertices" \ "vertex"
         allAssert(
-          vertices.size shouldBe 3,
-          {
+          vertices.size shouldBe 3, {
             val assertions =
               vertices.map: vertex =>
                 allAssert(
@@ -51,8 +50,7 @@ class TilingSVGPlatformSpec extends AnyFlatSpec with Matchers with TilingTestHel
       }, {
         val halfEdges = metadataXml \ "half-edges" \ "half-edge"
         allAssert(
-          halfEdges.size shouldBe 6,
-          {
+          halfEdges.size shouldBe 6, {
             val assertions =
               halfEdges.map: halfEdge =>
                 allAssert(
@@ -70,15 +68,17 @@ class TilingSVGPlatformSpec extends AnyFlatSpec with Matchers with TilingTestHel
       }, {
         val faces = metadataXml \ "faces" \ "face"
         allAssert(
-          faces.size shouldBe 2,
-          {
+          faces.size shouldBe 2, {
             val assertions =
               faces.map: face =>
                 face.attribute("id") shouldBe defined
             allAssert(assertions*)
           },
           // All faces in a complete tiling must have an outer component
-          faces.count(_.attribute("outer-component").isDefined) shouldBe 2
+          faces
+            .count: face =>
+              face.attribute("outer-component").isDefined
+            .shouldBe(2)
         )
       }
     )
