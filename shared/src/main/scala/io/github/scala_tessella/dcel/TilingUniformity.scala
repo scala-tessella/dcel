@@ -187,12 +187,7 @@ object TilingUniformity:
               newHalf.filter: halfEdge =>
                 halfEdge.origin eq vertex
             val innerSum    =
-              incidentAtV
-                .filterNot: halfEdge =>
-                  halfEdge.hasIncidentFace(localOuter)
-                .flatMap: halfEdge =>
-                  halfEdge.angle
-                .sumExact
+              incidentAtV.interiorAnglesSum(localOuter)
             boundaryEdge.angle = Some(innerSum.conjugate)
 
         (

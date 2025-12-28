@@ -51,7 +51,9 @@ final class Face(
         Option.when(outerComponent.isEmpty)("Missing outer component edge")
       ).flatten
     val missingInnerError =
-      if innerComponents.exists(_.isEmpty) then
+      if innerComponents.exists: maybeHalfEdge =>
+          maybeHalfEdge.isEmpty
+      then
         List("One or more inner component edge references are missing")
       else
         Nil
@@ -68,7 +70,9 @@ final class Face(
   def getVertices: Either[TopologyError, List[Vertex]] =
     outerComponent match
       case None            => Right(List.empty)
-      case Some(startEdge) => startEdge.faceTraversal(_.origin)
+      case Some(startEdge) =>
+        startEdge.faceTraversal: halfEdge =>
+          halfEdge.origin
 
   private[dcel] def halfEdgesUnsafe: List[HalfEdge] =
     outerComponent.get.faceTraversalUnsafe()
@@ -81,14 +85,15 @@ final class Face(
       case Some(start) => start.faceTraversal()
 
   private[dcel] def anglesUnsafe: List[AngleDegree] =
-    halfEdgesUnsafe.map(_.angle.get)
+    halfEdgesUnsafe.map: halfEdge =>
+      halfEdge.angle.get
 
   def angles: Either[TilingError, List[AngleDegree]] =
     halfEdges
       .flatMap: edges =>
         edges
-          .map: edge =>
-            edge.angle.toRight(GeometryError("Cannot find interior angle"))
+          .map: halfEdge =>
+            halfEdge.angle.toRight(GeometryError("Cannot find interior angle"))
           .sequence
 
   private[dcel] def hasEqualAnglesUnsafe: Boolean =

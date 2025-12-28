@@ -100,10 +100,12 @@ final class HalfEdge(
     collectEdges(startEdge, Nil)
 
   private[dcel] def vertexTraversalUnsafe[T](f: HalfEdge => T = identity): List[T] =
-    traverseUnsafe[T](_.twin.flatMap(_.next))(f)
+    traverseUnsafe[T](_.twin.flatMap(_.next)): halfEdge =>
+      f(halfEdge)
 
   def vertexTraversal[T](f: HalfEdge => T = identity): Either[TopologyError, List[T]] =
-    traverse[T](_.twin.flatMap(_.next))(f)
+    traverse[T](_.twin.flatMap(_.next)): halfEdge =>
+      f(halfEdge)
 
   private def traverse[T](direction: HalfEdge => Option[HalfEdge])(f: HalfEdge => T =
     identity): Either[TopologyError, List[T]] =
@@ -130,10 +132,12 @@ final class HalfEdge(
     collectEdges(startEdge, Nil)
 
   private[dcel] def faceTraversalUnsafe[T](f: HalfEdge => T = identity): List[T] =
-    traverseUnsafe[T](_.next)(f)
+    traverseUnsafe[T](_.next): halfEdge =>
+      f(halfEdge)
 
   def faceTraversal[T](f: HalfEdge => T = identity): Either[TopologyError, List[T]] =
-    traverse[T](_.next)(f)
+    traverse[T](_.next): halfEdge =>
+      f(halfEdge)
 
   def hasIncidentFace(face: Face): Boolean =
     incidentFace.contains(face)
@@ -290,14 +294,16 @@ object HalfEdge:
 
     def interiorAnglesSum(outerFace: Face): AngleDegree =
       halfEdges
-        .filterNot:
-          _.hasIncidentFace(outerFace)
-        .flatMap:
-          _.angle
+        .filterNot: halfEdge =>
+          halfEdge.hasIncidentFace(outerFace)
+        .flatMap: halfEdge =>
+          halfEdge.angle
         .sumExact
 
     def getPath(from: Vertex, to: Vertex): List[HalfEdge] =
-      val startEdgeOpt = halfEdges.find(_.origin == from)
+      val startEdgeOpt =
+        halfEdges.find: halfEdge =>
+          halfEdge.origin == from
 
       startEdgeOpt match
         case Some(startEdge) =>
@@ -320,36 +326,40 @@ object HalfEdge:
       */
     def maybePath: Option[List[HalfEdge]] =
       if halfEdges.isEmpty then return Some(Nil)
-      if halfEdges.exists(_.destination.isEmpty) then return None
+      if halfEdges.exists: halfEdge =>
+          halfEdge.destination.isEmpty
+      then return None
 
-      val outDegrees = halfEdges
-        .groupBy:
-          _.origin
-        .view
-        .mapValues:
-          _.size
-      val inDegrees  = halfEdges
-        .groupMap(_.destination.get): _ =>
-          1
-        .view
-        .mapValues:
-          _.sum
+      val outDegrees =
+        halfEdges
+          .groupBy: halfEdge =>
+            halfEdge.origin
+          .view
+          .mapValues: edges =>
+            edges.size
+      val inDegrees  =
+        halfEdges
+          .groupMap(_.destination.get): _ =>
+            1
+          .view
+          .mapValues: integers =>
+            integers.sum
       val vertices   = (outDegrees.keySet ++ inDegrees.keySet).toList
 
       val startNodeCandidates =
-        vertices.filter: v =>
-          outDegrees.getOrElse(v, 0) - inDegrees.getOrElse(v, 0) == 1
+        vertices.filter: vertex =>
+          outDegrees.getOrElse(vertex, 0) - inDegrees.getOrElse(vertex, 0) == 1
       val endNodeCandidates   =
-        vertices.filter: v =>
-          inDegrees.getOrElse(v, 0) - outDegrees.getOrElse(v, 0) == 1
+        vertices.filter: vertex =>
+          inDegrees.getOrElse(vertex, 0) - outDegrees.getOrElse(vertex, 0) == 1
 
       val startVertexOpt =
         if startNodeCandidates.size == 1 && endNodeCandidates.size == 1 then
           startNodeCandidates.headOption
         else if startNodeCandidates.isEmpty && endNodeCandidates.isEmpty then
           // This must be a cycle (or disjoint cycles), so all vertices must be balanced
-          if vertices.forall: v =>
-              outDegrees.getOrElse(v, 0) == inDegrees.getOrElse(v, 0)
+          if vertices.forall: vertex =>
+              outDegrees.getOrElse(vertex, 0) == inDegrees.getOrElse(vertex, 0)
           then
             halfEdges.headOption.map(_.origin)
           else
@@ -361,18 +371,18 @@ object HalfEdge:
         val edgesByOrigin = mutable.Map
           .from(
             halfEdges
-              .groupBy:
-                _.origin
+              .groupBy: halfEdge =>
+                halfEdge.origin
               .view
-              .mapValues: halfEdges =>
-                mutable.Queue.from(halfEdges)
+              .mapValues: edges =>
+                mutable.Queue.from(edges)
           )
         val path          = mutable.ListBuffer.empty[HalfEdge]
 
         def findPath(u: Vertex): Unit =
           while (
-            edgesByOrigin.get(u).exists:
-              _.nonEmpty
+            edgesByOrigin.get(u).exists: edges =>
+              edges.nonEmpty
           )
             val edge = edgesByOrigin(u).dequeue()
             findPath(edge.destination.get)
