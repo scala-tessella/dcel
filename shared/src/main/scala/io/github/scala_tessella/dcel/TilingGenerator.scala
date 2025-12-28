@@ -1,6 +1,7 @@
 package io.github.scala_tessella.dcel
 
 import io.github.scala_tessella.dcel.TilingEquivalency.{hasSameSizesOf, isBoundaryEquivalentTo}
+import io.github.scala_tessella.dcel.TilingUniformity.uniformityTreeUncompressed
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, RegularPolygon}
 import io.github.scala_tessella.dcel.structure.Vertex
 import io.github.scala_tessella.ring_seq.RingSeq.rotationsAndReflections
@@ -190,10 +191,11 @@ object TilingGenerator:
   extension (tilingsCollections: List[List[TilingDCEL]])
 
     /** Iterates through the groups and adds only the tilings that are not already present in the accumulator.
-     *  Since each group is already distinct, we skip checking for duplicates within the same group.
-     *
-     * @return Sequence of distinct tilings
-     */
+      * Since each group is already distinct, we skip checking for duplicates within the same group.
+      *
+      * @return
+      *   Sequence of distinct tilings
+      */
     def distinctByBoundaryEquivalency2: List[TilingDCEL] =
       tilingsCollections
         .foldLeft(List.empty[TilingDCEL]): (acc, group) =>
@@ -205,6 +207,9 @@ object TilingGenerator:
         .reverse
 
   extension (tiling: TilingDCEL)
+
+    private def gonality: Int =
+      tiling.uniformityTreeUncompressed(Option(0)).sizeLeaves
 
     def expandRotationally(order: Int): List[TilingDCEL] =
       if !List(2, 3, 4, 6).contains(order) then throw new IllegalArgumentException("Invalid order")
@@ -251,14 +256,24 @@ object TilingGenerator:
               .toOption
 
   extension (tilings: List[TilingDCEL])
-    def expandRotationallyMore(order: Int, steps: Int = 1): List[TilingDCEL] =
+
+    def expandRotationallyMore(order: Int, steps: Int = 1, uniformity: Option[Int] = None): List[TilingDCEL] =
+      val startingSize =
+        tilings.size
+
       (0 until steps).foldLeft(tilings): (grownTilings, step) =>
-        grownTilings
-          .map: grownTiling =>
-            grownTiling.expandRotationally(order)
-              .filter: t =>
-                t.innerFaces.size == 1 + order * (step + 1)
-              .filter: t =>
-                t.boundarySimplePolygon.toAngles.forall: angle =>
-                  angle.toRational <= Rational(300)
+        val (growable, alreadyGrownWithHoleFilling) = grownTilings.partition: tiling =>
+          tiling.innerFaces.size == startingSize + order * step
+        val nowGrown =
+          growable
+            .map: tiling =>
+              tiling.expandRotationally(order)
+                .filter: expandedTiling =>
+                  expandedTiling.boundarySimplePolygon.toAngles.forall: angle =>
+                    angle.toRational <= Rational(300)
+                .filter: expandedTiling =>
+                  uniformity match
+                    case Some(value) => /*t.gonality <= value && */ expandedTiling.uniformityTree.sizeLeaves <= value
+                    case None => true
+        (alreadyGrownWithHoleFilling :: nowGrown)
           .distinctByBoundaryEquivalency2
