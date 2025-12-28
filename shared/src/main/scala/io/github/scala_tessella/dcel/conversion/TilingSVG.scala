@@ -828,7 +828,8 @@ object TilingSVG:
             val m      =
               leaves.zipWithIndex
                 .flatMap: (vertexIds, colorIndex) =>
-                  vertexIds.map(vid => vid -> colorIndex)
+                  vertexIds.map: vid =>
+                    vid -> colorIndex
                 .toMap
             stepIndex -> m
           .toMap
@@ -1020,8 +1021,8 @@ object TilingSVG:
           Some("x"  -> vertex.coords.x.toString),
           Some("y"  -> vertex.coords.y.toString),
           vertex.leaving
-            .flatMap:
-              halfEdgeIds.get
+            .flatMap: halfEdge =>
+              halfEdgeIds.get(halfEdge)
             .map: id =>
               "leaving" -> id
         ).flatten
@@ -1035,24 +1036,24 @@ object TilingSVG:
               Some("id"     -> id),
               Some("origin" -> he.origin.id.value),
               he.twin
-                .flatMap:
-                  halfEdgeIds.get
+                .flatMap: halfEdge =>
+                  halfEdgeIds.get(halfEdge)
                 .map: twinId =>
                   "twin" -> twinId,
               he.next
-                .flatMap:
-                  halfEdgeIds.get
+                .flatMap: halfEdge =>
+                  halfEdgeIds.get(halfEdge)
                 .map: nextId =>
                   "next" -> nextId,
               he.prev
-                .flatMap:
-                  halfEdgeIds.get
+                .flatMap: halfEdge =>
+                  halfEdgeIds.get(halfEdge)
                 .map: prevId =>
                   "prev" -> prevId,
-              he.incidentFace.map: f =>
-                "face" -> f.id.value,
-              he.angle.map: a =>
-                "angle" -> a.toRational
+              he.incidentFace.map: face =>
+                "face" -> face.id.value,
+              he.angle.map: angleDegree =>
+                "angle" -> angleDegree.toRational
             ).flatten
             elem("half-edge", attrs(attrsList*))
       val halfEdgesElem = elem("half-edges", children = halfEdgeNodes)
@@ -1062,8 +1063,8 @@ object TilingSVG:
           List(
             Some("id" -> f.id.value),
             f.outerComponent
-              .flatMap:
-                halfEdgeIds.get
+              .flatMap: halfEdge =>
+                halfEdgeIds.get(halfEdge)
               .map: id =>
                 "outer-component" -> id
           ).flatten
