@@ -66,58 +66,53 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
     val copy     = original.deepCopy
 
     allAssert(
-      // Check vertex leaving edges
-      allAssert(
-        copy.vertices.map { vertex =>
+      {
+        val assertions =
+          copy.vertices.map: vertex =>
+            allAssert(
+              vertex.leaving shouldBe defined,
+              vertex.leaving.get.origin should be theSameInstanceAs vertex
+            )
+        // Check vertex leaving edges
+        allAssert(assertions*)
+      }, {
+        val assertions =
+          copy.halfEdges.map: edge =>
+            allAssert(
+              // Twin relationships
+              edge.twin shouldBe defined,
+              edge.twin.get.twin should contain(edge),
 
-          allAssert(
-            vertex.leaving shouldBe defined,
-            vertex.leaving.get.origin should be theSameInstanceAs vertex
-          )
-        }*
-      ),
-      allAssert(
+              // Next/prev relationships
+              edge.next shouldBe defined,
+              edge.prev shouldBe defined,
+              edge.next.get.prev should contain(edge),
+              edge.prev.get.next should contain(edge),
+
+              // Origin relationships - check that the edge is among the vertex's incident edges
+              edge.origin.incidentEdgesUnsafe should contain(edge),
+
+              // Incident face relationships
+              edge.incidentFace shouldBe defined
+            )
         // Check half-edge relationships
-        copy.halfEdges.map { edge =>
-
-          allAssert(
-            // Twin relationships
-            edge.twin shouldBe defined,
-            edge.twin.get.twin should contain(edge),
-
-            // Next/prev relationships
-            edge.next shouldBe defined,
-            edge.prev shouldBe defined,
-            edge.next.get.prev should contain(edge),
-            edge.prev.get.next should contain(edge),
-
-            // Origin relationships - check that the edge is among the vertex's incident edges
-            edge.origin.incidentEdgesUnsafe should contain(edge),
-
-            // Incident face relationships
-            edge.incidentFace shouldBe defined
-          )
-        }*
-      ),
-      allAssert(
+        allAssert(assertions*)
+      }, {
+        val assertions =
+          copy.faces.map: face =>
+            if face.outerComponent.isDefined then
+              face.outerComponent.get.incidentFace should contain(face)
+            else fail()
         // Check face outer components
-        copy.faces.map { face =>
-
-          if face.outerComponent.isDefined then
-            face.outerComponent.get.incidentFace should contain(face)
-          else fail()
-        }*
-      ),
-      allAssert(
+        allAssert(assertions*)
+      }, {
+        val assertions =
+          copy.vertices.flatMap: vertex =>
+            vertex.leaving.map: leavingEdge =>
+              vertex.incidentEdgesUnsafe should contain(leavingEdge)
         // Additional check: verify that leaving edges are actually incident to their vertices
-        copy.vertices.flatMap { vertex =>
-
-          vertex.leaving.map { leavingEdge =>
-
-            vertex.incidentEdgesUnsafe should contain(leavingEdge)
-          }
-        }*
-      )
+        allAssert(assertions*)
+      }
     )
 
   it should "maintain DCEL validation after copying" in:

@@ -67,7 +67,7 @@ class PropertyBasedDCELSpec
     var done    = false
     while i < attempts && !done do
       randomBoundaryEdgeStart(current) match
-        case None           =>
+        case None =>
           i = attempts // no boundary to grow
         case Some(startVid) =>
           val s = genSides.sample.getOrElse(3)
@@ -98,13 +98,13 @@ class PropertyBasedDCELSpec
       else
         // Prefer deleting faces that touch the outer boundary (safer operations)
         val boundaryAdjacentFaces =
-          current.innerFaces.filter { f =>
-
-            f.halfEdges.toOption.exists(_.exists { e =>
-
-              e.twin.flatMap(_.incidentFace).contains(current.outerFace)
-            })
-          }
+          current.innerFaces.filter: face =>
+            face.halfEdges.toOption.exists: edges =>
+              edges.exists: halfEdge =>
+                halfEdge.twin
+                  .flatMap: halfEdge =>
+                    halfEdge.incidentFace
+                  .contains(current.outerFace)
 
         val pool = if boundaryAdjacentFaces.nonEmpty then boundaryAdjacentFaces else current.innerFaces
         val f    = pool(random.nextInt(pool.length))

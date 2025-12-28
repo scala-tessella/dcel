@@ -40,10 +40,11 @@ class TilingTorusBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHe
 
   it should "compute all adjacent vertices in a torus" in:
     val torus = TilingTorusBuilder.createSquareNet(3, 3)
-    torus.vertices.map { v =>
-
-      v.id -> v.adjacentVerticesUnsafe.map(_.id)
-    }.toMap shouldEqual
+    torus.vertices
+      .map: vertex =>
+        vertex.id -> vertex.adjacentVerticesUnsafe.map: adjacentVertex =>
+          adjacentVertex.id
+      .toMap shouldEqual
       Map(
         V1   -> List(V2, "V7", V3, V4),
         V2   -> List(V3, "V8", V1, V5),
@@ -181,10 +182,11 @@ class TilingTorusBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHe
 
   it should "compute all adjacent vertices in a torus" in:
     val torus = TilingTorusBuilder.createTriangleNet(4, 4)
-    torus.vertices.map { v =>
-
-      v.id -> v.adjacentVerticesUnsafe.map(_.id)
-    }.toMap shouldEqual
+    torus.vertices
+      .map: vertex =>
+        vertex.id -> vertex.adjacentVerticesUnsafe.map: adjacentVertex =>
+          adjacentVertex.id
+      .toMap shouldEqual
       Map(
         V1    -> List(V2, "V13", "V16", V4, "V8", V5),
         V2    -> List(V5, V6, V3, "V14", "V13", V1),
@@ -289,10 +291,11 @@ class TilingTorusBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHe
 
   it should "compute all adjacent vertices in a torus" in:
     val torus = TilingTorusBuilder.createHexagonNet(2, 2)
-    torus.vertices.map { v =>
-
-      v.id -> v.adjacentVerticesUnsafe.map(_.id)
-    }.toMap shouldEqual
+    torus.vertices
+      .map: vertex =>
+        vertex.id -> vertex.adjacentVerticesUnsafe.map: adjacentVertex =>
+          adjacentVertex.id
+      .toMap shouldEqual
       Map(
         V1   -> List(V2, "V7", V6),
         V2   -> List("V8", V1, V3),
@@ -346,10 +349,11 @@ class TilingTorusBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHe
 
   it should "compute all adjacent vertices of 4x4 hexagon net in a torus" in:
     val torus = TilingTorusBuilder.createHexagonNet(4, 4)
-    torus.vertices.map { v =>
-
-      v.id -> v.adjacentVerticesUnsafe.map(_.id)
-    }.toMap shouldEqual
+    torus.vertices
+      .map: vertex =>
+        vertex.id -> vertex.adjacentVerticesUnsafe.map: adjacentVertex =>
+          adjacentVertex.id
+      .toMap shouldEqual
       Map(
         "V14" -> List("V20", "V13", "V9"),
         "V9"  -> List("V8", "V10", "V14"),

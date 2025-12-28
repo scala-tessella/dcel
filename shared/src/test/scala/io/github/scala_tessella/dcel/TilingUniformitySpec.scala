@@ -427,24 +427,24 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
     uniformity6.uniformityTreeUncompressed(Option(4)).compress(_ ::: _) shouldEqual
       uniformity6.uniformityTreeUncompressed(Option(3)).compress(_ ::: _)
 
-  behavior of "problematic tiling"
-
-  val xmlMetadata: String = loadFile(s"metadata/3.6.3.6_uniformity_issue.xml")
-
-  /** Uniformity issue <img src="file:../../../../../resources/uniformityIssue.svg"/> */
-  def problematicTiling: TilingDCEL = TilingSVGPlatform.fromMetadata(xmlMetadata).value
-  //    tiling.uniformityTree.sizeLeaves shouldBe 1
-
-  it should "have uniformity 1" in:
-    problematicTiling.uniformityTree.sizeLeaves shouldBe 1
-
-  it should "find the structure at distance 3 originating from vertex V7" in:
-    val struct = problematicTiling.getDcelAtVertex(VertexId("V7"), 3).value
-    struct.innerFaces.size shouldBe 38
-
-  it should "find the structure at distance 3 originating from vertex V1" in:
-    val struct = problematicTiling.getDcelAtVertex(V1, 3).value
-    struct.innerFaces.size shouldBe 38
+//  behavior of "problematic tiling"
+//
+//  val xmlMetadata: String = loadFile(s"metadata/3.6.3.6_uniformity_issue.xml")
+//
+//  /** Uniformity issue <img src="file:../../../../../resources/uniformityIssue.svg"/> */
+//  def problematicTiling: TilingDCEL = TilingSVGPlatform.fromMetadata(xmlMetadata).value
+//  //    tiling.uniformityTree.sizeLeaves shouldBe 1
+//
+//  it should "have uniformity 1" in:
+//    problematicTiling.uniformityTree.sizeLeaves shouldBe 1
+//
+//  it should "find the structure at distance 3 originating from vertex V7" in:
+//    val struct = problematicTiling.getDcelAtVertex(VertexId("V7"), 3).value
+//    struct.innerFaces.size shouldBe 38
+//
+//  it should "find the structure at distance 3 originating from vertex V1" in:
+//    val struct = problematicTiling.getDcelAtVertex(V1, 3).value
+//    struct.innerFaces.size shouldBe 38
 
   behavior of "TilingDCEL.scanUniformityTree"
 

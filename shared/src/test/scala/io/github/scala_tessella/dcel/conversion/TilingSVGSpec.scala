@@ -531,10 +531,8 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       "<!-- Outer Angle Labels -->"
     )
 
-    expectedSections.foreach { section =>
-
+    expectedSections.foreach: section =>
       svg should include(section)
-    }
 
   it should "generate SVG with half-edge traversal arrows when requested" in:
     val svg = square.toScalableVectorGraphics(showHalfEdgeTraversal = true)

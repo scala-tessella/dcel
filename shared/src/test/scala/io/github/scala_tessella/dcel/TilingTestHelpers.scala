@@ -38,7 +38,7 @@ trait TilingTestHelpers extends EitherValues:
     TilingBuilder.createRegularPolygon(RegularPolygon(6))
 
   /** Tiling with a single regular dodecagon <img src="file:../../../../../resources/dodecagon.svg"/>
-   */
+    */
   def dodecagon: TilingDCEL =
     TilingBuilder.createRegularPolygon(RegularPolygon(12))
 

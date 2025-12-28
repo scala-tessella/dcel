@@ -64,20 +64,19 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val result = calculateNewVertices(5, p1, p2)
 
     allAssert(
-      result should have length 3,
-      // Pentagon has each interior angle of 108 degrees
-      // Each vertex should be positioned using polar coordinates with 72-degree external angles
-      allAssert(
-        result.map { vertex =>
-
-          allAssert(
-            vertex.x should not be BigDecimal(0), // Vertices should not be at origin
-            vertex.y should not be BigDecimal(
-              0
-            ) // Vertices should have non-zero y coordinates (except possibly the last)
-          )
-        }*
-      )
+      result should have length 3, {
+        // Pentagon has each interior angle of 108 degrees
+        // Each vertex should be positioned using polar coordinates with 72-degree external angles
+        val assertions =
+          result.map: vertex =>
+            allAssert(
+              vertex.x should not be BigDecimal(0), // Vertices should not be at origin
+              vertex.y should not be BigDecimal(
+                0
+              )                                     // Vertices should have non-zero y coordinates (except possibly the last)
+            )
+        allAssert(assertions*)
+      }
     )
 
   it should "calculate vertices for a hexagon correctly" in:
@@ -374,15 +373,13 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       }, {
         // Verify boundary forms a closed loop
         val boundaryEdges = withPentagon.boundaryEdgesSafer.value
-        allAssert(
-          boundaryEdges.map { edge =>
-
+        val assertions    =
+          boundaryEdges.map: edge =>
             allAssert(
               edge.next should be(defined),
               edge.prev should be(defined)
             )
-          }*
-        )
+        allAssert(assertions*)
       }
     )
 
@@ -451,19 +448,18 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
         // Check that boundary is still a single connected component
         val boundaryEdges = tiling.boundaryEdgesSafer.value
         allAssert(
-          boundaryEdges should not be empty,
-          // Verify each edge has proper next/prev links
-          allAssert(
-            boundaryEdges.map { edge =>
-
-              allAssert(
-                edge.next should be(defined),
-                edge.prev should be(defined),
-                edge.next.get.prev should contain(edge),
-                edge.prev.get.next should contain(edge)
-              )
-            }*
-          )
+          boundaryEdges should not be empty, {
+            val assertions =
+              boundaryEdges.map: edge =>
+                allAssert(
+                  edge.next should be(defined),
+                  edge.prev should be(defined),
+                  edge.next.get.prev should contain(edge),
+                  edge.prev.get.next should contain(edge)
+                )
+            // Verify each edge has proper next/prev links
+            allAssert(assertions*)
+          }
         )
       }
     )
@@ -506,13 +502,11 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
     allAssert(
       result.isRight shouldBe true, {
-        val tiling = result.value
-        allAssert(
-          tiling.halfEdges.map { edge =>
-
+        val tiling     = result.value
+        val assertions =
+          tiling.halfEdges.map: edge =>
             edge.incidentFace should be(defined)
-          }*
-        )
+        allAssert(assertions*)
       }
     )
 

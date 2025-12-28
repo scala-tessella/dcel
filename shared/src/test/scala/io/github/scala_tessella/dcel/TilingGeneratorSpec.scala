@@ -1,10 +1,9 @@
 package io.github.scala_tessella.dcel
 
 import io.github.scala_tessella.dcel.TilingGenerator.{expandRotationally, expandRotationallyMore}
-import io.github.scala_tessella.dcel.conversion.TilingSVG.toScalableVectorGraphicsElem
+//import io.github.scala_tessella.dcel.conversion.TilingSVG.toScalableVectorGraphicsXml
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.matchers.should.Matchers.shouldBe
 
 class TilingGeneratorSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
