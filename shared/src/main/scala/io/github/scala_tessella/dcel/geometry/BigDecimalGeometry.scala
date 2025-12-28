@@ -1,8 +1,6 @@
 package io.github.scala_tessella.dcel.geometry
 
 import io.github.scala_tessella.dcel.geometry.{BigBox, BigLineSegment, BigPoint}
-import spire.compat.numeric
-import spire.implicits.*
 
 import scala.collection.mutable
 
@@ -134,16 +132,12 @@ object BigDecimalGeometry:
     ): (Seq[BigLineSegment], SpatialGrid) =
 
       // Determine cell size - if not provided, estimate based on average segment length
-      val actualCellSize = cellSize.getOrElse {
+      val actualCellSize = cellSize.getOrElse:
         val avgLength =
-          (
-            segments1.map(_.length).sum +
-              segments2.map(_.length).sum
-          ) / (segments1.length + segments2.length)
+          (segments1.totalLength + segments2.totalLength) / (segments1.length + segments2.length)
 
         // Cell size should be larger than the average segment to reduce redundant checks
         avgLength * 2
-      }
 
       // Create a bounding box for all segments
       val allPoints = segments1.toPoints ++ segments2.toPoints

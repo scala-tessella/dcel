@@ -36,47 +36,47 @@ class TilingSVGPlatformSpec extends AnyFlatSpec with Matchers with TilingTestHel
         val vertices = metadataXml \ "vertices" \ "vertex"
         allAssert(
           vertices.size shouldBe 3,
-          allAssert(
-            vertices.map { v =>
-
-              allAssert(
-                v.attribute("id") shouldBe defined,
-                v.attribute("x") shouldBe defined,
-                v.attribute("y") shouldBe defined,
-                v.attribute("leaving") shouldBe defined
-              )
-            }*
-          )
+          {
+            val assertions =
+              vertices.map: vertex =>
+                allAssert(
+                  vertex.attribute("id") shouldBe defined,
+                  vertex.attribute("x") shouldBe defined,
+                  vertex.attribute("y") shouldBe defined,
+                  vertex.attribute("leaving") shouldBe defined
+                )
+            allAssert(assertions*)
+          }
         )
       }, {
         val halfEdges = metadataXml \ "half-edges" \ "half-edge"
         allAssert(
           halfEdges.size shouldBe 6,
-          allAssert(
-            halfEdges.map { he =>
-
-              allAssert(
-                he.attribute("id") shouldBe defined,
-                he.attribute("origin") shouldBe defined,
-                he.attribute("twin") shouldBe defined,
-                he.attribute("next") shouldBe defined,
-                he.attribute("prev") shouldBe defined,
-                he.attribute("face") shouldBe defined,
-                he.attribute("angle") shouldBe defined
-              )
-            }*
-          )
+          {
+            val assertions =
+              halfEdges.map: halfEdge =>
+                allAssert(
+                  halfEdge.attribute("id") shouldBe defined,
+                  halfEdge.attribute("origin") shouldBe defined,
+                  halfEdge.attribute("twin") shouldBe defined,
+                  halfEdge.attribute("next") shouldBe defined,
+                  halfEdge.attribute("prev") shouldBe defined,
+                  halfEdge.attribute("face") shouldBe defined,
+                  halfEdge.attribute("angle") shouldBe defined
+                )
+            allAssert(assertions*)
+          }
         )
       }, {
         val faces = metadataXml \ "faces" \ "face"
         allAssert(
           faces.size shouldBe 2,
-          allAssert(
-            faces.map { f =>
-
-              f.attribute("id") shouldBe defined
-            }*
-          ),
+          {
+            val assertions =
+              faces.map: face =>
+                face.attribute("id") shouldBe defined
+            allAssert(assertions*)
+          },
           // All faces in a complete tiling must have an outer component
           faces.count(_.attribute("outer-component").isDefined) shouldBe 2
         )

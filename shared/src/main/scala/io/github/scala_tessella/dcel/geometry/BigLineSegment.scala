@@ -122,3 +122,9 @@ object BigLineSegment:
         cellSize: Option[BigDecimal] = Some(2)
     ): List[(BigLineSegment, BigLineSegment)] =
       IntersectionDetection.properIntersections(segments, other, cellSize)
+
+    def totalLength: BigDecimal =
+      segments
+        .map: segment =>
+          segment.length
+        .sum

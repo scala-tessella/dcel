@@ -104,7 +104,7 @@ object TilingSVGPlatform:
                  angle         = AngleDegree(
                                    Rational(angleStr)
                                  ) // .toRight(ValidationError(s"Invalid angle format: $angleStr"))
-                 _             = he.angle = Some(angle)
+                 _ = he.angle = Some(angle)
                yield ()
              .sequence
 
