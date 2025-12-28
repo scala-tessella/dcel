@@ -47,17 +47,15 @@ object TilingSymmetry:
           case SymEdge(i, j) =>
             BigLineSegment(boundaryVertices(i).coords, boundaryVertices(j).coords).midPoint
 
-      val boundaryVertexIds =
+      val boundaryVertexIds   =
         boundaryVertices.map: vertex =>
           vertex.id
-      val boundaryAngles    = tiling.boundarySimplePolygon.toAngles
-      val segmentSize       = boundaryAngles.size / symmetryOrder
-      val symVertices       = (0 until segmentSize).map { i =>
-
+      val boundaryAngles      = tiling.boundarySimplePolygon.toAngles
+      val segmentSize         = boundaryAngles.size / symmetryOrder
+      val symVertices         = (0 until segmentSize).map { i =>
         SymVertex(i)
       }.toList
-      val symEdges = (0 until segmentSize - 1).map { i =>
-
+      val symEdges            = (0 until segmentSize - 1).map { i =>
         SymEdge(i, i + 1)
       }.toList
       val center              =

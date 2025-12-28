@@ -200,62 +200,53 @@ object TilingEquivalency:
         )
 
       // Wire HalfEdges with reversed orientation
-      tiling.halfEdges.foreach { oldEdge =>
+      tiling.halfEdges.foreach: oldEdge =>
         val newEdge = halfEdgeMap(oldEdge)
 
-        oldEdge.twin.foreach { t =>
+        oldEdge.twin.foreach: t =>
           newEdge.twin = Some(halfEdgeMap(t))
 
           // Incident Face: face on the right of oldEdge (which is incident to twin)
-          t.incidentFace.foreach { f =>
-
+          t.incidentFace.foreach: f =>
             newEdge.incidentFace = Some(faceMap(f))
-          }
 
           // Next: twin of prev of twin
-          t.prev.flatMap(_.twin).foreach { target =>
-
+          t.prev.flatMap(_.twin).foreach: target =>
             newEdge.next = Some(halfEdgeMap(target))
-          }
 
           // Prev: twin of next of twin
-          t.next.flatMap(_.twin).foreach { target =>
-
+          t.next.flatMap(_.twin).foreach: target =>
             newEdge.prev = Some(halfEdgeMap(target))
-          }
 
           // Angle: angle of next of twin (which corresponds to the same corner in the new face)
-          t.next.foreach { tn =>
-
+          t.next.foreach: tn =>
             newEdge.angle = tn.angle
-          }
-        }
-      }
 
       // Wire Vertices
-      tiling.vertices.foreach { oldVertex =>
+      tiling.vertices.foreach: oldVertex =>
         val newVertex = vertexMap(oldVertex)
-        oldVertex.leaving.foreach { oldLeaving =>
-
+        oldVertex.leaving.foreach: oldLeaving =>
           newVertex.leaving = Some(halfEdgeMap(oldLeaving))
-        }
-      }
 
       // Wire Faces
-      tiling.faces.foreach { oldFace =>
+      tiling.faces.foreach: oldFace =>
         val newFace = faceMap(oldFace)
 
         // Outer component needs to be flipped (use twin) to maintain face-on-left invariant
-        oldFace.outerComponent.flatMap(_.twin).foreach { target =>
-
-          newFace.outerComponent = Some(halfEdgeMap(target))
-        }
+        oldFace.outerComponent
+          .flatMap: halfEdge =>
+            halfEdge.twin
+          .foreach: target =>
+            newFace.outerComponent = Some(halfEdgeMap(target))
 
         // Inner components
-        newFace.innerComponents = oldFace.innerComponents.map {
-          _.flatMap(_.twin).map(halfEdgeMap)
-        }
-      }
+        newFace.innerComponents =
+          oldFace.innerComponents.map: maybeHalfEdge =>
+            maybeHalfEdge
+              .flatMap: halfEdge =>
+                halfEdge.twin
+              .map: halfEdge =>
+                halfEdgeMap(halfEdge)
 
       TilingDCEL(
         vertices = tiling.vertices.map(vertexMap),
@@ -268,24 +259,20 @@ object TilingEquivalency:
       val distances = mutable.Map[Vertex, Int]()
       val queue     = mutable.Queue[(Vertex, Int)]()
 
-      tiling.vertices.foreach { v =>
-
-        if v.incidentEdgesUnsafe.exists(_.incidentFace.contains(tiling.outerFace)) then
+      tiling.vertices.foreach: v =>
+        if v.incidentEdgesUnsafe.exists: halfEdge =>
+            halfEdge.incidentFace.contains(tiling.outerFace)
+        then
           distances(v) = 0
           queue.enqueue((v, 0))
-      }
 
       while queue.nonEmpty do
         val (current, dist) = queue.dequeue()
-        current.incidentEdgesUnsafe.foreach { edge =>
-
-          edge.destination.foreach { neighbor =>
-
+        current.incidentEdgesUnsafe.foreach: edge =>
+          edge.destination.foreach: neighbor =>
             if !distances.contains(neighbor) then
               distances(neighbor) = dist + 1
               queue.enqueue((neighbor, dist + 1))
-          }
-        }
       distances.toMap
 
     private[dcel] def hasSameSizesOf(other: TilingDCEL): Boolean =

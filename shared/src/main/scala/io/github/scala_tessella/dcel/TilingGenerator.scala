@@ -134,7 +134,6 @@ object TilingGenerator:
 
         val edgeOpt = tiling.boundaryEdges.find(_.origin == targetVertex)
         edgeOpt.map { edge =>
-
           tiling.maybeAddRegularPolygonToBoundary(edge.origin.id, RegularPolygon(sides))
         }
       else
@@ -264,7 +263,7 @@ object TilingGenerator:
       (0 until steps).foldLeft(tilings): (grownTilings, step) =>
         val (growable, alreadyGrownWithHoleFilling) = grownTilings.partition: tiling =>
           tiling.innerFaces.size == startingSize + order * step
-        val nowGrown =
+        val nowGrown                                =
           growable
             .map: tiling =>
               tiling.expandRotationally(order)
@@ -273,7 +272,8 @@ object TilingGenerator:
                     angle.toRational <= Rational(300)
                 .filter: expandedTiling =>
                   uniformity match
-                    case Some(value) => /*t.gonality <= value && */ expandedTiling.uniformityTree.sizeLeaves <= value
-                    case None => true
+                    case Some(value) => /*t.gonality <= value && */
+                      expandedTiling.uniformityTree.sizeLeaves <= value
+                    case None        => true
         (alreadyGrownWithHoleFilling :: nowGrown)
           .distinctByBoundaryEquivalency2
