@@ -857,10 +857,8 @@ object TilingSVG:
       sb.append(s"""  <g stroke="black" stroke-width="$strokeWidth">""")
       sb.append("\n")
       val edgeLines = createEdgeLines(tiling, scale)
-      edgeLines.foreach { e =>
-
-        sb.append("    ").append(e.toString).append("\n")
-      }
+      edgeLines.foreach: elem =>
+        sb.append("    ").append(elem.toString).append("\n")
       sb.append("  </g>\n\n")
 
       // Animated vertices
