@@ -103,13 +103,11 @@ final case class TilingTorusDCEL private (
     */
   def unorderedBoundaryVertices: List[Vertex] =
     // filter the vertices that has distance > 1 with at least one adjacent vertex
-    vertices.filter { vertex =>
-
-      vertex.adjacentVerticesUnsafe.exists { adjacent =>
-
-        (vertex.coords.distanceTo(adjacent.coords) - 1.0).abs > ACCURACY
-      }
-    } match
+    val filtered =
+      vertices.filter: vertex =>
+        vertex.adjacentVerticesUnsafe.exists: adjacent =>
+          (vertex.coords.distanceTo(adjacent.coords) - 1.0).abs > ACCURACY
+    filtered match
       case Nil      => vertices
       case boundary => boundary
 
@@ -155,35 +153,26 @@ final case class TilingTorusDCEL private (
     val newEdgeByOld = scala.collection.mutable.Map[HalfEdge, HalfEdge]()
 
     def allow(e: HalfEdge): Boolean =
-      e.endpointsAsVertices.exists { (a, b) =>
-
+      e.endpointsAsVertices.exists: (a, b) =>
         unitPairs.contains((a, b))
-      }
 
     // Create fresh edges for allowed ones, keep same origin to reuse vertices as-is
-    halfEdges.foreach { e =>
-
+    halfEdges.foreach: e =>
       if allow(e) then
         newEdgeByOld(e) = HalfEdge(e.origin)
-    }
 
     // Re-wire twins, next, prev, incident face, angle for the retained edges, but only if the referenced edge was retained too.
-    newEdgeByOld.foreach { case (oldE, newE) =>
+    newEdgeByOld.foreach: (oldE, newE) =>
       // twin
-      oldE.twin.foreach { t =>
-
-        newEdgeByOld.get(t).foreach { nt =>
-
+      oldE.twin.foreach: t =>
+        newEdgeByOld.get(t).foreach: nt =>
           if newE.twin.isEmpty && nt.twin.isEmpty then newE.twinWith(nt)
-        }
-      }
       // next/prev (keep only if target exists)
       oldE.next.flatMap(newEdgeByOld.get).foreach(ne => newE.linkWith(ne))
       oldE.prev.flatMap(newEdgeByOld.get).foreach(pe => pe.linkWith(newE))
 
       // incident face and angle (inner faces only for now)
       newE.angle = oldE.angle
-    }
 
     // Build inner faces from retained edges by walking each face cycle that survived fully.
     // We keep faces whose outerComponent (or any edge) has been retained and forms a closed cycle in the new graph.
@@ -202,16 +191,13 @@ final case class TilingTorusDCEL private (
         curr = curr.next.get
       if curr eq start then
         val f = Face(FaceId(java.util.UUID.randomUUID().toString))
-        ring.foreach { e =>
-
+        ring.foreach: e =>
           e.incidentFace = Some(f)
-        }
         f.outerComponent = Some(start)
         Some(f)
       else None
 
-    allNewEdges.foreach { e =>
-
+    allNewEdges.foreach: e =>
       if !visited.contains(e) then
         val cycle = e.faceTraversalUnsafe()
         cycle.foreach(visited.add)
@@ -220,7 +206,6 @@ final case class TilingTorusDCEL private (
           // Ensure every edge in cycle currently has no face assigned
           if cycle.forall(_.incidentFace.isEmpty) then
             tryBuildFace(e).foreach(newInnerFaces += _)
-    }
 
     // Now build boundary (outer face) by taking all half-edges not assigned to any inner face.
     val boundaryEdges = allNewEdges.filter(_.incidentFace.isEmpty)
@@ -242,7 +227,6 @@ final case class TilingTorusDCEL private (
         // link the component in cycle if possible
         component.linkInCycle()
         component.foreach { e =>
-
           e.incidentFace = Some(outer)
           // boundary edges do not have interior angle; reuse any existing angle or leave None
         }
@@ -253,7 +237,6 @@ final case class TilingTorusDCEL private (
 
     // assign a leaving edge per vertex if missing
     vertices.foreach { v =>
-
       if v.leaving.isEmpty then
         v.leaving = allNewEdges.find(_.origin eq v)
     }
@@ -439,16 +422,19 @@ final case class TilingTorusDCEL private (
     }.mkString("\n        ")
 
     // Face outlines as polygons (optional)
-    val facePolys = faces.flatMap { f =>
-
-      f.getVertices.toOption.map { ring =>
-        val pts = ring.map(v => vProj(v))
-        val d   = pts.map { case (x, y) =>
-          s"$x,$y"
-        }.mkString(" ")
-        s"""<polygon points="$d" fill="${opt.faceFill}" stroke="${opt.faceStroke}" stroke-width="${opt.faceStrokeWidth}"/>"""
-      }
-    }.mkString("\n        ")
+    val facePolys =
+      faces
+        .flatMap: face =>
+          face.getVertices.toOption.map: ring =>
+            val pts = ring.map: vertex =>
+              vProj(vertex)
+            val d   =
+              pts
+                .map: (x, y) =>
+                  s"$x,$y"
+                .mkString(" ")
+            s"""<polygon points="$d" fill="${opt.faceFill}" stroke="${opt.faceStroke}" stroke-width="${opt.faceStrokeWidth}"/>"""
+        .mkString("\n        ")
 
     // --- Torus wireframe ---
     def ringPath(points: Seq[(Double, Double)], stroke: String, width: Double, dash: String = "2,3") =
@@ -619,10 +605,10 @@ object TilingTorusDCEL:
 
         // Mapping from every original vertex id to its new Vertex
         val newVertexOfId: Map[VertexId, Vertex] =
-          oldVertices.map { v =>
-
-            v.id -> repToVertex(repOf(v.id))
-          }.toMap
+          oldVertices
+            .map: vertex =>
+              vertex.id -> repToVertex(repOf(vertex.id))
+            .toMap
 
         val newVertices: List[Vertex] =
           repToVertex.values.toList
@@ -637,53 +623,41 @@ object TilingTorusDCEL:
         val innerSet      = oldInnerEdges.toSet
 
         // First pass: create new edges with correct origin, copy angle only
-        oldInnerEdges.foreach { e =>
-          val newOrigin = newVertexOfId(e.origin.id)
+        oldInnerEdges.foreach: halfEdge =>
+          val newOrigin = newVertexOfId(halfEdge.origin.id)
           val ne        = HalfEdge(newOrigin)
-          ne.angle = e.angle
-          edgeMap(e) = ne
-        }
+          ne.angle = halfEdge.angle
+          edgeMap(halfEdge) = ne
 
         // ---- 4. Clone inner faces ----
         val oldInnerFaces = tilingDCEL.innerFaces
         val faceMap       = mutable.HashMap.empty[Face, Face]
 
-        oldInnerFaces.foreach { f =>
-
-          faceMap(f) = Face(f.id)
-        }
+        oldInnerFaces.foreach: face =>
+          faceMap(face) = Face(face.id)
 
         // ---- 5. Wire next/prev and incidentFace using the edge/face maps ----
-        oldInnerEdges.foreach { oe =>
+        oldInnerEdges.foreach: oe =>
           val ne = edgeMap(oe)
 
           // next/prev translated only if the neighbour is an inner edge
-          oe.next.filter(innerSet.contains).foreach { on =>
-
+          oe.next.filter(innerSet.contains).foreach: on =>
             ne.next = Some(edgeMap(on))
-          }
-          oe.prev.filter(innerSet.contains).foreach { op =>
-
+          oe.prev.filter(innerSet.contains).foreach: op =>
             ne.prev = Some(edgeMap(op))
-          }
 
           // incident face: must be an inner face (by construction)
-          oe.incidentFace.foreach { of =>
-
+          oe.incidentFace.foreach: of =>
             if of ne outerFace then
               ne.incidentFace = Some(faceMap(of))
-          }
-        }
 
         // Set outerComponent for inner faces
-        oldInnerFaces.foreach { of =>
+        oldInnerFaces.foreach: of =>
           val nf = faceMap(of)
           of.outerComponent.foreach { startOld =>
-
             if innerSet.contains(startOld) then
               nf.outerComponent = Some(edgeMap(startOld))
           }
-        }
 
         // ---- 6. Wire twins purely by endpoints in the NEW graph ----
         //
@@ -693,36 +667,30 @@ object TilingTorusDCEL:
         val dirBuckets =
           mutable.HashMap.empty[(VertexId, VertexId), mutable.ArrayBuffer[HalfEdge]]
 
-        edgeMap.values.foreach { e =>
-
-          e.next.foreach { n =>
+        edgeMap.values.foreach: e =>
+          e.next.foreach: n =>
             val key = (e.origin.id, n.origin.id)
             val buf = dirBuckets.getOrElseUpdate(key, mutable.ArrayBuffer.empty[HalfEdge])
             buf += e
-          }
-        }
 
-        dirBuckets.foreach { case ((o, d), buf) =>
-          val oppKey = (d, o)
-          dirBuckets.get(oppKey).foreach { oppBuf =>
-            val count = math.min(buf.size, oppBuf.size)
-            var i     = 0
-            while i < count do
-              val e1 = buf(i)
-              val e2 = oppBuf(i)
-              if e1.twin.isEmpty && e2.twin.isEmpty then
-                e1.twinWith(e2)
-              i += 1
-          }
-        }
+        dirBuckets.foreach:
+          case ((o, d), buf) =>
+            val oppKey = (d, o)
+            dirBuckets.get(oppKey).foreach: oppBuf =>
+              val count = math.min(buf.size, oppBuf.size)
+              var i     = 0
+              while i < count do
+                val e1 = buf(i)
+                val e2 = oppBuf(i)
+                if e1.twin.isEmpty && e2.twin.isEmpty then
+                  e1.twinWith(e2)
+                i += 1
 
         // ---- 7. Ensure each new vertex has a leaving edge ----
         val allNewEdges = edgeMap.values.toList
-        newVertices.foreach { v =>
-
-          if v.leaving.isEmpty then
-            v.leaving = allNewEdges.find(_.origin eq v)
-        }
+        newVertices.foreach: vertex =>
+          if vertex.leaving.isEmpty then
+            vertex.leaving = allNewEdges.find(_.origin eq vertex)
 
         // ---- 8. Build the torus DCEL (only inner faces, no outer face) ----
         val newFaces = faceMap.values.toList
@@ -758,7 +726,7 @@ object TilingTorusDCEL:
       // how to interpret 2D coords as torus parameters
       // coords are assumed to be in a unit square tile grid, we map x,y to u,v in [0,1] via scaling
       uScale: Double = 1.0,        // "horizontal" axis
-      vScale: Double = 1.0 // "vertical" axis
+      vScale: Double = 1.0         // "vertical" axis
   )
 
   // Convert (u,v) in [0,1]x[0,1] to torus (x,y,z) with radii (R,r)

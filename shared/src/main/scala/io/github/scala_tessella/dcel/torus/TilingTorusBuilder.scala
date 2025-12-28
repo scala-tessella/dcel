@@ -62,10 +62,8 @@ object TilingTorusBuilder:
 
     // Faces: one per cell (width*height)
     val faces: Array[Array[Face]] =
-      Array.tabulate(height, width) { (j, i) =>
-
+      Array.tabulate(height, width): (j, i) =>
         Face(faceIdF(j * width + i + 1))
-      }
 
     // Helpers to wrap indices on torus
     inline def wrapX(i: Int): Int = wrap(i, width)
@@ -318,10 +316,8 @@ object TilingTorusBuilder:
         }
       )
 
-    val faces = Array.tabulate(height, width) { (j, i) =>
-
+    val faces = Array.tabulate(height, width): (j, i) =>
       Face(faceIdF(j * width + i + 1))
-    }
 
     for j <- 0 until height; i <- 0 until width do
       val f    = faces(j)(i)
