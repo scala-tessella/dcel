@@ -74,6 +74,6 @@ object AngleDegree:
 
     def sumExact: AngleDegree =
       degrees
-        .map:
-          _.toRational
+        .map: angleDegree =>
+          angleDegree.toRational
         .sum
