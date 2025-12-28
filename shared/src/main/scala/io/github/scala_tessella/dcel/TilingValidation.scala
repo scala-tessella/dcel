@@ -114,7 +114,6 @@ object TilingValidation:
                 errors += s"Face ${face.id} has an invalid polygon: ${e.getMessage}"
         case Left(_)      => // NOTE: topological error, handled in validateTopologically
 
-
     // Check angles' sum for the tiling boundary (interior view)
     tiling.boundaryVerticesSafer match
       case Right(boundaryVertices) if boundaryVertices.length >= 3 =>
@@ -174,7 +173,7 @@ object TilingValidation:
     // Optional: unit-length sides check (edge-to-twin origin distance)
     // Only check when both endpoints are available
     tiling.halfEdges.foreach: halfEdge =>
-      val edgeOrigin = halfEdge.origin.coords
+      val edgeOrigin      = halfEdge.origin.coords
       val maybeTwinOrigin = halfEdge.twin.map(_.origin.coords)
       maybeTwinOrigin.foreach: twinOrigin =>
         val d = edgeOrigin.distanceTo(twinOrigin)
