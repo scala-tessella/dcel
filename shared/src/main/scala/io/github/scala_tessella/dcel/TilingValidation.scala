@@ -8,21 +8,15 @@ object TilingValidation:
 
   def validateCompleteness(tiling: TilingDCEL): Either[TilingError, Unit] =
     val errors = mutable.ListBuffer[String]()
-    tiling.vertices.foreach { vertex =>
-
+    tiling.vertices.foreach: vertex =>
       if vertex.validate().isLeft then
         errors += vertex.toString
-    }
-    tiling.halfEdges.foreach { halfEdge =>
-
+    tiling.halfEdges.foreach: halfEdge =>
       if halfEdge.validate().isLeft then
         errors += halfEdge.toString
-    }
-    (tiling.outerFace :: tiling.innerFaces).foreach { face =>
-
+    (tiling.outerFace :: tiling.innerFaces).foreach: face =>
       if face.validate().isLeft then
         errors += face.toString
-    }
     if errors.isEmpty then Right(())
     else Left(TilingError.combineErrors(errors.toList, TilingError.incomplete))
 
@@ -36,16 +30,15 @@ object TilingValidation:
     val faceSet      = tiling.faces.toSet
 
     // Check vertex consistency
-    tiling.vertices.foreach { vertex =>
+    tiling.vertices.foreach: vertex =>
       val edge = vertex.leaving.get
       if edge.origin ne vertex then
         errors += s"Vertex ${vertex.id} leaving edge doesn't originate from it"
       if !edgeSet.contains(edge) then
         errors += s"Vertex ${vertex.id} leaving edge is not part of this tiling"
-    }
 
     // Check half-edge consistency
-    tiling.halfEdges.foreach { edge =>
+    tiling.halfEdges.foreach: edge =>
       if !vertexSet.contains(edge.origin) then
         errors += s"Edge has origin not part of this tiling: ${edge.origin.id}"
       val twin = edge.twin.get
@@ -63,35 +56,26 @@ object TilingValidation:
       if !next.prev.contains(edge) then
         errors += s"Next/prev relationship broken: $edge has next edge $next which has prev edge ${next.prev}"
 
-      edge.prev.foreach { prev =>
-
+      edge.prev.foreach: prev =>
         if !edgeSet.contains(prev) then
           errors += s"Edge from ${edge.origin.id} prev edge is not part of this tiling"
         else if !prev.next.contains(edge) then
           errors += s"Next/prev relationship broken: $edge has prev edge $prev which has next edge ${prev.next}"
-      }
 
-      edge.incidentFace.foreach { f =>
-
-        if !((f eq tiling.outerFace) || innerFaceSet.contains(f)) then
-          errors += s"Edge from ${edge.origin.id} references incident face not part of this tiling: ${f.id}"
-      }
-    }
+      edge.incidentFace.foreach: face =>
+        if !((face eq tiling.outerFace) || innerFaceSet.contains(face)) then
+          errors += s"Edge from ${edge.origin.id} references incident face not part of this tiling: ${face.id}"
 
     // Check face consistency
-    tiling.faces.foreach { face =>
-
+    tiling.faces.foreach: face =>
       face.halfEdges match
         case Left(error)  => errors += s"Face ${face.id} has a broken edge cycle: $error"
         case Right(edges) =>
-          edges.foreach { edge =>
-
+          edges.foreach: edge =>
             if !edge.incidentFace.contains(face) then
               errors += s"Face consistency error: $face contains $edge which references back to another incident ${edge.incidentFace}"
             if !edgeSet.contains(edge) then
               errors += s"Face ${face.id} cycle includes an edge not part of this tiling"
-          }
-    }
 
     // Ensure all edges that claim to be on the outer face are covered by the outer face traversal
     val outerEdgesClaimed   = tiling.halfEdges.filter(_.hasIncidentFace(tiling.outerFace)).toSet
@@ -112,18 +96,13 @@ object TilingValidation:
     val errors = mutable.ListBuffer[String]()
 
     // Disallow full-circle or invalid angles on any half-edge
-    tiling.halfEdges.foreach { e =>
-
-      e.angle.foreach { a =>
-
-        if a.isFullCircle then
-          errors += s"Edge from ${e.origin.id} cannot have full circles as interior angles: $a"
-      }
-    }
+    tiling.halfEdges.foreach: halfEdge =>
+      halfEdge.angle.foreach: angleDegree =>
+        if angleDegree.isFullCircle then
+          errors += s"Edge from ${halfEdge.origin.id} cannot have full circles as interior angles: $angleDegree"
 
     // Check angles' sum for each inner face
-    tiling.innerFaces.foreach { face =>
-
+    tiling.innerFaces.foreach: face =>
       face.halfEdges match
         case Right(edges) =>
           val angles = edges.flatMap(_.angle)
@@ -134,7 +113,7 @@ object TilingValidation:
               case e: IllegalArgumentException =>
                 errors += s"Face ${face.id} has an invalid polygon: ${e.getMessage}"
         case Left(_)      => // NOTE: topological error, handled in validateTopologically
-    }
+
 
     // Check angles' sum for the tiling boundary (interior view)
     tiling.boundaryVerticesSafer match
@@ -171,8 +150,7 @@ object TilingValidation:
     // Check angles' sum for each interior vertex
     val boundaryVertices = tiling.boundaryVertices.toSet
     val interiorVertices = tiling.vertices.filterNot(boundaryVertices.contains)
-    interiorVertices.foreach { vertex =>
-
+    interiorVertices.foreach: vertex =>
       tiling.getAnglesAtVertex(vertex.id) match
         case Right(angles) =>
           val sum = angles.sumExact
@@ -180,7 +158,6 @@ object TilingValidation:
             errors += s"Angles around interior vertex ${vertex.id} do not sum to a full circle: $sum."
         case Left(error)   =>
           errors += s"Could not validate angles for interior vertex ${vertex.id} due to: $error"
-    }
 
     if errors.isEmpty then Right(()) else Left(TilingError.combineErrors(errors.toList, TilingError.geometry))
 
@@ -196,16 +173,14 @@ object TilingValidation:
 
     // Optional: unit-length sides check (edge-to-twin origin distance)
     // Only check when both endpoints are available
-    tiling.halfEdges.foreach { e =>
-      val p = e.origin.coords
-      val q = e.twin.map(_.origin.coords)
-      q.foreach { qq =>
-        val d = p.distanceTo(qq)
+    tiling.halfEdges.foreach: halfEdge =>
+      val edgeOrigin = halfEdge.origin.coords
+      val maybeTwinOrigin = halfEdge.twin.map(_.origin.coords)
+      maybeTwinOrigin.foreach: twinOrigin =>
+        val d = edgeOrigin.distanceTo(twinOrigin)
         // Allow small tolerance
         if (d - 1.0).abs > 1e-9 then
-          errors += s"Edge from ${e.origin.id} does not have unit length: $d"
-      }
-    }
+          errors += s"Edge from ${halfEdge.origin.id} does not have unit length: $d"
 
     if errors.isEmpty then Right(()) else Left(TilingError.combineErrors(errors.toList, TilingError.spatial))
 
