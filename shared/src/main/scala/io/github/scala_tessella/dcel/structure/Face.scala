@@ -122,13 +122,14 @@ object Face:
   def outer: Face = Face(FaceId.outerId)
 
   def adjacencyMap(faces: List[Face]): Map[Face, List[Face]] =
+    val faceSet = faces.toSet
     faces.associate: face =>
       face.halfEdges.getOrElse(List.empty)
         .flatMap: halfEdge =>
           for
             twin         <- halfEdge.twin
             incidentFace <- twin.incidentFace
-            if faces.contains(incidentFace)
+            if faceSet.contains(incidentFace)
           yield incidentFace
 
   extension (faces: List[Face])
