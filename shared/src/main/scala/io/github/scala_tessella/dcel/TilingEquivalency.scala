@@ -269,10 +269,10 @@ object TilingEquivalency:
       while queue.nonEmpty do
         val (current, dist) = queue.dequeue()
         current.incidentEdgesUnsafe.foreach: edge =>
-          edge.destination.foreach: neighbor =>
-            if !distances.contains(neighbor) then
-              distances(neighbor) = dist + 1
-              queue.enqueue((neighbor, dist + 1))
+          val neighbor = edge.destinationUnsafe
+          if !distances.contains(neighbor) then
+            distances(neighbor) = dist + 1
+            queue.enqueue((neighbor, dist + 1))
       distances.toMap
 
     private[dcel] def hasSameSizesOf(other: TilingDCEL): Boolean =
