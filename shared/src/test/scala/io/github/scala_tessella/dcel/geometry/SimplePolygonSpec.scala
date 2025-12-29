@@ -184,7 +184,7 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
 
     /** <img src="file:../../../../../../resources/simple/fan-3.4.6.4.svg"/> */
     val unit = SimplePolygon(90, 210, 120, 120, 210, 90, 150, 150, 150, 150)
-    println(unit.toParallelogonTiling())
+//    println(unit.toParallelogonTiling())
     unit.parallelogonIndices shouldBe List(0, 2, 3, 5, 7, 8)
 
   they should "be found for a 4.6.12 tessellation unit" in:

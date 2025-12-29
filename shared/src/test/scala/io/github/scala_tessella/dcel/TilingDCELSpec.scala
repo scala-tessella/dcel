@@ -500,7 +500,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val doubled =
       TilingBuilder.createSimplePolygon(180, 60, 180, 180, 60, 180, 180, 60, 180).toOption.get.doubleArea
     val result  = doubled.value
-    println(result.toSVG())
+//    println(result.toSVG())
     allAssert(
       result.halfEdges.size shouldBe 30,
       result.vertices.size shouldBe 14,
