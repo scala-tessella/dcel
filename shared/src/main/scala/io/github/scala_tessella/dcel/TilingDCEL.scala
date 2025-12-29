@@ -121,8 +121,8 @@ final case class TilingDCEL private (
     val vertex        = findVertexUnsafe(vertexId).get
     val edges         = vertex.incidentEdgesUnsafe
     val filteredEdges =
-      edges.indexWhere:
-        isBoundaryEdge
+      edges.indexWhere: halfEdge =>
+        isBoundaryEdge(halfEdge)
       match
         case -1 => edges
         case i  => edges.startAt(i).tail
@@ -179,15 +179,23 @@ final case class TilingDCEL private (
     */
   def boundaryVertices: Vector[Vertex] =
     outerFace.outerComponent match
-      case Some(startEdge) => startEdge.faceTraversalUnsafe(_.origin).toVector
       case None            => Vector.empty
+      case Some(startEdge) =>
+        startEdge
+          .faceTraversalUnsafe: halfEdge =>
+            halfEdge.origin
+          .toVector
 
   /** For validation purposes only. */
   private[dcel] def boundaryVerticesSafer: Either[TopologyError, Vector[Vertex]] =
     outerFace.outerComponent match
-      case Some(startEdge) => startEdge.faceTraversal(_.origin).map:
-          _.toVector
       case None            => Right(Vector.empty)
+      case Some(startEdge) =>
+        startEdge
+          .faceTraversal: halfEdge =>
+            halfEdge.origin
+          .map: vertices =>
+            vertices.toVector
 
   /** All vertices in the tiling, except those on the outer boundary. */
   def innerVertices: List[Vertex] =
@@ -265,7 +273,9 @@ final case class TilingDCEL private (
       boundarySimplePolygon.parallelogonDoubleIndices match
         case None if boundarySimplePolygon.isEquilateralTriangle =>
           val angles = boundarySimplePolygon.toAngles
-          val origin = angles.indexWhere(_ == AngleDegree(60))
+          val origin =
+            angles.indexWhere: angleDegree =>
+              angleDegree == AngleDegree(60)
           val repeat = (angles.size / 3) + origin
           Right(this.rawDouble(boundaryVertices(origin), boundaryVertices(repeat), withInversion = true))
         case None                                                => Left(ValidationError("Tiling is not a parallelogon, cannot fill the whole plane."))
