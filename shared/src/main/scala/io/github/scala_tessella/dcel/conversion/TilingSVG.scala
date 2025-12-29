@@ -227,16 +227,18 @@ object TilingSVG:
           val direction = calculateDirection(halfEdge.origin.coords, centroid)
           createAngleLabel(halfEdge, direction, config)
 
+    val tilingCentroid =
+      tilingDCEL.innerFaces.headOption
+        .map: face =>
+          face.getVerticesUnsafe
+        .filter: vertices =>
+          vertices.nonEmpty
+        .map: vertices =>
+          calculateCentroid(vertices)
+        .getOrElse(BigPoint.origin)
+
     val outerAngleLabels = tilingDCEL.boundaryEdges.map: halfEdge =>
-      val centroid         = tilingDCEL.innerFaces.headOption
-        .map:
-          _.getVerticesUnsafe
-        .filter:
-          _.nonEmpty
-        .map:
-          calculateCentroid
-        .getOrElse(BigPoint(0, 0))
-      val inwardDirection  = calculateDirection(halfEdge.origin.coords, centroid)
+      val inwardDirection  = calculateDirection(halfEdge.origin.coords, tilingCentroid)
       val outwardDirection = BigPoint(-inwardDirection.x, -inwardDirection.y)
       createAngleLabel(halfEdge, outwardDirection, config)
 
