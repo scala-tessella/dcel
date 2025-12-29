@@ -309,7 +309,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "return 0 for face with no vertices" in:
     val face = Face(FaceId("F_empty"))
-    face.area shouldBe BigDecimal(0)
+    face.area shouldBe Right(BigDecimal(0))
 
   it should "return 0 for face with less than 3 vertices" in:
     val v1   = createVertex(V1, 0, 0)
@@ -322,13 +322,13 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     he2.next = Some(he1)
     face.outerComponent = Some(he1)
 
-    face.area shouldBe BigDecimal(0)
+    face.areaUnsafe shouldBe BigDecimal(0)
 
   it should "calculate correct area for triangle" in:
     val (face, _, _) = createTriangleFace(FaceId("F_triangle"))
 
     // Triangle with vertices at (0,0), (1,0), (0.5, 0.866) should have area ≈ 0.433
-    val area = face.area
+    val area = face.areaUnsafe
     allAssert(
       area should be > BigDecimal(0.4),
       area should be < BigDecimal(0.5)
@@ -338,7 +338,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val (face, _, _) = createSquareFace(FaceId("F_square"))
 
     // Unit square should have area = 1
-    face.area shouldBe BigDecimal(1)
+    face.areaUnsafe shouldBe BigDecimal(1)
 
   it should "calculate area using shoelace formula correctly" in:
     // Create a rectangular face with known area
@@ -361,7 +361,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     face.outerComponent = Some(he1)
 
     // Rectangle with width=2, height=3 should have area=6
-    face.area shouldBe BigDecimal(6)
+    face.areaUnsafe shouldBe BigDecimal(6)
 
   behavior of "Face.hasEqualAngles"
 

@@ -35,9 +35,15 @@ final class Face(
     id == FaceId.outerId
 
   // Area calculation
-  def area: BigDecimal =
-    val vertices = getVertices.getOrElse(List.empty)
-    vertices
+  def area: Either[TopologyError, BigDecimal] =
+    getVertices.map: vertices =>
+      vertices
+        .map: vertex =>
+          vertex.coords
+        .area
+
+  private[dcel] def areaUnsafe: BigDecimal =
+    getVerticesUnsafe
       .map: vertex =>
         vertex.coords
       .area
