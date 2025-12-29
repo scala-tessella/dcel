@@ -519,3 +519,30 @@ class VertexSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val v0             = triangle.findVertexUnsafe(V1).get
 
     isolatedVertex.findEdgeBetweenUnsafe(v0) shouldBe None
+
+  behavior of "Vertex.bfsVertices"
+
+  it should "return only itself for distance 0" in :
+    val v1 = Vertex(V1, BigPoint(0, 0))
+    v1.bfsVertices(0) shouldBe Set(v1)
+
+  it should "return immediate neighbors for distance 1" in :
+    // Using the triangle helper from your TilingTestHelpers
+    val v1 = triangle.vertices.head
+    val neighbors = v1.adjacentVerticesUnsafe.toSet
+    v1.bfsVertices(1) shouldBe (neighbors + v1)
+
+  it should "respect the distance limit in a chain" in :
+    val v1 = Vertex(V1, BigPoint(0, 0))
+    val v2 = Vertex(V2, BigPoint(1, 0))
+    val v3 = Vertex(V3, BigPoint(2, 0))
+    val (e12, e21) = HalfEdge.createTwinPair(v1, v2)
+    val (e23, e32) = HalfEdge.createTwinPair(v2, v3)
+    v1.leaving = Some(e12);
+    v2.leaving = Some(e23)
+    // Note: Full linking omitted for brevity, but enough for BFS if traversal works
+
+    allAssert(
+      v1.bfsVertices(1) should not contain v3,
+      v1.bfsVertices(2) should contain(v3)
+    )
