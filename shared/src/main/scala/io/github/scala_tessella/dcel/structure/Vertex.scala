@@ -4,6 +4,8 @@ import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.format
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigDecimalGeometry, BigPoint}
 import io.github.scala_tessella.dcel.{IncompleteError, TopologyError}
 
+import scala.collection.mutable
+
 /** Represents a single vertex in the DCEL.
   *
   * @param id
@@ -62,13 +64,19 @@ final class Vertex(
     incidentEdgesUnsafe.flatMap: halfEdge =>
       halfEdge.destination
 
-  // Safe helper returning all distinct adjacent vertices
+  // Safe helper returning all adjacent vertices
   def adjacentVertices: Either[TopologyError, List[Vertex]] =
     incidentEdges.map: halfEdges =>
-      halfEdges
-        .flatMap: halfEdge =>
-          halfEdge.destination
-        .distinct
+      val builder = List.newBuilder[Vertex]
+      val seen    = mutable.Set.empty[VertexId]
+      for
+        edge <- halfEdges
+        dest <- edge.destination
+        if !seen.contains(dest.id)
+      do
+        seen += dest.id
+        builder += dest
+      builder.result()
 
   private[dcel] def incidentFacesUnsafe: List[Face] =
     incidentEdgesUnsafe.flatMap: halfEdge =>
