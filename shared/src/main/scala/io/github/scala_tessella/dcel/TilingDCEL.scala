@@ -118,12 +118,13 @@ final case class TilingDCEL private (
     yield getAnglesAtVertexUnsafe(vertexId)
 
   private[dcel] def getInnerAnglesAtVertexUnsafe(vertexId: VertexId): List[AngleDegree] =
-    val vertex        = findVertexUnsafe(vertexId).get
-    val edges         = vertex.incidentEdgesUnsafe
-    val filteredEdges =
+    val vertex            = findVertexUnsafe(vertexId).get
+    val edges             = vertex.incidentEdgesUnsafe
+    val boundaryEdgeIndex =
       edges.indexWhere: halfEdge =>
         isBoundaryEdge(halfEdge)
-      match
+    val filteredEdges     =
+      boundaryEdgeIndex match
         case -1 => edges
         case i  => edges.startAt(i).tail
     filteredEdges.map: halfEdge =>
