@@ -412,14 +412,13 @@ class UtilsSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     Utils.shortestPath("A", "C", adjacency) shouldBe List("A", "B", "C")
 
   it should "handle start or goal not present in the adjacency map" in:
-    val adjacency  = Map(
+    val adjacency = Map(
       "A" -> List("B"),
       "B" -> Nil
     )
     allAssert(
       // Start not in map but should still allow path search (no outgoing edges)
-      Utils.shortestPath("Z", "B", adjacency) shouldBe Nil,
-      {
+      Utils.shortestPath("Z", "B", adjacency) shouldBe Nil, {
         // Goal not in map, but reachable if listed as neighbor
         val adjacency2 = Map(
           "A" -> List("Z")

@@ -88,16 +88,19 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     allAssert(
       result should have length 4,
       // For a regular hexagon, we expect specific geometric relationships
-      allAssert(
-        result.map { vertex =>
-          // All vertices should be at unit distance from the center of the hexagon
-          val distanceFromCenter = math.sqrt((vertex.x - BigDecimal("0.5")).pow(
-            2
-          ).toDouble + (vertex.y - BigDecimal("-0.866025403784439")).pow(2).toDouble)
-          // The distance should be approximately 1 (unit hexagon)
-          math.abs(distanceFromCenter - 1.0) should be < 0.1
-        }*
-      )
+      {
+        val assertions =
+          result.map: vertex =>
+            // All vertices should be at unit distance from the center of the hexagon
+            val distanceFromCenter =
+              math.sqrt(
+                (vertex.x - BigDecimal("0.5")).pow(2).toDouble
+                  + (vertex.y - BigDecimal("-0.866025403784439")).pow(2).toDouble
+              )
+            // The distance should be approximately 1 (unit hexagon)
+            math.abs(distanceFromCenter - 1.0) should be < 0.1
+        allAssert(assertions*)
+      }
     )
 
   it should "return correct number of vertices for different polygon sizes" in:
@@ -117,13 +120,11 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       (BigPoint(BigDecimal(-1), BigDecimal(-1)), BigPoint(BigDecimal(0), BigDecimal(-1))),
       (BigPoint(BigDecimal(0), BigDecimal(1)), BigPoint(BigDecimal(0), BigDecimal(2)))
     )
-
-    allAssert(
-      testCases.map { case (p1, p2) =>
+    val assertions =
+      testCases.map: (p1, p2) =>
         val result = calculateNewVertices(4, p1, p2) // Test with squares
         result should have length 2
-      }*
-    )
+    allAssert(assertions*)
 
   it should "maintain proper geometric relationships for triangles" in:
     val p1 = BigPoint(BigDecimal(0), BigDecimal(0))
@@ -147,7 +148,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val p1 = BigPoint(BigDecimal(0), BigDecimal(0))
     val p2 = BigPoint(BigDecimal(1), BigDecimal(0))
 
-    for (sides <- 3 to 8) {
+    for (sides <- 3 to 8)
       val newVertices = calculateNewVertices(sides, p1, p2)
       val allVertices = p1 :: p2 :: newVertices
 
@@ -166,7 +167,6 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
         else
           succeed
       )
-    }
 
   it should "handle edge case with minimum polygon size" in:
     val p1 = BigPoint(BigDecimal(0), BigDecimal(0))
@@ -184,9 +184,12 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val allVertices = List(p1, p2) ++ result
 
     // Calculate the signed area to determine orientation (should be negative for clockwise)
-    val signedArea = allVertices.zip(allVertices.tail :+ allVertices.head).map { case (curr, next) =>
-      curr.x * next.y - next.x * curr.y
-    }.sum / 2
+    val signedArea =
+      allVertices
+        .zip(allVertices.tail :+ allVertices.head)
+        .map: (curr, next) =>
+          curr.x * next.y - next.x * curr.y
+        .sum / 2
 
     // For a properly oriented polygon, the signed area should be negative
     signedArea.toDouble should be < 0.0
@@ -205,7 +208,11 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
           tiling.innerFaces should have size 2, {
             // Check that the sum of angles around shared vertices is 360°
             val v0             = tiling.findVertexUnsafe(V1).get
-            val anglesAroundV0 = v0.incidentEdgesUnsafe.flatMap(_.angle).sumExact
+            val anglesAroundV0 =
+              v0.incidentEdgesUnsafe
+                .flatMap: halfEdge =>
+                  halfEdge.angle
+                .sumExact
             anglesAroundV0.isFullCircle shouldBe true
           }
         )
@@ -406,7 +413,11 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       result.isRight shouldBe true, {
         val tiling         = result.value
         // V0 is shared between two squares, so the boundary angle should be 360 - 90 - 90 = 180
-        val v0BoundaryEdge = tiling.boundaryEdgesSafer.value.find(_.origin.id == V1).get
+        val v0BoundaryEdge =
+          tiling.boundaryEdgesSafer.value
+            .find: halfEdge =>
+              halfEdge.origin.id == V1
+            .get
         v0BoundaryEdge.angle.get shouldBe AngleDegree(180)
       }
     )
@@ -418,7 +429,11 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     allAssert(
       verifyValidTiling(withTriangle3), {
         // V0 now has 3 triangles, so the boundary angle should be 360 - 3*60 = 180
-        val v0BoundaryEdge = withTriangle3.boundaryEdgesSafer.value.find(_.origin.id == V1).get
+        val v0BoundaryEdge =
+          withTriangle3.boundaryEdgesSafer.value
+            .find: halfEdge =>
+              halfEdge.origin.id == V1
+            .get
         v0BoundaryEdge.angle.get shouldBe AngleDegree(180)
       }
     )
@@ -471,12 +486,19 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     allAssert(
       result.isRight shouldBe true, {
         val tiling       = result.value
-        val newVertexIds = tiling.vertices.map(_.id).toSet
+        val newVertexIds =
+          tiling.vertices
+            .map: vertex =>
+              vertex.id
+            .toSet
         allAssert(
           // Original vertices should still exist
           originalVertexIds.subsetOf(newVertexIds) shouldBe true,
           // No duplicate IDs
-          tiling.vertices.map(_.id).distinct should have size tiling.vertices.size
+          tiling.vertices
+            .map: vertex =>
+              vertex.id
+            .distinct should have size tiling.vertices.size
         )
       }
     )
@@ -488,7 +510,11 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     allAssert(
       result.isRight shouldBe true, {
         val tiling  = result.value
-        val faceIds = tiling.innerFaces.map(_.id).toSet
+        val faceIds =
+          tiling.innerFaces
+            .map: face =>
+              face.id
+            .toSet
         allAssert(
           faceIds should contain(F1), // Original face
           faceIds should contain(F2), // New face
