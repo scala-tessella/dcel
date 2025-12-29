@@ -106,15 +106,15 @@ object BigPoint:
   extension (points: List[BigPoint])
 
     def centroid: BigPoint =
-      if points.nonEmpty then
-        // single pass reduce to avoid building intermediate lists
-        val summed =
-          points
-            .foldLeft(BigPoint.origin):
-              case (total, point) => total + point
-        summed / points.length
-      else
-        BigPoint.origin // origin (0,0)
+      points match
+        case Nil      => BigPoint.origin
+        case p :: Nil => p
+        case _        =>
+          val len    = BigDecimal(points.length)
+          val summed =
+            points.foldLeft(BigPoint.origin):
+              _ + _
+          summed / len
 
     /** Checks if a list of points contains any pair of `almostEquals` points at given accuracy. */
     def hasNoAlmostEqualPoints(accuracy: Double = ACCURACY): Boolean =

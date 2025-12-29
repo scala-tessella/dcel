@@ -57,14 +57,10 @@ object BigLineSegment:
         || (o4 == Orientation.Collinear && BigPoint.onSegment(that.p1, segment.p2, that.p2))
 
     def properlyIntersects(that: BigLineSegment): Boolean =
-
       // If segments share an endpoint, it's not a proper intersection
-      val thisPoints = Set(segment.p1, segment.p2)
-      val thatPoints = Set(that.p1, that.p2)
-
-      if thisPoints.exists: p1 =>
-          thatPoints.exists: p2 =>
-            p1.almostEquals(p2)
+      // Using almostEquals directly on endpoints is much faster than creating Sets
+      if segment.p1.almostEquals(that.p1) || segment.p1.almostEquals(that.p2) ||
+        segment.p2.almostEquals(that.p1) || segment.p2.almostEquals(that.p2)
       then
         false
       else

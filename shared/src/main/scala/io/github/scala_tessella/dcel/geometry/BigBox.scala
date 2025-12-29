@@ -3,10 +3,8 @@ package io.github.scala_tessella.dcel.geometry
 case class BigBox(min: BigPoint, max: BigPoint):
 
   def contains(point: BigPoint): Boolean =
-    if point.x < min.x then false
-    else if point.y < min.y then false
-    else if point.x > max.x then false
-    else !(point.y > max.y)
+    point.x >= min.x && point.x <= max.x &&
+      point.y >= min.y && point.y <= max.y
 
   def width: BigDecimal = max.x - min.x
 
