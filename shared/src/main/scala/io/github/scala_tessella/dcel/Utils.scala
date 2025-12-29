@@ -2,7 +2,7 @@ package io.github.scala_tessella.dcel
 
 object Utils:
 
-  extension [E, A](eithers: List[Either[E, A]])
+  extension [E, A](eitherList: List[Either[E, A]])
 
     /** Transforms a list of `Either` values into a single `Either` containing a list of successful values or
       * the first encountered error.
@@ -13,7 +13,7 @@ object Utils:
       *   - `Left(E)` if at least one element in the list is `Left`, with the first error encountered.
       */
     def sequence: Either[E, List[A]] =
-      eithers.foldRight(Right(Nil): Either[E, List[A]]): (e, acc) =>
+      eitherList.foldRight(Right(Nil): Either[E, List[A]]): (e, acc) =>
         for
           xs <- acc
           x  <- e
