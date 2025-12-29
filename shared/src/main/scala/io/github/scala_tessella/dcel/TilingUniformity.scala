@@ -135,7 +135,7 @@ object TilingUniformity:
             nh.twin = Some(b)
             boundaryStubs += b
 
-        val keyOf: HalfEdge => (VertexId, VertexId) = he => (he.origin.id, he.destination.get.id)
+        val keyOf: HalfEdge => (VertexId, VertexId) = he => (he.origin.id, he.destinationUnsafe.id)
         val stubByKey                               =
           boundaryStubs
             .map: halfEdge =>
@@ -144,7 +144,7 @@ object TilingUniformity:
 
         def nextBoundaryOf(b: HalfEdge): Option[HalfEdge] =
           val innerPrev = b.twin.get.prev.get
-          val wantedKey = (innerPrev.destination.get.id, innerPrev.origin.id)
+          val wantedKey = (innerPrev.destinationUnsafe.id, innerPrev.origin.id)
           stubByKey.get(wantedKey)
 
         val visitedPairs   = scala.collection.mutable.HashSet[(VertexId, VertexId)]()

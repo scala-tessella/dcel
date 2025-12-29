@@ -108,7 +108,7 @@ object TilingAddition:
                                               boundaryAngles.newVertices,
                                               Nil,
                                               _.next.get,
-                                              _.destination.get
+                                              _.destinationUnsafe
                                             )
     yield SharedEdgesResult(
       sharedEdges = prepended ::: edgeToBuildOn :: appended.reverse,
@@ -214,7 +214,7 @@ object TilingAddition:
                                                          containerFace
                                                        )
         adjustedTempVertices                         =
-          edgeResults.startEdge.destination.get :: tempVertices.drop(edgeResults.startCounter) ::: List(
+          edgeResults.startEdge.destinationUnsafe :: tempVertices.drop(edgeResults.startCounter) ::: List(
             edgeResults.endEdge.origin
           )
         _                                           <- checkForBoundaryIntersections(adjustedTempVertices, boundaryEdges)
@@ -289,11 +289,11 @@ object TilingAddition:
 
       // 3. Determine the starting vertex and adjust angle order based on the path direction.
       if isForward then
-        (polygonAngles, v_match.id, holePath.head.destination.get.id)
+        (polygonAngles, v_match.id, holePath.head.destinationUnsafe.id)
       else
         // For a backward path, the angles must be rotated, and the start vertex is different.
         val lastEdge = holePath.last
-        (polygonAngles.rotateRight(1), lastEdge.origin.id, lastEdge.destination.get.id)
+        (polygonAngles.rotateRight(1), lastEdge.origin.id, lastEdge.destinationUnsafe.id)
 
     private def validateBoundaryEdge(startingWithVertexId: VertexId)
         : Either[TilingError, (HalfEdge, Vertex, Vertex, List[HalfEdge])] =
@@ -750,7 +750,7 @@ object TilingAddition:
       byUndirected.values.foreach: edges =>
         // Partition by direction (origin,dest)
         val byDir = edges.groupBy: e =>
-          (e.origin.id, e.destination.get.id)
+          (e.origin.id, e.destinationUnsafe.id)
         if byDir.size >= 2 then
           // One representative per direction, prefer edges with an incident inner face
           val mainPerDir: Map[(VertexId, VertexId), HalfEdge] =
@@ -951,7 +951,7 @@ object TilingAddition:
     val newFace = Face(newFaceId)
 
     // Different start and end vertex
-    val revisedStartVertex = edgesResult.startEdge.destination.get
+    val revisedStartVertex = edgesResult.startEdge.destinationUnsafe
     val revisedEndVertex   = edgesResult.endEdge.origin
 
     // Different boundary angles
@@ -1014,10 +1014,7 @@ object TilingAddition:
 
     // Update the existing boundary edge from end vertex
     val endVertexId =
-      sharedEdges.last.destination
-        .map: vertex =>
-          vertex.id
-        .get
+      sharedEdges.last.destinationUnsafe.id
     originalBoundary.next.foreach: nextEdge =>
       if nextEdge.origin.id == endVertexId then
         nextEdge.angle = Some(boundaryAngles.end)

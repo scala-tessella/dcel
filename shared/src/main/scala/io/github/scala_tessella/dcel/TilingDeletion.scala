@@ -105,7 +105,7 @@ object TilingDeletion:
 
     private def createNewOuterBoundaryEdges(orderedInnerTwins: List[HalfEdge]): List[HalfEdge] =
       val newOuterEdges = orderedInnerTwins.reverse.map { innerTwin =>
-        val newTwin = HalfEdge(innerTwin.destination.get, incidentFace = Some(tiling.outerFace))
+        val newTwin = HalfEdge(innerTwin.destinationUnsafe, incidentFace = Some(tiling.outerFace))
         newTwin.twinWith(innerTwin)
         newTwin
       }
@@ -179,7 +179,7 @@ object TilingDeletion:
           halfEdge.origin
       val fromInner             =
         innerTwins.flatMap: halfEdge =>
-          List(halfEdge.origin, halfEdge.destination.get)
+          List(halfEdge.origin, halfEdge.destinationUnsafe)
       val verticesOnNewBoundary =
         (fromBoundary ::: fromInner).distinct
       verticesOnNewBoundary.foreach: vertex =>
@@ -218,7 +218,7 @@ object TilingDeletion:
       @tailrec
       def expand(path: List[HalfEdge], forward: Boolean): List[HalfEdge] =
         val (vertex, edge) =
-          if forward then (path.last.destination.get, path.last) else (path.head.origin, path.head)
+          if forward then (path.last.destinationUnsafe, path.last) else (path.head.origin, path.head)
         if !vertex.isThread then path
         else
           val nextEdge =
@@ -249,7 +249,7 @@ object TilingDeletion:
 
           // Capture angles at endpoints before modification
           val startV = edges.head.origin
-          val endV   = edges.last.destination.get
+          val endV   = edges.last.destinationUnsafe
 
           val angleAtStartSurvived    = edges.head.angle
           val twinOfEdgeToPathAtStart = twinsToDelete.head.next.get
@@ -316,7 +316,7 @@ object TilingDeletion:
       val startingEither: Either[TilingError, TilingDCEL] = Right(tiling)
       edges.foldLeft(startingEither): (either, halfEdge) =>
         either.flatMap: tilingDCEL =>
-          tilingDCEL.deleteEdge(halfEdge.origin.id, halfEdge.destination.get.id)
+          tilingDCEL.deleteEdge(halfEdge.origin.id, halfEdge.destinationUnsafe.id)
 
     private[dcel] def deleteVertex(vertexId: VertexId): Either[TilingError, TilingDCEL] =
       for
@@ -330,12 +330,12 @@ object TilingDeletion:
             val prev                           = start.prev.get
             val (boundaryEdges, interiorEdges) =
               adjacentEdges.partition: halfEdge =>
-                halfEdge.destination.get == start.destination.get
-                  || halfEdge.destination.get == prev.origin
+                halfEdge.destinationUnsafe == start.destinationUnsafe
+                  || halfEdge.destinationUnsafe == prev.origin
             val withoutInteriorEdges           =
               deleteEdgesRecursively(interiorEdges)
             withoutInteriorEdges.flatMap: tilingDCEL =>
-              tilingDCEL.deleteEdge(vertexId, boundaryEdges.head.destination.get.id)
+              tilingDCEL.deleteEdge(vertexId, boundaryEdges.head.destinationUnsafe.id)
           else
             deleteEdgesRecursively(adjacentEdges.tail)
       yield result
