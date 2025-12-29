@@ -1,5 +1,6 @@
 package io.github.scala_tessella.dcel
 
+import io.github.scala_tessella.dcel.TilingBuilder.setOuterEdgeAngles
 import io.github.scala_tessella.dcel.TilingEquivalency.groupByBoundaryEquivalency
 import io.github.scala_tessella.dcel.Tree.*
 import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
@@ -180,15 +181,8 @@ object TilingUniformity:
 
         // Fix boundary angles from inner incident angles
         localOuter.outerComponent.foreach: start =>
-          val loop = start.faceTraversalUnsafe[HalfEdge]()
-          loop.foreach: boundaryEdge =>
-            val vertex      = boundaryEdge.origin
-            val incidentAtV =
-              newHalf.filter: halfEdge =>
-                halfEdge.origin eq vertex
-            val innerSum    =
-              incidentAtV.interiorAnglesSum(localOuter)
-            boundaryEdge.angle = Some(innerSum.conjugate)
+          val boundaryEdges = start.faceTraversalUnsafe[HalfEdge]()
+          newHalf.setOuterEdgeAngles(boundaryEdges, localOuter)
 
         (
           newVertices,

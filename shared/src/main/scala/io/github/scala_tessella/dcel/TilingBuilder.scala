@@ -527,13 +527,7 @@ object TilingBuilder:
         halfEdge.incidentFace = Some(fOuter)
       fOuter.outerComponent = boundaryOrdered.headOption
 
-      boundaryOrdered.foreach: outerEdge =>
-        val vertex         = outerEdge.origin
-        val incidentAtV    =
-          allHalfEdges.filter: halfEdge =>
-            halfEdge.origin eq vertex
-        val innerAnglesSum = incidentAtV.interiorAnglesSum(fOuter)
-        outerEdge.angle = Some(innerAnglesSum.conjugate)
+      allHalfEdges.setOuterEdgeAngles(boundaryOrdered, fOuter)
 
     TilingDCEL(
       vertices = allVertices,
@@ -578,3 +572,14 @@ object TilingBuilder:
           either.flatMap: tilingDCEL =>
             tilingDCEL.maybeDeleteVertex(vertexId)
       .toOption.getOrElse(TilingDCEL.empty)
+
+  extension (halfEdges: List[HalfEdge])
+
+    def setOuterEdgeAngles(boundaryEdges: List[HalfEdge], outerFace: Face): Unit =
+      boundaryEdges.foreach: outerEdge =>
+        val vertex = outerEdge.origin
+        val incidentAtV =
+          halfEdges.filter: halfEdge =>
+            halfEdge.origin eq vertex
+        val innerAnglesSum = incidentAtV.interiorAnglesSum(outerFace)
+        outerEdge.angle = Some(innerAnglesSum.conjugate)
