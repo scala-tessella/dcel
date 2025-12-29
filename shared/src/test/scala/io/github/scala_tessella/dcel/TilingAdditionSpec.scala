@@ -114,7 +114,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     }
 
   it should "handle different starting positions correctly" in:
-    val testCases = List(
+    val testCases  = List(
       (BigPoint(BigDecimal(0), BigDecimal(0)), BigPoint(BigDecimal(1), BigDecimal(0))),
       (BigPoint(BigDecimal(1), BigDecimal(1)), BigPoint(BigDecimal(2), BigDecimal(1))),
       (BigPoint(BigDecimal(-1), BigDecimal(-1)), BigPoint(BigDecimal(0), BigDecimal(-1))),
