@@ -577,8 +577,8 @@ object TilingBuilder:
 
     def setOuterEdgeAngles(boundaryEdges: List[HalfEdge], outerFace: Face): Unit =
       boundaryEdges.foreach: outerEdge =>
-        val vertex = outerEdge.origin
-        val incidentAtV =
+        val vertex         = outerEdge.origin
+        val incidentAtV    =
           halfEdges.filter: halfEdge =>
             halfEdge.origin eq vertex
         val innerAnglesSum = incidentAtV.interiorAnglesSum(outerFace)
