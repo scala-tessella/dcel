@@ -4,8 +4,8 @@ import io.github.scala_tessella.dcel.TilingUniformity.*
 import io.github.scala_tessella.dcel.Tree.{Branch, Leaf}
 import io.github.scala_tessella.dcel.geometry.RegularPolygon
 import io.github.scala_tessella.dcel.structure.VertexId
-import io.github.scala_tessella.dcel.conversion.TilingSVG.toUniformityAnimation
-import io.github.scala_tessella.dcel.conversion.TilingSVGPlatform
+//import io.github.scala_tessella.dcel.conversion.TilingSVG.toUniformityAnimation
+//import io.github.scala_tessella.dcel.conversion.TilingSVGPlatform
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

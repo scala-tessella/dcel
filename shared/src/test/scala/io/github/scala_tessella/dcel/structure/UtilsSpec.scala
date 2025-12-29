@@ -416,13 +416,17 @@ class UtilsSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       "A" -> List("B"),
       "B" -> Nil
     )
-    // Start not in map but should still allow path search (no outgoing edges)
-    Utils.shortestPath("Z", "B", adjacency) shouldBe Nil
-    // Goal not in map, but reachable if listed as neighbor
-    val adjacency2 = Map(
-      "A" -> List("Z")
+    allAssert(
+      // Start not in map but should still allow path search (no outgoing edges)
+      Utils.shortestPath("Z", "B", adjacency) shouldBe Nil,
+      {
+        // Goal not in map, but reachable if listed as neighbor
+        val adjacency2 = Map(
+          "A" -> List("Z")
+        )
+        Utils.shortestPath("A", "Z", adjacency2) shouldBe List("A", "Z")
+      }
     )
-    Utils.shortestPath("A", "Z", adjacency2) shouldBe List("A", "Z")
 
   it should "work with non-String node types (Int)" in:
     val adjacency = Map(

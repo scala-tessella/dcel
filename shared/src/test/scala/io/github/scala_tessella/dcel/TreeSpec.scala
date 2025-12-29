@@ -4,7 +4,7 @@ import io.github.scala_tessella.dcel.Tree.*
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should
 
-class TreeSpec extends AnyFlatSpec with should.Matchers:
+class TreeSpec extends AnyFlatSpec with should.Matchers with TilingTestHelpers:
 
   val tree_ABCDEFG: Tree[Char] =
     Branch(
@@ -34,12 +34,14 @@ class TreeSpec extends AnyFlatSpec with should.Matchers:
     tree_ABCDEFG.sizeLeaves shouldBe 4
 
   it can "contain a value" in:
-    tree_ABCDEFG.contains('B') shouldBe
-      true
-    tree_ABCDEFG.contains('F') shouldBe
-      true
-    tree_ABCDEFG.contains('Z') shouldBe
-      false
+    allAssert(
+      tree_ABCDEFG.contains('B') shouldBe
+        true,
+      tree_ABCDEFG.contains('F') shouldBe
+        true,
+      tree_ABCDEFG.contains('Z') shouldBe
+        false
+    )
 
   it can "be flattened" in:
     tree_ABCDEFG.flatten.mkString shouldBe
@@ -97,16 +99,18 @@ class TreeSpec extends AnyFlatSpec with should.Matchers:
         |}""".stripMargin
 
   "Another tree" can "be shrunk" in:
-    tree_0123456.shrink(_.sum) shouldBe
-      Branch(
-        3,
-        List(
-          Leaf(7),
-          Leaf(11)
-        )
-      )
-    tree_0123456.shrinkAll(_.sum) shouldBe
-      Leaf(18)
+    allAssert(
+      tree_0123456.shrink(_.sum) shouldBe
+        Branch(
+          3,
+          List(
+            Leaf(7),
+            Leaf(11)
+          )
+        ),
+      tree_0123456.shrinkAll(_.sum) shouldBe
+        Leaf(18)
+    )
 
   it can "have only its leaves mapped" in:
     tree_0123456.mapLeaves(_ + 1) shouldBe
