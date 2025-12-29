@@ -38,11 +38,10 @@ object TilingDOT:
       tiling.halfEdges.foreach: he =>
         val isBoundary = tiling.isBoundaryEdge(he)
         val twinOpt    = he.twin
-        val dstOpt     = he.destination
 
-        if !isBoundary && twinOpt.isDefined && dstOpt.isDefined && !tiling.isBoundaryEdge(twinOpt.get) then
+        if !isBoundary && twinOpt.isDefined && !tiling.isBoundaryEdge(twinOpt.get) then
           val vA   = vNodeId(he.origin)
-          val vB   = vNodeId(dstOpt.get)
+          val vB   = vNodeId(he.destinationUnsafe)
           // Normalize pair to avoid duplicates (emit once per undirected pair)
           val pair = if vA <= vB then (vA, vB) else (vB, vA)
           if !innerPairsEmitted.contains(pair) then

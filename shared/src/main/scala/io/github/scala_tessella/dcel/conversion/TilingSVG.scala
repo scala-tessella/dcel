@@ -200,8 +200,12 @@ object TilingSVG:
   private def createHalfEdgeArrows(halfEdges: List[HalfEdge], config: SvgConfig): Seq[Elem] =
     halfEdges.flatMap: halfEdge =>
       for
-        destination <- halfEdge.destination
-        arrow       <- createArrow(halfEdge.origin.coords, destination.coords, config.scale, config.strokeWidth * 3)
+        arrow <- createArrow(
+                   halfEdge.origin.coords,
+                   halfEdge.destinationUnsafe.coords,
+                   config.scale,
+                   config.strokeWidth * 3
+                 )
       yield polygonElem(arrow.formatted)
 
   private def createEdgeLines(tilingDCEL: TilingDCEL, scale: Double): Seq[Elem] =

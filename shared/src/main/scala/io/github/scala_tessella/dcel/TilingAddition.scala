@@ -739,11 +739,10 @@ object TilingAddition:
       // Group by undirected key (min(originId, destId), max(originId, destId))
       val byUndirected: Map[(VertexId, VertexId), List[HalfEdge]] =
         allNewEdgesInitial
-          .flatMap: e =>
-            e.destination.map: d =>
-              val oId = e.origin.id
-              val dId = d.id
-              if oId.value <= dId.value then ((oId, dId), e) else ((dId, oId), e)
+          .map: halfEdge =>
+            val oId = halfEdge.origin.id
+            val dId = halfEdge.destinationUnsafe.id
+            if oId.value <= dId.value then ((oId, dId), halfEdge) else ((dId, oId), halfEdge)
           .groupMap((vertexIdPair, _) => vertexIdPair): (_, halfEdge) =>
             halfEdge
 

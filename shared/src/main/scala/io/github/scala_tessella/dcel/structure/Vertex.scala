@@ -61,8 +61,8 @@ final class Vertex(
   def isThread: Boolean = degree == 2
 
   private[dcel] def adjacentVerticesUnsafe: List[Vertex] =
-    incidentEdgesUnsafe.flatMap: halfEdge =>
-      halfEdge.destination
+    incidentEdgesUnsafe.map: halfEdge =>
+      halfEdge.destinationUnsafe
 
   // Safe helper returning all adjacent vertices
   def adjacentVertices: Either[TopologyError, List[Vertex]] =
@@ -125,7 +125,7 @@ object Vertex:
       .view
       .mapValues: halfEdges =>
         halfEdges.flatMap: halfEdge =>
-          val destination = halfEdge.twin.get.origin
+          val destination = halfEdge.destinationUnsafe
           Option.when(sharedVertices.contains(destination))(destination)
       .toMap
 

@@ -333,10 +333,9 @@ object HalfEdge:
       val degrees = mutable.Map.empty[Vertex, Int].withDefaultValue(0)
       for
         edge <- halfEdges
-        dest <- edge.destination
       do
         degrees(edge.origin) += 1
-        degrees(dest) -= 1
+        degrees(edge.destinationUnsafe) -= 1
 
       val balanced =
         degrees.filter: (_, degree) =>
