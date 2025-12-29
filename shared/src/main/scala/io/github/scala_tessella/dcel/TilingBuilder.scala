@@ -77,18 +77,21 @@ object TilingBuilder:
     val n = points.length
 
     // Create vertices from the calculated points
-    val vertices = points.zipWithIndex.map: (p, i) =>
-      Vertex(vertexIdV(i + 1), p)
+    val vertices =
+      points.zipWithIndex.map: (p, i) =>
+        Vertex(vertexIdV(i + 1), p)
 
     // Create the two faces: one for the polygon, one for the outside
     val polygonFace = Face(FaceId.firstInnerId)
     val outerFace   = Face.outer
 
     // Create all inner and outer half-edges, indexed by their origin vertex
-    val innerEdges = vertices.map: vertex =>
-      HalfEdge.apply(vertex)
-    val outerEdges = vertices.map: vertex =>
-      HalfEdge.apply(vertex)
+    val innerEdges =
+      vertices.map: vertex =>
+        HalfEdge.apply(vertex)
+    val outerEdges =
+      vertices.map: vertex =>
+        HalfEdge.apply(vertex)
 
     // Link all components together
     for (i <- vertices.indices)
@@ -156,12 +159,14 @@ object TilingBuilder:
     val v_vec_x = spire.math.cos(rad)
     val v_vec_y = spire.math.sin(rad)
 
-    val points = Array.tabulate(height + 1, width + 1): (j, i) =>
-      BigPoint(BigDecimal(i) + v_vec_x * j, v_vec_y * j)
+    val points =
+      Array.tabulate(height + 1, width + 1): (j, i) =>
+        BigPoint(BigDecimal(i) + v_vec_x * j, v_vec_y * j)
 
-    val vertices = Array.tabulate(height + 1, width + 1): (j, i) =>
-      val id = j * (width + 1) + i + 1
-      Vertex(vertexIdV(id), points(j)(i))
+    val vertices =
+      Array.tabulate(height + 1, width + 1): (j, i) =>
+        val id = j * (width + 1) + i + 1
+        Vertex(vertexIdV(id), points(j)(i))
 
     (points, vertices)
 
@@ -176,10 +181,12 @@ object TilingBuilder:
       width: Int,
       vertices: Array[Array[Vertex]]
   ): (Array[Array[(HalfEdge, HalfEdge)]], Array[Array[(HalfEdge, HalfEdge)]]) =
-    val horizontal = Array.tabulate(height + 1, width): (j, i) =>
-      createTwinPair(vertices(j)(i), vertices(j)(i + 1))
-    val vSlope     = Array.tabulate(height, width + 1): (j, i) =>
-      createTwinPair(vertices(j)(i), vertices(j + 1)(i))
+    val horizontal =
+      Array.tabulate(height + 1, width): (j, i) =>
+        createTwinPair(vertices(j)(i), vertices(j)(i + 1))
+    val vSlope     =
+      Array.tabulate(height, width + 1): (j, i) =>
+        createTwinPair(vertices(j)(i), vertices(j + 1)(i))
 
     (horizontal, vSlope)
 
@@ -206,7 +213,9 @@ object TilingBuilder:
     // Set outer angles
     for outerEdge <- outerBoundaryCW do
       val vertex         = outerEdge.origin
-      val incident       = allHalfEdges.filter(_.origin == vertex)
+      val incident       =
+        allHalfEdges.filter: halfEdge =>
+          halfEdge.origin == vertex
       val innerAnglesSum = incident.interiorAnglesSum(fOuter)
       outerEdge.angle = Some(innerAnglesSum.conjugate)
 
@@ -224,13 +233,17 @@ object TilingBuilder:
   ): List[HalfEdge] =
     val innerBoundaryEdgesCCW = new mutable.ListBuffer[HalfEdge]()
     // Bottom boundary
-    for (i <- 0 until width) innerBoundaryEdgesCCW += horizontal(0)(i)._1
+    for (i <- 0 until width)
+      innerBoundaryEdgesCCW += horizontal(0)(i)._1
     // Right boundary
-    for (j <- 0 until height) innerBoundaryEdgesCCW += vSlope(j)(width)._1
+    for (j <- 0 until height)
+      innerBoundaryEdgesCCW += vSlope(j)(width)._1
     // Top boundary
-    for (i <- (0 until width).reverse) innerBoundaryEdgesCCW += horizontal(height)(i)._2
+    for (i <- (0 until width).reverse)
+      innerBoundaryEdgesCCW += horizontal(height)(i)._2
     // Left boundary
-    for (j <- (0 until height).reverse) innerBoundaryEdgesCCW += vSlope(j)(0)._2
+    for (j <- (0 until height).reverse)
+      innerBoundaryEdgesCCW += vSlope(j)(0)._2
 
     val outerBoundaryCW =
       innerBoundaryEdgesCCW.toList
@@ -246,7 +259,8 @@ object TilingBuilder:
   private def toHalfEdges(pairs: Array[Array[(HalfEdge, HalfEdge)]]): List[HalfEdge] =
     pairs
       .flatMap: row =>
-        row.flatMap(p => List(p._1, p._2))
+        row.flatMap: (halfEdge1, halfEdge2) =>
+          List(halfEdge1, halfEdge2)
       .toList
 
   private def netHalfEdges(
@@ -277,15 +291,17 @@ object TilingBuilder:
     val (points, vertices) = pointsVertices(height, width, triangleAngle)
 
     // Two triangular faces per rhombus cell
-    val faces  = Array.tabulate(height, width, 2): (j, i, k) =>
-      Face(faceIdF((j * width + i) * 2 + k + 1))
+    val faces  =
+      Array.tabulate(height, width, 2): (j, i, k) =>
+        Face(faceIdF((j * width + i) * 2 + k + 1))
     val fOuter = Face.outer
 
     val (horizontal, vSlope) = horizontalAndVSlope(height, width, vertices)
 
     // These diagonals split each rhombus into two equilateral triangles
-    val diagonals = Array.tabulate(height, width): (j, i) =>
-      createTwinPair(vertices(j)(i + 1), vertices(j + 1)(i))
+    val diagonals =
+      Array.tabulate(height, width): (j, i) =>
+        createTwinPair(vertices(j)(i + 1), vertices(j + 1)(i))
 
     // Set leaving edges for vertices
     setLeavingEdges(height, width, vertices, horizontal, vSlope)
@@ -391,8 +407,8 @@ object TilingBuilder:
     // Interior angles per vertex in CCW order: [alpha, beta, beta, alpha, beta, beta]
     // Exterior turns at vertices: exterior(k) = 180 - interior(k)
     val exteriorAngles: Array[AngleDegree] =
-      Array(alpha, beta, beta, alpha, beta, beta).map:
-        _.supplement
+      Array(alpha, beta, beta, alpha, beta, beta).map: angleDegree =>
+        angleDegree.supplement
 
     // IMPORTANT: The exterior turn exterior(k) is applied at vertex k to go from edge k to edge (k+1).
     // Edge headings h(k) are the directions of edges (k) from vertex k to k+1.
@@ -473,18 +489,17 @@ object TilingBuilder:
           .map: k =>
             addTriples(b, cornerTriples(k))
           .toList
-      val corners    = cornerKeys.map:
-        getOrCreateVertexByTriple
+      val corners    = cornerKeys.map: (i, j, k) =>
+        getOrCreateVertexByTriple(i, j, k)
 
       val cornerAngles: Array[AngleDegree] =
         Array(alpha, beta, beta, alpha, beta, beta)
 
       val edgesCCW =
-        (0 until 6).toList.map { k =>
+        (0 until 6).toList.map: k =>
           val v1 = corners(k)
           val v2 = corners((k + 1) % 6)
           getOrCreateHalfEdge(v1, v2)
-        }
 
       edgesCCW.linkInCycle()
       edgesCCW.zipWithIndex.foreach: (e, k) =>
@@ -495,24 +510,28 @@ object TilingBuilder:
     val allVertices  = vertexByTriple.values.toList
     val allHalfEdges = halfEdgeByDir.values.toList
 
-    allVertices.foreach: v =>
-      v.leaving = allHalfEdges.find:
-        _.origin eq v
+    allVertices.foreach: vertex =>
+      vertex.leaving =
+        allHalfEdges.find: halfEdge =>
+          halfEdge.origin eq vertex
 
-    val boundaryEdgesCW = allHalfEdges.filter:
-      _.incidentFace.isEmpty
+    val boundaryEdgesCW =
+      allHalfEdges.filter: halfEdge =>
+        halfEdge.incidentFace.isEmpty
 
     val boundaryOrdered = boundaryEdgesCW.orderBoundary
 
     if boundaryOrdered.nonEmpty then
       boundaryOrdered.linkInCycle()
-      boundaryOrdered.foreach(_.incidentFace = Some(fOuter))
+      boundaryOrdered.foreach: halfEdge =>
+        halfEdge.incidentFace = Some(fOuter)
       fOuter.outerComponent = boundaryOrdered.headOption
 
       boundaryOrdered.foreach: outerEdge =>
-        val v              = outerEdge.origin
-        val incidentAtV    = allHalfEdges.filter:
-          _.origin eq v
+        val vertex         = outerEdge.origin
+        val incidentAtV    =
+          allHalfEdges.filter: halfEdge =>
+            halfEdge.origin eq vertex
         val innerAnglesSum = incidentAtV.interiorAnglesSum(fOuter)
         outerEdge.angle = Some(innerAnglesSum.conjugate)
 
