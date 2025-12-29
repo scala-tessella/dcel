@@ -51,6 +51,9 @@ final class HalfEdge(
     twin.map: halfEdge =>
       halfEdge.origin
 
+  private[dcel] def destinationUnsafe: Vertex =
+    twin.get.origin
+
   def isLoop: Option[Boolean] =
     destination.map: halfEdge =>
       halfEdge == origin
@@ -326,44 +329,29 @@ object HalfEdge:
       */
     def maybePath: Option[List[HalfEdge]] =
       if halfEdges.isEmpty then return Some(Nil)
-      if halfEdges.exists: halfEdge =>
-          halfEdge.destination.isEmpty
-      then return None
 
-      val outDegrees =
-        halfEdges
-          .groupBy: halfEdge =>
-            halfEdge.origin
-          .view
-          .mapValues: edges =>
-            edges.size
-      val inDegrees  =
-        halfEdges
-          .groupMap(_.destination.get): _ =>
-            1
-          .view
-          .mapValues: integers =>
-            integers.sum
-      val vertices   = (outDegrees.keySet ++ inDegrees.keySet).toList
+      val degrees = mutable.Map.empty[Vertex, Int].withDefaultValue(0)
+      for
+        edge <- halfEdges
+        dest <- edge.destination
+      do
+        degrees(edge.origin) += 1
+        degrees(dest) -= 1
 
-      val startNodeCandidates =
-        vertices.filter: vertex =>
-          outDegrees.getOrElse(vertex, 0) - inDegrees.getOrElse(vertex, 0) == 1
-      val endNodeCandidates   =
-        vertices.filter: vertex =>
-          inDegrees.getOrElse(vertex, 0) - outDegrees.getOrElse(vertex, 0) == 1
+      val balanced =
+        degrees.filter: (_, degree) =>
+          degree != 0
 
       val startVertexOpt =
-        if startNodeCandidates.size == 1 && endNodeCandidates.size == 1 then
-          startNodeCandidates.headOption
-        else if startNodeCandidates.isEmpty && endNodeCandidates.isEmpty then
-          // This must be a cycle (or disjoint cycles), so all vertices must be balanced
-          if vertices.forall: vertex =>
-              outDegrees.getOrElse(vertex, 0) == inDegrees.getOrElse(vertex, 0)
-          then
-            halfEdges.headOption.map(_.origin)
-          else
-            None
+        if balanced.isEmpty then
+          halfEdges.headOption.map: halfEdge =>
+            halfEdge.origin
+        else if balanced.size == 2 then
+          balanced
+            .find: (_, degree) =>
+              degree == 1
+            .map: (vertex, _) =>
+              vertex
         else
           None
 
