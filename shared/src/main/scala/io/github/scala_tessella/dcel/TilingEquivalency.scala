@@ -343,7 +343,7 @@ object TilingEquivalency:
             // 4. The new signature is a hash/combination of the current signature and the neighbors' signatures.
             s"${signatures(v)}|${neighborSignatures.mkString(";")}"
           }
-          println(nextSignatures)
+//          println(nextSignatures)
           signatures = nextSignatures
         }
 

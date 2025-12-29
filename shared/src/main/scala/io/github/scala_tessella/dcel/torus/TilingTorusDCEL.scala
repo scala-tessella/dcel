@@ -695,9 +695,9 @@ object TilingTorusDCEL:
         // ---- 8. Build the torus DCEL (only inner faces, no outer face) ----
         val newFaces = faceMap.values.toList
 
-        println(s"vertices: ${newVertices.size} $newVertices")
-        println(s"halfEdges: ${allNewEdges.size} $allNewEdges")
-        println(s"newFaces: ${newFaces.size} $newFaces")
+//        println(s"vertices: ${newVertices.size} $newVertices")
+//        println(s"halfEdges: ${allNewEdges.size} $allNewEdges")
+//        println(s"newFaces: ${newFaces.size} $newFaces")
 //        println(s"newFaces outerComponent: ${newFaces.map(_.outerComponent)}")
 //        fromUntrusted(
 //          vertices = newVertices,

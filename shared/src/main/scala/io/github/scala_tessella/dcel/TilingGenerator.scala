@@ -72,10 +72,10 @@ object TilingGenerator:
     // However, growing from a single triangle/square is simpler.
     val seeds = List(3, 4, 6, 12).map(sides => TilingDCEL.createRegularPolygon(RegularPolygon(sides)))
     seeds.foreach(t => queue.enqueue((t, Set.empty)))
-    println(s"Found ${seeds.size} seeds")
+//    println(s"Found ${seeds.size} seeds")
 
     while queue.nonEmpty do
-      println(s"Queue size: ${queue.size}")
+//      println(s"Queue size: ${queue.size}")
       val (tiling, knownSigs) = queue.dequeue()
 
       // 1. Check Pruning Conditions
@@ -90,7 +90,7 @@ object TilingGenerator:
           // Deduplicate
           if !found.exists(_.isBoundaryEquivalentTo(tiling)) then
             found += tiling
-            println(s"Found candidate with $n classes: ${knownSigs.map(_.mkString("."))}")
+//            println(s"Found candidate with $n classes: ${knownSigs.map(_.mkString("."))}")
       else
         // 3. Expansion Step
         expand(tiling, knownSigs) match
