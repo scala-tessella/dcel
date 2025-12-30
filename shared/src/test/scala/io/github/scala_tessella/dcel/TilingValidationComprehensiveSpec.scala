@@ -230,16 +230,18 @@ class TilingValidationComprehensiveSpec extends AnyFlatSpec with Matchers with T
       res.isLeft shouldBe true,
       res.left.value.message should include("Full circle boundary angles are invalid")
     )
-//  it should "fail when interior vertex angles do not sum to a full circle" in:
-//    val tiling   = square.maybeAddRegularPolygonToBoundary(V1, RegularPolygon(4)).value
-//    // pick an interior vertex (shared one) and distort one incident angle
-//    val shared   = tiling.findVertexUnsafe(V1).get
-//    val incident = shared.incidentEdgesUnsafe.head
-//    incident.angle = Some(AngleDegree(10))
-//    val res      = validateGeometrically(tiling)
-//    res.isLeft shouldBe true
-//    res.left.value.message should include("Angles around interior vertex")
-//  }
+
+  it should "fail when interior vertex angles do not sum to a full circle" in:
+    val tiling   = TilingBuilder.createRhombusNet(2, 2)
+    // pick an interior vertex (shared one) and distort one incident angle
+    val shared   = tiling.findVertexUnsafe(V5).get
+    val incident = shared.incidentEdgesUnsafe.head
+    incident.angle = Some(AngleDegree(10))
+    val res      = validateGeometrically(tiling)
+    allAssert(
+      res.isLeft shouldBe true,
+      res.left.value.message should include("Angles around interior vertex")
+    )
 
   behavior of "TilingValidation.validateSpatially"
 
