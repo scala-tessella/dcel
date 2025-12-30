@@ -14,6 +14,7 @@ import io.github.scala_tessella.dcel.TilingAddition.addRegularPolygonToBoundary
 import spire.implicits.*
 
 import scala.collection.mutable
+import scala.util.{Failure, Success, Try}
 
 object TilingBuilder:
 
@@ -48,7 +49,9 @@ object TilingBuilder:
     yield result
 
   def createSimplePolygon(degrees: Int*): Either[TilingError, TilingDCEL] =
-    createSimplePolygon(SimplePolygon(degrees*))
+    Try(SimplePolygon(degrees *)) match
+      case Failure(exception)     => Left(GeometryError(exception.getMessage))
+      case Success(simplePolygon) => createSimplePolygon(SimplePolygon(degrees*))
 
   /** Creates a TilingDCEL for a single regular polygon with unit-length sides.
     *
