@@ -260,21 +260,12 @@ class TilingValidationComprehensiveSpec extends AnyFlatSpec with Matchers with T
     )
 
   it should "fail when an edge is not unit length (by moving one endpoint far away)" in:
-    val tiling  = square
-    val v1      = tiling.findVertexUnsafe(V1).get
-//    println(tiling.vertices)
-    val tiling2 = TilingDCEL(
-      vertices = tiling.vertices.map(vertex =>
-        if vertex.id == V2 then
-          Vertex(id = vertex.id, coords = v1.coords + BigPoint(10, 10), leaving = vertex.leaving)
-        else vertex
-      ),
-      halfEdges = tiling.halfEdges,
-      innerFaces = tiling.innerFaces,
-      outerFace = tiling.outerFace
-    )
-//    println(tiling2.vertices)
-    val res     = validateSpatially(tiling2)
+    val incorrect =
+      TilingBuilder.buildDCELFromPointsUnsafe(
+        List(BigPoint.origin, BigPoint(0, 2), BigPoint(1, 1), BigPoint(1, 0)),
+        List.fill(4)(AngleDegree(90))
+      )
+    val res       = validateSpatially(incorrect)
     allAssert(
       res.isLeft shouldBe true,
       res.left.value.message should include("does not have unit length")
