@@ -2,7 +2,6 @@ package io.github.scala_tessella.dcel
 
 import io.github.scala_tessella.dcel.TilingValidation.*
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint, RegularPolygon}
-import io.github.scala_tessella.dcel.structure.Vertex
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
