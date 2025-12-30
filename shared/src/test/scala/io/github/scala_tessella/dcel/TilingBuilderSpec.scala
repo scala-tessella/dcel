@@ -74,9 +74,9 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
   it should "fail if the polygon does not close geometrically, even with correct angle sum" in:
     // These pentagon angles sum to 540 degrees, which is correct for a pentagon ((5-2)*180),
     // but the sequence of angles does not form a closed polygon with unit-length sides.
-    val nonClosingAngles =
-      Vector(AngleDegree(90), AngleDegree(90), AngleDegree(135), AngleDegree(135), AngleDegree(90))
-    val result           = TilingBuilder.createSimplePolygon(SimplePolygon(nonClosingAngles))
+    val nonClosingDegrees =
+      Vector(90, 90, 135, 135, 90)
+    val result           = TilingBuilder.createSimplePolygon(nonClosingDegrees*)
 
     allAssert(
       result.isLeft shouldBe true,
