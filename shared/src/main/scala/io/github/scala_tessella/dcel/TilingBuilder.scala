@@ -14,7 +14,6 @@ import io.github.scala_tessella.dcel.TilingAddition.addRegularPolygonToBoundary
 import spire.implicits.*
 
 import scala.collection.mutable
-import scala.util.{Failure, Success, Try}
 
 object TilingBuilder:
 
@@ -42,18 +41,14 @@ object TilingBuilder:
     *   Either a TilingError explaining the validation error, or the successfully created TilingDCEL.
     */
   def createSimplePolygon(simple: SimplePolygon): Either[TilingError, TilingDCEL] =
-    val points = calculateVertexPoints(simple.toAngles)
     for
-      _      <- validatePoints(points)
-      result <- Right(buildDCELFromPointsUnsafe(points, simple.toAngles.toList))
+      checked <- SimplePolygon.createWithSpatialCheck(simple.toAngles)
+      points   = calculateVertexPoints(checked.toAngles)
+      result  <- Right(buildDCELFromPointsUnsafe(points, simple.toAngles.toList))
     yield result
 
   def createSimplePolygon(degrees: Int*): Either[TilingError, TilingDCEL] =
-    Try:
-      SimplePolygon(degrees*)
-    match
-      case Failure(exception)     => Left(GeometryError(exception.getMessage))
-      case Success(simplePolygon) => createSimplePolygon(SimplePolygon(degrees*))
+    createSimplePolygon(SimplePolygon(degrees*))
 
   /** Creates a TilingDCEL for a single regular polygon with unit-length sides.
     *

@@ -1,11 +1,13 @@
 package io.github.scala_tessella.dcel.geometry
 
+import io.github.scala_tessella.dcel.{GeometryError, SpatialError, TilingError}
 import io.github.scala_tessella.dcel.conversion.TilingSVG.toScalableVectorG
 import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.ACCURACY
 import io.github.scala_tessella.ring_seq.RingSeq.*
 import io.github.scala_tessella.ring_seq.SymmetryOps.AxisLocation
-
 import spire.implicits.*
+
+import scala.util.{Failure, Success, Try}
 
 /** Unit simple polygon with the given ordered interior angles */
 opaque type SimplePolygon = Vector[AngleDegree]
@@ -36,22 +38,46 @@ object SimplePolygon:
           f"The sum of interior angles is incorrect for a polygon with $n unit sides. Expected ${expectedAngleSum.toRational.toDouble}%.2f, but got ${angleSum.toRational.toDouble}%.2f."
         )
 
-      val vertices       = BigLineSegment(BigPoint.origin, BigPoint(1, 0)).unitPath(angles)
-      if !vertices.isSimplePolygon then
-        throw new IllegalArgumentException("The polygon is self-intersecting.")
-      val lastEdgeLength = vertices.head.distanceTo(vertices.last)
-      if spire.math.abs(lastEdgeLength - 1.0) > ACCURACY then
-        throw new IllegalArgumentException(
-          f"The polygon does not close. The final edge has length $lastEdgeLength%.4f instead of 1.0."
-        )
+//      val vertices       = BigLineSegment(BigPoint.origin, BigPoint(1, 0)).unitPath(angles)
+//      if !vertices.isSimplePolygon then
+//        throw new IllegalArgumentException("The polygon is self-intersecting.")
+//      val lastEdgeLength = vertices.head.distanceTo(vertices.last)
+//      if spire.math.abs(lastEdgeLength - 1.0) > ACCURACY then
+//        throw new IllegalArgumentException(
+//          f"The polygon does not close. The final edge has length $lastEdgeLength%.4f instead of 1.0."
+//        )
 
       angles
 
   def apply(degrees: Int*): SimplePolygon =
     apply(
       degrees
-        .map:
-          AngleDegree(_)
+        .map: degree =>
+          AngleDegree(degree)
+        .toVector
+    )
+
+  def createWithSpatialCheck(angles: Vector[AngleDegree]): Either[TilingError, SimplePolygon] =
+    Try(apply(angles)) match
+      case Failure(exception)     => Left(GeometryError(exception.getMessage))
+      case Success(simplePolygon) =>
+        val vertices = BigLineSegment(BigPoint.origin, BigPoint(1, 0)).unitPath(angles)
+        if !vertices.isSimplePolygon then
+          Left(SpatialError("The polygon is self-intersecting."))
+        else
+          val lastEdgeLength = vertices.head.distanceTo(vertices.last)
+          if spire.math.abs(lastEdgeLength - 1.0) > ACCURACY then
+            Left(SpatialError(
+              f"The polygon does not close. The final edge has length $lastEdgeLength%.4f instead of 1.0."
+            ))
+          else
+            Right(simplePolygon)
+
+  def createWithSpatialCheck(degrees: Int*): Either[TilingError, SimplePolygon] =
+    createWithSpatialCheck(
+      degrees
+        .map: degree =>
+          AngleDegree(degree)
         .toVector
     )
 
