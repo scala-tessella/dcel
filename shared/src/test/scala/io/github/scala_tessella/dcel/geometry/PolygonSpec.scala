@@ -39,9 +39,9 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   it should "accept angles that normalise to a valid simple polygon" in:
     val weird = Vector(
       AngleDegree(-300),
-      AngleDegree(450),
-      AngleDegree(30)
-    ) // normalised -> 60,90,30 (sum 180) -> triangle
+      AngleDegree(420),
+      AngleDegree(60)
+    ) // normalised -> 60,60,60 (sum 180) -> triangle
     SimplePolygon(weird).toAngles.size shouldBe 3
 
   it should "invalidate angles if their sum is incorrect" in:
@@ -77,11 +77,19 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       Vector(60, 60, 240, 60, 60, 240)
     an[IllegalArgumentException] should be thrownBy SimplePolygon(selfIntersectingHexagonDegrees*)
 
+  it should "reject a polygon which does not close" in:
+    // These pentagon angles sum to 540 degrees, which is correct for a pentagon ((5-2)*180),
+    // but the sequence of angles does not form a closed polygon with unit-length sides.
+    val nonClosingDegrees =
+      Vector(90, 90, 135, 135, 90)
+    an[IllegalArgumentException] should be thrownBy SimplePolygon(nonClosingDegrees*)
+
   behavior of "SimplePolygon.multiplySidesBy"
 
   it should "triplicate a triangle" in:
     SimplePolygon(triangleDegrees*).multiplySidesBy(3) shouldBe
-      Vector(60, 180, 180, 60, 180, 180, 60, 180, 180).map(AngleDegree(_))
+      Vector(60, 180, 180, 60, 180, 180, 60, 180, 180).map: degree =>
+        AngleDegree(degree)
 
   it should "remain the same when multiplied by one" in:
     SimplePolygon(triangleDegrees*).multiplySidesBy(1) shouldBe

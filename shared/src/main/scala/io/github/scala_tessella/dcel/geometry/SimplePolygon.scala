@@ -5,6 +5,8 @@ import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.ACCURACY
 import io.github.scala_tessella.ring_seq.RingSeq.*
 import io.github.scala_tessella.ring_seq.SymmetryOps.AxisLocation
 
+import spire.implicits.*
+
 /** Unit simple polygon with the given ordered interior angles */
 opaque type SimplePolygon = Vector[AngleDegree]
 
@@ -37,6 +39,11 @@ object SimplePolygon:
       val vertices = BigLineSegment(BigPoint.origin, BigPoint(1, 0)).unitPath(angles)
       if !vertices.isSimplePolygon then
         throw new IllegalArgumentException("The polygon is self-intersecting.")
+      val lastEdgeLength = vertices.head.distanceTo(vertices.last)
+      if spire.math.abs(lastEdgeLength - 1.0) > ACCURACY then
+        throw new IllegalArgumentException(
+          f"The polygon does not close. The final edge has length $lastEdgeLength%.4f instead of 1.0."
+        )
 
       angles
 
