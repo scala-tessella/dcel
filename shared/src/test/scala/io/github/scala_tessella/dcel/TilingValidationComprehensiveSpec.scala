@@ -248,12 +248,12 @@ class TilingValidationComprehensiveSpec extends AnyFlatSpec with Matchers with T
     validateSpatially(square) shouldBe Right(())
 
   it should "fail when boundary has vertices in almost the same position" in:
-    val incorrect  =
+    val incorrect =
       TilingBuilder.buildDCELFromPointsUnsafe(
         List(BigPoint.origin, BigPoint.origin, BigPoint(1, 1), BigPoint(1, 0)),
         List.fill(4)(AngleDegree(90))
       )
-    val res        = validateSpatially(incorrect)
+    val res       = validateSpatially(incorrect)
     allAssert(
       res.isLeft shouldBe true,
       res.left.value.message should include("boundary with vertices in the same position")
