@@ -208,6 +208,5 @@ object TilingValidation:
         val geoErrors   = validateGeometrically(tiling).left.toOption.map(_.message)
         val spaceErrors = validateSpatially(tiling).left.toOption.map(_.message)
         val allErrors   = topoErrors.toList ::: geoErrors.toList ::: spaceErrors.toList
-        println(allErrors)
         if allErrors.isEmpty then Right(())
         else Left(TilingError.combineErrors(allErrors, TilingError.validation))
