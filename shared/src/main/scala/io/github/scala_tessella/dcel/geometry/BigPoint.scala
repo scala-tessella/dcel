@@ -164,6 +164,7 @@ object BigPoint:
     def isSimplePolygon: Boolean =
       val n = points.length
       if n < 4 then return true // Triangles cannot self-intersect
+      if !hasNoAlmostEqualPoints() then return false
 
       val segments =
         (0 until n)
@@ -178,7 +179,7 @@ object BigPoint:
           while j < n do
             // Non-adjacent segments; also exclude first and last which share a vertex
             if i != (j + 1) % n && j != (i + 1) % n && !(i == 0 && j == n - 1) then
-              if segments(i).intersects(segments(j)) then boundary.break(false)
+              if segments(i).interiorIntersects(segments(j)) then boundary.break(false)
             j += 1
           i += 1
         true

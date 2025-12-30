@@ -153,10 +153,20 @@ class BigPointSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "validate simple polygon detection" in:
     val square = List(BigPoint(0, 0), BigPoint(2, 0), BigPoint(2, 2), BigPoint(0, 2))
-    val bow    = List(BigPoint(0, 0), BigPoint(2, 2), BigPoint(0, 2), BigPoint(2, 0)) // self-intersecting bow
+    val bow    =
+      List(BigPoint(0, 0), BigPoint(2, 2), BigPoint(0, 2), BigPoint(2, 0)) // bow self-intersecting at edges
+    val hexBow = List(
+      BigPoint(0, 0),
+      BigPoint(1, 1),
+      BigPoint(2, 0),
+      BigPoint(2, 2),
+      BigPoint(1, 1),
+      BigPoint(0, 2)
+    ) // bow self-intersecting at vertex
     allAssert(
       square.isSimplePolygon shouldBe true,
-      bow.isSimplePolygon shouldBe false
+      bow.isSimplePolygon shouldBe false,
+      hexBow.isSimplePolygon shouldBe false
     )
 
   it should "compute polygon area with shoelace formula and treat degenerate inputs as zero" in:

@@ -33,8 +33,12 @@ object SimplePolygon:
         throw new IllegalArgumentException(
           f"The sum of interior angles is incorrect for a polygon with $n unit sides. Expected ${expectedAngleSum.toRational.toDouble}%.2f, but got ${angleSum.toRational.toDouble}%.2f."
         )
-      else
-        angles
+
+      val vertices = BigLineSegment(BigPoint.origin, BigPoint(1, 0)).unitPath(angles)
+      if !vertices.isSimplePolygon then
+        throw new IllegalArgumentException("The polygon is self-intersecting.")
+
+      angles
 
   def apply(degrees: Int*): SimplePolygon =
     apply(

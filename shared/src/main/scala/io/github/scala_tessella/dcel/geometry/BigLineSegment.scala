@@ -64,11 +64,14 @@ object BigLineSegment:
       then
         false
       else
-        val (o1, o2, o3, o4) = orientations(that)
-        // General case: segments cross each other in their interiors
-        o1 != o2 && o3 != o4
+        interiorIntersects(that)
 
-    /** Computes a list of points forming a polygonal path unit lenght segments based on the segment initial
+    def interiorIntersects(that: BigLineSegment): Boolean =
+      val (o1, o2, o3, o4) = orientations(that)
+      // General case: segments cross each other in their interiors
+      o1 != o2 && o3 != o4
+
+    /** Computes a list of points forming a polygonal path unit length segments based on the segment initial
       * angle and orientation.
       *
       * @param angles
