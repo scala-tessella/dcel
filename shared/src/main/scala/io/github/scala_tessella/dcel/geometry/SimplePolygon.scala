@@ -44,6 +44,9 @@ object SimplePolygon:
         .toVector
     )
 
+  private def bigPointsFrom(angles: Vector[AngleDegree]): List[BigPoint] =
+    BigLineSegment(BigPoint.origin, BigPoint(1, 0)).unitPath(angles)
+
   private val areFitting: (AngleDegree, AngleDegree) => Boolean = _ == _.inverted
 
   extension (angles: SimplePolygon)
@@ -57,7 +60,7 @@ object SimplePolygon:
       angles.map(_.normalised.supplement)
 
     def toBigPoints: List[BigPoint] =
-      BigLineSegment(BigPoint.origin, BigPoint(1, 0)).unitPath(angles.toAngles)
+      SimplePolygon.bigPointsFrom(angles.toAngles)
 
     def toSVG: String =
       angles.toScalableVectorG()
