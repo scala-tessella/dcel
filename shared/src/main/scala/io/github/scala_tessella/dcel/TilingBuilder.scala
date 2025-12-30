@@ -70,7 +70,7 @@ object TilingBuilder:
 
   /** Given validated points and angles, builds the TilingDCEL structure.
     */
-  private def buildDCELFromPointsUnsafe(
+  private[dcel] def buildDCELFromPointsUnsafe(
       points: List[BigPoint],
       angles: List[AngleDegree]
   ): TilingDCEL =
