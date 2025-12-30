@@ -34,8 +34,7 @@ class TilingValidationComprehensiveSpec extends AnyFlatSpec with Matchers with T
 
     val res = validate(tiling)
     allAssert(
-      res.isLeft shouldBe true,
-      {
+      res.isLeft shouldBe true, {
         val msg = res.left.value.message
         allAssert(
           msg should include("has itself as twin"),
