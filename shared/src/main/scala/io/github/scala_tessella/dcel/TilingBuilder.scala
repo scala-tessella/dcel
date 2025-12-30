@@ -49,7 +49,9 @@ object TilingBuilder:
     yield result
 
   def createSimplePolygon(degrees: Int*): Either[TilingError, TilingDCEL] =
-    Try(SimplePolygon(degrees *)) match
+    Try:
+      SimplePolygon(degrees*)
+    match
       case Failure(exception)     => Left(GeometryError(exception.getMessage))
       case Success(simplePolygon) => createSimplePolygon(SimplePolygon(degrees*))
 

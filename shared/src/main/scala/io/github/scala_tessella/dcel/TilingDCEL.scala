@@ -214,7 +214,7 @@ final case class TilingDCEL private (
       case Some(startEdge) => startEdge.faceTraversal()
       case None            => Right(List.empty)
 
-  def boundarySimplePolygon: SimplePolygon =
+  lazy val boundarySimplePolygon: SimplePolygon =
     SimplePolygon(
       boundaryEdges
         .map: halfEdge =>

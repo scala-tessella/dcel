@@ -3,6 +3,7 @@ package io.github.scala_tessella.dcel
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint, SimplePolygon}
 
 import scala.collection.mutable
+import scala.util.{Failure, Success, Try}
 
 object TilingValidation:
 
@@ -108,7 +109,7 @@ object TilingValidation:
           val angles = edges.flatMap(_.angle)
           if angles.length == edges.length && angles.length >= 3 then
             try
-              val simple = SimplePolygon(angles.toVector)
+              SimplePolygon(angles.toVector): Unit
             catch
               case e: IllegalArgumentException =>
                 errors += s"Face ${face.id} has an invalid polygon: ${e.getMessage}"
@@ -124,7 +125,7 @@ object TilingValidation:
           )
         else
           try
-            val simple = SimplePolygon(boundaryAngles.map(_.toOption.get).toVector)
+            SimplePolygon(boundaryAngles.map(_.toOption.get).toVector): Unit
           catch
             case e: IllegalArgumentException =>
               errors += s"Boundary angles sum is incorrect: ${e.getMessage}"
@@ -139,7 +140,7 @@ object TilingValidation:
           errors += s"Full circle boundary angles are invalid: ${boundaryAngles.mkString("; ")}"
         else
           try
-            val simple = SimplePolygon(boundaryAngles.map(_.conjugate).toVector)
+            SimplePolygon(boundaryAngles.map(_.conjugate).toVector): Unit
           catch
             case e: IllegalArgumentException =>
               errors += s"Boundary angles sum is incorrect: ${e.getMessage}"
@@ -163,6 +164,12 @@ object TilingValidation:
   def validateSpatially(tiling: TilingDCEL): Either[TilingError, Unit] =
     val errors = mutable.ListBuffer[String]()
 
+    Try(
+      tiling.boundarySimplePolygon
+    ) match
+      case Failure(exception) => errors += "Coordinates: boundary not a simple polygon"
+      case Success(_)         => ()
+
     tiling.boundaryVerticesSafer match
       case Right(boundaryVertices) =>
         if boundaryVertices.length >= 3 then
@@ -181,6 +188,16 @@ object TilingValidation:
         if (d - 1.0).abs > 1e-9 then
           errors += s"Edge from ${halfEdge.origin.id} does not have unit length: $d"
 
+    // NEW: Check for self-intersections (overlapping faces)
+//    val edges =
+//      tiling.halfEdges
+//        .map: he =>
+//          geometry.BigLineSegment(he.origin.coords, he.destinationUnsafe.coords)
+//        .toVector
+//
+//    if geometry.BigDecimalGeometry.IntersectionDetection.hasProperIntersection(edges, edges) then
+//      errors += "Spatial intersection: some edges properly intersect, suggesting overlapping faces"
+
     if errors.isEmpty then Right(()) else Left(TilingError.combineErrors(errors.toList, TilingError.spatial))
 
   def validate(tiling: TilingDCEL): Either[TilingError, Unit] =
@@ -190,6 +207,7 @@ object TilingValidation:
         val topoErrors  = validateTopologically(tiling).left.toOption.map(_.message)
         val geoErrors   = validateGeometrically(tiling).left.toOption.map(_.message)
         val spaceErrors = validateSpatially(tiling).left.toOption.map(_.message)
-        val allErrors   = topoErrors.toList ++ geoErrors.toList ++ spaceErrors.toList
+        val allErrors   = topoErrors.toList ::: geoErrors.toList ::: spaceErrors.toList
+        println(allErrors)
         if allErrors.isEmpty then Right(())
         else Left(TilingError.combineErrors(allErrors, TilingError.validation))
