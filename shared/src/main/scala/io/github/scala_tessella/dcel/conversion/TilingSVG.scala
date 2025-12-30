@@ -562,8 +562,7 @@ object TilingSVG:
     ): String =
       val svg: Elem =
 
-        val vertices        =
-          BigLineSegment(BigPoint.origin, BigPoint(1, 0)).unitPath(simple.toAngles)
+        val vertices        = simple.toBigPoints
         val viewBox         = calculateViewBox(vertices, scale, padding)
         val (width, height) = viewBox.dimensions
 

@@ -56,6 +56,9 @@ object SimplePolygon:
     def toTurns: Vector[AngleDegree] =
       angles.map(_.normalised.supplement)
 
+    def toBigPoints: List[BigPoint] =
+      BigLineSegment(BigPoint.origin, BigPoint(1, 0)).unitPath(angles.toAngles)
+
     def toSVG: String =
       angles.toScalableVectorG()
 
