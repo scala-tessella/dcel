@@ -19,31 +19,31 @@ class TilingValidationComprehensiveSpec extends AnyFlatSpec with Matchers with T
     val twoSquares = square.maybeAddRegularPolygonToBoundary(V1, RegularPolygon(4)).value
     validate(twoSquares) shouldBe Right(())
 
-//  it should "aggregate errors coming from topology, geometry and spatial checks" in:
-//    val tiling = square
-//    // break topology
-//    tiling.halfEdges.head.twin = None
-//    // break geometry: undefined angle
-//    tiling.halfEdges.tail.head.angle = None
-//    // break spatial: alter twin distance (set twin origin to the same vertex to make length 0)
-//    val e = tiling.halfEdges.head
-//
-//    val t = e.twin.get
-//    // simulate spatial inconsistency by making twin reference inconsistent (origin mismatch triggers distance != 1)
-//    t.origin = tiling.vertices.last
-//
-//    e.twin = e.twin // keep None as already set; also ensure at least one unit-length check fails by moving coords
-//    // Move one vertex far to violate unit length tolerance through its incident twin (choose a safe boundary move)
-//    tiling.vertices.head.coords = tiling.vertices.head.coords.copy(x = tiling.vertices.head.coords.x + 2)
-//
-//    val res = validate(tiling)
-//    res.isLeft shouldBe true
-//    val msg = res.left.value.message
-//    msg should include ("has no twin")
-//    msg should include ("no angle defined")
-//    // spatial message mentions "unit length"
-//    msg should include ("unit length")
-//  }
+  def incorrectUnitLengthSquare: TilingDCEL =
+    TilingBuilder.buildDCELFromPointsUnsafe(
+      List(BigPoint.origin, BigPoint(0, 2), BigPoint(1, 1), BigPoint(1, 0)),
+      List.fill(4)(AngleDegree(90))
+    )
+
+  it should "aggregate errors coming from topology, geometry and spatial checks" in:
+    val tiling = incorrectUnitLengthSquare
+    // break topology: twin of itself
+    tiling.halfEdges.head.twin = Some(tiling.halfEdges.head)
+    // break geometry: full circle angle
+    tiling.halfEdges.tail.head.angle = Some(AngleDegree(360))
+
+    val res = validate(tiling)
+    allAssert(
+      res.isLeft shouldBe true,
+      {
+        val msg = res.left.value.message
+        allAssert(
+          msg should include("has itself as twin"),
+          msg should include("cannot have full circles"),
+          msg should include("unit length")
+        )
+      }
+    )
 
   behavior of "TilingValidation.validateCompleteness"
 
@@ -261,11 +261,7 @@ class TilingValidationComprehensiveSpec extends AnyFlatSpec with Matchers with T
     )
 
   it should "fail when an edge is not unit length (by moving one endpoint far away)" in:
-    val incorrect =
-      TilingBuilder.buildDCELFromPointsUnsafe(
-        List(BigPoint.origin, BigPoint(0, 2), BigPoint(1, 1), BigPoint(1, 0)),
-        List.fill(4)(AngleDegree(90))
-      )
+    val incorrect = incorrectUnitLengthSquare
     val res       = validateSpatially(incorrect)
     allAssert(
       res.isLeft shouldBe true,
