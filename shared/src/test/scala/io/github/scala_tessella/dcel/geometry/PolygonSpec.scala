@@ -11,15 +11,15 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   behavior of "SimplePolygon.apply"
 
-  val squareAngles = Vector(AngleDegree(90), AngleDegree(90), AngleDegree(90), AngleDegree(90))
+  val squareDegrees: Vector[Int] = Vector(90, 90, 90, 90)
 
   it should "validate the angles of a correct simple polygon" in:
-    SimplePolygon(squareAngles).toAngles.nonEmpty shouldBe true
+    SimplePolygon(squareDegrees*).toAngles.nonEmpty shouldBe true
 
-  val triangleAngles = Vector(AngleDegree(60), AngleDegree(60), AngleDegree(60))
+  val triangleDegrees: Vector[Int] = Vector(60, 60, 60)
 
   it should "validate the angles of another correct simple polygon" in:
-    SimplePolygon(triangleAngles).toAngles.nonEmpty shouldBe true
+    SimplePolygon(triangleDegrees*).toAngles.nonEmpty shouldBe true
 
   // New: minimal length constraints
   it should "reject polygons with fewer than 3 angles" in
@@ -67,19 +67,30 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       SimplePolygon.alphaSum(6).toRational shouldBe Rational(720)
     )
 
+  it should "reject a polygon with self-intersecting edges" in:
+    val selfIntersectingRingDegrees =
+      Vector(90, 180, 180, 90, 180, 180, 90, 150, 60, 240, 270, 270, 240, 60, 150, 90, 180, 180)
+    an[IllegalArgumentException] should be thrownBy SimplePolygon(selfIntersectingRingDegrees*)
+
+  it should "reject a polygon self-intersecting at vertex" in:
+    val selfIntersectingHexagonDegrees =
+      Vector(60, 60, 240, 60, 60, 240)
+    an[IllegalArgumentException] should be thrownBy SimplePolygon(selfIntersectingHexagonDegrees*)
+
   behavior of "SimplePolygon.multiplySidesBy"
 
   it should "triplicate a triangle" in:
-    SimplePolygon(triangleAngles).multiplySidesBy(3) shouldBe
+    SimplePolygon(triangleDegrees*).multiplySidesBy(3) shouldBe
       Vector(60, 180, 180, 60, 180, 180, 60, 180, 180).map(AngleDegree(_))
 
   it should "remain the same when multiplied by one" in:
-    SimplePolygon(triangleAngles).multiplySidesBy(1) shouldBe
-      triangleAngles
+    SimplePolygon(triangleDegrees*).multiplySidesBy(1) shouldBe
+      triangleDegrees.map: degree =>
+        AngleDegree(degree)
 
   it should "fail if factor is < 1" in:
     the[IllegalArgumentException] thrownBy
-      SimplePolygon(triangleAngles).multiplySidesBy(0) should have message
+      SimplePolygon(triangleDegrees*).multiplySidesBy(0) should have message
       "A simple polygon must have sides of at least unit length."
 
   behavior of "RegularPolygon"
