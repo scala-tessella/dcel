@@ -62,7 +62,7 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
     // Note: This polygon fails the final angle validation, but the self-intersection
     // check should catch it first.
     val intersectingDegrees = Vector(150, 150, 30, 150, 150, 90)
-    val result             = TilingBuilder.createSimplePolygon(intersectingDegrees*)
+    val result              = TilingBuilder.createSimplePolygon(intersectingDegrees*)
 
     allAssert(
       result.isLeft shouldBe true,
@@ -76,7 +76,7 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
     // but the sequence of angles does not form a closed polygon with unit-length sides.
     val nonClosingDegrees =
       Vector(90, 90, 135, 135, 90)
-    val result           = TilingBuilder.createSimplePolygon(nonClosingDegrees*)
+    val result            = TilingBuilder.createSimplePolygon(nonClosingDegrees*)
 
     allAssert(
       result.isLeft shouldBe true,
