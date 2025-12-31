@@ -42,7 +42,7 @@ object TilingBuilder:
     */
   def createSimplePolygon(simple: SimplePolygon): Either[TilingError, TilingDCEL] =
     for
-      checked <- SimplePolygon.createWithSpatialCheck(simple.toAngles)
+      checked <- SimplePolygon.fromUntrusted(simple.toAngles)
       points   = calculateVertexPoints(checked.toAngles)
       result  <- Right(buildDCELFromPointsUnsafe(points, simple.toAngles.toList))
     yield result

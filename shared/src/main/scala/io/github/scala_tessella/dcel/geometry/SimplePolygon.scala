@@ -7,8 +7,6 @@ import io.github.scala_tessella.ring_seq.RingSeq.*
 import io.github.scala_tessella.ring_seq.SymmetryOps.AxisLocation
 import spire.implicits.*
 
-import scala.util.{Failure, Success, Try}
-
 /** Unit simple polygon with the given ordered interior angles */
 opaque type SimplePolygon = Vector[AngleDegree]
 
@@ -24,43 +22,32 @@ object SimplePolygon:
     * @throws IllegalArgumentException
     *   if there are fewer than 3 angles, any angle is a full circle, or the sum of the angles is not correct.
     */
-  def apply(angles: Vector[AngleDegree]): SimplePolygon =
+  private[dcel] def apply(angles: Vector[AngleDegree]): SimplePolygon =
+    angles
+
+  private def degreesToAngles(degrees: Int*): Vector[AngleDegree] =
+    degrees
+      .map: degree =>
+        AngleDegree(degree)
+      .toVector
+
+  private[dcel] def apply(degrees: Int*): SimplePolygon =
+    apply(degreesToAngles(degrees*))
+
+  def fromUntrusted(angles: Vector[AngleDegree]): Either[TilingError, SimplePolygon] =
     val n = angles.length
     if n < 3 then
-      throw new IllegalArgumentException("A simple polygon must have at least 3 sides.")
-    if angles.exists(_.isFullCircle) then
-      throw new IllegalArgumentException("The polygon cannot have full circles as interior angles.")
+      Left(GeometryError("A simple polygon must have at least 3 sides."))
+    else if angles.exists(_.isFullCircle) then
+      Left(GeometryError("The polygon cannot have full circles as interior angles."))
     else
       val angleSum         = angles.map(_.normalised).sumExact
       val expectedAngleSum = alphaSum(n)
       if (angleSum - expectedAngleSum).toRational.abs > ACCURACY then
-        throw new IllegalArgumentException(
+        Left(GeometryError(
           f"The sum of interior angles is incorrect for a polygon with $n unit sides. Expected ${expectedAngleSum.toRational.toDouble}%.2f, but got ${angleSum.toRational.toDouble}%.2f."
-        )
-
-//      val vertices       = BigLineSegment(BigPoint.origin, BigPoint(1, 0)).unitPath(angles)
-//      if !vertices.isSimplePolygon then
-//        throw new IllegalArgumentException("The polygon is self-intersecting.")
-//      val lastEdgeLength = vertices.head.distanceTo(vertices.last)
-//      if spire.math.abs(lastEdgeLength - 1.0) > ACCURACY then
-//        throw new IllegalArgumentException(
-//          f"The polygon does not close. The final edge has length $lastEdgeLength%.4f instead of 1.0."
-//        )
-
-      angles
-
-  def apply(degrees: Int*): SimplePolygon =
-    apply(
-      degrees
-        .map: degree =>
-          AngleDegree(degree)
-        .toVector
-    )
-
-  def createWithSpatialCheck(angles: Vector[AngleDegree]): Either[TilingError, SimplePolygon] =
-    Try(apply(angles)) match
-      case Failure(exception)     => Left(GeometryError(exception.getMessage))
-      case Success(simplePolygon) =>
+        ))
+      else
         val vertices = BigLineSegment(BigPoint.origin, BigPoint(1, 0)).unitPath(angles)
         if !vertices.isSimplePolygon then
           Left(SpatialError("The polygon is self-intersecting."))
@@ -71,15 +58,10 @@ object SimplePolygon:
               f"The polygon does not close. The final edge has length $lastEdgeLength%.4f instead of 1.0."
             ))
           else
-            Right(simplePolygon)
+            Right(angles)
 
-  def createWithSpatialCheck(degrees: Int*): Either[TilingError, SimplePolygon] =
-    createWithSpatialCheck(
-      degrees
-        .map: degree =>
-          AngleDegree(degree)
-        .toVector
-    )
+  def fromUntrusted(degrees: Int*): Either[TilingError, SimplePolygon] =
+    fromUntrusted(degreesToAngles(degrees*))
 
   private def bigPointsFrom(angles: Vector[AngleDegree]): List[BigPoint] =
     BigLineSegment(BigPoint.origin, BigPoint(1, 0)).unitPath(angles)

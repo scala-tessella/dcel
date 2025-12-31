@@ -1,6 +1,6 @@
 package io.github.scala_tessella.dcel.geometry
 
-import io.github.scala_tessella.dcel.TilingTestHelpers
+import io.github.scala_tessella.dcel.{GeometryError, SpatialError, TilingTestHelpers}
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, RegularPolygon, SimplePolygon}
 import org.scalatest.Assertion
 import org.scalatest.flatspec.AnyFlatSpec
@@ -22,17 +22,12 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     SimplePolygon(triangleDegrees*).toAngles.nonEmpty shouldBe true
 
   // New: minimal length constraints
-  it should "reject polygons with fewer than 3 angles" in
+  it should "reject polygons with fewer than 3 angles" in:
+    val error = GeometryError("A simple polygon must have at least 3 sides.")
     allAssert(
-      the[IllegalArgumentException] thrownBy SimplePolygon(
-        Vector.empty
-      ) should have message "A simple polygon must have at least 3 sides.",
-      the[IllegalArgumentException] thrownBy SimplePolygon(
-        Vector(AngleDegree(180))
-      ) should have message "A simple polygon must have at least 3 sides.",
-      the[IllegalArgumentException] thrownBy SimplePolygon(
-        Vector(AngleDegree(100), AngleDegree(80))
-      ) should have message "A simple polygon must have at least 3 sides."
+      SimplePolygon.fromUntrusted(Vector.empty).left.value shouldBe error,
+      SimplePolygon.fromUntrusted(Vector(AngleDegree(180))).left.value shouldBe error,
+      SimplePolygon.fromUntrusted(Vector(AngleDegree(100), AngleDegree(80))).left.value shouldBe error
     )
 
   // New: normalization handling (negative and >180 accepted only via normalisation if sum matches)
@@ -46,12 +41,16 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "invalidate angles if their sum is incorrect" in:
     // Sum is too small
-    val wrongAngles = Vector(AngleDegree(90), AngleDegree(90), AngleDegree(90), AngleDegree(89))
-    an[IllegalArgumentException] should be thrownBy SimplePolygon(wrongAngles)
+    val wrongDegrees = Vector(90, 90, 90, 89)
+    SimplePolygon.fromUntrusted(wrongDegrees*).left.value shouldBe
+      GeometryError(
+        "The sum of interior angles is incorrect for a polygon with 4 unit sides. Expected 360,00, but got 359,00."
+      )
 
   it should "invalidate angles if any angle is a full circle" in:
-    val anglesWithFullCircle = Vector(AngleDegree(360), AngleDegree(0), AngleDegree(90), AngleDegree(-90))
-    an[IllegalArgumentException] should be thrownBy SimplePolygon(anglesWithFullCircle)
+    val withFullCircleDegrees = Vector(360, 0, 90, -90)
+    SimplePolygon.fromUntrusted(withFullCircleDegrees*).left.value shouldBe
+      GeometryError("The polygon cannot have full circles as interior angles.")
 
   // New: toAngles preserves order and content
   it should "preserve the provided angles order and size" in:
@@ -70,19 +69,22 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   it should "reject a polygon with self-intersecting edges" in:
     val selfIntersectingRingDegrees =
       Vector(90, 180, 180, 90, 180, 180, 90, 150, 60, 240, 270, 270, 240, 60, 150, 90, 180, 180)
-    SimplePolygon.createWithSpatialCheck(selfIntersectingRingDegrees*).isLeft shouldBe true
+    SimplePolygon.fromUntrusted(selfIntersectingRingDegrees*).left.value shouldBe
+      SpatialError("The polygon is self-intersecting.")
 
   it should "reject a polygon self-intersecting at vertex" in:
     val selfIntersectingHexagonDegrees =
       Vector(60, 60, 240, 60, 60, 240)
-    SimplePolygon.createWithSpatialCheck(selfIntersectingHexagonDegrees*).isLeft shouldBe true
+    SimplePolygon.fromUntrusted(selfIntersectingHexagonDegrees*).left.value shouldBe
+      SpatialError("The polygon is self-intersecting.")
 
   it should "reject a polygon which does not close" in:
     // These pentagon angles sum to 540 degrees, which is correct for a pentagon ((5-2)*180),
     // but the sequence of angles does not form a closed polygon with unit-length sides.
     val nonClosingDegrees =
       Vector(90, 90, 135, 135, 90)
-    SimplePolygon.createWithSpatialCheck(nonClosingDegrees*).isLeft shouldBe true
+    SimplePolygon.fromUntrusted(nonClosingDegrees*).left.value shouldBe
+      SpatialError("The polygon does not close. The final edge has length 1,8478 instead of 1.0.")
 
   behavior of "SimplePolygon.multiplySidesBy"
 

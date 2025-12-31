@@ -107,12 +107,9 @@ object TilingValidation:
       face.halfEdges match
         case Right(edges) =>
           val angles = edges.flatMap(_.angle)
-          if angles.length == edges.length && angles.length >= 3 then
-            try
-              SimplePolygon(angles.toVector): Unit
-            catch
-              case e: IllegalArgumentException =>
-                errors += s"Face ${face.id} has an invalid polygon: ${e.getMessage}"
+          SimplePolygon.fromUntrusted(angles.toVector) match
+            case Left(error) => errors += s"Face ${face.id} has an invalid polygon: ${error.message}"
+            case Right(_)    => ()
         case Left(_)      => // NOTE: topological error, handled in validateTopologically
 
     // Check angles' sum for the tiling boundary (interior view)
@@ -124,11 +121,9 @@ object TilingValidation:
             errors += s"Boundary angles calculation failed: $error"
           )
         else
-          try
-            SimplePolygon(boundaryAngles.map(_.toOption.get).toVector): Unit
-          catch
-            case e: IllegalArgumentException =>
-              errors += s"Boundary angles sum is incorrect: ${e.getMessage}"
+          SimplePolygon.fromUntrusted(boundaryAngles.map(_.toOption.get).toVector) match
+            case Left(error) => errors += s"Boundary angles sum is incorrect: ${error.message}"
+            case Right(_)    => ()
       case Left(_)                                                 => // NOTE: topological error
       case _                                                       => // Not enough vertices to form a polygon
 
@@ -139,11 +134,9 @@ object TilingValidation:
         if boundaryAngles.exists(_.isFullCircle) then
           errors += s"Full circle boundary angles are invalid: ${boundaryAngles.mkString("; ")}"
         else
-          try
-            SimplePolygon(boundaryAngles.map(_.conjugate).toVector): Unit
-          catch
-            case e: IllegalArgumentException =>
-              errors += s"Boundary angles sum is incorrect: ${e.getMessage}"
+          SimplePolygon.fromUntrusted(boundaryAngles.map(_.conjugate).toVector) match
+            case Left(error) => errors += s"Boundary angles sum is incorrect: ${error.message}"
+            case Right(_)    => ()
       case Left(_)                                           => // NOTE: topological error
       case _                                                 => // Not enough edges
 
