@@ -70,10 +70,10 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
         val assertions =
           result.map: vertex =>
             allAssert(
-              vertex.x should not be BigDecimal(0), // Vertices should not be at origin
-              vertex.y should not be BigDecimal(
-                0
-              )                                     // Vertices should have non-zero y coordinates (except possibly the last)
+              // Vertices should not be at origin
+              vertex.x should not be BigDecimal(0),
+              // Vertices should have non-zero y coordinates (except possibly the last)
+              vertex.y should not be BigDecimal(0)
             )
         allAssert(assertions*)
       }
@@ -981,7 +981,6 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
   it should "add a fourth dodecagon creating two holes" in:
     val result = threeDodecagons.maybeAddRegularPolygonToBoundary(V1, RegularPolygon(12))
-    println(result)
     result.isRight shouldBe true
 
   it should "add a fourth dodecagon creating one hole having previously filled one" in:
@@ -1011,7 +1010,6 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
   it should "have the lid covering two square holes when attached to the middle" in:
     val result = twoPots.maybeAddSimplePolygonToBoundary(VertexId("V13"), rectangularTwoLid)
-    println(result)
     result.isRight shouldBe true
 
   it should "have the lid covering two square holes when attached on the left" in:
@@ -1068,5 +1066,4 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
         VertexId("V19"),
         SimplePolygon(rectangularThreeLid.toAngles.rotateLeft(2))
       )
-    println(result)
     result.value.innerFaces.size shouldBe 5
