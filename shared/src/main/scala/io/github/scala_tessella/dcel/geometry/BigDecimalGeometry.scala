@@ -224,3 +224,23 @@ object BigDecimalGeometry:
                   intersections += pair
 
           intersections.toList
+
+    /** Efficiently checks if a single collection of segments contains any internal proper intersections.
+      * Skips checks between segments that share an endpoint.
+      */
+    def hasSelfIntersection(
+        segments: Seq[BigLineSegment],
+        cellSize: Option[BigDecimal] = None
+    ): Boolean =
+      if segments.length < 2 then return false
+
+      val actualCellSize = cellSize.getOrElse(segments.totalLength / segments.length * 2)
+      val bounds         = BigBox.fromPoints(segments.toPoints).expand(actualCellSize)
+      val grid           = SpatialGrid(bounds, actualCellSize)
+
+      // To avoid O(N^2), we add segments one by one and check against already added ones
+      segments.exists: segment =>
+        val candidates = grid.getPotentialIntersections(segment)
+        val found      = candidates.exists(_.properlyIntersects(segment))
+        grid.addSegment(segment)
+        found

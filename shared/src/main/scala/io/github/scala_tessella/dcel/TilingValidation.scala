@@ -1,6 +1,8 @@
 package io.github.scala_tessella.dcel
 
-import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint, SimplePolygon}
+import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.IntersectionDetection
+import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigLineSegment, BigPoint, SimplePolygon}
+import io.github.scala_tessella.dcel.structure.HalfEdge
 
 import scala.collection.mutable
 
@@ -175,14 +177,21 @@ object TilingValidation:
           errors += s"Edge from ${halfEdge.origin.id} does not have unit length: $d"
 
     // NEW: Check for self-intersections (overlapping faces)
-//    val edges =
-//      tiling.halfEdges
-//        .map: he =>
-//          geometry.BigLineSegment(he.origin.coords, he.destinationUnsafe.coords)
-//        .toVector
-//
-//    if geometry.BigDecimalGeometry.IntersectionDetection.hasProperIntersection(edges, edges) then
-//      errors += "Spatial intersection: some edges properly intersect, suggesting overlapping faces"
+    // We only need to check one half-edge per twin pair to detect overlaps
+    val uniqueEdges = mutable.Set.empty[HalfEdge]
+    val segments    =
+      tiling.halfEdges
+        .flatMap: halfEdge =>
+          if uniqueEdges.contains(halfEdge) then
+            None
+          else
+            halfEdge.twin.foreach: halfEdge =>
+              uniqueEdges.add(halfEdge)
+            Some(BigLineSegment(halfEdge.origin.coords, halfEdge.destinationUnsafe.coords))
+        .toVector
+
+    if IntersectionDetection.hasSelfIntersection(segments) then
+      errors += "Spatial intersection: some edges properly intersect, suggesting overlapping faces"
 
     if errors.isEmpty then Right(()) else Left(TilingError.combineErrors(errors.toList, TilingError.spatial))
 
