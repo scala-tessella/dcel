@@ -125,7 +125,7 @@ class PropertyBasedDCELSpec
   behavior of "Interior vertex angles"
 
   it should "sum to a full circle for interior vertices across random growth sequences" in
-    forAll(genInitialSides, genSteps) { (initialSides, steps) =>
+    forAll(genInitialSides, genSteps): (initialSides, steps) =>
       var t = createRegular(initialSides)
       allAssert(
         validateTopology(t), {
@@ -138,7 +138,7 @@ class PropertyBasedDCELSpec
             i += 1
           allAssert(assertions.toList*)
         }, {
-          val interior = interiorVertices(t)
+          val interior   = interiorVertices(t)
           val assertions =
             interior.map: vertex =>
               val angles = t.getAnglesAtVertex(vertex.id).value
@@ -149,12 +149,11 @@ class PropertyBasedDCELSpec
           allAssert(assertions*)
         }
       )
-    }
 
   behavior of "Face angles and edge count consistency"
 
   it should "match number of half-edges and pass polygon angle sum validation" in
-    forAll(genInitialSides, genSteps) { (initialSides, steps) =>
+    forAll(genInitialSides, genSteps): (initialSides, steps) =>
       var t = createRegular(initialSides)
       var i = 0
       while i < steps do
@@ -165,7 +164,7 @@ class PropertyBasedDCELSpec
       // Check each inner face
       t.innerFaces.foreach { f =>
         val edges  = f.halfEdges.value
-        val angles = 
+        val angles =
           edges.flatMap: halfEdge =>
             halfEdge.angle
         allAssert(
@@ -175,12 +174,11 @@ class PropertyBasedDCELSpec
           SimplePolygon(angles.toVector).toAngles.nonEmpty shouldBe true
         )
       }
-    }
 
   behavior of "Edge linkage invariants"
 
   it should "preserve twin/next/prev cycles under random additions and deletions" in
-    forAll(genInitialSides, genSteps) { (initialSides, steps) =>
+    forAll(genInitialSides, genSteps): (initialSides, steps) =>
       var t = createRegular(initialSides)
       allAssert(
         {
@@ -207,12 +205,11 @@ class PropertyBasedDCELSpec
           allAssert(assertions.toList*)
         }
       )
-    }
 
   behavior of "Random growth end-to-end validation"
 
   it should "validate after each step of random boundary growth" in
-    forAll(genInitialSides, genSteps) { (initialSides, steps) =>
+    forAll(genInitialSides, genSteps): (initialSides, steps) =>
       var t          = createRegular(initialSides)
       val assertions = ListBuffer[Assertion]()
       assertions += validateTopology(t)
@@ -223,4 +220,3 @@ class PropertyBasedDCELSpec
         if performed then assertions += validateTopology(t)
         i += 1
       allAssert(assertions.toList*)
-    }
