@@ -108,10 +108,9 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val p2 = BigPoint(BigDecimal(1), BigDecimal(0))
 
     // Test various polygon sizes
-    for (sides <- 3 to 12) {
+    for (sides <- 3 to 12)
       val result = calculateNewVertices(sides, p1, p2)
       result should have length (sides - 2) // We already have 2 vertices (p1, p2), need (sides - 2) more
-    }
 
   it should "handle different starting positions correctly" in:
     val testCases  = List(
