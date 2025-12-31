@@ -77,7 +77,7 @@ class PropertyBasedDCELSpec
               if validateTopologically(next).isRight then
                 current = next
                 done = true
-            // else keep searching another random operation
+            // else keep searching for another random operation
             case Left(_)     =>
               // try again with another random pick
               ()
@@ -115,7 +115,7 @@ class PropertyBasedDCELSpec
             if validateTopologically(next).isRight then
               current = next
               done = true
-          // else keep searching another random operation
+          // else keep searching for another random operation
           case Left(_)     => ()
       i += 1
     (current, done)
@@ -139,16 +139,14 @@ class PropertyBasedDCELSpec
           allAssert(assertions.toList*)
         }, {
           val interior = interiorVertices(t)
-          allAssert(
-            interior.map { v =>
-              val angles = t.getAnglesAtVertex(v.id).value
+          val assertions =
+            interior.map: vertex =>
+              val angles = t.getAnglesAtVertex(vertex.id).value
               if angles.nonEmpty then
-                withClue(s"Interior vertex ${v.id}: angles=$angles") {
+                withClue(s"Interior vertex ${vertex.id}: angles=$angles"):
                   angleSumIsFullCircle(angles) shouldBe true
-                }
               else succeed
-            }*
-          )
+          allAssert(assertions*)
         }
       )
     }
@@ -167,7 +165,9 @@ class PropertyBasedDCELSpec
       // Check each inner face
       t.innerFaces.foreach { f =>
         val edges  = f.halfEdges.value
-        val angles = edges.flatMap(_.angle)
+        val angles = 
+          edges.flatMap: halfEdge =>
+            halfEdge.angle
         allAssert(
           withClue(s"Face ${f.id}: edges=${edges.length}, angles=${angles.length}") {
             angles.length shouldEqual edges.length
