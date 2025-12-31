@@ -67,6 +67,13 @@ object TilingValidation:
       edge.incidentFace.foreach: face =>
         if !((face eq tiling.outerFace) || innerFaceSet.contains(face)) then
           errors += s"Edge from ${edge.origin.id} references incident face not part of this tiling: ${face.id}"
+        else
+          // Ensure the face actually "owns" this edge
+          val isReachable =
+            face.halfEdges.toOption.exists: halfEdge =>
+              halfEdge.contains(edge)
+          if !isReachable then
+            errors += s"Edge from ${edge.origin.id} claims to be in face ${face.id}, but is not reachable from face components"
 
     // Check face consistency
     tiling.faces.foreach: face =>
