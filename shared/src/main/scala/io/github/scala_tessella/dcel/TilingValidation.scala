@@ -80,16 +80,26 @@ object TilingValidation:
               errors += s"Face ${face.id} cycle includes an edge not part of this tiling"
 
     // Ensure all edges that claim to be on the outer face are covered by the outer face traversal
-    val outerEdgesClaimed   = tiling.halfEdges.filter(_.hasIncidentFace(tiling.outerFace)).toSet
-    val outerTraversalEdges =
-      tiling.outerFace.outerComponent.map(_.faceTraversal()).get
-    if outerTraversalEdges.isLeft then
-      errors += "Outer face traversal failed: " + outerTraversalEdges.swap.getOrElse("")
-    else if outerEdgesClaimed.diff(outerTraversalEdges.toOption.get.toSet).nonEmpty then
-      errors += "Outer face has edges not reachable from its outer component"
+    val outerEdgesClaimed        =
+      tiling.halfEdges
+        .filter: halfEdge =>
+          halfEdge.hasIncidentFace(tiling.outerFace)
+        .toSet
+    val maybeOuterTraversalEdges =
+      tiling.outerFace.outerComponent.map: face =>
+        face.faceTraversal()
+    maybeOuterTraversalEdges match
+      case None                      => errors += "Outer face traversal failed: no traversal found"
+      case Some(outerTraversalEdges) =>
+        if outerTraversalEdges.isLeft then
+          errors += "Outer face traversal failed: " + outerTraversalEdges.swap.getOrElse("")
+        else if outerEdgesClaimed.diff(outerTraversalEdges.toOption.get.toSet).nonEmpty then
+          errors += "Outer face has edges not reachable from its outer component"
 
     // This is specific to the tessellation we want, without holes, because holes are just other inner polygons
-    if tiling.innerFaces.exists(_.hasHoles) then
+    if tiling.innerFaces.exists: face =>
+        face.hasHoles
+    then
       errors += "Face with inner holes"
 
     if errors.isEmpty then Right(()) else Left(TilingError.combineErrors(errors.toList, TilingError.topology))
@@ -107,7 +117,9 @@ object TilingValidation:
     tiling.innerFaces.foreach: face =>
       face.halfEdges match
         case Right(edges) =>
-          val angles = edges.flatMap(_.angle)
+          val angles =
+            edges.flatMap: halfEdge =>
+              halfEdge.angle
           SimplePolygon.fromUntrusted(angles.toVector) match
             case Left(error) => errors += s"Face ${face.id} has an invalid polygon: ${error.message}"
             case Right(_)    => ()
@@ -116,11 +128,21 @@ object TilingValidation:
     // Check angles' sum for the tiling boundary (interior view)
     tiling.boundaryVerticesSafer match
       case Right(boundaryVertices) if boundaryVertices.length >= 3 =>
-        val boundaryAngles = boundaryVertices.map(_.currentInteriorAngleSum(tiling.outerFace)).toList
-        if boundaryAngles.exists(_.isLeft) then
-          boundaryAngles.filter(_.isLeft).map(_.swap.toOption.get).foreach(error =>
-            errors += s"Boundary angles calculation failed: $error"
-          )
+        val boundaryAngles =
+          boundaryVertices
+            .map: vertex =>
+              vertex.currentInteriorAngleSum(tiling.outerFace)
+            .toList
+        if boundaryAngles.exists: either =>
+            either.isLeft
+        then
+          boundaryAngles
+            .filter: either =>
+              either.isLeft
+            .map: either =>
+              either.swap.toOption.get
+            .foreach: error =>
+              errors += s"Boundary angles calculation failed: $error"
         else
           SimplePolygon.fromUntrusted(boundaryAngles.map(_.toOption.get).toVector) match
             case Left(error) => errors += s"Boundary angles sum is incorrect: ${error.message}"
@@ -131,8 +153,12 @@ object TilingValidation:
     // Check angles' sum for the tiling boundary (exterior view)
     tiling.boundaryEdgesSafer match
       case Right(boundaryEdges) if boundaryEdges.length >= 3 =>
-        val boundaryAngles = boundaryEdges.flatMap(_.angle)
-        if boundaryAngles.exists(_.isFullCircle) then
+        val boundaryAngles =
+          boundaryEdges.flatMap: halfEdge =>
+            halfEdge.angle
+        if boundaryAngles.exists: angleDegree =>
+            angleDegree.isFullCircle
+        then
           errors += s"Full circle boundary angles are invalid: ${boundaryAngles.mkString("; ")}"
         else
           SimplePolygon.fromUntrusted(boundaryAngles.map(_.conjugate).toVector) match
@@ -169,7 +195,9 @@ object TilingValidation:
     // Only check when both endpoints are available
     tiling.halfEdges.foreach: halfEdge =>
       val edgeOrigin      = halfEdge.origin.coords
-      val maybeTwinOrigin = halfEdge.twin.map(_.origin.coords)
+      val maybeTwinOrigin =
+        halfEdge.twin.map: twinHalfEdge =>
+          twinHalfEdge.origin.coords
       maybeTwinOrigin.foreach: twinOrigin =>
         val d = edgeOrigin.distanceTo(twinOrigin)
         // Allow small tolerance
