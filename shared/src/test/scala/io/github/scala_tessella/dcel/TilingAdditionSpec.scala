@@ -5,12 +5,14 @@ import io.github.scala_tessella.dcel.TilingBuilder.vertexIdV
 import io.github.scala_tessella.dcel.TilingDeletion.*
 import io.github.scala_tessella.dcel.TilingEquivalency.*
 import io.github.scala_tessella.dcel.TilingValidation.validate
+import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.ACCURACY
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint, RegularPolygon, SimplePolygon}
 import io.github.scala_tessella.dcel.structure.{FaceId, VertexId}
 import io.github.scala_tessella.ring_seq.RingSeq.*
 import org.scalatest.Assertion
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+import spire.implicits.*
 
 class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
@@ -89,28 +91,27 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       result should have length 4,
       // For a regular hexagon, we expect specific geometric relationships
       {
+        val center     = BigPoint(0.5, -0.866025403784439)
         val assertions =
           result.map: vertex =>
             // All vertices should be at unit distance from the center of the hexagon
-            val distanceFromCenter =
-              math.sqrt(
-                (vertex.x - BigDecimal("0.5")).pow(2).toDouble
-                  + (vertex.y - BigDecimal("-0.866025403784439")).pow(2).toDouble
-              )
+            val distanceFromCenter = vertex.distanceTo(center)
             // The distance should be approximately 1 (unit hexagon)
-            math.abs(distanceFromCenter - 1.0) should be < 0.1
+            spire.math.abs(distanceFromCenter - 1.0) < ACCURACY shouldBe true
+
         allAssert(assertions*)
       }
     )
 
   it should "return correct number of vertices for different polygon sizes" in:
-    val p1 = BigPoint(BigDecimal(0), BigDecimal(0))
-    val p2 = BigPoint(BigDecimal(1), BigDecimal(0))
+    val point1 = BigPoint(BigDecimal(0), BigDecimal(0))
+    val point2 = BigPoint(BigDecimal(1), BigDecimal(0))
 
     // Test various polygon sizes
     for (sides <- 3 to 12)
-      val result = calculateNewVertices(sides, p1, p2)
-      result should have length (sides - 2) // We already have 2 vertices (p1, p2), need (sides - 2) more
+      val result = calculateNewVertices(sides, point1, point2)
+      // We already have 2 vertices (point1, point2), need (sides - 2) more
+      result should have length (sides - 2)
 
   it should "handle different starting positions correctly" in:
     val testCases  = List(
@@ -133,36 +134,34 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val p3     = result.head
 
     // Check that all sides have equal length (equilateral triangle)
-    val side1Length = math.sqrt((p2.x - p1.x).pow(2).toDouble + (p2.y - p1.y).pow(2).toDouble)
-    val side2Length = math.sqrt((p3.x - p2.x).pow(2).toDouble + (p3.y - p2.y).pow(2).toDouble)
-    val side3Length = math.sqrt((p1.x - p3.x).pow(2).toDouble + (p1.y - p3.y).pow(2).toDouble)
+    val side1Length = p2.distanceTo(p1)
+    val side2Length = p3.distanceTo(p2)
+    val side3Length = p1.distanceTo(p3)
 
     allAssert(
-      math.abs(side1Length - side2Length) should be < 1e-6,
-      math.abs(side2Length - side3Length) should be < 1e-6,
-      math.abs(side3Length - side1Length) should be < 1e-6
+      spire.math.abs(side1Length - side2Length) < ACCURACY shouldBe true,
+      spire.math.abs(side2Length - side3Length) < ACCURACY shouldBe true,
+      spire.math.abs(side3Length - side1Length) < ACCURACY shouldBe true
     )
 
   it should "create vertices that form a closed polygon when combined with input points" in:
-    val p1 = BigPoint(BigDecimal(0), BigDecimal(0))
-    val p2 = BigPoint(BigDecimal(1), BigDecimal(0))
+    val point1 = BigPoint(BigDecimal(0), BigDecimal(0))
+    val point2 = BigPoint(BigDecimal(1), BigDecimal(0))
 
     for (sides <- 3 to 8)
-      val newVertices = calculateNewVertices(sides, p1, p2)
-      val allVertices = p1 :: p2 :: newVertices
+      val newVertices = calculateNewVertices(sides, point1, point2)
+      val allVertices = point1 :: point2 :: newVertices
 
       allAssert(
         // Check that we have the correct total number of vertices
         allVertices should have length sides,
-        // The last calculated vertex should be positioned to close the polygon back to p1
+        // The last calculated vertex should be positioned to close the polygon back to point1
         if newVertices.nonEmpty then
           val lastVertex      = newVertices.last
-          // The distance from the last vertex back to p1 should be approximately equal to the side length
-          val closingDistance =
-            math.sqrt((p1.x - lastVertex.x).pow(2).toDouble + (p1.y - lastVertex.y).pow(2).toDouble)
-          val sideLength      = math.sqrt((p2.x - p1.x).pow(2).toDouble + (p2.y - p1.y).pow(2).toDouble)
-
-          math.abs(closingDistance - sideLength) should be < 1e-6
+          // The distance from the last vertex back to point1 should be approximately equal to the side length
+          val closingDistance = point1.distanceTo(lastVertex)
+          val sideLength      = point2.distanceTo(point1)
+          spire.math.abs(closingDistance - sideLength) < ACCURACY shouldBe true
         else
           succeed
       )
@@ -910,7 +909,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       }
     )
 
-  /** Vertex xing <img src="file:../../../../../resources/vertexCrossing.svg"/> */
+  /** Vertex crossing <img src="file:../../../../../resources/vertexCrossing.svg"/> */
   def vertexCrossing: TilingDCEL =
     TilingBuilder.createTriangleNet(4, 4)
       .deleteVertex(VertexId("V13")).value
@@ -926,7 +925,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       result.left.value.message should include("Angle wider than container")
     )
 
-  /** Vertex xing simplified <img src="file:../../../../../resources/vertexCrossingSimplified.svg"/> */
+  /** Vertex crossing simplified <img src="file:../../../../../resources/vertexCrossingSimplified.svg"/> */
   def vertexCrossingSimplified: TilingDCEL =
     vertexCrossing
       .deleteVertex(VertexId("V19")).value
