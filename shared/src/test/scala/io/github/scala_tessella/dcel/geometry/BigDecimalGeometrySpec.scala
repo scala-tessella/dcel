@@ -72,3 +72,48 @@ class BigDecimalGeometrySpec extends AnyFlatSpec with Matchers with TilingTestHe
     )
     // A horizontal set crossed by a vertical segment at x=2
     BigDecimalGeometry.IntersectionDetection.hasProperIntersection(A, B) shouldBe true
+
+  behavior of "IntersectionDetection.hasSelfIntersection"
+
+  it should "return false for a collection of non-intersecting segments" in:
+    val segments = List(
+      BigLineSegment(BigPoint(0, 0), BigPoint(1, 0)),
+      BigLineSegment(BigPoint(0, 1), BigPoint(1, 1)),
+      BigLineSegment(BigPoint(0, 2), BigPoint(1, 2))
+    )
+    IntersectionDetection.hasSelfIntersection(segments) shouldBe false
+
+  it should "return true if any two segments in the collection intersect" in:
+    val segments = List(
+      BigLineSegment(BigPoint(0, 0), BigPoint(2, 2)),
+      BigLineSegment(BigPoint(0, 2), BigPoint(2, 0)),
+      BigLineSegment(BigPoint(10, 10), BigPoint(11, 11))
+    )
+    IntersectionDetection.hasSelfIntersection(segments) shouldBe true
+
+  it should "return false for segments sharing endpoints (like a polygon boundary)" in:
+    val segments = List(
+      BigLineSegment(BigPoint(0, 0), BigPoint(1, 0)),
+      BigLineSegment(BigPoint(1, 0), BigPoint(1, 1)),
+      BigLineSegment(BigPoint(1, 1), BigPoint(0, 1)),
+      BigLineSegment(BigPoint(0, 1), BigPoint(0, 0))
+    )
+    IntersectionDetection.hasSelfIntersection(segments) shouldBe false
+
+  it should "return true for a self-intersecting chain (bow-tie)" in:
+    val segments = List(
+      BigLineSegment(BigPoint(0, 0), BigPoint(2, 2)),
+      BigLineSegment(BigPoint(2, 2), BigPoint(0, 2)),
+      BigLineSegment(BigPoint(0, 2), BigPoint(2, 0)),
+      BigLineSegment(BigPoint(2, 0), BigPoint(0, 0))
+    )
+    IntersectionDetection.hasSelfIntersection(segments) shouldBe true
+
+  it should "handle empty or single segment lists" in:
+    allAssert(
+      IntersectionDetection.hasSelfIntersection(Nil) shouldBe false,
+      IntersectionDetection.hasSelfIntersection(List(BigLineSegment(
+        BigPoint(0, 0),
+        BigPoint(1, 1)
+      ))) shouldBe false
+    )
