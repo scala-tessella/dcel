@@ -7,7 +7,7 @@ import io.github.scala_tessella.ring_seq.RingSeq.*
 import io.github.scala_tessella.ring_seq.SymmetryOps.AxisLocation
 import spire.implicits.*
 
-/** Unit simple polygon with the given ordered interior angles */
+/** Simple unit-side-length polygon with the given ordered interior angles */
 opaque type SimplePolygon = Vector[AngleDegree]
 
 object SimplePolygon:
@@ -15,13 +15,6 @@ object SimplePolygon:
   def alphaSum(sides: Int): AngleDegree =
     AngleDegree(180) * (sides - 2)
 
-  /** Validates the list of interior angles for a unit simple polygon.
-    *
-    * @param angles
-    *   A list of interior angles in degrees.
-    * @throws IllegalArgumentException
-    *   if there are fewer than 3 angles, any angle is a full circle, or the sum of the angles is not correct.
-    */
   private[dcel] def apply(angles: Vector[AngleDegree]): SimplePolygon =
     angles
 
@@ -34,6 +27,27 @@ object SimplePolygon:
   private[dcel] def apply(degrees: Int*): SimplePolygon =
     apply(degreesToAngles(degrees*))
 
+  /** Constructs a simple unit-side-length polygon from a vector of internal angles.
+    *
+    * The vector of angles is assumed to be untrusted input, and this method performs validation to ensure
+    * that the input corresponds to a valid simple polygon.
+    *
+    * Validation checks include:
+    *   - The polygon must have at least 3 sides.
+    *   - Internal angles cannot contain a full circle.
+    *   - The sum of the internal angles must match the expected value for a polygon with the specified number
+    *     of sides.
+    *   - The polygon must not be self-intersecting.
+    *   - The polygon's edges must form a closed loop.
+    *
+    * @param angles
+    *   A vector of internal angles represented in degrees, which define the polygon. Each angle must be
+    *   normalized and cannot represent a full circle.
+    *
+    * @return
+    *   Either a `TilingError` describing the validation failure, or a `SimplePolygon` successfully
+    *   constructed from the validated input angles.
+    */
   def fromUntrusted(angles: Vector[AngleDegree]): Either[TilingError, SimplePolygon] =
     val n = angles.length
     if n < 3 then
