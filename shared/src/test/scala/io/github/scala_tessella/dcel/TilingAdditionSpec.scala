@@ -16,6 +16,11 @@ import spire.implicits.*
 
 class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
+  extension (bigDecimal: BigDecimal)
+
+    def shouldBeAlmostEqualTo(other: BigDecimal, accuracy: BigDecimal = ACCURACY): Assertion =
+      spire.math.abs(bigDecimal - other) < ACCURACY shouldBe true
+
   behavior of "TilingDCEL.addRegularPolygonToBoundary"
 
   // Helper method to verify DCEL validity
@@ -97,7 +102,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
             // All vertices should be at unit distance from the center of the hexagon
             val distanceFromCenter = vertex.distanceTo(center)
             // The distance should be approximately 1 (unit hexagon)
-            spire.math.abs(distanceFromCenter - 1.0) < ACCURACY shouldBe true
+            distanceFromCenter.shouldBeAlmostEqualTo(1.0)
 
         allAssert(assertions*)
       }
@@ -139,9 +144,9 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val side3Length = p1.distanceTo(p3)
 
     allAssert(
-      spire.math.abs(side1Length - side2Length) < ACCURACY shouldBe true,
-      spire.math.abs(side2Length - side3Length) < ACCURACY shouldBe true,
-      spire.math.abs(side3Length - side1Length) < ACCURACY shouldBe true
+      side1Length.shouldBeAlmostEqualTo(side2Length),
+      side2Length.shouldBeAlmostEqualTo(side3Length),
+      side3Length.shouldBeAlmostEqualTo(side1Length)
     )
 
   it should "create vertices that form a closed polygon when combined with input points" in:
@@ -161,7 +166,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
           // The distance from the last vertex back to point1 should be approximately equal to the side length
           val closingDistance = point1.distanceTo(lastVertex)
           val sideLength      = point2.distanceTo(point1)
-          spire.math.abs(closingDistance - sideLength) < ACCURACY shouldBe true
+          closingDistance.shouldBeAlmostEqualTo(sideLength)
         else
           succeed
       )
