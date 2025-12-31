@@ -247,7 +247,7 @@ class TilingValidationComprehensiveSpec extends AnyFlatSpec with Matchers with T
   it should "succeed on regular shapes with unit-length edges" in:
     validateSpatially(square) shouldBe Right(())
 
-  it should "fail when boundary has vertices in almost the same position" in:
+  it should "fail when has vertices in almost the same position" in:
     val incorrect =
       TilingBuilder.buildDCELFromPointsUnsafe(
         List(BigPoint.origin, BigPoint.origin, BigPoint(1, 1), BigPoint(1, 0)),
@@ -256,7 +256,7 @@ class TilingValidationComprehensiveSpec extends AnyFlatSpec with Matchers with T
     val res       = validateSpatially(incorrect)
     allAssert(
       res.isLeft shouldBe true,
-      res.left.value.message should include("boundary with vertices in the same position")
+      res.left.value.message should include("vertices in the same position")
     )
 
   it should "fail when an edge is not unit length (by moving one endpoint far away)" in:

@@ -3,7 +3,6 @@ package io.github.scala_tessella.dcel
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint, SimplePolygon}
 
 import scala.collection.mutable
-import scala.util.{Failure, Success, Try}
 
 object TilingValidation:
 
@@ -157,18 +156,12 @@ object TilingValidation:
   def validateSpatially(tiling: TilingDCEL): Either[TilingError, Unit] =
     val errors = mutable.ListBuffer[String]()
 
-    Try(
-      tiling.boundarySimplePolygon
-    ) match
-      case Failure(exception) => errors += "Coordinates: boundary not a simple polygon"
-      case Success(_)         => ()
+    SimplePolygon.fromUntrusted(tiling.boundarySimplePolygon.toAngles) match
+      case Left(SpatialError(message)) => errors += s"Coordinates: boundary not a simple polygon. $message"
+      case _                           => ()
 
-    tiling.boundaryVerticesSafer match
-      case Right(boundaryVertices) =>
-        if boundaryVertices.length >= 3 then
-          if !boundaryVertices.map(_.coords).toList.hasNoAlmostEqualPoints() then
-            errors += "Coordinates: boundary with vertices in the same position"
-      case Left(error)             => // NOTE: topological error, handled in validateTopologically
+    if !tiling.vertices.map(_.coords).hasNoAlmostEqualPoints() then
+      errors += "Coordinates: vertices in the same position"
 
     // Optional: unit-length sides check (edge-to-twin origin distance)
     // Only check when both endpoints are available
