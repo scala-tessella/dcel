@@ -32,23 +32,23 @@ object TilingBuilder:
 
     Right(())
 
+  private[dcel] def createSimplePolygonUnsafe(simple: SimplePolygon): TilingDCEL =
+    buildDCELFromPointsUnsafe(
+      calculateVertexPoints(simple.toAngles),
+      simple.toAngles.toList
+    )
+
   /** Creates a TilingDCEL for a single simple polygon with unit-length sides.
     *
-    * @param simple
-    *   The simple polygon of unit side length as a list of interior angles in degrees. The angles are ordered
-    *   for a counter-clockwise traversal of the polygon boundary.
+    * @param degrees
+    *   Sequence of interior angles in degrees, ordered for a CCW traversal of the polygon boundary.
     * @return
     *   Either a TilingError explaining the validation error, or the successfully created TilingDCEL.
     */
-  def createSimplePolygon(simple: SimplePolygon): Either[TilingError, TilingDCEL] =
-    for
-      checked <- SimplePolygon.fromUntrusted(simple.toAngles)
-      points   = calculateVertexPoints(checked.toAngles)
-      result  <- Right(buildDCELFromPointsUnsafe(points, simple.toAngles.toList))
-    yield result
-
   def createSimplePolygon(degrees: Int*): Either[TilingError, TilingDCEL] =
-    createSimplePolygon(SimplePolygon(degrees*))
+    for
+      validatedSimplePolygon <- SimplePolygon.fromUntrusted(degrees*)
+    yield createSimplePolygonUnsafe(validatedSimplePolygon)
 
   /** Creates a TilingDCEL for a single regular polygon with unit-length sides.
     *

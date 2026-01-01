@@ -93,7 +93,7 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
 
   it should "be converted from a 2x2 square" in:
     val tilingDCEL =
-      TilingBuilder.createSimplePolygon(SimplePolygon(90, 90, 90, 90).multiplySidesBy(2)).toOption.get
+      TilingBuilder.createSimplePolygonUnsafe(SimplePolygon(90, 90, 90, 90).multiplySidesBy(2))
     val torus      = TilingTorusDCEL.fromTilingDCEL(tilingDCEL).value
 //    val scale: Double = 1.0 / 2.0
 //    println(result.value.toSVG3D(TorusSvg3DOptions().copy(

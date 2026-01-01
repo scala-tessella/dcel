@@ -378,8 +378,8 @@ object TilingDCEL:
       outerFace = Face.outer
     )
 
-  def createSimplePolygon(simple: SimplePolygon): Either[TilingError, TilingDCEL] =
-    TilingBuilder.createSimplePolygon(simple)
+  def createSimplePolygon(degrees: Int*): Either[TilingError, TilingDCEL] =
+    TilingBuilder.createSimplePolygon(degrees*)
 
   def createRegularPolygon(polygon: RegularPolygon): TilingDCEL =
     TilingBuilder.createRegularPolygon(polygon)

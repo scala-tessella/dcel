@@ -950,13 +950,16 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       .addRegularPolygonToBoundary(VertexId("V12"), RegularPolygon(10)).value
 
   val attachingSimplePolygon: SimplePolygon =
-    SimplePolygon(Vector(
-      144, 144, 144, 144, 144, 144, 144, 144, 24, 240, 240, 240, 240, 24
-    ).map(AngleDegree(_)).rotateLeft(7))
+    SimplePolygon
+      .fromUntrusted(
+        Vector(144, 144, 144, 144, 144, 144, 144, 144, 24, 240, 240, 240, 240, 24)
+          .rotateLeft(7)*
+      )
+      .toOption.get
 
   /** Attaching shape <img src="file:../../../../../resources/attaching.svg"/> */
   def attaching: TilingDCEL =
-    TilingBuilder.createSimplePolygon(attachingSimplePolygon).value
+    TilingBuilder.createSimplePolygonUnsafe(attachingSimplePolygon)
 
   it should "add an irregular polygon forming another irregular polygon" in:
 

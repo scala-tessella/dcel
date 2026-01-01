@@ -135,7 +135,7 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
       )
 
   it should "calculate the rotational vertex ids for an equilateral triangle of sides 3" in:
-    val triangle3 = TilingBuilder.createSimplePolygon(SimplePolygon(60, 60, 60).multiplySidesBy(3)).value
+    val triangle3 = TilingBuilder.createSimplePolygonUnsafe(SimplePolygon(60, 60, 60).multiplySidesBy(3))
     triangle3.rotationalVertexIds shouldBe
       List(
         BoundaryVertex(V1),

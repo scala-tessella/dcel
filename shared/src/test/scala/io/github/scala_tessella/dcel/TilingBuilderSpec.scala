@@ -12,8 +12,8 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
   // --- Success cases ---
 
   it should "create a valid TilingDCEL for a regular triangle" in:
-    val triangleAngles = Vector.fill(3)(AngleDegree(60))
-    val result         = TilingBuilder.createSimplePolygon(SimplePolygon(triangleAngles))
+    val triangleDegrees = Vector.fill(3)(60)
+    val result          = TilingBuilder.createSimplePolygon(triangleDegrees*)
 
     allAssert(
       result.isRight shouldBe true, {
@@ -27,8 +27,8 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
     )
 
   it should "create a valid TilingDCEL for a square" in:
-    val squareAngles = Vector.fill(4)(AngleDegree(90))
-    val result       = TilingBuilder.createSimplePolygon(SimplePolygon(squareAngles))
+    val squareDegrees = Vector.fill(4)(90)
+    val result        = TilingBuilder.createSimplePolygon(squareDegrees*)
 
     allAssert(
       result.isRight shouldBe true, {
@@ -42,8 +42,8 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
     )
 
   it should "create a valid TilingDCEL for a regular hexagon" in:
-    val hexagonAngles = Vector.fill(6)(AngleDegree(120))
-    val result        = TilingBuilder.createSimplePolygon(SimplePolygon(hexagonAngles))
+    val hexagonDegrees = Vector.fill(6)(120)
+    val result         = TilingBuilder.createSimplePolygon(hexagonDegrees*)
 
     allAssert(
       result.isRight shouldBe true, {
