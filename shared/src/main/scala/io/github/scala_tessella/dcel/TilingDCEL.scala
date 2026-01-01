@@ -381,5 +381,8 @@ object TilingDCEL:
   def createSimplePolygon(degrees: Int*): Either[TilingError, TilingDCEL] =
     TilingBuilder.createSimplePolygon(degrees*)
 
+  def createSimplePolygon(angles: Vector[AngleDegree]): Either[TilingError, TilingDCEL] =
+    TilingBuilder.createSimplePolygon(angles)
+
   def createRegularPolygon(polygon: RegularPolygon): TilingDCEL =
     TilingBuilder.createRegularPolygon(polygon)

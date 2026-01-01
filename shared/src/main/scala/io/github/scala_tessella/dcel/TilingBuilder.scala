@@ -50,6 +50,11 @@ object TilingBuilder:
       validatedSimplePolygon <- SimplePolygon.fromUntrusted(degrees*)
     yield createSimplePolygonUnsafe(validatedSimplePolygon)
 
+  def createSimplePolygon(angles: Vector[AngleDegree]): Either[TilingError, TilingDCEL] =
+    for
+      validatedSimplePolygon <- SimplePolygon.fromUntrusted(angles)
+    yield createSimplePolygonUnsafe(validatedSimplePolygon)
+
   /** Creates a TilingDCEL for a single regular polygon with unit-length sides.
     *
     * @param polygon
