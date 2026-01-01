@@ -278,103 +278,103 @@ object TilingEquivalency:
 
       thisVertexSignatures == otherVertexSignatures
 
-    /** Checks if this tiling is topologically equivalent to another. This comparison ignores spatial
-      * coordinates and the specific IDs of vertices and faces, focusing instead on the combinatorial
-      * structure of the tiling.
-      *
-      * Two tilings are considered topologically equivalent if they have:
-      *   1. The same number of vertices, half-edges, and inner faces.
-      *   2. The same multiset of face sizes (number of edges per face).
-      *   3. The same multiset of vertex signatures, where a vertex signature is a canonical representation of
-      *      the cycle of face sizes around that vertex.
-      *
-      * @param other
-      *   The other TilingDCEL to compare with.
-      * @return
-      *   true if the two tilings are topologically equivalent, false otherwise.
-      */
-    def isTopologicallyEquivalentRobustTo(other: TilingDCEL): Boolean =
-      if !tiling.hasSameSizesOf(other) then
-        return false
+//    /** Checks if this tiling is topologically equivalent to another. This comparison ignores spatial
+//      * coordinates and the specific IDs of vertices and faces, focusing instead on the combinatorial
+//      * structure of the tiling.
+//      *
+//      * Two tilings are considered topologically equivalent if they have:
+//      *   1. The same number of vertices, half-edges, and inner faces.
+//      *   2. The same multiset of face sizes (number of edges per face).
+//      *   3. The same multiset of vertex signatures, where a vertex signature is a canonical representation of
+//      *      the cycle of face sizes around that vertex.
+//      *
+//      * @param other
+//      *   The other TilingDCEL to compare with.
+//      * @return
+//      *   true if the two tilings are topologically equivalent, false otherwise.
+//      */
+//    def isTopologicallyEquivalentRobustTo(other: TilingDCEL): Boolean =
+//      if !tiling.hasSameSizesOf(other) then
+//        return false
+//
+//      def computeCanonicalSignature(t: TilingDCEL): Map[String, Int] =
+//        // 1. Initial "colors" or labels for each vertex.
+//        var signatures: Map[Vertex, String] = t.vertices.map { v =>
+//          val faceCycle        = v.incidentEdgesUnsafe.flatMap(_.incidentFace)
+//          val faceSizes        = faceCycle.map(face =>
+//            if face == t.outerFace then 0
+//            else face.halfEdgesUnsafe.size
+//          )
+//          // The initial signature is a combination of degree and the canonical face size sequence.
+//          val initialSignature =
+//            s"${v.incidentEdgesUnsafe.size}:${faceSizes.rotationsAndReflections.min.mkString(",")}"
+//          v -> initialSignature
+//        }.toMap
+//
+//        // 2. Iteratively refine signatures. The number of iterations is chosen to be the number of vertices,
+//        // which is a safe upper bound for information to propagate across the entire graph (related to graph diameter).
+//        val iterations = t.vertices.size
+//        (1 to iterations).foreach { _ =>
+//          val nextSignatures = t.vertices.associate { v =>
+//            // 3. For each vertex, collect the signatures of its neighbors.
+//            val neighborSignatures =
+//              v.incidentEdgesUnsafe.flatMap(_.destination).flatMap(signatures.get).sorted
+//            // 4. The new signature is a hash/combination of the current signature and the neighbors' signatures.
+//            s"${signatures(v)}|${neighborSignatures.mkString(";")}"
+//          }
+////          println(nextSignatures)
+//          signatures = nextSignatures
+//        }
+//
+//        // 5. The final result is the multiset of the stable signatures.
+//        signatures.values.toList.toMultiset
+//
+//      computeCanonicalSignature(tiling) == computeCanonicalSignature(other)
 
-      def computeCanonicalSignature(t: TilingDCEL): Map[String, Int] =
-        // 1. Initial "colors" or labels for each vertex.
-        var signatures: Map[Vertex, String] = t.vertices.map { v =>
-          val faceCycle        = v.incidentEdgesUnsafe.flatMap(_.incidentFace)
-          val faceSizes        = faceCycle.map(face =>
-            if face == t.outerFace then 0
-            else face.halfEdgesUnsafe.size
-          )
-          // The initial signature is a combination of degree and the canonical face size sequence.
-          val initialSignature =
-            s"${v.incidentEdgesUnsafe.size}:${faceSizes.rotationsAndReflections.min.mkString(",")}"
-          v -> initialSignature
-        }.toMap
-
-        // 2. Iteratively refine signatures. The number of iterations is chosen to be the number of vertices,
-        // which is a safe upper bound for information to propagate across the entire graph (related to graph diameter).
-        val iterations = t.vertices.size
-        (1 to iterations).foreach { _ =>
-          val nextSignatures = t.vertices.associate { v =>
-            // 3. For each vertex, collect the signatures of its neighbors.
-            val neighborSignatures =
-              v.incidentEdgesUnsafe.flatMap(_.destination).flatMap(signatures.get).sorted
-            // 4. The new signature is a hash/combination of the current signature and the neighbors' signatures.
-            s"${signatures(v)}|${neighborSignatures.mkString(";")}"
-          }
-//          println(nextSignatures)
-          signatures = nextSignatures
-        }
-
-        // 5. The final result is the multiset of the stable signatures.
-        signatures.values.toList.toMultiset
-
-      computeCanonicalSignature(tiling) == computeCanonicalSignature(other)
-
-    def isTopologicallyEquivalentTo(other: TilingDCEL): Boolean =
-      def getVertexSignature(vertex: Vertex, outerFace: Face): List[Int] =
-        val faceCycle = vertex.incidentEdgesUnsafe.flatMap(_.incidentFace)
-        val faceSizes = faceCycle.map(face =>
-          if face == outerFace then 0
-          else face.halfEdgesUnsafe.size
-        )
-        faceSizes.rotationsAndReflections.min
-
-      isEquivalentRawTo(
-        other,
-        faces =>
-          faces
-            .map: face =>
-              face.halfEdgesUnsafe.size
-            .sorted,
-        (vertices, face) =>
-          vertices
-            .map: vertex =>
-              getVertexSignature(vertex, face)
-            .toMultiset
-      )
-
-    def isEquivalentTo(other: TilingDCEL): Boolean =
-
-      def getFaceSignature(face: Face): List[AngleDegree] =
-        face.halfEdgesUnsafe
-          .flatMap: halfEdge =>
-            halfEdge.angle
-          .canonicalSequence
-
-      tiling.isEquivalentRawTo(
-        other,
-        faces =>
-          faces
-            .map: face =>
-              getFaceSignature(face)
-            .toMultiset,
-        (vertices, _) =>
-          vertices
-            .map: vertex =>
-              signature(vertex)
-            .toMultiset
-      )
+//    def isTopologicallyEquivalentTo(other: TilingDCEL): Boolean =
+//      def getVertexSignature(vertex: Vertex, outerFace: Face): List[Int] =
+//        val faceCycle = vertex.incidentEdgesUnsafe.flatMap(_.incidentFace)
+//        val faceSizes = faceCycle.map(face =>
+//          if face == outerFace then 0
+//          else face.halfEdgesUnsafe.size
+//        )
+//        faceSizes.rotationsAndReflections.min
+//
+//      isEquivalentRawTo(
+//        other,
+//        faces =>
+//          faces
+//            .map: face =>
+//              face.halfEdgesUnsafe.size
+//            .sorted,
+//        (vertices, face) =>
+//          vertices
+//            .map: vertex =>
+//              getVertexSignature(vertex, face)
+//            .toMultiset
+//      )
+//
+//    def isEquivalentTo(other: TilingDCEL): Boolean =
+//
+//      def getFaceSignature(face: Face): List[AngleDegree] =
+//        face.halfEdgesUnsafe
+//          .flatMap: halfEdge =>
+//            halfEdge.angle
+//          .canonicalSequence
+//
+//      tiling.isEquivalentRawTo(
+//        other,
+//        faces =>
+//          faces
+//            .map: face =>
+//              getFaceSignature(face)
+//            .toMultiset,
+//        (vertices, _) =>
+//          vertices
+//            .map: vertex =>
+//              signature(vertex)
+//            .toMultiset
+//      )
 
     /** Fast equivalence check for uniformity calculation that only compares boundary layers.
       *

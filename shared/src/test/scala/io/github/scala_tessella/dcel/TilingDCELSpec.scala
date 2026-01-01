@@ -1,7 +1,7 @@
 package io.github.scala_tessella.dcel
 
 import io.github.scala_tessella.dcel.TilingDeletion.deleteEdge
-import io.github.scala_tessella.dcel.TilingEquivalency.isEquivalentTo
+import io.github.scala_tessella.dcel.TilingEquivalency.isBoundaryEquivalentTo
 import io.github.scala_tessella.dcel.Tree.{Branch, Leaf}
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, RegularPolygon}
 import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
@@ -247,7 +247,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val result = bench.getDcelAtVertex(VertexId("V7"))
     allAssert(
       TilingValidation.validate(result.value).isRight shouldBe true,
-      result.value.isEquivalentTo(triangle) shouldBe true
+      result.value.isBoundaryEquivalentTo(triangle) shouldBe true
     )
 
   it should "return the DCEL around the inner vertex with varying distances" in:

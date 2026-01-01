@@ -1,6 +1,6 @@
 package io.github.scala_tessella.dcel.conversion
 
-import io.github.scala_tessella.dcel.TilingEquivalency.isEquivalentTo
+import io.github.scala_tessella.dcel.TilingEquivalency.isBoundaryEquivalentTo
 import io.github.scala_tessella.dcel.TilingValidation.validate
 import io.github.scala_tessella.dcel.conversion.TilingSVG.*
 import io.github.scala_tessella.dcel.geometry.BigPoint
@@ -605,7 +605,7 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     allAssert(
       reconstructed.isRight shouldBe true,
       reconstructed.value.isEmpty shouldBe true,
-      TilingDCEL.empty.isEquivalentTo(reconstructed.value) shouldBe true
+      TilingDCEL.empty.isBoundaryEquivalentTo(reconstructed.value) shouldBe true
     )
 
   it should "successfully reconstruct a single triangle from metadata (round-trip)" in:
@@ -614,7 +614,7 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     allAssert(
       reconstructed.isRight shouldBe true,
       validate(reconstructed.value) shouldBe Right(()),
-      triangle.isEquivalentTo(reconstructed.value) shouldBe true
+      triangle.isBoundaryEquivalentTo(reconstructed.value) shouldBe true
     )
 
   it should "successfully reconstruct a triangle-based tessellation from metadata (round-trip)" in:
@@ -624,5 +624,5 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     allAssert(
       reconstructed.isRight shouldBe true,
       validate(reconstructed.value) shouldBe Right(()),
-      net.isEquivalentTo(reconstructed.value) shouldBe true
+      net.isBoundaryEquivalentTo(reconstructed.value) shouldBe true
     )

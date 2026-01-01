@@ -776,7 +776,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
         allAssert(
           verifyValidTiling(tiling), {
             val tiling2 = triangle.addRegularPolygonToBoundary(V1, RegularPolygon(4)).value
-            tiling.isEquivalentTo(tiling2) shouldBe true
+            tiling.isBoundaryEquivalentTo(tiling2) shouldBe true
           }
         )
       }
