@@ -6,7 +6,6 @@ import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, 
 import io.github.scala_tessella.ring_seq.RingSeq.rotationsAndReflections
 
 import scala.Ordering.Implicits.*
-import scala.collection.mutable
 
 object TilingEquivalency:
 
@@ -255,26 +254,6 @@ object TilingEquivalency:
         outerFace = faceMap(tiling.outerFace)
       )
 
-    private def calculateBoundaryDistances: Map[Vertex, Int] =
-      val distances = mutable.Map[Vertex, Int]()
-      val queue     = mutable.Queue[(Vertex, Int)]()
-
-      tiling.vertices.foreach: v =>
-        if v.incidentEdgesUnsafe.exists: halfEdge =>
-            halfEdge.incidentFace.contains(tiling.outerFace)
-        then
-          distances(v) = 0
-          queue.enqueue((v, 0))
-
-      while queue.nonEmpty do
-        val (current, dist) = queue.dequeue()
-        current.incidentEdgesUnsafe.foreach: edge =>
-          val neighbor = edge.destinationUnsafe
-          if !distances.contains(neighbor) then
-            distances(neighbor) = dist + 1
-            queue.enqueue((neighbor, dist + 1))
-      distances.toMap
-
     private[dcel] def hasSameSizesOf(other: TilingDCEL): Boolean =
       tiling.vertices.size == other.vertices.size
         && tiling.innerFaces.size == other.innerFaces.size
@@ -363,19 +342,38 @@ object TilingEquivalency:
 
       isEquivalentRawTo(
         other,
-        _.map(_.halfEdgesUnsafe.size).sorted,
-        (vertices, face) => vertices.map(getVertexSignature(_, face)).toMultiset
+        faces =>
+          faces
+            .map: face =>
+              face.halfEdgesUnsafe.size
+            .sorted,
+        (vertices, face) =>
+          vertices
+            .map: vertex =>
+              getVertexSignature(vertex, face)
+            .toMultiset
       )
 
     def isEquivalentTo(other: TilingDCEL): Boolean =
 
       def getFaceSignature(face: Face): List[AngleDegree] =
-        face.halfEdgesUnsafe.flatMap(_.angle).canonicalSequence
+        face.halfEdgesUnsafe
+          .flatMap: halfEdge =>
+            halfEdge.angle
+          .canonicalSequence
 
       tiling.isEquivalentRawTo(
         other,
-        faces => faces.map(getFaceSignature).toMultiset,
-        (vertices, _) => vertices.map(signature).toMultiset
+        faces =>
+          faces
+            .map: face =>
+              getFaceSignature(face)
+            .toMultiset,
+        (vertices, _) =>
+          vertices
+            .map: vertex =>
+              signature(vertex)
+            .toMultiset
       )
 
     /** Fast equivalence check for uniformity calculation that only compares boundary layers.
@@ -404,9 +402,3 @@ object TilingEquivalency:
           .toMultiset
 
       getBoundarySignatures(tiling) == getBoundarySignatures(other)
-
-    def isReflectionOf(other: TilingDCEL): Boolean =
-      ???
-
-    def isRotationOf(other: TilingDCEL): Boolean =
-      ???

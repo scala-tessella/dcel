@@ -406,23 +406,3 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
       validate(reflected).isRight shouldBe true,
       reflected.boundaryVertices.map(_.id) shouldBe shapeL.boundaryVertices.map(_.id).reflectAt(1)
     )
-
-  behavior of "TilingDCEL.isReflectionOf"
-
-  it should "return true when comparing two reflected shapes" in
-    allAssert(
-      shapeL.isReflectionOf(shapeΓ) shouldBe true,
-      shapeΓ.isReflectionOf(shapeL) shouldBe true,
-      shapeL2.isReflectionOf(shapeΓ2) shouldBe true,
-      shapeΓ2.isReflectionOf(shapeL2) shouldBe true
-    )
-
-  behavior of "TilingDCEL.isRotationOf"
-
-  it should "return false when comparing two reflected shapes" in
-    allAssert(
-      shapeL.isRotationOf(shapeΓ) shouldBe false,
-      shapeΓ.isRotationOf(shapeL) shouldBe false,
-      shapeL2.isRotationOf(shapeΓ2) shouldBe false,
-      shapeΓ2.isRotationOf(shapeL2) shouldBe false
-    )
