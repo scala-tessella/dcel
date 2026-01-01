@@ -69,10 +69,6 @@ object BigPoint:
     def cross(that: BigPoint): BigDecimal =
       point.x * that.y - point.y * that.x
 
-//    /** Sum of two points (kept for source compatibility, prefer +) */
-//    def plus(that: BigPoint): BigPoint =
-//      (point.x + that.x, point.y + that.y)
-
     /** Tests whether this `BigPoint` is approximately equal to another, within given accuracy. */
     def almostEquals(that: BigPoint, accuracy: Double = ACCURACY): Boolean =
       val acc = BigDecimal(accuracy)
