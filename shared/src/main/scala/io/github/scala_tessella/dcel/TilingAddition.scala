@@ -309,6 +309,13 @@ object TilingAddition:
                                       .toRight(ValidationError("Edge has no destination vertex."))
       yield (edgeToBuildOn, startVertex, endVertex, boundaryEdges)
 
+    def addUntrustedSimplePolygonToBoundary(
+        onEdgeStartingWith: VertexId,
+        angles: Vector[AngleDegree]
+    ): Either[TilingError, TilingDCEL] =
+      SimplePolygon.fromUntrusted(angles).flatMap: simplePolygon =>
+        addSimplePolygonToBoundary(onEdgeStartingWith, simplePolygon)
+
     /** Adds a simple polygon to the outer boundary, defined by the supplied interior angles.
       *
       * Preconditions:
@@ -331,7 +338,7 @@ object TilingAddition:
       *     wouldn’t close with unit-length edges, or topology/geometry/spatial validation fails (including
       *     boundary intersection).
       */
-    def addSimplePolygonToBoundary(
+    private[dcel] def addSimplePolygonToBoundary(
         onEdgeStartingWithVertexId: VertexId,
         simple: SimplePolygon
     ): Either[TilingError, TilingDCEL] =
@@ -345,7 +352,7 @@ object TilingAddition:
       *
       * See addSimplePolygonToBoundary(List[AngleDegree]) for full preconditions and postconditions.
       */
-    def addSimplePolygonToBoundary(
+    private[dcel] def addSimplePolygonToBoundary(
         onEdgeStartingWithVertexId: VertexId,
         degrees: Int*
     ): Either[TilingError, TilingDCEL] =
@@ -406,6 +413,14 @@ object TilingAddition:
           SimplePolygon(holeAngles.toVector)
         clone.addSimplePolygonUnsafe(startingVertexId, endingVertexId, simplePolygon).get
 
+    def addUntrustedSimplePolygon(
+        start: VertexId,
+        end: VertexId,
+        angles: Vector[AngleDegree]
+    ): Either[TilingError, TilingDCEL] =
+      SimplePolygon.fromUntrusted(angles).flatMap: simplePolygon =>
+        addSimplePolygon(start, end, simplePolygon)
+
     /** Adds a simple polygon between two boundary vertices.
       *
       * Preconditions:
@@ -424,15 +439,15 @@ object TilingAddition:
       *   - Returns a TilingError upon invalid inputs, failed geometry checks, or topology/spatial violations.
       *   - If the growth creates a hole, the method may recursively attempt to fill it before returning.
       */
-    @tailrec def addSimplePolygon(
-        startVertexId: VertexId,
-        endVertexId: VertexId,
+    @tailrec private[dcel] def addSimplePolygon(
+        start: VertexId,
+        end: VertexId,
         simple: SimplePolygon
     ): Either[TilingError, TilingDCEL] =
       val either: Either[TilingError, (TilingDCEL, TilingDCEL, Face, Option[OldNewVertexPair])] =
         for
           (startVertex, endVertex, edgeToBuildOn) <-
-            tiling.findVerticesAndEdgeBetween(startVertexId, endVertexId)
+            tiling.findVerticesAndEdgeBetween(start, end)
           points                                   = calculateVertexPoints(simple.toAngles, startVertex.coords, endVertex.coords)
           _                                       <- validatePoints(points)
           result                                  <-
@@ -453,18 +468,18 @@ object TilingAddition:
         case Right((revisedTiling, clone, containerFace, maybeHoleClosure)) =>
           revisedTiling.maybeFilled(clone, containerFace, maybeHoleClosure) match
             case None             => Right(revisedTiling)
-            case Some(holeFilled) => holeFilled.addSimplePolygon(startVertexId, endVertexId, simple)
+            case Some(holeFilled) => holeFilled.addSimplePolygon(start, end, simple)
 
     /** Convenience overload for addSimplePolygon using degrees.
       *
       * See addSimplePolygon(List[AngleDegree]) for full preconditions and postconditions.
       */
-    def addSimplePolygon(
-        startVertexId: VertexId,
-        endVertexId: VertexId,
+    private[dcel] def addSimplePolygon(
+        start: VertexId,
+        end: VertexId,
         degrees: Int*
     ): Either[TilingError, TilingDCEL] =
-      addSimplePolygon(startVertexId, endVertexId, SimplePolygon(degrees*))
+      addSimplePolygon(start, end, SimplePolygon(degrees*))
 
     /** Internal helper that adds a simple polygon without performing guard validations.
       *
@@ -481,13 +496,13 @@ object TilingAddition:
       *     Intended for internal use after prior guards have passed.
       */
     private def addSimplePolygonUnsafe(
-        startVertexId: VertexId,
-        endVertexId: VertexId,
+        start: VertexId,
+        end: VertexId,
         simple: SimplePolygon
     ): Option[TilingDCEL] =
       for
         (startVertex, endVertex, edgeToBuildOn) <-
-          tiling.findVerticesAndEdgeBetween(startVertexId, endVertexId).toOption
+          tiling.findVerticesAndEdgeBetween(start, end).toOption
         points                                   = calculateVertexPoints(simple.toAngles, startVertex.coords, endVertex.coords)
       yield
         val containerFace = edgeToBuildOn.incidentFace.get
@@ -534,14 +549,14 @@ object TilingAddition:
       *   - If the growth creates a hole, the method may recursively fill it before returning.
       */
     @tailrec def addRegularPolygon(
-        startVertexId: VertexId,
-        endVertexId: VertexId,
+        start: VertexId,
+        end: VertexId,
         polygon: RegularPolygon
     ): Either[TilingError, TilingDCEL] =
       val either: Either[TilingError, (TilingDCEL, TilingDCEL, Face, Option[OldNewVertexPair])] =
         for
           (startVertex, endVertex, edgeToBuildOn) <-
-            tiling.findVerticesAndEdgeBetween(startVertexId, endVertexId)
+            tiling.findVerticesAndEdgeBetween(start, end)
           angles                                   = polygon.angles
           points                                   = calculateVertexPoints(angles, startVertex.coords, endVertex.coords)
           result                                  <-
@@ -562,7 +577,7 @@ object TilingAddition:
         case Right((revisedTiling, clone, containerFace, maybeHoleClosure)) =>
           revisedTiling.maybeFilled(clone, containerFace, maybeHoleClosure) match
             case None             => Right(revisedTiling)
-            case Some(holeFilled) => holeFilled.addRegularPolygon(startVertexId, endVertexId, polygon)
+            case Some(holeFilled) => holeFilled.addRegularPolygon(start, end, polygon)
 
     private[dcel] def rawDouble(origin: Vertex, repeat: Vertex, withInversion: Boolean = false): TilingDCEL =
       // Compute the translation vector from origin to repeat

@@ -965,7 +965,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
     /** Attached shape <img src="file:../../../../../resources/attached.svg"/> */
     val attached = threeDecagons
-      .maybeAddSimplePolygonToBoundary(VertexId("V3"), attachingSimplePolygon)
+      .addSimplePolygonToBoundary(VertexId("V3"), attachingSimplePolygon)
     attached.isLeft shouldBe false
 
   behavior of "TilingBuilder.maybeAddRegularPolygonToBoundary"
@@ -1015,12 +1015,12 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     SimplePolygon(180, 180, 180, 90, 90, 180, 180, 180, 180, 90, 90, 180)
 
   it should "have the lid covering two square holes when attached to the middle" in:
-    val result = twoPots.maybeAddSimplePolygonToBoundary(VertexId("V13"), rectangularTwoLid)
+    val result = twoPots.addSimplePolygonToBoundary(VertexId("V13"), rectangularTwoLid)
     result.isRight shouldBe true
 
   it should "have the lid covering two square holes when attached on the left" in:
     val result =
-      twoPots.maybeAddSimplePolygonToBoundary(
+      twoPots.addSimplePolygonToBoundary(
         VertexId("V17"),
         SimplePolygon(rectangularTwoLid.toAngles.rotateRight(2))
       )
@@ -1028,7 +1028,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
   it should "have the lid covering two square holes when attached on the right" in:
     val result =
-      twoPots.maybeAddSimplePolygonToBoundary(
+      twoPots.addSimplePolygonToBoundary(
         VertexId("V9"),
         SimplePolygon(rectangularTwoLid.toAngles.rotateLeft(2))
       )
@@ -1037,13 +1037,13 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   it should "have the lid covering one remaining square hole" in:
     val result = twoPots
       .maybeAddRegularPolygonToBoundary(VertexId("V16"), RegularPolygon(4)).value
-      .maybeAddSimplePolygonToBoundary(VertexId("V13"), rectangularTwoLid)
+      .addSimplePolygonToBoundary(VertexId("V13"), rectangularTwoLid)
     result.value.innerFaces.size shouldBe 4
 
   it should "have the lid covering the other remaining square hole" in:
     val result = twoPots
       .maybeAddRegularPolygonToBoundary(VertexId("V12"), RegularPolygon(4)).value
-      .maybeAddSimplePolygonToBoundary(VertexId("V13"), rectangularTwoLid)
+      .addSimplePolygonToBoundary(VertexId("V13"), rectangularTwoLid)
     result.value.innerFaces.size shouldBe 4
 
   /** Tiling with three pots <img src="file:../../../../../resources/threePots.svg"/>
@@ -1060,7 +1060,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
   it should "have the lid covering three square holes when attached on the far left" in:
     val result =
-      threePots.maybeAddSimplePolygonToBoundary(
+      threePots.addSimplePolygonToBoundary(
         VertexId("V23"),
         rectangularThreeLid
       )
@@ -1068,7 +1068,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
   it should "have the lid covering three square holes when attached on the second from left" in:
     val result =
-      threePots.maybeAddSimplePolygonToBoundary(
+      threePots.addSimplePolygonToBoundary(
         VertexId("V19"),
         SimplePolygon(rectangularThreeLid.toAngles.rotateLeft(2))
       )

@@ -242,30 +242,30 @@ final case class TilingDCEL private (
     *     cause boundary intersections or violate topology/geometry constraints.
     */
   def maybeAddRegularPolygonToBoundary(
-      onEdgeStartingWithVertexId: VertexId,
+      onEdgeStartingWith: VertexId,
       polygon: RegularPolygon
   ): Either[TilingError, TilingDCEL] =
-    this.deepCopy.addRegularPolygonToBoundary(onEdgeStartingWithVertexId, polygon)
+    this.deepCopy.addRegularPolygonToBoundary(onEdgeStartingWith, polygon)
 
   def maybeAddSimplePolygonToBoundary(
-      onEdgeStartingWithVertexId: VertexId,
-      simple: SimplePolygon
+      onEdgeStartingWith: VertexId,
+      angles: Vector[AngleDegree]
   ): Either[TilingError, TilingDCEL] =
-    this.deepCopy.addSimplePolygonToBoundary(onEdgeStartingWithVertexId, simple)
+    this.deepCopy.addUntrustedSimplePolygonToBoundary(onEdgeStartingWith, angles)
 
   def maybeAddRegularPolygon(
-      startVertexId: VertexId,
-      endVertexId: VertexId,
+      start: VertexId,
+      end: VertexId,
       polygon: RegularPolygon
   ): Either[TilingError, TilingDCEL] =
-    this.deepCopy.addRegularPolygon(startVertexId, endVertexId, polygon)
+    this.deepCopy.addRegularPolygon(start, end, polygon)
 
   def maybeAddSimplePolygon(
-      startVertexId: VertexId,
-      endVertexId: VertexId,
-      simple: SimplePolygon
+      start: VertexId,
+      end: VertexId,
+      angles: Vector[AngleDegree]
   ): Either[TilingError, TilingDCEL] =
-    this.deepCopy.addSimplePolygon(startVertexId, endVertexId, simple)
+    this.deepCopy.addUntrustedSimplePolygon(start, end, angles)
 
   def doubleArea: Either[TilingError, TilingDCEL] =
     if isEmpty then
