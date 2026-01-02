@@ -104,8 +104,7 @@ object TilingSVGPlatform:
                  _             = he.prev = Some(prevEdge)
                  faceId       <- getAttr(heNode, "face")
                  validated    <- FaceId.fromString(faceId)
-                 incidentFace <-
-                   faceMap.get(validated).toRight(NotFoundError("Incident face", faceId))
+                 incidentFace <- faceMap.get(validated).toRight(NotFoundError("Incident face", faceId))
                  _             = he.incidentFace = Some(incidentFace)
                  angleStr     <- getAttr(heNode, "angle")
                  angle         = AngleDegree(

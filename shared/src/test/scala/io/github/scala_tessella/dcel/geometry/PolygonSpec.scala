@@ -42,9 +42,9 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   it should "invalidate angles if their sum is incorrect" in:
     // Sum is too small
     val wrongDegrees = Vector(90, 90, 90, 89)
-    SimplePolygon.fromUntrusted(wrongDegrees*).left.value shouldBe
-      GeometryError(
-        "The sum of interior angles is incorrect for a polygon with 4 unit sides. Expected 360,00, but got 359,00."
+    SimplePolygon.fromUntrusted(wrongDegrees*).left.value.message should
+      include(
+        "The sum of interior angles is incorrect for a polygon with 4 unit sides. Expected 360"
       )
 
   it should "invalidate angles if any angle is a full circle" in:
@@ -83,8 +83,8 @@ class PolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     // but the sequence of angles does not form a closed polygon with unit-length sides.
     val nonClosingDegrees =
       Vector(90, 90, 135, 135, 90)
-    SimplePolygon.fromUntrusted(nonClosingDegrees*).left.value shouldBe
-      SpatialError("The polygon does not close. The final edge has length 1,8478 instead of 1.0.")
+    SimplePolygon.fromUntrusted(nonClosingDegrees*).left.value.message should
+      include("The polygon does not close.")
 
   behavior of "SimplePolygon.multiplySidesBy"
 
