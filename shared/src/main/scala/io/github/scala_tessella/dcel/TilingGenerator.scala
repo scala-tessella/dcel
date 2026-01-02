@@ -226,7 +226,7 @@ object TilingGenerator:
       // find in the segment the vertex with the lowest vertex id
       val edgeStart =
         (0 until step).minBy: index =>
-          TilingBuilder.idFromVertexId(boundaryVertexIds(index))
+          boundaryVertexIds(index).value
 
 //      // find in the segment the vertex with the smallest interior angle sum
 //      val angles = tiling.boundarySimplePolygon.toAngles

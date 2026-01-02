@@ -339,7 +339,7 @@ object TilingSVG:
         val point = vertex.coords.scaled(config.scale).flippedY
         val x     = (point.x + config.strokeWidth * 2.5).format
         val y     = (point.y - config.strokeWidth * 2.5).format
-        textAt(x, y, vertex.id.value)
+        textAt(x, y, vertex.id.toPrefixedString)
 
     (circles, labels)
 
@@ -354,7 +354,7 @@ object TilingSVG:
       val point = vertex.coords.scaled(config.scale).flippedY
       val x     = (point.x + config.strokeWidth * 2.5).format
       val y     = (point.y - config.strokeWidth * 2.5).format
-      textAt(x, y, vertex.id.value)
+      textAt(x, y, vertex.id.toPrefixedString)
 
     (circles, labels)
 
@@ -1022,7 +1022,7 @@ object TilingSVG:
 
       val vertexNodes  = tiling.vertices.map: vertex =>
         val attrsList = List(
-          Some("id" -> vertex.id.value),
+          Some("id" -> vertex.id.toPrefixedString),
           Some("x"  -> vertex.coords.x.toString),
           Some("y"  -> vertex.coords.y.toString),
           vertex.leaving
@@ -1039,7 +1039,7 @@ object TilingSVG:
           .map: (halfEdge, id) =>
             val attrsList = List(
               Some("id"     -> id),
-              Some("origin" -> halfEdge.origin.id.value),
+              Some("origin" -> halfEdge.origin.id.toPrefixedString),
               halfEdge.twin
                 .flatMap: twinHalfEdge =>
                   halfEdgeIds.get(twinHalfEdge)

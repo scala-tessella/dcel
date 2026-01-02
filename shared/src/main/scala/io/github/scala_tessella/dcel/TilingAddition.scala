@@ -22,7 +22,7 @@ object TilingAddition:
 
   private def createVertices(points: List[BigPoint], startingIndex: Int): List[Vertex] =
     points.zipWithIndex.map: (point, index) =>
-      Vertex(vertexIdV(startingIndex + index), point)
+      Vertex(VertexId(startingIndex + index), point)
 
   // More descriptive boundary angle calculation
   private def boundaryAngleForVertex(
@@ -178,7 +178,7 @@ object TilingAddition:
     private def nextVertexIndex: Int =
       tiling.vertices
         .map: vertex =>
-          idFromVertexId(vertex.id)
+          vertex.id.value
         .max + 1
 
     private def addElements(
@@ -591,13 +591,13 @@ object TilingAddition:
       val maxVertexId                               =
         vertexIds
           .map: vertexId =>
-            idFromVertexId(vertexId)
+            vertexId.value
           .maxOption.get
       val vertexIdTranslation: VertexId => VertexId =
         vertexIds.indices
           .map: index =>
             val oldId = vertexIds(index)
-            oldId -> vertexIdV(maxVertexId + index + 1)
+            oldId -> VertexId(maxVertexId + index + 1)
           .toMap
 
       // Translate faces: keep outer face id, shift inner ones

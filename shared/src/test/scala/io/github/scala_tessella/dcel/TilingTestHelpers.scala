@@ -42,12 +42,12 @@ trait TilingTestHelpers extends EitherValues:
   def dodecagon: TilingDCEL =
     TilingBuilder.createRegularPolygon(RegularPolygon(12))
 
-  val V1: VertexId = VertexId("V1")
-  val V2: VertexId = VertexId("V2")
-  val V3: VertexId = VertexId("V3")
-  val V4: VertexId = VertexId("V4")
-  val V5: VertexId = VertexId("V5")
-  val V6: VertexId = VertexId("V6")
+  val V1: VertexId = VertexId(1)
+  val V2: VertexId = VertexId(2)
+  val V3: VertexId = VertexId(3)
+  val V4: VertexId = VertexId(4)
+  val V5: VertexId = VertexId(5)
+  val V6: VertexId = VertexId(6)
 
   val F0: FaceId = FaceId.outerId
   val F1: FaceId = FaceId.firstInnerId

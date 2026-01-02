@@ -43,9 +43,9 @@ final class HalfEdge(
     val destinationStr        =
       destination
         .map: vertex =>
-          vertex.id.value
+          vertex.id.toPrefixedString
         .getOrElse("?")
-    s"HalfEdge ${origin.id} -> $destinationStr$validationErrorSuffix"
+    s"HalfEdge ${origin.id.toPrefixedString} -> $destinationStr$validationErrorSuffix"
 
   def destination: Option[Vertex] =
     twin.map: halfEdge =>

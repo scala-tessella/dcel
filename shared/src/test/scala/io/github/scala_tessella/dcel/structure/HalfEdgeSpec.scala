@@ -587,10 +587,10 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "work in a doubly connected edge list with multiple faces" in:
     // Create a diamond shape with 4 vertices and 2 triangular faces
-    val vTop    = Vertex(VertexId("Top"), BigPoint(0, 1))
-    val vLeft   = Vertex(VertexId("Left"), BigPoint(-1, 0))
-    val vRight  = Vertex(VertexId("Right"), BigPoint(1, 0))
-    val vBottom = Vertex(VertexId("Bottom"), BigPoint(0, -1))
+    val vTop    = Vertex(VertexId(10), BigPoint(0, 1))
+    val vLeft   = Vertex(VertexId(11), BigPoint(-1, 0))
+    val vRight  = Vertex(VertexId(12), BigPoint(1, 0))
+    val vBottom = Vertex(VertexId(13), BigPoint(0, -1))
 
     val leftFace  = Face(FaceId(30))
     val rightFace = Face(FaceId(31))

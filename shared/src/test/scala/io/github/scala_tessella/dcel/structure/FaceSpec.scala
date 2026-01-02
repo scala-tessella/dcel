@@ -16,8 +16,8 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   // Helper method to create a simple triangular face with proper edge linking
   private def createTriangleFace(faceId: FaceId): (Face, List[HalfEdge], List[Vertex]) =
     val v1 = createVertex(V1, 0, 0)
-    val v2 = createVertex(VertexId("V2"), 1, 0)
-    val v3 = createVertex(VertexId("V3"), 0.5, 0.866)
+    val v2 = createVertex(V2, 1, 0)
+    val v3 = createVertex(V3, 0.5, 0.866)
 
     val face = Face(faceId)
     val he1  = HalfEdge(v1, incidentFace = Some(face))
@@ -40,8 +40,8 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   // Helper method to create a square face
   private def createSquareFace(faceId: FaceId): (Face, List[HalfEdge], List[Vertex]) =
     val v1 = createVertex(V1, 0, 0)
-    val v2 = createVertex(VertexId("V2"), 1, 0)
-    val v3 = createVertex(VertexId("V3"), 1, 1)
+    val v2 = createVertex(V2, 1, 0)
+    val v3 = createVertex(V3, 1, 1)
     val v4 = createVertex(V4, 0, 1)
 
     val face = Face(faceId)
@@ -207,7 +207,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "handle broken edge chain NOT gracefully" in:
     val v1   = createVertex(V1, 0, 0)
-    val v2   = createVertex(VertexId("V2"), 1, 0)
+    val v2   = createVertex(VertexId(2), 1, 0)
     val face = Face(F1)
     val he1  = HalfEdge(v1, incidentFace = Some(face))
     val he2  = HalfEdge(v2, incidentFace = Some(face))
@@ -254,7 +254,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "return Left when edge chain is broken" in:
     val v1   = createVertex(V1, 0, 0)
-    val v2   = createVertex(VertexId("V2"), 1, 0)
+    val v2   = createVertex(VertexId(2), 1, 0)
     val face = Face(FaceId(1))
     val he1  = HalfEdge(v1, incidentFace = Some(face))
     val he2  = HalfEdge(v2, incidentFace = Some(face))
@@ -313,7 +313,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "return 0 for face with less than 3 vertices" in:
     val v1   = createVertex(V1, 0, 0)
-    val v2   = createVertex(VertexId("V2"), 1, 0)
+    val v2   = createVertex(VertexId(2), 1, 0)
     val face = Face(FaceId(1))
     val he1  = HalfEdge(v1, incidentFace = Some(face))
     val he2  = HalfEdge(v2, incidentFace = Some(face))
@@ -343,8 +343,8 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   it should "calculate area using shoelace formula correctly" in:
     // Create a rectangular face with known area
     val v1 = createVertex(V1, 0, 0)
-    val v2 = createVertex(VertexId("V2"), 2, 0)
-    val v3 = createVertex(VertexId("V3"), 2, 3)
+    val v2 = createVertex(V2, 2, 0)
+    val v3 = createVertex(V3, 2, 3)
     val v4 = createVertex(V4, 0, 3)
 
     val face = Face(FaceId(44))

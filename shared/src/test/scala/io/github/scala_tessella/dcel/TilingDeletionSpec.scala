@@ -151,8 +151,8 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     triangle
       .addSimplePolygonToBoundary(V2, 15, 165, 15, 165).value
       .addSimplePolygonToBoundary(V3, 165, 15, 165, 15).value
-      .addRegularPolygonToBoundary(VertexId("V7"), RegularPolygon(4)).value
-      .addRegularPolygonToBoundary(VertexId("V9"), RegularPolygon(4)).value
+      .addRegularPolygonToBoundary(VertexId(7), RegularPolygon(4)).value
+      .addRegularPolygonToBoundary(VertexId(9), RegularPolygon(4)).value
       .addRegularPolygonToBoundary(V2, RegularPolygon(4)).value
 
   it should "delete an irregular polygon" in:
@@ -169,10 +169,10 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   behavior of "TilingDCEL.deleteEdge"
 
   it should "fail to delete an edge if a vertex does not exist" in:
-    val result = square.deleteEdge(V1, VertexId("V_NonExistent"))
+    val result = square.deleteEdge(V1, VertexId(999))
     allAssert(
       result.isLeft shouldBe true,
-      result.left.value.message should include("Vertex with ID 'V_NonExistent' not found.")
+      result.left.value.message should include("Vertex with ID 'V999' not found.")
     )
 
   it should "fail to delete an edge if the vertices are not connected" in:
@@ -307,13 +307,13 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   /** <img src="file:../../../../../resources/partitioningNonBoundaryFace.svg"/> */
   def partitioningNonBoundaryFace: TilingDCEL =
     TilingBuilder.createRhombusNet(4, 3)
-      .deleteEdge(VertexId("V8"), VertexId("V13")).value
-      .addRegularPolygon(VertexId("V7"), VertexId("V8"), RegularPolygon(3)).value
-      .addRegularPolygon(VertexId("V21"), VertexId("V8"), RegularPolygon(3)).value
+      .deleteEdge(VertexId(8), VertexId(13)).value
+      .addRegularPolygon(VertexId(7), VertexId(8), RegularPolygon(3)).value
+      .addRegularPolygon(VertexId(21), VertexId(8), RegularPolygon(3)).value
 
   it should "fail to delete edges if the surviving face is not a simple polygon" in:
     val result = partitioningNonBoundaryFace
-      .deleteEdge(VertexId("V7"), VertexId("V21"))
+      .deleteEdge(VertexId(7), VertexId(21))
     allAssert(
       result.isLeft shouldBe true,
       result.left.value.message should include("is not simple")

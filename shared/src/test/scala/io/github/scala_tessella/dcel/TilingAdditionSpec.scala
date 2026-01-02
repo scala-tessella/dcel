@@ -1,7 +1,6 @@
 package io.github.scala_tessella.dcel
 
 import io.github.scala_tessella.dcel.TilingAddition.*
-import io.github.scala_tessella.dcel.TilingBuilder.vertexIdV
 import io.github.scala_tessella.dcel.TilingDeletion.*
 import io.github.scala_tessella.dcel.TilingEquivalency.*
 import io.github.scala_tessella.dcel.TilingValidation.validate
@@ -265,7 +264,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       .maybeAddRegularPolygonToBoundary(V3, RegularPolygon(3)).value
       .maybeAddRegularPolygonToBoundary(V5, RegularPolygon(3)).value
       .maybeAddRegularPolygonToBoundary(V3, RegularPolygon(3)).value
-      .maybeAddRegularPolygonToBoundary(VertexId("V7"), RegularPolygon(4)).value
+      .maybeAddRegularPolygonToBoundary(VertexId(7), RegularPolygon(4)).value
 
   it should "add an irregular pentagon with shared edges" in:
     val result = commonBench
@@ -286,7 +285,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
   it should "add an irregular pentagon with shared edges to a different edge" in:
     val result = commonBench
-      .addSimplePolygonToBoundary(VertexId("V10"), SimplePolygon(irregularPentagonAngles.rotateLeft(1)))
+      .addSimplePolygonToBoundary(VertexId(10), SimplePolygon(irregularPentagonAngles.rotateLeft(1)))
     allAssert(
       result.isRight shouldBe true, {
         val tiling = result.value
@@ -442,14 +441,14 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     )
 
   it should "fail to add a polygon on a non-existent vertex" in:
-    val result = square.addRegularPolygonToBoundary(VertexId("V99"), RegularPolygon(3))
+    val result = square.addRegularPolygonToBoundary(VertexId(99), RegularPolygon(3))
     allAssert(
       result.isLeft shouldBe true,
       result.left.value.message should include("not found on the boundary")
     )
 
-  it should "fail to add a polygon on an empty vertex ID" in:
-    val result = triangle.addRegularPolygonToBoundary(VertexId(""), RegularPolygon(3))
+  it should "fail to add a polygon on a not existing vertex ID" in:
+    val result = triangle.addRegularPolygonToBoundary(VertexId(999), RegularPolygon(3))
     allAssert(
       result.isLeft shouldBe true,
       result.left.value.message should include("not found on the boundary")
@@ -545,7 +544,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
     // Add triangles to create a flower pattern
     for (i <- 1 to 6)
-      val result = currentTiling.addRegularPolygonToBoundary(vertexIdV(i), RegularPolygon(3))
+      val result = currentTiling.addRegularPolygonToBoundary(VertexId(i), RegularPolygon(3))
       allAssert(
         result.isRight shouldBe true, {
           currentTiling = result.value
@@ -580,7 +579,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   def threeHexagons: TilingDCEL =
     hexagon
       .maybeAddRegularPolygonToBoundary(V1, RegularPolygon(6)).value
-      .maybeAddRegularPolygonToBoundary(VertexId("V7"), RegularPolygon(6)).value
+      .maybeAddRegularPolygonToBoundary(VertexId(7), RegularPolygon(6)).value
 
   it should "successfully add an hexagon with more than one edge shared on both sides of the edge to build on" in:
     val result = threeHexagons
@@ -608,7 +607,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
   it should "successfully add an hexagon with more than one edge shared on the other side of the edge to build on" in:
     val result = threeHexagons
-      .maybeAddRegularPolygonToBoundary(VertexId("V7"), RegularPolygon(6))
+      .maybeAddRegularPolygonToBoundary(VertexId(7), RegularPolygon(6))
     allAssert(
       result.isRight shouldBe true, {
         val newTiling = result.value
@@ -667,18 +666,18 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   def irregularHoleAlmostJoinedBySide: TilingDCEL =
     hexagon
       .maybeAddRegularPolygonToBoundary(V6, RegularPolygon(6)).value
-      .maybeAddRegularPolygonToBoundary(VertexId("V7"), RegularPolygon(6)).value
-      .maybeAddRegularPolygonToBoundary(VertexId("V11"), RegularPolygon(6)).value
-      .maybeAddRegularPolygonToBoundary(VertexId("V16"), RegularPolygon(6)).value
-      .maybeAddRegularPolygonToBoundary(VertexId("V19"), RegularPolygon(6)).value
-      .maybeAddRegularPolygonToBoundary(VertexId("V23"), RegularPolygon(6)).value
+      .maybeAddRegularPolygonToBoundary(VertexId(7), RegularPolygon(6)).value
+      .maybeAddRegularPolygonToBoundary(VertexId(11), RegularPolygon(6)).value
+      .maybeAddRegularPolygonToBoundary(VertexId(16), RegularPolygon(6)).value
+      .maybeAddRegularPolygonToBoundary(VertexId(19), RegularPolygon(6)).value
+      .maybeAddRegularPolygonToBoundary(VertexId(23), RegularPolygon(6)).value
 
   /** Irregular hole almost joined by vertex <img
     * src="file:../../../../../resources/irregularHoleAlmostJoinedByVertex.svg"/>
     */
   def irregularHoleAlmostJoinedByVertex: TilingDCEL =
     irregularHoleAlmostJoinedBySide
-      .maybeAddRegularPolygonToBoundary(VertexId("V27"), RegularPolygon(3)).value
+      .maybeAddRegularPolygonToBoundary(VertexId(27), RegularPolygon(3)).value
 
   it should "successfully fill another hole created by a shared vertex" in:
     val result = irregularHoleAlmostJoinedByVertex
@@ -696,8 +695,8 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     */
   def regularHoleAlmostJoinedBySide: TilingDCEL =
     commonBench
-      .maybeAddRegularPolygonToBoundary(VertexId("V9"), RegularPolygon(3)).value
-      .maybeAddRegularPolygonToBoundary(VertexId("V11"), RegularPolygon(3)).value
+      .maybeAddRegularPolygonToBoundary(VertexId(9), RegularPolygon(3)).value
+      .maybeAddRegularPolygonToBoundary(VertexId(11), RegularPolygon(3)).value
 
   it should "successfully fill a hole created by a shared edge" in:
     val result = regularHoleAlmostJoinedBySide
@@ -730,13 +729,13 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   def regularHolesAlmostJoinedBySide: TilingDCEL =
     hexagon
       .maybeAddRegularPolygonToBoundary(V6, RegularPolygon(6)).value
-      .maybeAddRegularPolygonToBoundary(VertexId("V7"), RegularPolygon(6)).value
-      .maybeAddRegularPolygonToBoundary(VertexId("V11"), RegularPolygon(6)).value
-      .maybeAddRegularPolygonToBoundary(VertexId("V15"), RegularPolygon(6)).value
-      .maybeAddRegularPolygonToBoundary(VertexId("V21"), RegularPolygon(6)).value
-      .maybeAddRegularPolygonToBoundary(VertexId("V23"), RegularPolygon(6)).value
-      .maybeAddRegularPolygonToBoundary(VertexId("V27"), RegularPolygon(6)).value
-      .maybeAddRegularPolygonToBoundary(VertexId("V31"), RegularPolygon(6)).value
+      .maybeAddRegularPolygonToBoundary(VertexId(7), RegularPolygon(6)).value
+      .maybeAddRegularPolygonToBoundary(VertexId(11), RegularPolygon(6)).value
+      .maybeAddRegularPolygonToBoundary(VertexId(15), RegularPolygon(6)).value
+      .maybeAddRegularPolygonToBoundary(VertexId(21), RegularPolygon(6)).value
+      .maybeAddRegularPolygonToBoundary(VertexId(23), RegularPolygon(6)).value
+      .maybeAddRegularPolygonToBoundary(VertexId(27), RegularPolygon(6)).value
+      .maybeAddRegularPolygonToBoundary(VertexId(31), RegularPolygon(6)).value
 
   it should "successfully fill two holes created by shared edges" in:
     val result = regularHolesAlmostJoinedBySide
@@ -762,7 +761,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
   it should "fail if just one vertex is added but crosses the boundary" in:
     val result = irregularShape
-      .addRegularPolygonToBoundary(VertexId("V7"), RegularPolygon(3))
+      .addRegularPolygonToBoundary(VertexId(7), RegularPolygon(3))
     result.isLeft shouldBe true
 
   behavior of "TilingBuilder.addRegularPolygon"
@@ -866,21 +865,21 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     * src="file:../../../../../resources/anotherAlmostJoinedByVertex.svg"/>
     */
   def anotherAlmostJoinedByVertex: TilingDCEL =
-    base.addRegularPolygonToBoundary(VertexId("V16"), RegularPolygon(3)).value
+    base.addRegularPolygonToBoundary(VertexId(16), RegularPolygon(3)).value
 
   it should "add a special boundary regular polygon creating a hole" in:
     val result = anotherAlmostJoinedByVertex
-      .addRegularPolygonToBoundary(VertexId("V16"), RegularPolygon(3))
+      .addRegularPolygonToBoundary(VertexId(16), RegularPolygon(3))
 
     result.isRight shouldBe true
 
   /** Specular version <img src="file:../../../../../resources/anotherAlmostJoinedByVertexSpecular.svg"/> */
   def anotherAlmostJoinedByVertexSpecular: TilingDCEL =
-    base.addRegularPolygonToBoundary(VertexId("V10"), RegularPolygon(3)).value
+    base.addRegularPolygonToBoundary(VertexId(10), RegularPolygon(3)).value
 
   it should "add another specular boundary regular polygon creating a hole" in:
     val result = anotherAlmostJoinedByVertexSpecular
-      .addRegularPolygonToBoundary(VertexId("V20"), RegularPolygon(3))
+      .addRegularPolygonToBoundary(VertexId(20), RegularPolygon(3))
 
     result.isRight shouldBe true
 
@@ -903,7 +902,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
   it should "add an inner regular polygon creating a specular hole" in:
     val result = dodecagonWithInnerSquare
-      .addRegularPolygon(VertexId("V11"), VertexId("V12"), RegularPolygon(4))
+      .addRegularPolygon(VertexId(11), VertexId(12), RegularPolygon(4))
 
     allAssert(
       result.isRight shouldBe true, {
@@ -917,14 +916,14 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   /** Vertex crossing <img src="file:../../../../../resources/vertexCrossing.svg"/> */
   def vertexCrossing: TilingDCEL =
     TilingBuilder.createTriangleNet(4, 4)
-      .deleteVertex(VertexId("V13")).value
+      .deleteVertex(VertexId(13)).value
       .deleteFace(FaceId(16)).value
       .deleteFace(FaceId(15)).value
       .deleteFace(FaceId(19)).value
 
   it should "fail to add a polygon that crosses the boundary at vertices" in:
     val result = vertexCrossing
-      .addRegularPolygonToBoundary(VertexId("V9"), RegularPolygon(6))
+      .addRegularPolygonToBoundary(VertexId(9), RegularPolygon(6))
     allAssert(
       result.isLeft shouldBe true,
       result.left.value.message should include("Angle wider than container")
@@ -933,11 +932,11 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   /** Vertex crossing simplified <img src="file:../../../../../resources/vertexCrossingSimplified.svg"/> */
   def vertexCrossingSimplified: TilingDCEL =
     vertexCrossing
-      .deleteVertex(VertexId("V19")).value
+      .deleteVertex(VertexId(19)).value
 
   it should "fail to add a polygon that crosses the boundary simplified" in:
     val result = vertexCrossingSimplified
-      .addRegularPolygonToBoundary(VertexId("V9"), RegularPolygon(6))
+      .addRegularPolygonToBoundary(VertexId(9), RegularPolygon(6))
     allAssert(
       result.isLeft shouldBe true,
       result.left.value.message should include("Angle wider than container")
@@ -947,7 +946,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   def threeDecagons: TilingDCEL =
     TilingBuilder.createRegularPolygon(RegularPolygon(10))
       .addRegularPolygonToBoundary(V1, RegularPolygon(10)).value
-      .addRegularPolygonToBoundary(VertexId("V12"), RegularPolygon(10)).value
+      .addRegularPolygonToBoundary(VertexId(12), RegularPolygon(10)).value
 
   val attachingSimplePolygon: SimplePolygon =
     SimplePolygon
@@ -965,7 +964,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
     /** Attached shape <img src="file:../../../../../resources/attached.svg"/> */
     val attached = threeDecagons
-      .addSimplePolygonToBoundary(VertexId("V3"), attachingSimplePolygon)
+      .addSimplePolygonToBoundary(VertexId(3), attachingSimplePolygon)
     attached.isLeft shouldBe false
 
   behavior of "TilingBuilder.maybeAddRegularPolygonToBoundary"
@@ -975,14 +974,14 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   def threeDodecagons: TilingDCEL =
     TilingBuilder.createRegularPolygon(RegularPolygon(12))
       .maybeAddRegularPolygonToBoundary(V3, RegularPolygon(12)).value
-      .maybeAddRegularPolygonToBoundary(VertexId("V11"), RegularPolygon(12)).value
+      .maybeAddRegularPolygonToBoundary(VertexId(11), RegularPolygon(12)).value
 
   it should "laterally add a fourth dodecagon creating two holes" in:
-    val result = threeDodecagons.maybeAddRegularPolygonToBoundary(VertexId("V21"), RegularPolygon(12))
+    val result = threeDodecagons.maybeAddRegularPolygonToBoundary(VertexId(21), RegularPolygon(12))
     result.value.innerFaces.size shouldBe 6
 
   it should "add from the other side a fourth dodecagon creating two holes" in:
-    val result = threeDodecagons.maybeAddRegularPolygonToBoundary(VertexId("V23"), RegularPolygon(12))
+    val result = threeDodecagons.maybeAddRegularPolygonToBoundary(VertexId(23), RegularPolygon(12))
     result.value.innerFaces.size shouldBe 6
 
   it should "add a fourth dodecagon creating two holes" in:
@@ -992,7 +991,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   it should "add a fourth dodecagon creating one hole having previously filled one" in:
     val result =
       threeDodecagons
-        .maybeAddRegularPolygonToBoundary(VertexId("V11"), RegularPolygon(3)).value
+        .maybeAddRegularPolygonToBoundary(VertexId(11), RegularPolygon(3)).value
         .maybeAddRegularPolygonToBoundary(V1, RegularPolygon(12))
     result.value.innerFaces.size shouldBe 6
 
@@ -1015,13 +1014,13 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     SimplePolygon(180, 180, 180, 90, 90, 180, 180, 180, 180, 90, 90, 180)
 
   it should "have the lid covering two square holes when attached to the middle" in:
-    val result = twoPots.addSimplePolygonToBoundary(VertexId("V13"), rectangularTwoLid)
+    val result = twoPots.addSimplePolygonToBoundary(VertexId(13), rectangularTwoLid)
     result.isRight shouldBe true
 
   it should "have the lid covering two square holes when attached on the left" in:
     val result =
       twoPots.addSimplePolygonToBoundary(
-        VertexId("V17"),
+        VertexId(17),
         SimplePolygon(rectangularTwoLid.toAngles.rotateRight(2))
       )
     result.value.innerFaces.size shouldBe 4
@@ -1029,21 +1028,21 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   it should "have the lid covering two square holes when attached on the right" in:
     val result =
       twoPots.addSimplePolygonToBoundary(
-        VertexId("V9"),
+        VertexId(9),
         SimplePolygon(rectangularTwoLid.toAngles.rotateLeft(2))
       )
     result.value.innerFaces.size shouldBe 4
 
   it should "have the lid covering one remaining square hole" in:
     val result = twoPots
-      .maybeAddRegularPolygonToBoundary(VertexId("V16"), RegularPolygon(4)).value
-      .addSimplePolygonToBoundary(VertexId("V13"), rectangularTwoLid)
+      .maybeAddRegularPolygonToBoundary(VertexId(16), RegularPolygon(4)).value
+      .addSimplePolygonToBoundary(VertexId(13), rectangularTwoLid)
     result.value.innerFaces.size shouldBe 4
 
   it should "have the lid covering the other remaining square hole" in:
     val result = twoPots
-      .maybeAddRegularPolygonToBoundary(VertexId("V12"), RegularPolygon(4)).value
-      .addSimplePolygonToBoundary(VertexId("V13"), rectangularTwoLid)
+      .maybeAddRegularPolygonToBoundary(VertexId(12), RegularPolygon(4)).value
+      .addSimplePolygonToBoundary(VertexId(13), rectangularTwoLid)
     result.value.innerFaces.size shouldBe 4
 
   /** Tiling with three pots <img src="file:../../../../../resources/threePots.svg"/>
@@ -1061,7 +1060,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   it should "have the lid covering three square holes when attached on the far left" in:
     val result =
       threePots.addSimplePolygonToBoundary(
-        VertexId("V23"),
+        VertexId(23),
         rectangularThreeLid
       )
     result.value.innerFaces.size shouldBe 5
@@ -1069,7 +1068,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   it should "have the lid covering three square holes when attached on the second from left" in:
     val result =
       threePots.addSimplePolygonToBoundary(
-        VertexId("V19"),
+        VertexId(19),
         SimplePolygon(rectangularThreeLid.toAngles.rotateLeft(2))
       )
     result.value.innerFaces.size shouldBe 5

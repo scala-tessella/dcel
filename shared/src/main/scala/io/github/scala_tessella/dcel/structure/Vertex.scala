@@ -30,7 +30,7 @@ final class Vertex(
   override def toString: String =
     val validationErrorSuffix =
       validate().toErrorSuffix
-    s"Vertex $id at coords (${coords.x.format}, ${coords.y.format})$validationErrorSuffix"
+    s"Vertex ${id.toPrefixedString} at coords (${coords.x.format}, ${coords.y.format})$validationErrorSuffix"
 
   def isComplete: Boolean =
     leaving.isDefined

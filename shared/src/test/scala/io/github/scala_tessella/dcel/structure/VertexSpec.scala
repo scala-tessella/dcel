@@ -135,7 +135,7 @@ class VertexSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "handle complex vertex with multiple incident edges" in:
     // Create a vertex with 4 incident edges (like a cross)
-    val center = Vertex(VertexId("Center"), BigPoint(0, 0))
+    val center = Vertex(VertexId(10), BigPoint(0, 0))
     val v1     = Vertex(V1, BigPoint(1, 0))
     val v2     = Vertex(V2, BigPoint(0, 1))
     val v3     = Vertex(V3, BigPoint(-1, 0))
@@ -219,7 +219,7 @@ class VertexSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "return correct degree for vertex with multiple edges" in:
     // Use the 4-edge vertex setup from before
-    val center = Vertex(VertexId("Center"), BigPoint(0, 0))
+    val center = Vertex(VertexId(10), BigPoint(0, 0))
     val v1     = Vertex(V1, BigPoint(1, 0))
     val v2     = Vertex(V2, BigPoint(0, 1))
     val v3     = Vertex(V3, BigPoint(-1, 0))
@@ -284,7 +284,7 @@ class VertexSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     vertex.adjacentVerticesUnsafe shouldBe List(vertex)
 
   it should "return all adjacent vertices for complex vertex" in:
-    val center = Vertex(VertexId("Center"), BigPoint(0, 0))
+    val center = Vertex(VertexId(10), BigPoint(0, 0))
     val v1     = Vertex(V1, BigPoint(1, 0))
     val v2     = Vertex(V2, BigPoint(0, 1))
     val v3     = Vertex(V3, BigPoint(-1, 0))
@@ -318,15 +318,15 @@ class VertexSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
           adjacentVertex.id
       .toMap shouldEqual
       Map(
-        V1   -> List(V2, V4),
-        V2   -> List(V3, V1, V5),
-        V3   -> List(V6, V2),
-        V4   -> List(V5, V1, "V7"),
-        V5   -> List(V6, V2, V4, "V8"),
-        V6   -> List("V9", V3, V5),
-        "V7" -> List("V8", V4),
-        "V8" -> List("V9", V5, "V7"),
-        "V9" -> List("V8", V6)
+        V1 -> List(V2, V4),
+        V2 -> List(V3, V1, V5),
+        V3 -> List(V6, V2),
+        V4 -> List(V5, V1, 7),
+        V5 -> List(V6, V2, V4, 8),
+        V6 -> List(9, V3, V5),
+        7  -> List(8, V4),
+        8  -> List(9, V5, 7),
+        9  -> List(8, V6)
       )
 
   behavior of "Vertex.incidentFaces"
@@ -468,30 +468,15 @@ class VertexSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       v1.id shouldNot equal(v2.id)
     )
 
-  it should "handle empty string ID" in:
-    val vertex = Vertex(VertexId(""), BigPoint(0, 0))
-    allAssert(
-      vertex.id.value shouldBe "",
-      vertex.hashCode() shouldBe "".hashCode()
-    )
-
   it should "handle very large coordinates" in:
     val largeCoords = BigPoint(
       BigDecimal("999999999999999999.999999999999999999"),
       BigDecimal("-999999999999999999.999999999999999999")
     )
-    val vertex      = Vertex(VertexId("VLarge"), largeCoords)
+    val vertex      = Vertex(VertexId(7777), largeCoords)
     allAssert(
       vertex.coords shouldBe largeCoords,
-      vertex.id.value shouldBe "VLarge"
-    )
-
-  it should "handle special characters in ID" in:
-    val specialId = "V_1-2.3@test#"
-    val vertex    = Vertex(VertexId(specialId), BigPoint(0, 0))
-    allAssert(
-      vertex.id.value shouldBe specialId,
-      vertex.hashCode() shouldBe specialId.hashCode()
+      vertex.id.value shouldBe 7777
     )
 
   behavior of "TilingDCEL.findEdgeBetween"
@@ -515,7 +500,7 @@ class VertexSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     v0.findEdgeBetweenUnsafe(v2) shouldBe None
 
   it should "return None when either vertex has no incident edges" in:
-    val isolatedVertex = Vertex(VertexId("Isolated"), BigPoint(10, 10))
+    val isolatedVertex = Vertex(VertexId(11), BigPoint(10, 10))
     val v0             = triangle.findVertexUnsafe(V1).get
 
     isolatedVertex.findEdgeBetweenUnsafe(v0) shouldBe None

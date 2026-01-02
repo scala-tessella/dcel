@@ -1,6 +1,5 @@
 package io.github.scala_tessella.dcel
 
-import io.github.scala_tessella.dcel.TilingBuilder.*
 import io.github.scala_tessella.dcel.TilingEquivalency.*
 import io.github.scala_tessella.dcel.TilingValidation.validate
 import io.github.scala_tessella.dcel.geometry.{BigPoint, RegularPolygon}
@@ -277,7 +276,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
     val transformed =
       square.translatedDouble(
         _ + BigPoint(1, 0),
-        vertexId => vertexIdV(idFromVertexId(vertexId) + 4),
+        vertexId => VertexId(vertexId.value + 4),
         faceId =>
           FaceId(
             faceId.value match
@@ -362,7 +361,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
   def shapeL: TilingDCEL = square
     .maybeAddRegularPolygonToBoundary(V3, RegularPolygon(4)).value
     .maybeAddRegularPolygonToBoundary(V4, RegularPolygon(4)).value
-    .maybeAddRegularPolygonToBoundary(VertexId("V7"), RegularPolygon(4)).value
+    .maybeAddRegularPolygonToBoundary(VertexId(7), RegularPolygon(4)).value
 
 //  /** <img src="file:../../../../../resources/shapeΓ.svg"/> */
 //  def shapeΓ: TilingDCEL =
@@ -402,7 +401,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
   it should "create a valid reflected copy" in:
     val reflected = shapeL.verticallyReflectedCopy
     allAssert(
-      shapeL.boundaryVertices.map(_.id) shouldBe Vector(V1, V4, "V7", "V9", "V10", "V8", V3, V5, V6, V2),
+      shapeL.boundaryVertices.map(_.id) shouldBe Vector(V1, V4, 7, 9, 10, 8, V3, V5, V6, V2),
       validate(reflected).isRight shouldBe true,
       reflected.boundaryVertices.map(_.id) shouldBe shapeL.boundaryVertices.map(_.id).reflectAt(1)
     )

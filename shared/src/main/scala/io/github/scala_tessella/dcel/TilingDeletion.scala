@@ -60,8 +60,8 @@ object TilingDeletion:
               either.flatMap:
                 _.deleteVertex(vertex.id)
               match
-                case Left(error) if error == NotFoundError("Vertex", vertex.id.value) => either
-                case other                                                            => other
+                case Left(error) if error == NotFoundError("Vertex", vertex.id.toPrefixedString) => either
+                case other                                                                       => other
       yield result
 
     private def classifyFaceEdges(face: Face): Either[TilingError, EdgeClassification] =

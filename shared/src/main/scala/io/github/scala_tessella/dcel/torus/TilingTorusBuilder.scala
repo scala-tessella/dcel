@@ -1,8 +1,7 @@
 package io.github.scala_tessella.dcel.torus
 
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint}
-import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex}
-import io.github.scala_tessella.dcel.TilingBuilder.vertexIdV
+import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
 
 import spire.implicits.*
 
@@ -53,7 +52,7 @@ object TilingTorusBuilder:
     // Place them on [0,1]x[0,1] lattice
     val verts =
       Array.tabulate(height, width) { (j, i) =>
-        val id  = vertexIdV(j * width + i + 1)
+        val id  = VertexId(j * width + i + 1)
         val pos = BigPoint(BigDecimal(i), BigDecimal(j))
         Vertex(id, pos)
       }
@@ -143,7 +142,7 @@ object TilingTorusBuilder:
         val offset = if (j & 1) == 1 then dx / 2 else BigDecimal(0)
         val x      = BigDecimal(i) * dx + offset
         val y      = BigDecimal(j) * dy
-        val id     = vertexIdV(j * width + i + 1)
+        val id     = VertexId(j * width + i + 1)
         Vertex(id, BigPoint(x, y))
       }
 
@@ -208,7 +207,7 @@ object TilingTorusBuilder:
     def destOf(e: HalfEdge): Vertex = e.next.get.origin
 
     val buckets =
-      allHE.groupBy(e => (e.origin.id.value, destOf(e).id.value))
+      allHE.groupBy(e => (e.origin.id.toPrefixedString, destOf(e).id.toPrefixedString))
 
     def keyOpp(k: (String, String)) = (k._2, k._1)
 
@@ -294,7 +293,7 @@ object TilingTorusBuilder:
       vertexByTriple.getOrElseUpdate(
         key, {
           val (a, b, c) = key
-          val v         = Vertex(vertexIdV(vCount), tripleToPoint(a, b, c))
+          val v         = Vertex(VertexId(vCount), tripleToPoint(a, b, c))
           vCount += 1
           v
         }

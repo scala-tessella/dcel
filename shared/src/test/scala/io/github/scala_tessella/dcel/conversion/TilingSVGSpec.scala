@@ -4,7 +4,7 @@ import io.github.scala_tessella.dcel.TilingEquivalency.isBoundaryEquivalentTo
 import io.github.scala_tessella.dcel.TilingValidation.validate
 import io.github.scala_tessella.dcel.conversion.TilingSVG.*
 import io.github.scala_tessella.dcel.geometry.BigPoint
-import io.github.scala_tessella.dcel.structure.{Face, Vertex, VertexId}
+import io.github.scala_tessella.dcel.structure.{Face, Vertex}
 import io.github.scala_tessella.dcel.{TilingBuilder, TilingDCEL, TilingTestHelpers}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -269,7 +269,7 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "handle empty half-edges list gracefully" in:
     // Create a tiling with vertices but no half-edges
-    val vertex                 = Vertex(VertexId("V0"), BigPoint(BigDecimal(0), BigDecimal(0)))
+    val vertex                 = Vertex(V1, BigPoint(BigDecimal(0), BigDecimal(0)))
     val tilingWithVerticesOnly = TilingDCEL(
       vertices = List(vertex),
       halfEdges = List.empty,
@@ -283,7 +283,7 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     allAssert(
       svg should include("<svg"),
       svg should include("<circle"),
-      svg should include(">V0</text>"),
+      svg should include(">V1</text>"),
       svg should not include "<line",
       svg should include("</svg>")
     )
@@ -411,8 +411,8 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "not create arrows for very short edges" in:
     // Create a tiling with very close vertices that would result in distance <= ACCURACY
-    val v1 = Vertex(VertexId("V1"), BigPoint(BigDecimal(0), BigDecimal(0)))
-    val v2 = Vertex(VertexId("V2"), BigPoint(BigDecimal(1e-15), BigDecimal(1e-15))) // Very close
+    val v1 = Vertex(V1, BigPoint(BigDecimal(0), BigDecimal(0)))
+    val v2 = Vertex(V2, BigPoint(BigDecimal(1e-15), BigDecimal(1e-15))) // Very close
 
     val tilingWithCloseVertices = TilingDCEL(
       vertices = List(v1, v2),
@@ -546,8 +546,8 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   behavior of "Edge case handling"
 
   it should "handle vertices at origin correctly" in:
-    val v1 = Vertex(VertexId("V1"), BigPoint(BigDecimal(0), BigDecimal(0)))
-    val v2 = Vertex(VertexId("V2"), BigPoint(BigDecimal(1), BigDecimal(1)))
+    val v1 = Vertex(V1, BigPoint(BigDecimal(0), BigDecimal(0)))
+    val v2 = Vertex(V2, BigPoint(BigDecimal(1), BigDecimal(1)))
 
     val tilingWithOrigin = TilingDCEL(
       vertices = List(v1, v2),
@@ -567,8 +567,8 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     )
 
   it should "handle very large coordinates gracefully" in:
-    val v1 = Vertex(VertexId("V1"), BigPoint(BigDecimal(1000000), BigDecimal(1000000)))
-    val v2 = Vertex(VertexId("V2"), BigPoint(BigDecimal(1000001), BigDecimal(1000001)))
+    val v1 = Vertex(V1, BigPoint(BigDecimal(1000000), BigDecimal(1000000)))
+    val v2 = Vertex(V2, BigPoint(BigDecimal(1000001), BigDecimal(1000001)))
 
     val tilingWithLargeCoords = TilingDCEL(
       vertices = List(v1, v2),

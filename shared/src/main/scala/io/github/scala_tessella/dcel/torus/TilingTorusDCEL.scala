@@ -35,7 +35,7 @@ final case class TilingTorusDCEL private (
     vertices.find(_.id == vertexId)
 
   def findVertex(vertexId: VertexId): Either[NotFoundError, Vertex] =
-    findVertexUnsafe(vertexId).toRight(NotFoundError("Vertex", vertexId.value))
+    findVertexUnsafe(vertexId).toRight(NotFoundError("Vertex", vertexId.toPrefixedString))
 
   def findFace(faceId: FaceId): Either[NotFoundError, Face] =
     faces.find(_.id == faceId).toRight(NotFoundError("Inner face", faceId.toPrefixedString))

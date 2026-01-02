@@ -27,9 +27,9 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
       V3,
       V4,
       V6,
-      VertexId("V7"),
-      VertexId("V8"),
-      VertexId("V9")
+      VertexId(7),
+      VertexId(8),
+      VertexId(9)
     )
 
   behavior of "TilingTorusDCEL.findVertex/findFace"
@@ -50,7 +50,7 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
   it should "fail on non-existing vertices and faces" in:
     val torus = createSquareNet(2, 2)
     allAssert(
-      torus.findVertex(VertexId("VX")).isLeft shouldBe true,
+      torus.findVertex(VertexId(999)).isLeft shouldBe true,
       torus.findFace(FaceId(999)).isLeft shouldBe true
     )
 
@@ -106,7 +106,7 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
       torus.facesWithIncorrectCoords.size shouldBe 1,
       torus.faces.map(_.getVerticesUnsafe.map(_.id)) shouldBe
         List(
-          List(V1, V6, V1, "V8", V1, V6, V1, "V8")
+          List(V1, V6, V1, 8, V1, V6, V1, 8)
         ),
       torus.faces.map(_.anglesUnsafe) shouldBe
         List(
@@ -133,10 +133,10 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
       torus.facesWithIncorrectCoords.size shouldBe 3,
       torus.faces.map(_.getVerticesUnsafe.map(_.id)) shouldBe
         List(
-          List(V1, "V8", V5, V4),
-          List("V8", V1, V4, V5),
-          List(V4, V5, "V8", V1),
-          List(V5, V4, V1, "V8")
+          List(V1, 8, V5, V4),
+          List(8, V1, V4, V5),
+          List(V4, V5, 8, V1),
+          List(V5, V4, V1, 8)
         ),
       torus.vertices.size shouldBe 4,
       torus.halfEdges.size shouldBe 16,

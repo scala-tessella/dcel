@@ -37,12 +37,11 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "return None for non-existent vertex id" in
     allAssert(
-      triangle.findVertexUnsafe(VertexId("V999")) shouldBe None,
-      triangle.findVertexUnsafe(VertexId("NonExistent")) shouldBe None
+      triangle.findVertexUnsafe(VertexId(999)) shouldBe None
     )
 
   it should "find vertices in empty tiling" in:
-    emptyTiling.findVertexUnsafe(VertexId("V0")) shouldBe None
+    emptyTiling.findVertexUnsafe(VertexId(0)) shouldBe None
 
   behavior of "TilingDCEL.findFace"
 
@@ -177,7 +176,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     result.value should contain theSameElementsAs List(AngleDegree(60), AngleDegree(300))
 
   it should "return an error for a non-existent vertex" in:
-    val result = triangle.getAnglesAtVertex(VertexId("V999"))
+    val result = triangle.getAnglesAtVertex(VertexId(999))
     allAssert(
       result.isLeft shouldBe true,
       result.left.value.message shouldEqual "Vertex with ID 'V999' not found."
@@ -190,11 +189,11 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       .maybeAddRegularPolygonToBoundary(V2, RegularPolygon(3)).value
       .maybeAddRegularPolygonToBoundary(V3, RegularPolygon(3)).value
       .maybeAddRegularPolygonToBoundary(V2, RegularPolygon(4)).value
-      .maybeAddRegularPolygonToBoundary(VertexId("V8"), RegularPolygon(4)).value
-      .maybeAddRegularPolygonToBoundary(VertexId("V11"), RegularPolygon(6)).value
+      .maybeAddRegularPolygonToBoundary(VertexId(8), RegularPolygon(4)).value
+      .maybeAddRegularPolygonToBoundary(VertexId(11), RegularPolygon(6)).value
 
   it should "return the angles for the inner vertex of the bench" in:
-    val result = bench.getAnglesAtVertex(VertexId("V8"))
+    val result = bench.getAnglesAtVertex(VertexId(8))
     result.value shouldBe List(120, 90, 60, 90).map(AngleDegree(_))
 
   it should "return the angles for a boundary vertex of the bench" in:
@@ -204,7 +203,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   behavior of "TilingDCEL.getInnerAnglesAtVertex"
 
   it should "return the inner angles for the inner vertex of the bench" in:
-    val result = bench.getInnerAnglesAtVertex(VertexId("V8"))
+    val result = bench.getInnerAnglesAtVertex(VertexId(8))
     result.value shouldBe List(120, 90, 60, 90).map(AngleDegree(_))
 
   it should "return the inner angles for a boundary vertex of the bench" in:
@@ -215,7 +214,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "return the inner vertices of the bench" in:
     val result = bench.innerVertices
-    result.map(_.id) shouldBe List(VertexId("V8"))
+    result.map(_.id) shouldBe List(VertexId(8))
 
   behavior of "TilingDCEL.empty"
 
@@ -233,7 +232,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   it should "return the DCEL around the inner vertex of the bench" in:
 
     /** @see <img src="file:../../../../../resources/aroundInnerVertex.svg"/> */
-    val result = bench.getDcelAtVertex(VertexId("V8"))
+    val result = bench.getDcelAtVertex(VertexId(8))
     TilingValidation.validate(result.value).isRight shouldBe true
 
   it should "return the DCEL around a boundary vertex of the bench" in:
@@ -243,7 +242,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     TilingValidation.validate(result.value).isRight shouldBe true
 
   it should "return the DCEL around another boundary vertex of the bench" in:
-    val result = bench.getDcelAtVertex(VertexId("V7"))
+    val result = bench.getDcelAtVertex(VertexId(7))
     allAssert(
       TilingValidation.validate(result.value).isRight shouldBe true,
       result.value.isBoundaryEquivalentTo(triangle) shouldBe true
@@ -252,9 +251,9 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   it should "return the DCEL around the inner vertex with varying distances" in:
     val net = TilingBuilder.createRhombusNet(6, 6)
     allAssert(
-      net.getDcelAtVertex(VertexId("V25"), 0).value.innerFaces.size shouldBe 4,
-      net.getDcelAtVertex(VertexId("V25"), 1).value.innerFaces.size shouldBe 12,
-      net.getDcelAtVertex(VertexId("V25"), 2).value.innerFaces.size shouldBe 24
+      net.getDcelAtVertex(VertexId(25), 0).value.innerFaces.size shouldBe 4,
+      net.getDcelAtVertex(VertexId(25), 1).value.innerFaces.size shouldBe 12,
+      net.getDcelAtVertex(VertexId(25), 2).value.innerFaces.size shouldBe 24
     )
 
 //  behavior of "TilingDCEL.getPolygonVerticesAroundVertex"
@@ -273,7 +272,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   def net: TilingDCEL = TilingBuilder.createRhombusNet(3, 6)
 
-  def holeInNet2: TilingDCEL = net.deleteEdge(VertexId("V14"), VertexId("V15")).value
+  def holeInNet2: TilingDCEL = net.deleteEdge(VertexId(14), VertexId(15)).value
 
 //  it should "group the inner vertices according to their adjacent polygons" in:
 //    holeInNet2.groupedInnerVertices.values.toList shouldBe List(
@@ -290,39 +289,39 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     net.uniformityTree.flattenLeaves shouldBe
       List(
         List(
-          "V9",
-          "V10",
-          "V11",
-          "V12",
-          "V13",
-          "V16",
-          "V20",
-          "V23",
-          "V27",
-          "V30",
-          "V34",
-          "V37",
-          "V38",
-          "V39",
-          "V40",
-          "V41",
-          "V17",
-          "V18",
-          "V19",
-          "V24",
-          "V26",
-          "V31",
-          "V32",
-          "V33",
-          "V25"
+          9,
+          10,
+          11,
+          12,
+          13,
+          16,
+          20,
+          23,
+          27,
+          30,
+          34,
+          37,
+          38,
+          39,
+          40,
+          41,
+          17,
+          18,
+          19,
+          24,
+          26,
+          31,
+          32,
+          33,
+          25
         )
       )
 
   it should "calculate the uniformity of a holed net" in:
     holeInNet2.uniformityTree.flattenLeaves shouldBe List(
-      List(V6, "V7", "V22", "V23"),
-      List("V10", "V11", "V18", "V19"),
-      List("V14", "V15")
+      List(V6, 7, 22, 23),
+      List(10, 11, 18, 19),
+      List(14, 15)
     )
 
   it should "calculate another" in:
@@ -333,109 +332,109 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
         List(
           Branch(
             List(
-              "V15",
-              "V16",
-              "V17",
-              "V18",
-              "V19",
-              "V25",
-              "V28",
-              "V36",
-              "V37",
-              "V38",
-              "V41",
-              "V51",
-              "V80",
-              "V90",
-              "V93",
-              "V103",
-              "V106",
-              "V116",
-              "V137",
-              "V138",
-              "V145",
-              "V146",
-              "V147",
-              "V148",
-              "V149",
-              "V155"
+              15,
+              16,
+              17,
+              18,
+              19,
+              25,
+              28,
+              36,
+              37,
+              38,
+              41,
+              51,
+              80,
+              90,
+              93,
+              103,
+              106,
+              116,
+              137,
+              138,
+              145,
+              146,
+              147,
+              148,
+              149,
+              155
             ),
             List(
               Leaf(List(
-                "V29",
-                "V48",
-                "V50",
-                "V81",
-                "V94",
-                "V102",
-                "V115",
-                "V124",
-                "V126",
-                "V135",
-                "V59",
-                "V61",
-                "V70",
-                "V83",
-                "V113",
-                "V72"
+                29,
+                48,
+                50,
+                81,
+                94,
+                102,
+                115,
+                124,
+                126,
+                135,
+                59,
+                61,
+                70,
+                83,
+                113,
+                72
               )),
               Leaf(List(
-                "V30",
-                "V47",
-                "V62",
-                "V69",
-                "V95",
-                "V101",
-                "V127",
-                "V134",
-                "V58",
-                "V73",
-                "V84",
-                "V112",
-                "V123"
+                30,
+                47,
+                62,
+                69,
+                95,
+                101,
+                127,
+                134,
+                58,
+                73,
+                84,
+                112,
+                123
               )),
-              Leaf(List("V49", "V125", "V136", "V60", "V82", "V114", "V71"))
+              Leaf(List(49, 125, 136, 60, 82, 114, 71))
             )
           ),
           Leaf(List(
-            "V20",
-            "V35",
-            "V42",
-            "V63",
-            "V68",
-            "V89",
-            "V107",
-            "V128",
-            "V133",
-            "V139",
-            "V154",
-            "V31",
-            "V46",
-            "V57",
-            "V74",
-            "V96",
-            "V100",
-            "V122",
-            "V111",
-            "V85"
+            20,
+            35,
+            42,
+            63,
+            68,
+            89,
+            107,
+            128,
+            133,
+            139,
+            154,
+            31,
+            46,
+            57,
+            74,
+            96,
+            100,
+            122,
+            111,
+            85
           )),
           Leaf(List(
-            "V21",
-            "V34",
-            "V43",
-            "V56",
-            "V75",
-            "V88",
-            "V108",
-            "V121",
-            "V140",
-            "V153",
-            "V32",
-            "V45",
-            "V86",
-            "V97",
-            "V99",
-            "V110"
+            21,
+            34,
+            43,
+            56,
+            75,
+            88,
+            108,
+            121,
+            140,
+            153,
+            32,
+            45,
+            86,
+            97,
+            99,
+            110
           ))
         )
       )

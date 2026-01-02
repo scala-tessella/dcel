@@ -62,7 +62,7 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
   /** <img src="file:../../../../../resources/symmetry/oneAsymmHole.svg"/> */
   val oneAsymmetricHole: TilingDCEL =
     TilingBuilder.createRhombusNet(4, 4)
-      .deleteEdge(V6, VertexId("V7")).value
+      .deleteEdge(V6, VertexId(7)).value
 
   it should "calculate the rotational symmetry for a 4x4 square with one asymmetric hole" in:
     oneAsymmetricHole.rotationalSymmetryOrder shouldBe 1
@@ -70,8 +70,8 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
   /** <img src="file:../../../../../resources/symmetry/twoAsymmHoles.svg"/> */
   val twoAsymmetricHoles: TilingDCEL =
     TilingBuilder.createRhombusNet(4, 4)
-      .deleteEdge(V6, VertexId("V7")).value
-      .deleteEdge(VertexId("V17"), VertexId("V22")).value
+      .deleteEdge(V6, VertexId(7)).value
+      .deleteEdge(VertexId(17), VertexId(22)).value
 
   it should "calculate the rotational symmetry for a 4x4 square with two asymmetrical holes" in:
     twoAsymmetricHoles.rotationalSymmetryOrder shouldBe 1
@@ -79,10 +79,10 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
   /** <img src="file:../../../../../resources/symmetry/fourRotationalHoles.svg"/> */
   val fourRotationalHoles: TilingDCEL =
     TilingBuilder.createRhombusNet(4, 4)
-      .deleteEdge(V6, VertexId("V7")).value
-      .deleteEdge(VertexId("V17"), VertexId("V22")).value
-      .deleteEdge(VertexId("V19"), VertexId("V20")).value
-      .deleteEdge(VertexId("V4"), VertexId("V9")).value
+      .deleteEdge(V6, VertexId(7)).value
+      .deleteEdge(VertexId(17), VertexId(22)).value
+      .deleteEdge(VertexId(19), VertexId(20)).value
+      .deleteEdge(VertexId(4), VertexId(9)).value
 
   it should "calculate the rotational symmetry for a 4x4 square with four rotated holes" in:
     fourRotationalHoles.rotationalSymmetryOrder shouldBe 4
@@ -90,21 +90,21 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
   /** <img src="file:../../../../../resources/symmetry/twoRotationalHoles.svg"/> */
   val twoRotationalHoles: TilingDCEL =
     TilingBuilder.createRhombusNet(4, 4)
-      .deleteEdge(V6, VertexId("V7")).value
-      .deleteEdge(VertexId("V19"), VertexId("V20")).value
+      .deleteEdge(V6, VertexId(7)).value
+      .deleteEdge(VertexId(19), VertexId(20)).value
 
   it should "calculate the rotational symmetry for a 4x4 square with two rotated holes" in:
     allAssert(
       twoRotationalHoles.rotationalSymmetryOrder shouldBe 2,
       twoRotationalHoles.rotationalVertexIds shouldBe
-        List(BoundaryVertex(V1), BoundaryVertex(VertexId("V25")))
+        List(BoundaryVertex(V1), BoundaryVertex(VertexId(25)))
     )
 
   /** <img src="file:../../../../../resources/symmetry/twoReflectionalHoles.svg"/> */
   val twoReflectionalHoles: TilingDCEL =
     TilingBuilder.createRhombusNet(4, 4)
-      .deleteEdge(V6, VertexId("V7")).value
-      .deleteEdge(VertexId("V9"), VertexId("V10")).value
+      .deleteEdge(V6, VertexId(7)).value
+      .deleteEdge(VertexId(9), VertexId(10)).value
 
   it should "calculate the rotational symmetry for a 4x4 square with two reflected holes" in:
     allAssert(
@@ -119,8 +119,8 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
     square4x4.rotationalVertexIds shouldBe
       List(
         BoundaryVertex(V1),
-        BoundaryVertex(VertexId("V21")),
-        BoundaryVertex(VertexId("V25")),
+        BoundaryVertex(VertexId(21)),
+        BoundaryVertex(VertexId(25)),
         BoundaryVertex(V5)
       )
 
@@ -129,8 +129,8 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
     square3x3.rotationalVertexIds shouldBe
       List(
         BoundaryVertex(V1),
-        BoundaryVertex(VertexId("V13")),
-        BoundaryVertex(VertexId("V16")),
+        BoundaryVertex(VertexId(13)),
+        BoundaryVertex(VertexId(16)),
         BoundaryVertex(V4)
       )
 
@@ -139,7 +139,7 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
     triangle3.rotationalVertexIds shouldBe
       List(
         BoundaryVertex(V1),
-        BoundaryVertex(VertexId("V7")),
+        BoundaryVertex(VertexId(7)),
         BoundaryVertex(V4)
       )
 

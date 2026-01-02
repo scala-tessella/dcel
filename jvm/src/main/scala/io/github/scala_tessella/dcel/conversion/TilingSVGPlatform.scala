@@ -38,7 +38,7 @@ object TilingSVGPlatform:
               id <- getAttr(vNode, "id")
               x  <- attrAs(vNode, "x", BigDecimal.apply, "BigDecimal")
               y  <- attrAs(vNode, "y", BigDecimal.apply, "BigDecimal")
-            yield Vertex(VertexId(id), BigPoint(x, y))
+            yield Vertex(VertexId.fromString(id), BigPoint(x, y))
           .sequence
       vertexMap   = vertices.associateValues:
                       _.id
@@ -49,7 +49,7 @@ object TilingSVGPlatform:
           .map: heNode =>
             for
               originId <- getAttr(heNode, "origin")
-              origin   <- vertexMap.get(VertexId(originId)).toRight(NotFoundError(
+              origin   <- vertexMap.get(VertexId.fromString(originId)).toRight(NotFoundError(
                             "Vertex for half-edge origin",
                             originId
                           ))

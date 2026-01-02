@@ -53,7 +53,7 @@ final case class TilingDCEL private (
       vertex.id == vertexId
 
   def findVertex(vertexId: VertexId): Either[NotFoundError, Vertex] =
-    findVertexUnsafe(vertexId).toRight(NotFoundError("Vertex", vertexId.value))
+    findVertexUnsafe(vertexId).toRight(NotFoundError("Vertex", vertexId.toPrefixedString))
 
   def findFace(faceId: FaceId): Either[NotFoundError, Face] =
     faces
@@ -89,7 +89,11 @@ final case class TilingDCEL private (
       v1   <- findVertex(vertexId1)
       v2   <- findVertex(vertexId2)
       edge <-
-        v1.findEdgeBetweenUnsafe(v2).toRight(NotFoundError("Edge", s"between $vertexId1 and $vertexId2"))
+        v1.findEdgeBetweenUnsafe(v2)
+          .toRight(NotFoundError(
+            "Edge",
+            s"between ${vertexId1.toPrefixedString} and ${vertexId2.toPrefixedString}"
+          ))
     yield (v1, v2, edge)
 
   def innerFacesVertices: List[(FaceId, List[Vertex])] =
