@@ -9,3 +9,5 @@ object VertexId:
   extension (id: VertexId)
 
     def value: String = id
+
+type HalfEdgeId = (VertexId, VertexId)

@@ -53,7 +53,7 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       edge.angle shouldBe Some(angle),
       edge.toString shouldBe "HalfEdge V1 -> V2",
       edge.endpointsAsVertices shouldBe Some((vertex, twinVertex)),
-      edge.key shouldBe Some((V1, V2))
+      edge.keyUnsafe shouldBe (V1, V2)
     )
 
   behavior of "HalfEdge equality"

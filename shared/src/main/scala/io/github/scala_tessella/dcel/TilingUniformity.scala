@@ -3,7 +3,7 @@ package io.github.scala_tessella.dcel
 import io.github.scala_tessella.dcel.TilingBuilder.setOuterEdgeAngles
 import io.github.scala_tessella.dcel.TilingEquivalency.groupByBoundaryEquivalency
 import io.github.scala_tessella.dcel.Tree.*
-import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
+import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, HalfEdgeId, Vertex, VertexId}
 
 import scala.util.control.TailCalls.{TailRec, done, tailcall}
 
@@ -62,7 +62,7 @@ object TilingUniformity:
 
         // 3) Build a local DCEL from those faces, cloning only the necessary vertices/edges/faces
         val vMap  = scala.collection.mutable.HashMap[VertexId, Vertex]()
-        val heMap = scala.collection.mutable.HashMap[(VertexId, VertexId), HalfEdge]()
+        val heMap = scala.collection.mutable.HashMap[HalfEdgeId, HalfEdge]()
         val fMap  = scala.collection.mutable.HashMap[FaceId, Face]()
 
         def cloneVertex(v: Vertex): Vertex =
@@ -74,17 +74,17 @@ object TilingUniformity:
           fMap.put(face.id, nf): Unit
 
           val cycle = face.outerComponent.get.faceTraversalUnsafe[HalfEdge]()
-          cycle.foreach: he =>
-            val key = he.key.get
+          cycle.foreach: halfEdge =>
+            val key = halfEdge.keyUnsafe
             if !heMap.contains(key) then
-              val o  = cloneVertex(he.origin)
+              val o  = cloneVertex(halfEdge.origin)
               val nh = HalfEdge(
                 origin = o,
                 twin = None,
                 next = None,
                 prev = None,
                 incidentFace = None,
-                angle = he.angle
+                angle = halfEdge.angle
               )
               heMap.put(key, nh): Unit
               if o.leaving.isEmpty then o.leaving = Some(nh)
@@ -95,8 +95,8 @@ object TilingUniformity:
           val cycle                      = face.outerComponent.get.faceTraversalUnsafe[HalfEdge]()
           var firstNew: Option[HalfEdge] = None
           var prevNew: Option[HalfEdge]  = None
-          cycle.foreach: he =>
-            val nh = heMap(he.key.get)
+          cycle.foreach: halfEdge =>
+            val nh = heMap(halfEdge.keyUnsafe)
             nh.incidentFace = Some(nf)
             if firstNew.isEmpty then firstNew = Option(nh)
             if prevNew.isDefined then
@@ -110,10 +110,10 @@ object TilingUniformity:
         // Third pass: wire twins for inner-inner edges
         selectedInnerFaces.foreach: face =>
           val cycle = face.outerComponent.get.faceTraversalUnsafe[HalfEdge]()
-          cycle.foreach: he =>
-            val nh = heMap(he.key.get)
-            he.twin.foreach: twin =>
-              val tk = twin.key.get
+          cycle.foreach: halfEdge =>
+            val nh = heMap(halfEdge.keyUnsafe)
+            halfEdge.twin.foreach: twin =>
+              val tk = twin.keyUnsafe
               if heMap.contains(tk) then
                 val nt = heMap(tk)
                 nh.twin = Some(nt)
@@ -122,24 +122,23 @@ object TilingUniformity:
         // 4) Build boundary half-edges where twins are missing (outer boundary of the local DCEL)
         val localOuter    = Face.outer
         val boundaryStubs = scala.collection.mutable.ArrayBuffer[HalfEdge]()
-        heMap.values.foreach: nh =>
-          if nh.twin.isEmpty then
+        heMap.values.foreach: halfEdge =>
+          if halfEdge.twin.isEmpty then
             val b = HalfEdge(
-              origin = nh.next.get.origin,
-              twin = Some(nh),
+              origin = halfEdge.next.get.origin,
+              twin = Some(halfEdge),
               next = None,
               prev = None,
               incidentFace = Some(localOuter),
-              angle = nh.angle.map(_.conjugate)
+              angle = halfEdge.angle.map(_.conjugate)
             )
-            nh.twin = Some(b)
+            halfEdge.twin = Some(b)
             boundaryStubs += b
 
-        val keyOf: HalfEdge => (VertexId, VertexId) = he => (he.origin.id, he.destinationUnsafe.id)
-        val stubByKey                               =
+        val stubByKey =
           boundaryStubs
             .map: halfEdge =>
-              keyOf(halfEdge) -> halfEdge
+              halfEdge.keyUnsafe -> halfEdge
             .toMap
 
         def nextBoundaryOf(b: HalfEdge): Option[HalfEdge] =
@@ -147,16 +146,16 @@ object TilingUniformity:
           val wantedKey = (innerPrev.destinationUnsafe.id, innerPrev.origin.id)
           stubByKey.get(wantedKey)
 
-        val visitedPairs   = scala.collection.mutable.HashSet[(VertexId, VertexId)]()
+        val visitedPairs   = scala.collection.mutable.HashSet[HalfEdgeId]()
         val boundaryCycles = scala.collection.mutable.ArrayBuffer[HalfEdge]()
         boundaryStubs.foreach: start =>
-          val startKey = keyOf(start)
+          val startKey = start.keyUnsafe
           if !visitedPairs.contains(startKey) then
             var cur   = start
             val first = start
             var ok    = true
-            while ok && !visitedPairs.contains(keyOf(cur)) do
-              visitedPairs += keyOf(cur)
+            while ok && !visitedPairs.contains(cur.keyUnsafe) do
+              visitedPairs += cur.keyUnsafe
               nextBoundaryOf(cur) match
                 case Some(n) =>
                   cur.next = Some(n)
