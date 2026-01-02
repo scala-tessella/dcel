@@ -21,7 +21,7 @@ object FaceId:
       s.tail.toInt
     ) match
       case Success(i) if s == prefixedString(i) => i
-      case _ => throw new IllegalArgumentException(s"Invalid face id: $s")
+      case _                                    => throw new IllegalArgumentException(s"Invalid face id: $s")
 
   extension (id: FaceId)
 

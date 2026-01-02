@@ -168,10 +168,10 @@ object TilingAddition:
   extension (tiling: TilingDCEL)
 
     private def nextFaceId: FaceId =
-      faceIdF(
+      FaceId(
         tiling.innerFaces
           .map: face =>
-            idFromFaceId(face.id)
+            face.id.value
           .max + 1
       )
 
@@ -607,14 +607,14 @@ object TilingAddition:
       val maxFaceId                           =
         faceIds
           .map: faceId =>
-            idFromFaceId(faceId)
+            faceId.value
           .maxOption.get
       val faceIdTranslation: FaceId => FaceId =
         faceIds.indices
           .map: index =>
             faceIds(index) match
-              case faceId if idFromFaceId(faceId) == 0 => faceId -> faceId // outer face
-              case faceId                              => faceId -> faceIdF(maxFaceId + index)
+              case faceId if faceId == FaceId.outerId => faceId -> faceId // outer face
+              case faceId                             => faceId -> FaceId(maxFaceId + index)
           .toMap
 
       // Second copy, translated in space and with fresh ids
@@ -691,32 +691,32 @@ object TilingAddition:
       // 3.b – create inner faces only (discard old outers, we will recompute boundary)
       val faceMap = mutable.HashMap.empty[Face, Face]
       allOldFaces.foreach: face =>
-        if idFromFaceId(face.id) != 0 then
+        if face.id != FaceId.outerId then
           faceMap.getOrElseUpdate(face, Face(face.id)): Unit
 
       // 3.c – wire next / prev / incidentFace from old to new via maps
       allOldEdges.foreach:
-        oe =>
-          val ne = edgeMap(oe)
-          oe.next.foreach: on =>
-            ne.next = Some(edgeMap(on))
-          oe.prev.foreach: op =>
-            ne.prev = Some(edgeMap(op))
-          oe.incidentFace.foreach:
-            of =>
-              if idFromFaceId(of.id) != 0 then
+        oldEdge =>
+          val newEdge = edgeMap(oldEdge)
+          oldEdge.next.foreach: on =>
+            newEdge.next = Some(edgeMap(on))
+          oldEdge.prev.foreach: op =>
+            newEdge.prev = Some(edgeMap(op))
+          oldEdge.incidentFace.foreach:
+            oldFace =>
+              if oldFace.id != FaceId.outerId then
                 // inner face
-                ne.incidentFace = Some(faceMap(of))
+                newEdge.incidentFace = Some(faceMap(oldFace))
               // else: old outer face, leave as boundary (incidentFace = None)
 
       // 3.d – set outerComponent / innerComponents on inner faces only
-      allOldFaces.foreach: of =>
-        if idFromFaceId(of.id) != 0 then
-          val nf = faceMap(of)
-          of.outerComponent.foreach: startOld =>
-            nf.outerComponent = Some(edgeMap(startOld))
-          nf.innerComponents =
-            of.innerComponents.map: maybeHalfEdge =>
+      allOldFaces.foreach: face =>
+        if face.id != FaceId.outerId then
+          val newFace = faceMap(face)
+          face.outerComponent.foreach: startOld =>
+            newFace.outerComponent = Some(edgeMap(startOld))
+          newFace.innerComponents =
+            face.innerComponents.map: maybeHalfEdge =>
               maybeHalfEdge.map: halfEdge =>
                 edgeMap(halfEdge)
 

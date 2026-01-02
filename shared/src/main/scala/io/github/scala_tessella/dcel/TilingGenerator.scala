@@ -118,7 +118,10 @@ object TilingGenerator:
 
     val (targetVertex, gap) = candidates.head
 
-    val maxFaceId = tiling.innerFaces.map(face => TilingBuilder.idFromFaceId(face.id)).max
+    val maxFaceId = tiling.innerFaces
+      .map: face =>
+        face.id.value
+      .max
 //    println(s"maxFaceId: $maxFaceId, targetVertex: $targetVertex, gap: $gap")
 
     // Try adding polygons

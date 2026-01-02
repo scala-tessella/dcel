@@ -128,7 +128,8 @@ object TilingValidation:
             edges.flatMap: halfEdge =>
               halfEdge.angle
           SimplePolygon.fromUntrusted(angles.toVector) match
-            case Left(error) => errors += s"Face ${face.id.toPrefixedString} has an invalid polygon: ${error.message}"
+            case Left(error) =>
+              errors += s"Face ${face.id.toPrefixedString} has an invalid polygon: ${error.message}"
             case Right(_)    => ()
         case Left(_)      => // NOTE: topological error, handled in validateTopologically
 

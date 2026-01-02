@@ -2,7 +2,7 @@ package io.github.scala_tessella.dcel.structure
 
 import io.github.scala_tessella.dcel.{TilingBuilder, TilingTestHelpers}
 import io.github.scala_tessella.dcel.geometry.BigPoint
-import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
+import io.github.scala_tessella.dcel.structure.{Face, HalfEdge, Vertex, VertexId}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
