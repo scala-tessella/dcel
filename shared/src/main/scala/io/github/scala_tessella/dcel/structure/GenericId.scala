@@ -10,7 +10,7 @@ trait GenericId:
 
   private[structure] def fromStringSafe(s: String): Int =
     Try(
-      s.tail.toInt
+      s.drop(prefix.length).toInt
     ) match
       case Success(i) if s == prefixedString(i) => i
-      case _                                    => throw new IllegalArgumentException(s"Invalid id: $s")
+      case _                                    => throw new IllegalArgumentException(s"Invalid id: `$s`")
