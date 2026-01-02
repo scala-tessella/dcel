@@ -36,7 +36,9 @@ class GenericIdSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     vertexIdTester.fromStringUntrusted("F1").left.value.message should include("Invalid id prefix: `F1`")
 
   it should "throw IllegalArgumentException if the string is too short" in:
-    vertexIdTester.fromStringUntrusted("V").left.value.message should include("Invalid numeric part in id: `V`")
+    vertexIdTester.fromStringUntrusted("V").left.value.message should include(
+      "Invalid numeric part in id: `V`"
+    )
 
   it should "throw IllegalArgumentException if the numeric part is not an integer" in:
     allAssert(
