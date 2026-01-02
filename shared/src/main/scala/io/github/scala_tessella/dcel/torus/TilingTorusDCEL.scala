@@ -38,7 +38,7 @@ final case class TilingTorusDCEL private (
     findVertexUnsafe(vertexId).toRight(NotFoundError("Vertex", vertexId.value))
 
   def findFace(faceId: FaceId): Either[NotFoundError, Face] =
-    faces.find(_.id == faceId).toRight(NotFoundError("Inner face", faceId.value))
+    faces.find(_.id == faceId).toRight(NotFoundError("Inner face", faceId.toPrefixedString))
 
   /** Finds the edge between the two given vertices.
     *
@@ -190,7 +190,7 @@ final case class TilingTorusDCEL private (
         seen += curr
         curr = curr.next.get
       if curr eq start then
-        val f = Face(FaceId(java.util.UUID.randomUUID().toString))
+        val f = Face(FaceId(???))
         ring.foreach: e =>
           e.incidentFace = Some(f)
         f.outerComponent = Some(start)

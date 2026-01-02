@@ -29,7 +29,7 @@ final class Face(
   override def toString: String =
     val validationErrorSuffix =
       validate().toErrorSuffix
-    s"Face $id$validationErrorSuffix"
+    s"Face ${id.toPrefixedString}$validationErrorSuffix"
 
   def isOuter: Boolean =
     id == FaceId.outerId

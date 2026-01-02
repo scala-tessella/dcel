@@ -1,11 +1,10 @@
 package io.github.scala_tessella.dcel
 
 import io.github.scala_tessella.dcel.TilingBuilder.*
-import io.github.scala_tessella.dcel.TilingDeletion.*
 import io.github.scala_tessella.dcel.TilingEquivalency.*
 import io.github.scala_tessella.dcel.TilingValidation.validate
 import io.github.scala_tessella.dcel.geometry.{BigPoint, RegularPolygon}
-import io.github.scala_tessella.dcel.structure.VertexId
+import io.github.scala_tessella.dcel.structure.{FaceId, VertexId}
 import io.github.scala_tessella.ring_seq.RingSeq.reflectAt
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -280,10 +279,11 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
         _ + BigPoint(1, 0),
         vertexId => vertexIdV(idFromVertexId(vertexId) + 4),
         faceId =>
-          faceIdF(idFromFaceId(faceId) match {
-            case 0 => 0
-            case n => n + 1
-          })
+          FaceId(
+            faceId.value match
+              case 0 => 0
+              case n => n + 1
+          )
       )
     allAssert(
       transformed.vertices.map(_.toString) shouldEqual
@@ -294,7 +294,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
           "Vertex V8 at coords (1, 1)"
         ),
       transformed.faces.map(_.id) shouldEqual
-        List("F0", F2)
+        List(F0, F2)
     )
 
 //  behavior of "TilingDCEL.isTopologicallyEquivalentTo"

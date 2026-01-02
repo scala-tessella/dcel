@@ -49,9 +49,10 @@ trait TilingTestHelpers extends EitherValues:
   val V5: VertexId = VertexId("V5")
   val V6: VertexId = VertexId("V6")
 
-  val F1: FaceId = FaceId("F1")
-  val F2: FaceId = FaceId("F2")
-  val F3: FaceId = FaceId("F3")
+  val F0: FaceId = FaceId.outerId
+  val F1: FaceId = FaceId.firstInnerId
+  val F2: FaceId = FaceId(2)
+  val F3: FaceId = FaceId(3)
 
   private def saveFile(elem: Elem, filename: String)(extension: String): Unit =
     XML.save(

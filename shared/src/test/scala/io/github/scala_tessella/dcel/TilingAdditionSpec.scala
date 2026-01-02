@@ -918,9 +918,9 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   def vertexCrossing: TilingDCEL =
     TilingBuilder.createTriangleNet(4, 4)
       .deleteVertex(VertexId("V13")).value
-      .deleteFace(FaceId("F16")).value
-      .deleteFace(FaceId("F15")).value
-      .deleteFace(FaceId("F19")).value
+      .deleteFace(FaceId(16)).value
+      .deleteFace(FaceId(15)).value
+      .deleteFace(FaceId(19)).value
 
   it should "fail to add a polygon that crosses the boundary at vertices" in:
     val result = vertexCrossing

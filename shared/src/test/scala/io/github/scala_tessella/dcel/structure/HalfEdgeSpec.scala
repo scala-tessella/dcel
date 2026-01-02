@@ -498,7 +498,7 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val v1   = Vertex(V1, BigPoint(0, 0))
     val v2   = Vertex(V2, BigPoint(1, 0))
     val v3   = Vertex(V3, BigPoint(0.5, 0.866))
-    val face = Face(FaceId("Triangle"))
+    val face = Face(FaceId(333))
 
     val (e12, e21) = HalfEdge.createTwinPair(v1, v2)
     val (e23, e32) = HalfEdge.createTwinPair(v2, v3)
@@ -592,8 +592,8 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val vRight  = Vertex(VertexId("Right"), BigPoint(1, 0))
     val vBottom = Vertex(VertexId("Bottom"), BigPoint(0, -1))
 
-    val leftFace  = Face(FaceId("LeftTriangle"))
-    val rightFace = Face(FaceId("RightTriangle"))
+    val leftFace  = Face(FaceId(30))
+    val rightFace = Face(FaceId(31))
 
     // Create twin pairs for all edges
     val (eTopLeft, eLeftTop)         = HalfEdge.createTwinPair(vTop, vLeft)

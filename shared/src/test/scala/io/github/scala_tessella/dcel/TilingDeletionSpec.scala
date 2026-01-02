@@ -19,7 +19,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   behavior of "TilingDCEL.deleteFace"
 
   it should "fail to delete a face that does not exist" in:
-    val result = square.deleteFace(FaceId("F_NonExistent"))
+    val result = square.deleteFace(FaceId(999))
     allAssert(
       result.isLeft shouldBe true,
       result.left.value.message should include("not found")
@@ -55,7 +55,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
   it should "delete a face that is not on the boundary" in:
     val tiling = TilingBuilder.createRhombusNet(3, 3)
-    val result = tiling.deleteFace(FaceId("F5"))
+    val result = tiling.deleteFace(FaceId(5))
     allAssert(
       result.isRight shouldBe true, {
         val newTiling = result.value
@@ -137,7 +137,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
             allAssert(
               verifyValidTiling(newTiling),
               newTiling.innerFaces.length shouldBe 1,
-              newTiling.innerFaces.head.id.value shouldBe "F2",
+              newTiling.innerFaces.head.id shouldBe F2,
               newTiling.vertices.length shouldBe 4,
               newTiling.boundaryVertices.length shouldBe 4
             )
@@ -209,7 +209,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
             allAssert(
               verifyValidTiling(newTiling),
               newTiling.innerFaces.length shouldBe 1,
-              newTiling.innerFaces.head.id.value shouldBe "F2", // F1 is deleted
+              newTiling.innerFaces.head.id shouldBe F2, // F1 is deleted
               newTiling.vertices.length shouldBe 4,
               newTiling.boundaryVertices.length shouldBe 4
             )
@@ -231,7 +231,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
             allAssert(
               verifyValidTiling(newTiling),
               newTiling.innerFaces.length shouldBe 1,
-              newTiling.innerFaces.head.id.value shouldBe "F2", // F1 is deleted
+              newTiling.innerFaces.head.id shouldBe F2, // F1 is deleted
               newTiling.vertices.length shouldBe 4,
               newTiling.boundaryVertices.length shouldBe 4
             )

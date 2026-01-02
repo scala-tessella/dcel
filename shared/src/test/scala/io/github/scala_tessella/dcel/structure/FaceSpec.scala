@@ -70,7 +70,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   it should "create a face with just an ID" in:
     val face = Face(F1)
     allAssert(
-      face.id.value shouldBe "F1",
+      face.id.value shouldBe 1,
       face.outerComponent shouldBe None,
       face.innerComponents shouldBe Nil,
       face.isOuter shouldBe false
@@ -81,7 +81,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val edge   = HalfEdge(vertex)
     val face   = Face(F1, Some(edge))
     allAssert(
-      face.id.value shouldBe "F1",
+      face.id.value shouldBe 1,
       face.outerComponent shouldBe Some(edge),
       face.innerComponents shouldBe Nil
     )
@@ -93,7 +93,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val innerComponents = List(Some(edge1), Some(edge2))
     val face            = Face(F1, None, innerComponents)
     allAssert(
-      face.id.value shouldBe "F1",
+      face.id.value shouldBe 1,
       face.outerComponent shouldBe None,
       face.innerComponents shouldBe innerComponents
     )
@@ -188,7 +188,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     face.getVertices.getOrElse(List.empty) shouldBe List(vertex)
 
   it should "return vertices in order for triangle face" in:
-    val (face, _, vertices) = createTriangleFace(FaceId("F_triangle"))
+    val (face, _, vertices) = createTriangleFace(FaceId(333))
 
     val result = face.getVertices.getOrElse(List.empty)
     allAssert(
@@ -197,7 +197,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     )
 
   it should "return vertices in order for square face" in:
-    val (face, _, vertices) = createSquareFace(FaceId("F_square"))
+    val (face, _, vertices) = createSquareFace(FaceId(4444))
 
     val result = face.getVertices.getOrElse(List.empty)
     allAssert(
@@ -235,7 +235,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     face.halfEdges shouldBe Right(List(edge))
 
   it should "return Right with edges in order for triangle face" in:
-    val (face, edges, _) = createTriangleFace(FaceId("F_triangle"))
+    val (face, edges, _) = createTriangleFace(FaceId(333))
 
     val result = face.halfEdges
     allAssert(
@@ -244,7 +244,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     )
 
   it should "return Right with edges in order for square face" in:
-    val (face, edges, _) = createSquareFace(FaceId("F_square"))
+    val (face, edges, _) = createSquareFace(FaceId(4444))
 
     val result = face.halfEdges
     allAssert(
@@ -255,7 +255,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   it should "return Left when edge chain is broken" in:
     val v1   = createVertex(V1, 0, 0)
     val v2   = createVertex(VertexId("V2"), 1, 0)
-    val face = Face(FaceId("F_broken"))
+    val face = Face(FaceId(1))
     val he1  = HalfEdge(v1, incidentFace = Some(face))
     val he2  = HalfEdge(v2, incidentFace = Some(face))
 
@@ -271,9 +271,9 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "return Left when cycle is detected" in:
     val v1   = createVertex(V1, 0, 0)
-    val v2   = createVertex(VertexId("V2"), 1, 0)
-    val v3   = createVertex(VertexId("V3"), 0.5, 0.866)
-    val face = Face(FaceId("F_cycle"))
+    val v2   = createVertex(V2, 1, 0)
+    val v3   = createVertex(V3, 0.5, 0.866)
+    val face = Face(FaceId(1))
     val he1  = HalfEdge(v1, incidentFace = Some(face))
     val he2  = HalfEdge(v2, incidentFace = Some(face))
     val he3  = HalfEdge(v3, incidentFace = Some(face))
@@ -293,7 +293,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "return empty list when halfEdges returns error" in:
     val v1   = createVertex(V1, 0, 0)
-    val face = Face(FaceId("F_broken"))
+    val face = Face(FaceId(1))
     val he1  = HalfEdge(v1, incidentFace = Some(face))
     // he1.next is None - broken chain
     face.outerComponent = Some(he1)
@@ -301,20 +301,20 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     face.halfEdges.isLeft shouldBe true
 
   it should "return edges when halfEdges succeeds" in:
-    val (face, edges, _) = createTriangleFace(FaceId("F_triangle"))
+    val (face, edges, _) = createTriangleFace(FaceId(333))
 
     face.halfEdgesUnsafe should contain theSameElementsInOrderAs edges
 
   behavior of "Face.area"
 
   it should "return 0 for face with no vertices" in:
-    val face = Face(FaceId("F_empty"))
+    val face = Face(FaceId(1))
     face.area shouldBe Right(BigDecimal(0))
 
   it should "return 0 for face with less than 3 vertices" in:
     val v1   = createVertex(V1, 0, 0)
     val v2   = createVertex(VertexId("V2"), 1, 0)
-    val face = Face(FaceId("F_line"))
+    val face = Face(FaceId(1))
     val he1  = HalfEdge(v1, incidentFace = Some(face))
     val he2  = HalfEdge(v2, incidentFace = Some(face))
 
@@ -325,7 +325,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     face.areaUnsafe shouldBe BigDecimal(0)
 
   it should "calculate correct area for triangle" in:
-    val (face, _, _) = createTriangleFace(FaceId("F_triangle"))
+    val (face, _, _) = createTriangleFace(FaceId(333))
 
     // Triangle with vertices at (0,0), (1,0), (0.5, 0.866) should have area ≈ 0.433
     val area = face.areaUnsafe
@@ -335,7 +335,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     )
 
   it should "calculate correct area for unit square" in:
-    val (face, _, _) = createSquareFace(FaceId("F_square"))
+    val (face, _, _) = createSquareFace(FaceId(4444))
 
     // Unit square should have area = 1
     face.areaUnsafe shouldBe BigDecimal(1)
@@ -347,7 +347,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val v3 = createVertex(VertexId("V3"), 2, 3)
     val v4 = createVertex(V4, 0, 3)
 
-    val face = Face(FaceId("F_rectangle"))
+    val face = Face(FaceId(44))
     val he1  = HalfEdge(v1, incidentFace = Some(face))
     val he2  = HalfEdge(v2, incidentFace = Some(face))
     val he3  = HalfEdge(v3, incidentFace = Some(face))
@@ -500,10 +500,10 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
     // Set twins for all other edges to dummy edges to avoid None.get errors
     // In a real DCEL, all edges would have twins
-    val dummyTwin1_23 = HalfEdge(v3, incidentFace = Some(Face(FaceId("dummy1"))))
-    val dummyTwin1_31 = HalfEdge(v1, incidentFace = Some(Face(FaceId("dummy2"))))
-    val dummyTwin2_14 = HalfEdge(v4, incidentFace = Some(Face(FaceId("dummy3"))))
-    val dummyTwin2_42 = HalfEdge(v2, incidentFace = Some(Face(FaceId("dummy4"))))
+    val dummyTwin1_23 = HalfEdge(v3, incidentFace = Some(Face(FaceId(101))))
+    val dummyTwin1_31 = HalfEdge(v1, incidentFace = Some(Face(FaceId(102))))
+    val dummyTwin2_14 = HalfEdge(v4, incidentFace = Some(Face(FaceId(103))))
+    val dummyTwin2_42 = HalfEdge(v2, incidentFace = Some(Face(FaceId(104))))
 
     he1_23.twin = Some(dummyTwin1_23)
     dummyTwin1_23.twin = Some(he1_23)
@@ -560,7 +560,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val face1 = Face(F1)
     val face2 = Face(F2)
     val face3 = Face(F3)
-    val face4 = Face(FaceId("F4"))
+    val face4 = Face(FaceId(4))
 
     val adjacency = Map(
       face1 -> List(face2),

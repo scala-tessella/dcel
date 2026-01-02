@@ -379,7 +379,7 @@ object TilingSVG:
   private def createFaceLabels(tilingDCEL: TilingDCEL, config: SvgConfig): Seq[Elem] =
     tilingDCEL.innerFaces.map: face =>
       val (x, y) = calculateCentroid(face.getVerticesUnsafe).toSvgCoords(config.scale)
-      textAt(x, y, face.id.value)
+      textAt(x, y, face.id.toPrefixedString)
 
   private def createTraversalArrows(tilingDCEL: TilingDCEL, config: SvgConfig): Seq[Elem] =
     if !config.showHalfEdgeTraversal then Nil
@@ -450,7 +450,7 @@ object TilingSVG:
           val textX = (BigDecimal(midX) - perpX).format
           val textY = (BigDecimal(midY) - perpY).format
 
-          textAt(textX, textY, face.id.value)
+          textAt(textX, textY, face.id.toPrefixedString)
 
   extension (simple: SimplePolygon)
 
@@ -1036,28 +1036,28 @@ object TilingSVG:
 
       val halfEdgeNodes =
         tiling.halfEdges.zipWithIndex
-          .map: (he, id) =>
+          .map: (halfEdge, id) =>
             val attrsList = List(
               Some("id"     -> id),
-              Some("origin" -> he.origin.id.value),
-              he.twin
-                .flatMap: halfEdge =>
-                  halfEdgeIds.get(halfEdge)
+              Some("origin" -> halfEdge.origin.id.value),
+              halfEdge.twin
+                .flatMap: twinHalfEdge =>
+                  halfEdgeIds.get(twinHalfEdge)
                 .map: twinId =>
                   "twin" -> twinId,
-              he.next
-                .flatMap: halfEdge =>
-                  halfEdgeIds.get(halfEdge)
+              halfEdge.next
+                .flatMap: nextHalfEdge =>
+                  halfEdgeIds.get(nextHalfEdge)
                 .map: nextId =>
                   "next" -> nextId,
-              he.prev
-                .flatMap: halfEdge =>
-                  halfEdgeIds.get(halfEdge)
+              halfEdge.prev
+                .flatMap: prevHalfEdge =>
+                  halfEdgeIds.get(prevHalfEdge)
                 .map: prevId =>
                   "prev" -> prevId,
-              he.incidentFace.map: face =>
-                "face" -> face.id.value,
-              he.angle.map: angleDegree =>
+              halfEdge.incidentFace.map: face =>
+                "face" -> face.id.toPrefixedString,
+              halfEdge.angle.map: angleDegree =>
                 "angle" -> angleDegree.toRational
             ).flatten
             elem("half-edge", attrs(attrsList*))
@@ -1066,7 +1066,7 @@ object TilingSVG:
       val faceNodes = tiling.faces.map: f =>
         val attrsList =
           List(
-            Some("id" -> f.id.value),
+            Some("id" -> f.id.toPrefixedString),
             f.outerComponent
               .flatMap: halfEdge =>
                 halfEdgeIds.get(halfEdge)

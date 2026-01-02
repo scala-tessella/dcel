@@ -65,11 +65,11 @@ object TilingBuilder:
     val points = calculateVertexPoints(angles)
     buildDCELFromPointsUnsafe(points, angles.toList)
 
-  def faceIdF(i: Int): FaceId = FaceId(s"F$i")
+  def faceIdF(i: Int): FaceId = FaceId(i)
 
   def vertexIdV(i: Int): VertexId = VertexId(s"V$i")
 
-  def idFromFaceId(faceId: FaceId): Int = faceId.value.tail.toInt
+  def idFromFaceId(faceId: FaceId): Int = faceId.value
 
   def idFromVertexId(vertexId: VertexId): Int = vertexId.value.tail.toInt
 

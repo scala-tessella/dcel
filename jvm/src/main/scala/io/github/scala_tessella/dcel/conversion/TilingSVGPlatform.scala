@@ -66,7 +66,7 @@ object TilingSVGPlatform:
         faceNodes
           .map: fNode =>
             getAttr(fNode, "id").map: id =>
-              Face(FaceId(id))
+              Face(FaceId.fromString(id))
           .sequence
       faceMap   = faces.associateValues:
                     _.id
@@ -98,7 +98,8 @@ object TilingSVGPlatform:
                  prevEdge     <- halfEdgeMap.get(prevId).toRight(NotFoundError("Prev edge", prevId.toString))
                  _             = he.prev = Some(prevEdge)
                  faceId       <- getAttr(heNode, "face")
-                 incidentFace <- faceMap.get(FaceId(faceId)).toRight(NotFoundError("Incident face", faceId))
+                 incidentFace <-
+                   faceMap.get(FaceId.fromString(faceId)).toRight(NotFoundError("Incident face", faceId))
                  _             = he.incidentFace = Some(incidentFace)
                  angleStr     <- getAttr(heNode, "angle")
                  angle         = AngleDegree(

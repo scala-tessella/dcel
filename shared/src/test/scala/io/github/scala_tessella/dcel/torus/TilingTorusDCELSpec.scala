@@ -44,14 +44,14 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
       torus.findFace(F1).isRight shouldBe true,
       torus.findFace(F2).isRight shouldBe true,
       torus.findFace(F3).isRight shouldBe true,
-      torus.findFace(FaceId("F4")).isRight shouldBe true
+      torus.findFace(FaceId(4)).isRight shouldBe true
     )
 
   it should "fail on non-existing vertices and faces" in:
     val torus = createSquareNet(2, 2)
     allAssert(
       torus.findVertex(VertexId("VX")).isLeft shouldBe true,
-      torus.findFace(FaceId("FX")).isLeft shouldBe true
+      torus.findFace(FaceId(999)).isLeft shouldBe true
     )
 
 //  behavior of "TilingTorusDCEL.toTilingDCEL"

@@ -59,13 +59,13 @@ final case class TilingDCEL private (
     faces
       .find: face =>
         face.id == faceId
-      .toRight(NotFoundError("Face", faceId.value))
+      .toRight(NotFoundError("Face", faceId.toPrefixedString))
 
   def findInnerFace(faceId: FaceId): Either[NotFoundError, Face] =
     innerFaces
       .find: face =>
         face.id == faceId
-      .toRight(NotFoundError("Inner face", faceId.value))
+      .toRight(NotFoundError("Inner face", faceId.toPrefixedString))
 
   /** Checks if the given edge is on the boundary.
     * @return

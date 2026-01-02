@@ -54,8 +54,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "return None for non-existent face id" in
     allAssert(
-      triangle.findFace(FaceId("F999")).toOption shouldBe None,
-      triangle.findFace(FaceId("NonExistent")).toOption shouldBe None
+      triangle.findFace(FaceId(999)).toOption shouldBe None
     )
 
   behavior of "TilingDCEL.hasConnectedFaces"

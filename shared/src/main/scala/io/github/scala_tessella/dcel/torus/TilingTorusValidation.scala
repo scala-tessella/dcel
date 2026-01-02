@@ -116,7 +116,7 @@ object TilingTorusValidation:
               val _ = SimplePolygon(angles.toVector)
             catch
               case e: IllegalArgumentException =>
-                errors += s"Face ${face.id} has an invalid polygon: ${e.getMessage}"
+                errors += s"Face ${face.id.toPrefixedString} has an invalid polygon: ${e.getMessage}"
         case Left(_)      => // topological errors already collected
 
     // Angle sum at each vertex: collect all incident edges by origin (supports parallel edges; no traversal)
