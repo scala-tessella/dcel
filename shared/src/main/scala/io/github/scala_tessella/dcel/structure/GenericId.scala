@@ -10,7 +10,7 @@ trait GenericId:
 
   private[structure] def prefixedString(i: Int): String = s"$prefix$i"
 
-  private[structure] def fromStringSafe(s: String): Either[ValidationError, Int] =
+  private[structure] def fromStringUntrusted(s: String): Either[ValidationError, Int] =
     if s.startsWith(prefix) then
       val numericPart = s.substring(prefix.length)
       Try(numericPart.toInt).toOption match

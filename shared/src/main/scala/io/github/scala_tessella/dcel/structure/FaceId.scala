@@ -14,7 +14,7 @@ object FaceId extends GenericId:
 
   def apply(i: Int): FaceId = i
 
-  def fromString(s: String): Either[ValidationError, FaceId] = fromStringSafe(s)
+  def fromString(s: String): Either[ValidationError, FaceId] = fromStringUntrusted(s)
 
   extension (id: FaceId)
 

@@ -10,7 +10,7 @@ object VertexId extends GenericId:
 
   def apply(i: Int): VertexId = i
 
-  def fromString(s: String): Either[ValidationError, VertexId] = fromStringSafe(s)
+  def fromString(s: String): Either[ValidationError, VertexId] = fromStringUntrusted(s)
 
   extension (id: VertexId)
 
