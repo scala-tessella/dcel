@@ -1,10 +1,8 @@
 package io.github.scala_tessella.dcel.structure
 
-import scala.util.{Try, Success}
-
 opaque type FaceId = Int
 
-object FaceId:
+object FaceId extends GenericId:
 
   val prefix: String = "F"
 
@@ -14,14 +12,7 @@ object FaceId:
 
   def apply(i: Int): FaceId = i
 
-  private def prefixedString(i: Int): String = s"$prefix$i"
-
-  def fromString(s: String): FaceId =
-    Try(
-      s.tail.toInt
-    ) match
-      case Success(i) if s == prefixedString(i) => i
-      case _                                    => throw new IllegalArgumentException(s"Invalid face id: $s")
+  def fromString(s: String): FaceId = fromStringSafe(s)
 
   extension (id: FaceId)
 
