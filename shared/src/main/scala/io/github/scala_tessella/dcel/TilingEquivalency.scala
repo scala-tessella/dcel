@@ -15,8 +15,17 @@ object TilingEquivalency:
       seq.groupMapReduce(identity)(_ => 1):
         _ + _
 
-  /** Group the elements in classes of equivalent TilingDCEL. Uses boundary-only comparison for efficiency in
-    * uniformity calculations.
+  /** Groups elements from the input list into classes of equivalency. We are using a (more performant)
+    * boundary equivalence of their associated `TilingDCEL` structures because the inner elements of the
+    * structures are assumed equal.
+    *
+    * @param associatedTilings
+    *   A list of tuples where each tuple contains an element of type `A` and a corresponding `TilingDCEL`
+    *   structure.
+    *
+    * @return
+    *   A list of grouped lists, where each inner list contains elements of type `A` belonging to the same
+    *   equivalency class.
     */
   def groupByBoundaryEquivalency[A](associatedTilings: List[(A, TilingDCEL)]): List[List[A]] =
     associatedTilings

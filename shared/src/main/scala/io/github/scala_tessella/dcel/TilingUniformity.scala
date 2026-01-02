@@ -191,9 +191,24 @@ object TilingUniformity:
           newInner
         )
 
-    /** Calculates the uniformity of the tiling, each leaf a different class of vertices. */
+    /** Constructs an uncompressed uniformity tree for the given tiling, where each node in the tree groups
+      * vertices by their equivalency, that is being at the center of equivalent DCEL structure, expanding at
+      * distance. The algorithm uses tail recursion for efficient processing and optionally limits the
+      * recursion depth based on a maximum distance.
+      *
+      * @param maxDistance
+      *   An optional maximum distance for recursion depth. If provided, nodes at a depth greater than this
+      *   value will not be further processed.
+      *
+      * @return
+      *   A Tree data structure, where each node contains a list of vertex IDs that belong to the same
+      *   equivalence class. The result begins at the root with all inner vertices and progressively divides
+      *   them through recursion.
+      */
     def uniformityTreeUncompressed(maxDistance: Option[Int] = None): Tree[List[VertexId]] =
-      val boundaryVertexIds = tiling.boundaryVertices.map(_.id)
+      val boundaryVertexIds =
+        tiling.boundaryVertices.map:
+          _.id
 
       // Tail-recursive helper using TailCalls
       def deepMap(key: List[Int], vertexIds: List[VertexId]): TailRec[Tree[List[VertexId]]] =
@@ -266,8 +281,8 @@ object TilingUniformity:
           case None         =>
             val distance        = key.length
             val centeredTilings =
-              vertexIds.map: id =>
-                id -> tiling.getDcelAtVertex(id, distance).toOption.get
+              vertexIds.map: vertexId =>
+                vertexId -> tiling.getDcelAtVertex(vertexId, distance).toOption.get
             val classes         = groupByBoundaryEquivalency(centeredTilings)
             val boundaryInfoMap =
               centeredTilings
@@ -284,7 +299,9 @@ object TilingUniformity:
                 remaining: List[((List[VertexId], List[VertexId]), Int)],
                 accumulated: List[Tree[List[VertexId]]]
             ): TailRec[List[Tree[List[VertexId]]]] =
-              if maxDistance.exists(_ < distance) then
+              if maxDistance.exists:
+                  _ < distance
+              then
                 done:
                   accumulated.reverse
               else
@@ -316,11 +333,14 @@ object TilingUniformity:
       val fullTree       =
         deepMap(
           Nil,
-          tiling.innerVertices.map(vertex => vertex.id),
+          tiling.innerVertices.map:
+            _.id
+          ,
           None
         ).result
       val fullCompressed =
-        fullTree.compress(_ ::: _)
+        fullTree.compress:
+          _ ::: _
 
       // Now collect trees at each depth, reusing cached computations
       val results  = scala.collection.mutable.ListBuffer.empty[Tree[List[VertexId]]]
@@ -331,10 +351,14 @@ object TilingUniformity:
         val treeAtDepth =
           deepMap(
             Nil,
-            tiling.innerVertices.map(vertex => vertex.id),
+            tiling.innerVertices.map:
+              _.id
+            ,
             Some(depth)
           ).result
-        val compressed  = treeAtDepth.compress(_ ::: _)
+        val compressed  =
+          treeAtDepth.compress:
+            _ ::: _
         results += compressed
 
         if compressed == fullCompressed then
