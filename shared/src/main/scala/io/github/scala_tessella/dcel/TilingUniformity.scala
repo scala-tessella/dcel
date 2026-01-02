@@ -263,8 +263,20 @@ object TilingUniformity:
       // Start from all inner vertices at the root
       deepMap(Nil, tiling.innerVertices.map(_.id)).result
 
+    /** Scans the uniformity tree of a given tiling structure and generates a sequence of trees representing
+      * vertex partitions grouped by equivalency at increasing depths.
+      *
+      * The method constructs the full uniformity tree and progressively computes and collects trees up to
+      * each depth level using memoization for optimization.
+      *
+      * @return
+      *   A list of trees, where each tree corresponds to the vertex equivalency classes at increasing depths.
+      *   The final tree represents the full uniformity tree for the given tiling structure.
+      */
     def scanUniformityTree: List[Tree[List[VertexId]]] =
-      val boundaryVertexIds = tiling.boundaryVertices.map(_.id)
+      val boundaryVertexIds =
+        tiling.boundaryVertices.map:
+          _.id
 
       // Cache to store computed subtrees for each (key, maxDepth) pair
       val cache = scala.collection.mutable.HashMap[(List[Int], Option[Int]), Tree[List[VertexId]]]()
