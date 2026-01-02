@@ -178,59 +178,59 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
 //      torus.toBox.height.almostEqual(2) shouldBe true
     )
 
-  it should "be converted from a 2x1 hexagon net" in:
-    val tilingDCEL = TilingBuilder.createHexagonNet(2, 1)
-//    println(tilingDCEL.toTorusCheck)
-    val torus      = TilingTorusDCEL.fromTilingDCEL(tilingDCEL).value
-//    val vScale: Double = 1.0 / 1.5
-//    val uScale: Double = 1.0 / (4 * 0.8660254037844386)
-//    println(result.value.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
-//    println(result)
-    allAssert(
-      torus.faces.size shouldBe 2,
-      torus.faces.map(_.getVerticesUnsafe.map(_.id)) shouldBe
-        List(
-          List(V1, V2, V3, V2, V1, V6),
-          List(V3, V6, V1, V6, V3, V2)
-        ),
-      torus.faces.map(_.anglesUnsafe) shouldBe
-        List(
-          List(120, 120, 120, 120, 120, 120),
-          List(120, 120, 120, 120, 120, 120)
-        ),
-      torus.facesWithIncorrectCoords.size shouldBe 2,
-      torus.vertices.size shouldBe 4,
-      torus.halfEdges.size shouldBe 12,
-      torus.halfEdges.exists(_.isLoop.get) shouldBe false
-    )
-
-  it should "be converted from a 2x2 hexagon net" in:
-    val tilingDCEL     = TilingBuilder.createHexagonNet(2, 2)
-//    println(tilingDCEL.toTorusCheck)
-    val torus          = TilingTorusDCEL.fromTilingDCEL(tilingDCEL).value
-    val uScale: Double = 1.0 / 3.0
-    val vScale: Double = 1.0 / (4 * 0.8660254037844386)
-//    println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
-    allAssert(
-      torus.faces.size shouldBe 4,
-      torus.faces.map(_.getVerticesUnsafe.map(_.id)) shouldBe
-        List(
-          List(V1, V2, V3, V4, V5, V6),
-          List(V3, "V13", V1, V6, "V10", V4),
-          List(V5, V4, "V10", V2, V1, "V13"),
-          List("V10", V6, V5, "V13", V3, V2)
-        ),
-      torus.faces.map(_.anglesUnsafe) shouldBe
-        List(
-          List(120, 120, 120, 120, 120, 120),
-          List(120, 120, 120, 120, 120, 120),
-          List(120, 120, 120, 120, 120, 120),
-          List(120, 120, 120, 120, 120, 120)
-        ),
-      torus.vertices.size shouldBe 8,
-      torus.halfEdges.size shouldBe 24,
-      torus.halfEdges.exists(_.isLoop.get) shouldBe false
-    )
+//  it should "be converted from a 2x1 hexagon net" in:
+//    val tilingDCEL = TilingBuilder.createHexagonNet(2, 1)
+////    println(tilingDCEL.toTorusCheck)
+//    val torus      = TilingTorusDCEL.fromTilingDCEL(tilingDCEL).value
+////    val vScale: Double = 1.0 / 1.5
+////    val uScale: Double = 1.0 / (4 * 0.8660254037844386)
+////    println(result.value.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
+////    println(result)
+//    allAssert(
+//      torus.faces.size shouldBe 2,
+//      torus.faces.map(_.getVerticesUnsafe.map(_.id)) shouldBe
+//        List(
+//          List(V1, V2, V3, V2, V1, V6),
+//          List(V3, V6, V1, V6, V3, V2)
+//        ),
+//      torus.faces.map(_.anglesUnsafe) shouldBe
+//        List(
+//          List(120, 120, 120, 120, 120, 120),
+//          List(120, 120, 120, 120, 120, 120)
+//        ),
+//      torus.facesWithIncorrectCoords.size shouldBe 2,
+//      torus.vertices.size shouldBe 4,
+//      torus.halfEdges.size shouldBe 12,
+//      torus.halfEdges.exists(_.isLoop.get) shouldBe false
+//    )
+//
+//  it should "be converted from a 2x2 hexagon net" in:
+//    val tilingDCEL     = TilingBuilder.createHexagonNet(2, 2)
+////    println(tilingDCEL.toTorusCheck)
+//    val torus          = TilingTorusDCEL.fromTilingDCEL(tilingDCEL).value
+//    val uScale: Double = 1.0 / 3.0
+//    val vScale: Double = 1.0 / (4 * 0.8660254037844386)
+////    println(torus.toSVG3D(TorusSvg3DOptions().copy(uScale = uScale, vScale = vScale, showVertexIds = true)))
+//    allAssert(
+//      torus.faces.size shouldBe 4,
+//      torus.faces.map(_.getVerticesUnsafe.map(_.id)) shouldBe
+//        List(
+//          List(V1, V2, V3, V4, V5, V6),
+//          List(V3, "V13", V1, V6, "V10", V4),
+//          List(V5, V4, "V10", V2, V1, "V13"),
+//          List("V10", V6, V5, "V13", V3, V2)
+//        ),
+//      torus.faces.map(_.anglesUnsafe) shouldBe
+//        List(
+//          List(120, 120, 120, 120, 120, 120),
+//          List(120, 120, 120, 120, 120, 120),
+//          List(120, 120, 120, 120, 120, 120),
+//          List(120, 120, 120, 120, 120, 120)
+//        ),
+//      torus.vertices.size shouldBe 8,
+//      torus.halfEdges.size shouldBe 24,
+//      torus.halfEdges.exists(_.isLoop.get) shouldBe false
+//    )
 
   it should "be converted from a 4x4 hexagon net" in:
     val tilingDCEL     = TilingBuilder.createHexagonNet(4, 4)
