@@ -1,5 +1,7 @@
 package io.github.scala_tessella.dcel.structure
 
+import io.github.scala_tessella.dcel.ValidationError
+
 opaque type FaceId = Int
 
 object FaceId extends GenericId:
@@ -12,7 +14,7 @@ object FaceId extends GenericId:
 
   def apply(i: Int): FaceId = i
 
-  def fromString(s: String): FaceId = fromStringSafe(s)
+  def fromString(s: String): Either[ValidationError, FaceId] = fromStringSafe(s)
 
   extension (id: FaceId)
 

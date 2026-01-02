@@ -26,57 +26,41 @@ class GenericIdSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "successfully parse a valid prefixed string" in:
     allAssert(
-      vertexIdTester.fromStringSafe("V1") shouldBe 1,
-      faceIdTester.fromStringSafe("F999") shouldBe 999,
-      customIdTester.fromStringSafe("ID-123") shouldBe 123
+      vertexIdTester.fromStringSafe("V1").value shouldBe 1,
+      faceIdTester.fromStringSafe("F999").value shouldBe 999,
+      customIdTester.fromStringSafe("ID-123").value shouldBe 123
     )
 
   it should "throw IllegalArgumentException if the prefix is missing or incorrect" in:
     // Wrong prefix for the specific tester
-    val caught = intercept[IllegalArgumentException]:
-      vertexIdTester.fromStringSafe("F1")
-    caught.getMessage should include("Invalid id prefix: `F1`")
+    vertexIdTester.fromStringSafe("F1").left.value.message should include("Invalid id prefix: `F1`")
 
-  it should "throw IllegalArgumentException if the string is too short" in:
-    val caught = intercept[IllegalArgumentException]:
-      vertexIdTester.fromStringSafe("V")
-    caught.getMessage should include("Invalid numeric part in id: `V`")
+  it should "throw IllegalArgumentException if the string is too short" in:     
+    vertexIdTester.fromStringSafe("V").left.value.message should include("Invalid numeric part in id: `V`")
 
   it should "throw IllegalArgumentException if the numeric part is not an integer" in:
-    val caught1 = intercept[IllegalArgumentException]:
-      vertexIdTester.fromStringSafe("Vabc")
-    val caught2 = intercept[IllegalArgumentException]:
-      vertexIdTester.fromStringSafe("V1.5")
     allAssert(
-      caught1.getMessage should include("Invalid numeric part in id: `Vabc`"),
-      caught2.getMessage should include("Invalid numeric part in id: `V1.5`")
+      vertexIdTester.fromStringSafe("Vabc").left.value.message should include("Invalid numeric part in id: `Vabc`"),
+      vertexIdTester.fromStringSafe("V1.5").left.value.message should include("Invalid numeric part in id: `V1.5`")
     )
 
   it should "throw IllegalArgumentException for empty strings" in:
-    val caught = intercept[IllegalArgumentException]:
-      vertexIdTester.fromStringSafe("")
-    caught.getMessage should include("Invalid id prefix: ``")
+    vertexIdTester.fromStringSafe("").left.value.message should include("Invalid id prefix: ``")
 
-  it should "throw IllegalArgumentException if there are leading spaces" in:
-    val caught = intercept[IllegalArgumentException]:
-      vertexIdTester.fromStringSafe(" V1")
-    caught.getMessage should include("Invalid id prefix: ` V1`")
+  it should "throw IllegalArgumentException if there are leading spaces" in:     
+    vertexIdTester.fromStringSafe(" V1").left.value.message should include("Invalid id prefix: ` V1`")
 
   it should "distinguish between IDs with different prefixes" in:
     val vId = "V5"
     allAssert(
-      vertexIdTester.fromStringSafe(vId) shouldBe 5, {
+      vertexIdTester.fromStringSafe(vId).value shouldBe 5, {
         // faceIdTester uses "F", so "V5" is invalid for it
-        val caught = intercept[IllegalArgumentException]:
-          faceIdTester.fromStringSafe(vId)
-        caught.getMessage should include("Invalid id prefix: `V5`")
+        faceIdTester.fromStringSafe(vId).left.value.message should include("Invalid id prefix: `V5`")
       }
     )
 
   it should "correctly handle negative integers if they are used as IDs" in:
-    vertexIdTester.fromStringSafe("V-1") shouldBe -1
+    vertexIdTester.fromStringSafe("V-1").value shouldBe -1
 
-  it should "fail if the prefix is correct but the numeric part is missing" in:
-    val caught = intercept[IllegalArgumentException]:
-      customIdTester.fromStringSafe("ID-")
-    caught.getMessage should include("Invalid")
+  it should "fail if the prefix is correct but the numeric part is missing" in:     
+    customIdTester.fromStringSafe("ID-").left.value.message should include("Invalid")

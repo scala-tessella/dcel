@@ -38,7 +38,8 @@ object TilingSVGPlatform:
               id <- getAttr(vNode, "id")
               x  <- attrAs(vNode, "x", BigDecimal.apply, "BigDecimal")
               y  <- attrAs(vNode, "y", BigDecimal.apply, "BigDecimal")
-            yield Vertex(VertexId.fromString(id), BigPoint(x, y))
+              vertexId <- VertexId.fromString(id)
+            yield Vertex(vertexId, BigPoint(x, y))
           .sequence
       vertexMap   = vertices.associateValues:
                       _.id
@@ -49,7 +50,8 @@ object TilingSVGPlatform:
           .map: heNode =>
             for
               originId <- getAttr(heNode, "origin")
-              origin   <- vertexMap.get(VertexId.fromString(originId)).toRight(NotFoundError(
+              vertexId <- VertexId.fromString(originId)
+              origin   <- vertexMap.get(vertexId).toRight(NotFoundError(
                             "Vertex for half-edge origin",
                             originId
                           ))
@@ -65,8 +67,11 @@ object TilingSVGPlatform:
       faces    <-
         faceNodes
           .map: fNode =>
-            getAttr(fNode, "id").map: id =>
-              Face(FaceId.fromString(id))
+            for
+              id <- getAttr(fNode, "id")
+              faceId <- FaceId.fromString(id)
+            yield
+              Face(faceId)
           .sequence
       faceMap   = faces.associateValues:
                     _.id
@@ -98,8 +103,9 @@ object TilingSVGPlatform:
                  prevEdge     <- halfEdgeMap.get(prevId).toRight(NotFoundError("Prev edge", prevId.toString))
                  _             = he.prev = Some(prevEdge)
                  faceId       <- getAttr(heNode, "face")
+                 validated    <- FaceId.fromString(faceId)
                  incidentFace <-
-                   faceMap.get(FaceId.fromString(faceId)).toRight(NotFoundError("Incident face", faceId))
+                   faceMap.get(validated).toRight(NotFoundError("Incident face", faceId))
                  _             = he.incidentFace = Some(incidentFace)
                  angleStr     <- getAttr(heNode, "angle")
                  angle         = AngleDegree(
@@ -133,11 +139,12 @@ object TilingSVGPlatform:
                         .filter:
                           _.nonEmpty
                         .traverse: icIdsStr =>
-                          val idsEither = icIdsStr.split(',').toList
-                            .map: idStr =>
-                              Try(idStr.trim.toInt).toEither.left.map: _ =>
-                                ValidationError(s"Invalid inner-component ID: $idStr")
-                            .sequence
+                          val idsEither =
+                            icIdsStr.split(',').toList
+                              .map: idStr =>
+                                Try(idStr.trim.toInt).toEither.left.map: _ =>
+                                  ValidationError(s"Invalid inner-component ID: $idStr")
+                              .sequence
                           for
                             ids     <- idsEither
                             icEdges <-
