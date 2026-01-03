@@ -29,21 +29,13 @@ object TilingEquivalency:
     */
   def groupByBoundaryEquivalency[A](associatedTilings: List[(A, TilingDCEL)]): List[List[A]] =
     associatedTilings
-      .foldLeft(List.empty[(TilingDCEL, List[A])]):
-        case (classes, (elem, tiling)) =>
-          val index = classes
-            .indexWhere: (representative, _) =>
-              tiling.isBoundaryEquivalentTo(representative)
-          index match
-            case -1 =>
-              // No equivalent class found, create a new one
-              classes :+ (tiling, List(elem))
-            case i  =>
-              // Found an equivalent class at index i, add vertexId to it
-              val (representative, elems) = classes(i)
-              classes.updated(i, (representative, elem :: elems))
-      .map: (_, elems) =>
-        elems.reverse
+      .groupBy: (_, tiling) =>
+        tiling.boundarySignature
+      .values
+      .map: groups =>
+        groups.map: (elem, _) =>
+          elem
+      .toList
 
   private val defaultLeavingTransformer: (Vertex, HalfEdge, Map[HalfEdge, HalfEdge]) => Unit =
     (newVertex, oldLeavingEdge, halfEdgeMap) =>
@@ -64,6 +56,13 @@ object TilingEquivalency:
       vertex.incidentAngles.canonicalSequence
 
   extension (tiling: TilingDCEL)
+
+    /** Computes a canonical key representing the boundary of the tiling. */
+    private[dcel] def boundarySignature: List[List[AngleDegree]] =
+      tiling.boundaryVertices.toList
+        .map: vertex =>
+          vertex.signature
+        .rotationsAndReflections.min
 
     private def createMaps(
         coordsTransformer: BigPoint => BigPoint,
