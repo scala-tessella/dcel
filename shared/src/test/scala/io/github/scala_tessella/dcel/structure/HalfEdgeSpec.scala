@@ -23,7 +23,7 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       edge.angle shouldBe None,
       edge.toString shouldBe "HalfEdge V1 -> ? [Missing twin edge, Missing incident face, Missing next edge, Missing previous edge, Missing angle]",
       edge.endpointsAsVertices shouldBe None,
-      edge.key shouldBe None
+      edge.maybeId shouldBe None
     )
 
   it should "create a half-edge with all optional parameters" in:
@@ -53,7 +53,7 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       edge.angle shouldBe Some(angle),
       edge.toString shouldBe "HalfEdge V1 -> V2",
       edge.endpointsAsVertices shouldBe Some((vertex, twinVertex)),
-      edge.keyUnsafe shouldBe (V1, V2)
+      edge.idUnsafe shouldBe (V1, V2)
     )
 
   behavior of "HalfEdge equality"

@@ -75,7 +75,7 @@ object TilingUniformity:
 
           val cycle = face.outerComponent.get.faceTraversalUnsafe[HalfEdge]()
           cycle.foreach: halfEdge =>
-            val key = halfEdge.keyUnsafe
+            val key = halfEdge.idUnsafe
             if !heMap.contains(key) then
               val o  = cloneVertex(halfEdge.origin)
               val nh = HalfEdge(
@@ -96,7 +96,7 @@ object TilingUniformity:
           var firstNew: Option[HalfEdge] = None
           var prevNew: Option[HalfEdge]  = None
           cycle.foreach: halfEdge =>
-            val nh = heMap(halfEdge.keyUnsafe)
+            val nh = heMap(halfEdge.idUnsafe)
             nh.incidentFace = Some(nf)
             if firstNew.isEmpty then firstNew = Option(nh)
             if prevNew.isDefined then
@@ -111,9 +111,9 @@ object TilingUniformity:
         selectedInnerFaces.foreach: face =>
           val cycle = face.outerComponent.get.faceTraversalUnsafe[HalfEdge]()
           cycle.foreach: halfEdge =>
-            val nh = heMap(halfEdge.keyUnsafe)
+            val nh = heMap(halfEdge.idUnsafe)
             halfEdge.twin.foreach: twin =>
-              val tk = twin.keyUnsafe
+              val tk = twin.idUnsafe
               if heMap.contains(tk) then
                 val nt = heMap(tk)
                 nh.twin = Some(nt)
@@ -138,7 +138,7 @@ object TilingUniformity:
         val stubByKey =
           boundaryStubs
             .map: halfEdge =>
-              halfEdge.keyUnsafe -> halfEdge
+              halfEdge.idUnsafe -> halfEdge
             .toMap
 
         def nextBoundaryOf(b: HalfEdge): Option[HalfEdge] =
@@ -149,13 +149,13 @@ object TilingUniformity:
         val visitedPairs   = scala.collection.mutable.HashSet[HalfEdgeId]()
         val boundaryCycles = scala.collection.mutable.ArrayBuffer[HalfEdge]()
         boundaryStubs.foreach: start =>
-          val startKey = start.keyUnsafe
+          val startKey = start.idUnsafe
           if !visitedPairs.contains(startKey) then
             var cur   = start
             val first = start
             var ok    = true
-            while ok && !visitedPairs.contains(cur.keyUnsafe) do
-              visitedPairs += cur.keyUnsafe
+            while ok && !visitedPairs.contains(cur.idUnsafe) do
+              visitedPairs += cur.idUnsafe
               nextBoundaryOf(cur) match
                 case Some(n) =>
                   cur.next = Some(n)
