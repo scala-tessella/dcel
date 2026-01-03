@@ -182,14 +182,14 @@ final case class TilingDCEL private (
     uniformityTree match
       case Leaf(_)             => Nil
       case Branch(_, children) =>
-        // to be sure that the top branch value is not empty
-        val newChildren =
-          children.map:
+        children
+          // to be sure that the top branch value is not empty
+          .map:
             case Branch(value, children) if value.isEmpty => Branch(children.head.value, children)
             case child                                    => child
-        newChildren.map:
-          _.map:
-            _.head
+          .map: child =>
+            child.map: vertexIds =>
+              vertexIds.head
 
   def hasConnectedFaces: Boolean =
     innerFaces.isConnected
