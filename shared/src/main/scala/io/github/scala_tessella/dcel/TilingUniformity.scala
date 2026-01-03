@@ -195,21 +195,29 @@ object TilingUniformity:
 
       // Tail-recursive helper using TailCalls
       def deepMap(key: List[Int], vertexIds: List[VertexId]): TailRec[Tree[List[VertexId]]] =
-        val distance        = key.length
-        val centeredTilings =
+        val distance          = key.length
+        val centeredTilings   =
           vertexIds.map: vertexId =>
             vertexId -> tiling.getDcelAtVertex(vertexId, distance).toOption.get
-        val classes         = groupByBoundaryEquivalency(centeredTilings)
-        val boundaryInfoMap =
-          centeredTilings
-            .map: (vertexId, centeredTiling) =>
-              vertexId -> centeredTiling.boundaryVertices.map(_.id).toSet
-            .toMap
-        val partitioned     =
-          classes.map:
-            _.partition: vertexId =>
-              val localBoundaryVertexIds = boundaryInfoMap(vertexId)
-              boundaryVertexIds.toSet.intersect(localBoundaryVertexIds).isEmpty
+        val classes           = groupByBoundaryEquivalency(centeredTilings)
+
+        val globalBoundaryIds = boundaryVertexIds.toSet
+        val partitioned       =
+          classes.map: classIds =>
+            classIds.partition: vertexId =>
+              val localTiling =
+                centeredTilings
+                  .find: (localVertexId, _) =>
+                    localVertexId == vertexId
+                  .map: (_, tiling) =>
+                    tiling
+                  .get
+              val localBoundaryIds =
+                localTiling.boundaryVertices
+                  .map:
+                    _.id
+                  .toSet
+              globalBoundaryIds.intersect(localBoundaryIds).isEmpty
 
         // Process children with tail recursion
         def iterate(
