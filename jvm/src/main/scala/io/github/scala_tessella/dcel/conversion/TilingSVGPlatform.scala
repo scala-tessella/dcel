@@ -35,9 +35,9 @@ object TilingSVGPlatform:
         vertexNodes
           .map: vNode =>
             for
-              id <- getAttr(vNode, "id")
-              x  <- attrAs(vNode, "x", BigDecimal.apply, "BigDecimal")
-              y  <- attrAs(vNode, "y", BigDecimal.apply, "BigDecimal")
+              id       <- getAttr(vNode, "id")
+              x        <- attrAs(vNode, "x", BigDecimal.apply, "BigDecimal")
+              y        <- attrAs(vNode, "y", BigDecimal.apply, "BigDecimal")
               vertexId <- VertexId.fromString(id)
             yield Vertex(vertexId, BigPoint(x, y))
           .sequence
@@ -68,10 +68,9 @@ object TilingSVGPlatform:
         faceNodes
           .map: fNode =>
             for
-              id <- getAttr(fNode, "id")
+              id     <- getAttr(fNode, "id")
               faceId <- FaceId.fromString(id)
-            yield
-              Face(faceId)
+            yield Face(faceId)
           .sequence
       faceMap   = faces.associateValues:
                     _.id
