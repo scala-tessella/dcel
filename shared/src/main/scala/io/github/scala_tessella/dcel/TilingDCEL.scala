@@ -6,6 +6,7 @@ import io.github.scala_tessella.dcel.TilingEquivalency.*
 import io.github.scala_tessella.dcel.TilingUniformity.*
 import io.github.scala_tessella.dcel.TilingValidation.validate
 import io.github.scala_tessella.dcel.Tree
+import io.github.scala_tessella.dcel.Tree.{Branch, Leaf}
 import io.github.scala_tessella.dcel.conversion.TilingDOT.*
 import io.github.scala_tessella.dcel.conversion.TilingSVG.*
 //import io.github.scala_tessella.dcel.geometry.SimplePolygon.ParallelogramTranslation
@@ -169,6 +170,21 @@ final case class TilingDCEL private (
   def uniformityTree: Tree[List[VertexId]] =
     this.uniformityTreeUncompressed().compress:
       _ ::: _
+
+  def gonalityTrees: List[Tree[VertexId]] =
+    uniformityTree match
+      case Leaf(_)             => Nil
+      case Branch(_, children) =>
+        // to be sure that the top branch value is not empty
+        val newChildren =
+          children.map:
+            case Leaf(value)                     => Leaf(value)
+            case child @ Branch(value, children) =>
+              if value.nonEmpty then child
+              else Branch(children.head.value, children)
+        newChildren.map:
+          _.map:
+            _.head
 
   def hasConnectedFaces: Boolean =
     innerFaces.isConnected

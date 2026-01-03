@@ -99,6 +99,17 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
         )
     )
 
+  it should "find trees for each gonality order" in:
+    val trees = uniformity6.gonalityTrees
+    allAssert(
+      trees.size shouldBe 2,
+      trees shouldBe
+        List(
+          Branch(88, List(Leaf(48), Leaf(24), Leaf(64))),
+          Branch(84, List(Leaf(38), Leaf(67), Leaf(77)))
+        )
+    )
+
   it should "find that 3.3.6.6.i has uniformity 5" in:
 
     /** Uniform 5 3.3.6.6.i <img src="file:../../../../../resources/uniform5_3.3.6.6.i.svg"/> */
