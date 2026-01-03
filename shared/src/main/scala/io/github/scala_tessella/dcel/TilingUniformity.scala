@@ -4,8 +4,11 @@ import io.github.scala_tessella.dcel.TilingBuilder.setOuterEdgeAngles
 import io.github.scala_tessella.dcel.TilingEquivalency.groupByBoundaryEquivalency
 import io.github.scala_tessella.dcel.Tree.*
 import io.github.scala_tessella.dcel.Utils.associate
+import io.github.scala_tessella.dcel.geometry.{AngleDegree, RegularPolygon}
 import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, HalfEdgeId, Vertex, VertexId}
+import io.github.scala_tessella.ring_seq.RingSeq.rotationsAndReflections
 
+import scala.Ordering.Implicits.*
 import scala.util.control.TailCalls.{TailRec, done, tailcall}
 
 object TilingUniformity:
@@ -251,6 +254,20 @@ object TilingUniformity:
 
       // Start from all inner vertices at the root
       deepMap(Nil, tiling.innerVertices.map(_.id)).result
+
+    private[dcel] def gonalityUnsafe: List[List[RegularPolygon]] =
+      uniformityTreeUncompressed(Option(0))
+        .compress:
+          _ ::: _
+        .flattenLeaves
+        .map: vertexIds =>
+          tiling.getAnglesAtVertex(vertexIds.head).toOption.get
+            .rotationsAndReflections
+            .min
+        .sorted
+        .map: angleDegrees =>
+          angleDegrees.map: angleDegree =>
+            RegularPolygon.fromInteriorAngle(angleDegree)
 
     /** Scans the uniformity tree of a given tiling structure and generates a sequence of trees representing
       * vertex partitions grouped by equivalency at increasing depths.

@@ -316,3 +316,9 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
             List(27, 34, 36, 75, 77)
           )
         )
+
+  behavior of "TilingUniformity.gonality"
+
+  it should "find gonality" in:
+    uniformity6.gonalityUnsafe shouldBe
+      List(List(3, 3, 3, 3, 3, 3), List(3, 3, 3, 3, 6))
