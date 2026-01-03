@@ -6,6 +6,10 @@ opaque type VertexId = Int
 
 object VertexId extends Prefixable:
 
+  given Ordering[VertexId] with
+    def compare(x: VertexId, y: VertexId): Int =
+      x.value.compare(y.value)
+
   val prefix: String = "V"
 
   def apply(i: Int): VertexId = i
