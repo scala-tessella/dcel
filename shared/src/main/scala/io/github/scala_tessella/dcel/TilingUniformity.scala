@@ -36,29 +36,13 @@ object TilingUniformity:
         val inRadius: Set[Vertex] = center.bfsVertices(d)
 
         // 2) Collect all inner faces that are incident to at least one vertex in the set
-        var selectedInnerFaces: Set[Face] =
-          tiling.innerFaces
-            .filter: face =>
-              face.getVerticesUnsafe.exists: vertex =>
-                inRadius.contains(vertex)
-            .toSet
-
-//        // 2b) Iteratively find and add "hole" faces
-//        // A hole face has all its vertices already in our vertex set but wasn't selected
-//        var changed = true
-//        while changed do
-//          val currentVertices =
-//            selectedInnerFaces
-//              .flatMap: face =>
-//                face.getVerticesUnsafe
-//          val holeFaces       = tiling.innerFaces.filter: face =>
-//            !selectedInnerFaces.contains(face) &&
-//              face.getVerticesUnsafe.forall: vertex =>
-//                currentVertices.contains(vertex)
-//          if holeFaces.nonEmpty then
-//            selectedInnerFaces ++= holeFaces
-//          else
-//            changed = false
+        val selectedInnerFaces: Set[Face] =
+          inRadius.flatMap: vertex =>
+            vertex.incidentEdgesUnsafe
+              .flatMap: halfEdge =>
+                halfEdge.incidentFace
+              .filter: face =>
+                face != tiling.outerFace
 
         // 3) Build a local DCEL from those faces, cloning only the necessary vertices/edges/faces
         val vMap  = scala.collection.mutable.HashMap[VertexId, Vertex]()
