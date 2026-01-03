@@ -4,7 +4,7 @@ import io.github.scala_tessella.dcel.ValidationError
 
 opaque type FaceId = Int
 
-object FaceId extends GenericId:
+object FaceId extends Prefixable:
 
   val prefix: String = "F"
 

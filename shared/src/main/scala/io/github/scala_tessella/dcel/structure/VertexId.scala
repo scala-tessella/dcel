@@ -4,7 +4,7 @@ import io.github.scala_tessella.dcel.ValidationError
 
 opaque type VertexId = Int
 
-object VertexId extends GenericId:
+object VertexId extends Prefixable:
 
   val prefix: String = "V"
 

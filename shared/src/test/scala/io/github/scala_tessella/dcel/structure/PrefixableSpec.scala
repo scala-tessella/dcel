@@ -4,10 +4,10 @@ import io.github.scala_tessella.dcel.TilingTestHelpers
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class GenericIdSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
+class PrefixableSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   // Concrete implementation for testing the trait
-  case class TestId(prefix: String) extends GenericId
+  case class TestId(prefix: String) extends Prefixable
 
   val vertexIdTester = TestId("V")
   val faceIdTester   = TestId("F")

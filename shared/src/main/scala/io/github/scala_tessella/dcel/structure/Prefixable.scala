@@ -4,7 +4,8 @@ import io.github.scala_tessella.dcel.ValidationError
 
 import scala.util.Try
 
-trait GenericId:
+/** A trait for types that can be used as IDs for DCEL entities. */
+trait Prefixable:
 
   val prefix: String
 
