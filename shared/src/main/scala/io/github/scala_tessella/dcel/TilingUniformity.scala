@@ -263,16 +263,18 @@ object TilingUniformity:
         .map: vertexIds =>
           vertexIds.head
 
+    private[dcel] def regularPolygonsUnsafeFrom(vertexId: VertexId): List[RegularPolygon] =
+      tiling
+        .getAnglesAtVertex(vertexId).toOption.get
+        .rotationsAndReflections.min
+        .map: angleDegree =>
+          RegularPolygon.fromInteriorAngle(angleDegree)
+
     private[dcel] def gonalityUnsafe: List[List[RegularPolygon]] =
       gonalitySampleInnerVertexIds
         .map: vertexId =>
-          tiling.getAnglesAtVertex(vertexId).toOption.get
-            .rotationsAndReflections
-            .min
-        .sorted
-        .map: angleDegrees =>
-          angleDegrees.map: angleDegree =>
-            RegularPolygon.fromInteriorAngle(angleDegree)
+          regularPolygonsUnsafeFrom(vertexId)
+        .sorted  
 
     /** Scans the uniformity tree of a given tiling structure and generates a sequence of trees representing
       * vertex partitions grouped by equivalency at increasing depths.

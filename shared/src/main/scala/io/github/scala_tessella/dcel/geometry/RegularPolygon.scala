@@ -6,6 +6,10 @@ opaque type RegularPolygon = Int
 /** Companion object for [[RegularPolygon]] */
 object RegularPolygon:
 
+  given Ordering[RegularPolygon] with
+    def compare(x: RegularPolygon, y: RegularPolygon): Int =
+      x.toSides.compare(y.toSides)
+
   /** Create a [[RegularPolygon]] of given sides
     *
     * @param sides
