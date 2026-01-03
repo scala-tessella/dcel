@@ -317,7 +317,13 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
           )
         )
 
-  behavior of "TilingUniformity.gonality"
+  behavior of "TilingUniformity.gonalitySampleInnerVertices"
+
+  it should "find gonality" in:
+    uniformity6.gonalitySampleInnerVertexIds shouldBe
+      List(88, 84)
+
+  behavior of "TilingUniformity.gonalityUnsafe"
 
   it should "find gonality" in:
     uniformity6.gonalityUnsafe shouldBe

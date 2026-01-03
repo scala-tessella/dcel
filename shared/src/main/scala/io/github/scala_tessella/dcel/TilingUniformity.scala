@@ -255,13 +255,18 @@ object TilingUniformity:
       // Start from all inner vertices at the root
       deepMap(Nil, tiling.innerVertices.map(_.id)).result
 
-    private[dcel] def gonalityUnsafe: List[List[RegularPolygon]] =
+    def gonalitySampleInnerVertexIds: List[VertexId] =
       uniformityTreeUncompressed(Option(0))
         .compress:
           _ ::: _
         .flattenLeaves
         .map: vertexIds =>
-          tiling.getAnglesAtVertex(vertexIds.head).toOption.get
+          vertexIds.head
+
+    private[dcel] def gonalityUnsafe: List[List[RegularPolygon]] =
+      gonalitySampleInnerVertexIds
+        .map: vertexId =>
+          tiling.getAnglesAtVertex(vertexId).toOption.get
             .rotationsAndReflections
             .min
         .sorted
