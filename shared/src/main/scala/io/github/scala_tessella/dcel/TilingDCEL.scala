@@ -171,6 +171,13 @@ final case class TilingDCEL private (
     this.uniformityTreeUncompressed().compress:
       _ ::: _
 
+  /** Computes the gonality trees for the given uniformity tree structure, generating a list of partial trees
+    * with representative vertex ids. It ensures that the root branches are not empty.
+    *
+    * @return
+    *   A list of trees where each tree represents a simplified slice of the original uniformity tree, with
+    *   just one representative vertex id instead of the full list.
+    */
   def gonalityTrees: List[Tree[VertexId]] =
     uniformityTree match
       case Leaf(_)             => Nil
@@ -178,10 +185,8 @@ final case class TilingDCEL private (
         // to be sure that the top branch value is not empty
         val newChildren =
           children.map:
-            case Leaf(value)                     => Leaf(value)
-            case child @ Branch(value, children) =>
-              if value.nonEmpty then child
-              else Branch(children.head.value, children)
+            case Branch(value, children) if value.isEmpty => Branch(children.head.value, children)
+            case child                                    => child
         newChildren.map:
           _.map:
             _.head
