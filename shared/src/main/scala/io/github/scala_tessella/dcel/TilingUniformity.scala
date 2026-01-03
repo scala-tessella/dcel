@@ -274,7 +274,7 @@ object TilingUniformity:
       gonalitySampleInnerVertexIds
         .map: vertexId =>
           regularPolygonsUnsafeFrom(vertexId)
-        .sorted  
+        .sorted
 
     /** Scans the uniformity tree of a given tiling structure and generates a sequence of trees representing
       * vertex partitions grouped by equivalency at increasing depths.

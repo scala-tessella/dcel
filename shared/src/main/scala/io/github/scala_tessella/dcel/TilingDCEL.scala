@@ -191,6 +191,10 @@ final case class TilingDCEL private (
             child.map: vertexIds =>
               vertexIds.head
 
+  def gonalityTreesUnsafe: List[(List[RegularPolygon], Tree[VertexId])] =
+    gonalityTrees.map: tree =>
+      (this.regularPolygonsUnsafeFrom(tree.value), tree)
+
   def hasConnectedFaces: Boolean =
     innerFaces.isConnected
 
