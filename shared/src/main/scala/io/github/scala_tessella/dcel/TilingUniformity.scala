@@ -3,6 +3,7 @@ package io.github.scala_tessella.dcel
 import io.github.scala_tessella.dcel.TilingBuilder.setOuterEdgeAngles
 import io.github.scala_tessella.dcel.TilingEquivalency.groupByBoundaryEquivalency
 import io.github.scala_tessella.dcel.Tree.*
+import io.github.scala_tessella.dcel.Utils.associate
 import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, HalfEdgeId, Vertex, VertexId}
 
 import scala.util.control.TailCalls.{TailRec, done, tailcall}
@@ -190,34 +191,31 @@ object TilingUniformity:
       */
     def uniformityTreeUncompressed(maxDistance: Option[Int] = None): Tree[List[VertexId]] =
       val boundaryVertexIds =
-        tiling.boundaryVertices.map:
-          _.id
+        tiling.boundaryVertices
+          .map:
+            _.id
+          .toSet
 
       // Tail-recursive helper using TailCalls
       def deepMap(key: List[Int], vertexIds: List[VertexId]): TailRec[Tree[List[VertexId]]] =
-        val distance          = key.length
-        val centeredTilings   =
-          vertexIds.map: vertexId =>
-            vertexId -> tiling.getDcelAtVertex(vertexId, distance).toOption.get
-        val classes           = groupByBoundaryEquivalency(centeredTilings)
+        val distance           = key.length
+        val centeredTilingsMap =
+          vertexIds
+            .associate: vertexId =>
+              tiling.getDcelAtVertex(vertexId, distance).toOption.get
 
-        val globalBoundaryIds = boundaryVertexIds.toSet
-        val partitioned       =
+        val classes = groupByBoundaryEquivalency(centeredTilingsMap.toList)
+
+        val partitioned =
           classes.map: classIds =>
             classIds.partition: vertexId =>
-              val localTiling =
-                centeredTilings
-                  .find: (localVertexId, _) =>
-                    localVertexId == vertexId
-                  .map: (_, tiling) =>
-                    tiling
-                  .get
+              val localTiling      = centeredTilingsMap(vertexId)
               val localBoundaryIds =
                 localTiling.boundaryVertices
                   .map:
                     _.id
                   .toSet
-              globalBoundaryIds.intersect(localBoundaryIds).isEmpty
+              boundaryVertexIds.intersect(localBoundaryIds).isEmpty
 
         // Process children with tail recursion
         def iterate(

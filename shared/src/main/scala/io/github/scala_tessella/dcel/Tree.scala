@@ -64,6 +64,24 @@ enum Tree[A]:
             child.foldAlt(leaf, branch)
         )
 
+  /** Transforms the children of a tree using a specified function and applies the transformation recursively.
+    *
+    * @param f
+    *   A transformation function that takes a list of child trees and returns a transformed list of child
+    *   trees.
+    *
+    * @return
+    *   A new tree with its children transformed according to the provided function, applying the
+    *   transformation recursively.
+    */
+  def transformChildren(f: List[Tree[A]] => List[Tree[A]]): Tree[A] =
+    this match
+      case Leaf(_)                 => this
+      case Branch(value, children) =>
+        val transformed = f(children).map: child =>
+          child.transformChildren(f)
+        Branch(value, transformed)
+
   /** Same as fold but tail recursive.
     * @see
     *   https://stackoverflow.com/questions/55042834/how-to-make-tree-mapping-tail-recursive

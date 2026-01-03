@@ -286,39 +286,16 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "calculate the uniformity of a square net" in:
     val net = TilingBuilder.createRhombusNet(6, 6)
-    net.uniformityTree.flattenLeaves shouldBe
+    net.uniformityTree.orderedForComparison.flattenLeaves shouldBe
       List(
         List(
-          9,
-          10,
-          11,
-          12,
-          13,
-          16,
-          20,
-          23,
-          27,
-          30,
-          34,
-          37,
-          38,
-          39,
-          40,
-          41,
-          17,
-          18,
-          19,
-          24,
-          26,
-          31,
-          32,
-          33,
-          25
+          9, 10, 11, 12, 13, 16, 17, 18, 19, 20, 23, 24, 25,
+          26, 27, 30, 31, 32, 33, 34, 37, 38, 39, 40, 41
         )
       )
 
   it should "calculate the uniformity of a holed net" in:
-    holeInNet2.uniformityTree.flattenLeaves shouldBe List(
+    holeInNet2.uniformityTree.orderedForComparison.flattenLeaves shouldBe List(
       List(V6, 7, 22, 23),
       List(10, 11, 18, 19),
       List(14, 15)
@@ -326,116 +303,23 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "calculate another" in:
     val result = TilingBuilder.createHoledTriangleNet(12, 12)((i, j) => i % 10 == (j * 8) % 10)
-    result.uniformityTree shouldBe
+    result.uniformityTree.orderedForComparison shouldBe
       Branch(
         List(),
         List(
           Branch(
             List(
-              15,
-              16,
-              17,
-              18,
-              19,
-              25,
-              28,
-              36,
-              37,
-              38,
-              41,
-              51,
-              80,
-              90,
-              93,
-              103,
-              106,
-              116,
-              137,
-              138,
-              145,
-              146,
-              147,
-              148,
-              149,
-              155
+              15, 16, 17, 18, 19, 25, 28, 36, 37, 38, 41, 51, 80, 90,
+              93, 103, 106, 116, 137, 138, 145, 146, 147, 148, 149, 155
             ),
             List(
-              Leaf(List(
-                29,
-                48,
-                50,
-                81,
-                94,
-                102,
-                115,
-                124,
-                126,
-                135,
-                59,
-                61,
-                70,
-                83,
-                113,
-                72
-              )),
-              Leaf(List(
-                30,
-                47,
-                62,
-                69,
-                95,
-                101,
-                127,
-                134,
-                58,
-                73,
-                84,
-                112,
-                123
-              )),
-              Leaf(List(49, 125, 136, 60, 82, 114, 71))
+              Leaf(List(29, 48, 50, 59, 61, 70, 72, 81, 83, 94, 102, 113, 115, 124, 126, 135)),
+              Leaf(List(30, 47, 58, 62, 69, 73, 84, 95, 101, 112, 123, 127, 134)),
+              Leaf(List(49, 60, 71, 82, 114, 125, 136))
             )
           ),
-          Leaf(List(
-            20,
-            35,
-            42,
-            63,
-            68,
-            89,
-            107,
-            128,
-            133,
-            139,
-            154,
-            31,
-            46,
-            57,
-            74,
-            96,
-            100,
-            122,
-            111,
-            85
-          )),
-          Leaf(List(
-            21,
-            34,
-            43,
-            56,
-            75,
-            88,
-            108,
-            121,
-            140,
-            153,
-            32,
-            45,
-            86,
-            97,
-            99,
-            110
-          ))
+          Leaf(List(20, 31, 35, 42, 46, 57, 63, 68, 74, 85, 89, 96, 100, 107, 111, 122, 128, 133, 139, 154)),
+          Leaf(List(21, 32, 34, 43, 45, 56, 75, 86, 88, 97, 99, 108, 110, 121, 140, 153))
         )
       )
 

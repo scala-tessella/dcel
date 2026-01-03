@@ -79,3 +79,13 @@ trait TilingTestHelpers extends EitherValues:
     val source = fromFile(s"shared/src/test/resources/$filename", "UTF-8")
     try source.mkString
     finally source.close()
+
+  extension (tree: Tree[List[VertexId]])
+
+    def orderedForComparison: Tree[List[VertexId]] =
+      tree
+        .map: vertexIds =>
+          vertexIds.sorted
+        .transformChildren: children =>
+          children.sortBy: child =>
+            child.value.head

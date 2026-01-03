@@ -75,57 +75,24 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
     allAssert(
       tree.sizeLeaves shouldBe 6,
       uniformity6.innerFaces.size shouldBe 131,
-      tree shouldBe
+      tree.orderedForComparison shouldBe
         Branch(
           List(),
           List(
             Branch(
+              List(12, 13, 14, 15, 16, 17, 22, 39, 49, 62, 72, 87, 88, 89),
               List(
-                12,
-                13,
-                14,
-                15,
-                16,
-                17,
-                22,
-                39,
-                49,
-                62,
-                72,
-                87,
-                88,
-                89
-              ),
-              List(
-                Leaf(List(23, 64, 47, 54, 57)),
-                Leaf(List(24, 53, 58, 65, 46)),
-                Leaf(List(48, 63, 55, 56))
+                Leaf(List(23, 47, 54, 57, 64)),
+                Leaf(List(24, 46, 53, 58, 65)),
+                Leaf(List(48, 55, 56, 63))
               )
             ),
             Branch(
-              List(
-                18,
-                19,
-                29,
-                32,
-                33,
-                43,
-                52,
-                59,
-                68,
-                73,
-                74,
-                78,
-                79,
-                82,
-                84,
-                85,
-                86
-              ),
+              List(18, 19, 29, 32, 33, 43, 52, 59, 68, 73, 74, 78, 79, 82, 84, 85, 86),
               List(
                 Leaf(List(25, 38, 45, 66)),
-                Leaf(List(26, 44, 67, 37)),
-                Leaf(List(27, 34, 75, 77, 36))
+                Leaf(List(26, 37, 44, 67)),
+                Leaf(List(27, 34, 36, 75, 77))
               )
             )
           )
@@ -157,123 +124,50 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
   behavior of "TilingUniformity.uniformityTreeUncompressed"
 
   it should "find at distance 0 uncompressed" in:
-    uniformity6.uniformityTreeUncompressed(Option(0)) shouldBe
+    uniformity6
+      .uniformityTreeUncompressed(Option(0))
+      .orderedForComparison shouldBe
       Branch(
         List(),
         List(
           Branch(
-            List(
-              12,
-              13,
-              14,
-              15,
-              16,
-              17,
-              22,
-              39,
-              49,
-              62,
-              72,
-              87,
-              88,
-              89
-            ),
+            List(12, 13, 14, 15, 16, 17, 22, 39, 49, 62, 72, 87, 88, 89),
             List()
           ),
           Branch(
-            List(
-              18,
-              19,
-              29,
-              32,
-              33,
-              43,
-              52,
-              59,
-              68,
-              73,
-              74,
-              78,
-              79,
-              82,
-              84,
-              85,
-              86
-            ),
+            List(18, 19, 29, 32, 33, 43, 52, 59, 68, 73, 74, 78, 79, 82, 84, 85, 86),
             List()
           )
         )
       )
 
   it should "find at distance 0" in:
-    uniformity6.uniformityTreeUncompressed(Option(0)).compress(_ ::: _) shouldBe
+    uniformity6.uniformityTreeUncompressed(Option(0))
+      .compress:
+        _ ::: _
+      .orderedForComparison shouldBe
       Branch(
         List(),
         List(
           Leaf(
-            List(
-              12,
-              13,
-              14,
-              15,
-              16,
-              17,
-              22,
-              39,
-              49,
-              62,
-              72,
-              87,
-              88,
-              89
-            )
+            List(12, 13, 14, 15, 16, 17, 22, 39, 49, 62, 72, 87, 88, 89)
           ),
           Leaf(
-            List(
-              18,
-              19,
-              29,
-              32,
-              33,
-              43,
-              52,
-              59,
-              68,
-              73,
-              74,
-              78,
-              79,
-              82,
-              84,
-              85,
-              86
-            )
+            List(18, 19, 29, 32, 33, 43, 52, 59, 68, 73, 74, 78, 79, 82, 84, 85, 86)
           )
         )
       )
 
   it should "find at distance 1" in:
-    uniformity6.uniformityTreeUncompressed(Option(1)).compress(_ ::: _) shouldBe
+    uniformity6.uniformityTreeUncompressed(Option(1))
+      .compress:
+        _ ::: _
+      .orderedForComparison shouldBe
       Branch(
         List(),
         List(
           Branch(
-            List(
-              12,
-              13,
-              14,
-              15,
-              16,
-              17,
-              22,
-              39,
-              49,
-              62,
-              72,
-              87,
-              88,
-              89
-            ),
+            List(12, 13, 14, 15, 16, 17, 22, 39, 49, 62, 72, 87, 88, 89),
             List(
               Leaf(List(23, 64)),
               Leaf(List(24, 53, 58, 65)),
@@ -281,25 +175,7 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
             )
           ),
           Branch(
-            List(
-              18,
-              19,
-              29,
-              32,
-              33,
-              43,
-              52,
-              59,
-              68,
-              73,
-              74,
-              78,
-              79,
-              82,
-              84,
-              85,
-              86
-            ),
+            List(18, 19, 29, 32, 33, 43, 52, 59, 68, 73, 74, 78, 79, 82, 84, 85, 86),
             List(
               Leaf(List(25, 38)),
               Leaf(List(26, 44, 67)),
@@ -310,122 +186,67 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
       )
 
   it should "find at distance 2" in:
-    uniformity6.uniformityTreeUncompressed(Option(2)).compress(_ ::: _) shouldBe
+    uniformity6.uniformityTreeUncompressed(Option(2))
+      .compress:
+        _ ::: _
+      .orderedForComparison shouldBe
       Branch(
         List(),
         List(
           Branch(
+            List(12, 13, 14, 15, 16, 17, 22, 39, 49, 62, 72, 87, 88, 89),
             List(
-              12,
-              13,
-              14,
-              15,
-              16,
-              17,
-              22,
-              39,
-              49,
-              62,
-              72,
-              87,
-              88,
-              89
-            ),
-            List(
-              Leaf(List(23, 64, 47, 54, 57)),
+              Leaf(List(23, 47, 54, 57, 64)),
               Leaf(List(24, 53, 58, 65)),
-              Leaf(List(48, 63, 55, 56))
+              Leaf(List(48, 55, 56, 63))
             )
           ),
           Branch(
-            List(
-              18,
-              19,
-              29,
-              32,
-              33,
-              43,
-              52,
-              59,
-              68,
-              73,
-              74,
-              78,
-              79,
-              82,
-              84,
-              85,
-              86
-            ),
+            List(18, 19, 29, 32, 33, 43, 52, 59, 68, 73, 74, 78, 79, 82, 84, 85, 86),
             List(
               Leaf(List(25, 38, 45, 66)),
-              Leaf(List(26, 44, 67, 37)),
-              Leaf(List(27, 34, 75, 77, 36))
+              Leaf(List(26, 37, 44, 67)),
+              Leaf(List(27, 34, 36, 75, 77))
             )
           )
         )
       )
 
   it should "find at distance 3" in:
-    uniformity6.uniformityTreeUncompressed(Option(3)).compress(_ ::: _) shouldBe
+    uniformity6.uniformityTreeUncompressed(Option(3))
+      .compress:
+        _ ::: _
+      .orderedForComparison shouldBe
       Branch(
         List(),
         List(
           Branch(
+            List(12, 13, 14, 15, 16, 17, 22, 39, 49, 62, 72, 87, 88, 89),
             List(
-              12,
-              13,
-              14,
-              15,
-              16,
-              17,
-              22,
-              39,
-              49,
-              62,
-              72,
-              87,
-              88,
-              89
-            ),
-            List(
-              Leaf(List(23, 64, 47, 54, 57)),
-              Leaf(List(24, 53, 58, 65, 46)),
-              Leaf(List(48, 63, 55, 56))
+              Leaf(List(23, 47, 54, 57, 64)),
+              Leaf(List(24, 46, 53, 58, 65)),
+              Leaf(List(48, 55, 56, 63))
             )
           ),
           Branch(
-            List(
-              18,
-              19,
-              29,
-              32,
-              33,
-              43,
-              52,
-              59,
-              68,
-              73,
-              74,
-              78,
-              79,
-              82,
-              84,
-              85,
-              86
-            ),
+            List(18, 19, 29, 32, 33, 43, 52, 59, 68, 73, 74, 78, 79, 82, 84, 85, 86),
             List(
               Leaf(List(25, 38, 45, 66)),
-              Leaf(List(26, 44, 67, 37)),
-              Leaf(List(27, 34, 75, 77, 36))
+              Leaf(List(26, 37, 44, 67)),
+              Leaf(List(27, 34, 36, 75, 77))
             )
           )
         )
       )
 
   it should "find at distance 4" in:
-    uniformity6.uniformityTreeUncompressed(Option(4)).compress(_ ::: _) shouldEqual
-      uniformity6.uniformityTreeUncompressed(Option(3)).compress(_ ::: _)
+    uniformity6.uniformityTreeUncompressed(Option(4))
+      .compress:
+        _ ::: _
+      .shouldEqual:
+        uniformity6.uniformityTreeUncompressed(Option(3))
+          .compress:
+            _ ::: _
 
 //  behavior of "problematic tiling"
 //
@@ -449,72 +270,49 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
   behavior of "TilingDCEL.scanUniformityTree"
 
   it should "efficiently scan uniformity at all distances" in:
-    uniformity6.scanUniformityTree shouldEqual
-      (0 to 3).toList.map: distance =>
-        uniformity6.uniformityTreeUncompressed(Option(distance)).compress(_ ::: _)
+    uniformity6.scanUniformityTree
+      .map:
+        _.orderedForComparison
+      .shouldEqual:
+        (0 to 3).toList.map: distance =>
+          uniformity6.uniformityTreeUncompressed(Option(distance))
+            .compress(_ ::: _)
+            .orderedForComparison
 
   it should "scan uniformity leaves at all distances" in:
-    uniformity6.scanUniformityTree.map(_.flattenLeaves) shouldEqual
-      List(
+    uniformity6.scanUniformityTree
+      .map:
+        _.orderedForComparison
+      .map:
+        _.flattenLeaves
+      .shouldEqual:
         List(
           List(
-            12,
-            13,
-            14,
-            15,
-            16,
-            17,
-            22,
-            39,
-            49,
-            62,
-            72,
-            87,
-            88,
-            89
+            List(12, 13, 14, 15, 16, 17, 22, 39, 49, 62, 72, 87, 88, 89),
+            List(18, 19, 29, 32, 33, 43, 52, 59, 68, 73, 74, 78, 79, 82, 84, 85, 86)
           ),
           List(
-            18,
-            19,
-            29,
-            32,
-            33,
-            43,
-            52,
-            59,
-            68,
-            73,
-            74,
-            78,
-            79,
-            82,
-            84,
-            85,
-            86
+            List(23, 64),
+            List(24, 53, 58, 65),
+            List(48, 63),
+            List(25, 38),
+            List(26, 44, 67),
+            List(27, 34, 75, 77)
+          ),
+          List(
+            List(23, 47, 54, 57, 64),
+            List(24, 53, 58, 65),
+            List(48, 55, 56, 63),
+            List(25, 38, 45, 66),
+            List(26, 37, 44, 67),
+            List(27, 34, 36, 75, 77)
+          ),
+          List(
+            List(23, 47, 54, 57, 64),
+            List(24, 46, 53, 58, 65),
+            List(48, 55, 56, 63),
+            List(25, 38, 45, 66),
+            List(26, 37, 44, 67),
+            List(27, 34, 36, 75, 77)
           )
-        ),
-        List(
-          List(23, 64),
-          List(24, 53, 58, 65),
-          List(48, 63),
-          List(25, 38),
-          List(26, 44, 67),
-          List(27, 34, 75, 77)
-        ),
-        List(
-          List(23, 64, 47, 54, 57),
-          List(24, 53, 58, 65),
-          List(48, 63, 55, 56),
-          List(25, 38, 45, 66),
-          List(26, 44, 67, 37),
-          List(27, 34, 75, 77, 36)
-        ),
-        List(
-          List(23, 64, 47, 54, 57),
-          List(24, 53, 58, 65, 46),
-          List(48, 63, 55, 56),
-          List(25, 38, 45, 66),
-          List(26, 44, 67, 37),
-          List(27, 34, 75, 77, 36)
         )
-      )
