@@ -9,11 +9,11 @@ import scala.Ordering.Implicits.*
 
 object TilingEquivalency:
 
-  extension [T](seq: Seq[T])
-
-    private def toMultiset: Map[T, Int] =
-      seq.groupMapReduce(identity)(_ => 1):
-        _ + _
+//  extension [T](seq: Seq[T])
+//
+//    private def toMultiset: Map[T, Int] =
+//      seq.groupMapReduce(identity)(_ => 1):
+//        _ + _
 
   /** Groups elements from the input list into classes of equivalency. We are using a (more performant)
     * boundary equivalence of their associated `TilingDCEL` structures because the inner elements of the
@@ -397,16 +397,21 @@ object TilingEquivalency:
       */
     def isBoundaryEquivalentTo(other: TilingDCEL): Boolean =
       // Quick size checks first
-      if tiling.boundaryVertices.size != other.boundaryVertices.size then
-        return false
+      tiling.boundaryVertices.sizeCompare(other.boundaryVertices) == 0
+        && tiling.boundarySignature == other.boundarySignature
 
-      if tiling.boundaryEdges.size != other.boundaryEdges.size then
-        return false
-
-      def getBoundarySignatures(tilingDCEL: TilingDCEL) =
-        tilingDCEL.boundaryVertices
-          .map: vertex =>
-            vertex.signature
-          .toMultiset
-
-      getBoundarySignatures(tiling) == getBoundarySignatures(other)
+//    def isBoundaryEquivalentToOld(other: TilingDCEL): Boolean =
+//      // Quick size checks first
+//      if tiling.boundaryVertices.size != other.boundaryVertices.size then
+//        return false
+//
+//      if tiling.boundaryEdges.size != other.boundaryEdges.size then
+//        return false
+//
+//      def getBoundarySignatures(tilingDCEL: TilingDCEL) =
+//        tilingDCEL.boundaryVertices
+//          .map: vertex =>
+//            vertex.signature
+//          .toMultiset
+//
+//      getBoundarySignatures(tiling) == getBoundarySignatures(other)
