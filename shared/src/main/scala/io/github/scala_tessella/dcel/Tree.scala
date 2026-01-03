@@ -147,6 +147,10 @@ enum Tree[A]:
   def sizeLeaves: Int =
     fold(_ => 1, _ => 0, _.sum)
 
+  /** Returns the depth of the tree. */
+  def depth: Int =
+    simpleFold(_ => 1, childrenDepths => 1 + (0 :: childrenDepths).max)
+
   /** Checks if the tree contains the specified element. */
   def contains(element: A): Boolean =
 //    this match
