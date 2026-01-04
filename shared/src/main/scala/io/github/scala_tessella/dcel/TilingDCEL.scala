@@ -179,17 +179,18 @@ final case class TilingDCEL private (
     *   just one representative vertex id instead of the full list.
     */
   def gonalityTrees: List[Tree[VertexId]] =
-    uniformityTree match
-      case Leaf(_)             => Nil
-      case Branch(_, children) =>
-        children
-          // to be sure that the top branch value is not empty
-          .map:
-            case Branch(value, children) if value.isEmpty => Branch(children.head.value, children)
-            case child                                    => child
-          .map: child =>
-            child.map: vertexIds =>
-              vertexIds.head
+    uniformityTree
+      .ensureDepthOneBranchesHaveValidValues(_.isEmpty, _.flatMap(_.value))
+      .children
+      .map: child =>
+        child.map: vertexIds =>
+          vertexIds.headOption.getOrElse(VertexId(-1))
+      .map:
+        case child @ Leaf(_value)              => child
+        case child @ Branch(_value, _children) =>
+          Branch(_value, child.flattenLeaves.map:
+            Leaf(_)
+          )
 
   def gonalityTreesUnsafe: List[(List[RegularPolygon], Tree[VertexId])] =
     gonalityTrees.map: tree =>
