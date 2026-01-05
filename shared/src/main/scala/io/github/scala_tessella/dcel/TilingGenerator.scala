@@ -1,7 +1,7 @@
 package io.github.scala_tessella.dcel
 
 import io.github.scala_tessella.dcel.TilingEquivalency.{hasSameSizesOf, isBoundaryEquivalentTo}
-import io.github.scala_tessella.dcel.TilingUniformity.gonalitySampleInnerVertexIds
+import io.github.scala_tessella.dcel.TilingUniformity.{gonalitySampleInnerVertexIds, regularPolygonsUnsafeFrom}
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, RegularPolygon}
 import io.github.scala_tessella.dcel.structure.{Vertex, VertexId}
 import io.github.scala_tessella.ring_seq.RingSeq.rotationsAndReflections
@@ -272,9 +272,11 @@ object TilingGenerator:
         grownTiling    <- maybeSymmetricAddition(regularPolygon)
       yield grownTiling
 
+  type GuardedTiling = (TilingDCEL, Option[Set[RegularPolygon]])
+
   extension (tilings: List[TilingDCEL])
 
-    def expandRotationallyMore(
+    def expandRotationallyMoreOld(
         order: Int,
         steps: Int = 1,
         uniformity: Option[Int] = None,
@@ -284,7 +286,7 @@ object TilingGenerator:
           gonality.exists: g =>
             u < g
       then
-        throw new IllegalArgumentException("Uniformity cannot be lower than  gonality")
+        throw new IllegalArgumentException("Uniformity cannot be lower than gonality")
       val startingSize =
         tilings.size
       (0 until steps).foldLeft(tilings): (grownTilings, step) =>
@@ -316,3 +318,98 @@ object TilingGenerator:
 
         (alreadyGrownWithHoleFilling :: nowGrown)
           .distinctByBoundaryEquivalency2
+
+    def expandRotationallyMore(
+                                order: Int,
+                                steps: Int = 1,
+                                uniformity: Option[Int] = None,
+                                gonality: Option[Int] = None
+                              ): List[TilingDCEL] =
+      if uniformity.exists: u =>
+        gonality.exists: g =>
+          u < g
+      then
+        throw new IllegalArgumentException("Uniformity cannot be lower than gonality")
+      val startingSize =
+        tilings.size
+      val startingGuardedTilings: List[GuardedTiling] =
+        tilings.map: t =>
+          (t, None)
+      (0 until steps).foldLeft(startingGuardedTilings): (grownTilings, step) =>
+        val (growable, alreadyGrownWithHoleFilling) =
+          grownTilings.partition: (tiling, _) =>
+            tiling.innerFaces.size == startingSize + order * step
+        val nowGrown =
+          growable
+            .map: (tiling, maybeGuard) =>
+              val expandedTilings =
+                maybeGuard match
+                  case Some(regularPolygons) => tiling.expandRotationally(order, regularPolygons)
+                  case None => tiling.expandRotationally(order)
+              expandedTilings
+                .filter:
+                  _.boundarySimplePolygon.toAngles.forall: angle =>
+                    angle.toRational <= Rational(300)
+
+        val nowGrown2: List[List[GuardedTiling]] =
+          (uniformity, gonality) match
+            case (None, None) =>
+              nowGrown.map:
+                _.map:
+                  (_, None)
+            case (Some(u), None) =>
+              nowGrown.map:
+                _.filter:
+                  _.uniformityTree.sizeLeaves <= u
+                .map:
+                  (_, None)
+            case (None, Some(g)) =>
+              nowGrown.map:
+                _.map: til =>
+                  (til, til.gonalitySampleInnerVertexIds)
+                .filter: (_, vertexIds) =>
+                  vertexIds.size <= g
+                .map: (til, vertexIds) =>
+                  if vertexIds.size == g then
+                    val regularPolygons =
+                      vertexIds
+                        .flatMap:
+                          til.regularPolygonsUnsafeFrom
+                        .toSet
+                    (til, Some(regularPolygons))
+                  else
+                    (til, None)
+            case (Some(u), Some(g)) =>
+              nowGrown.map:
+                _.map: til =>
+                  (til, til.gonalityTreesUnsafe)
+                .filter: (_, trees) =>
+                  val gonalityOrder = trees.size
+
+                  def uniformityOrder =
+                    trees
+                      .map: (_, tree) =>
+                        tree.sizeLeaves
+                      .sum
+
+                  gonalityOrder <= g && uniformityOrder <= u
+                .map: (til, trees) =>
+                  if trees.size == g then
+                    val regularPolygons =
+                      trees
+                        .flatMap: (regularPolygons, _) =>
+                          regularPolygons
+                        .toSet
+                    (til, Some(regularPolygons))
+                  else
+                    (til, None)
+
+        (alreadyGrownWithHoleFilling :: nowGrown2)
+          .map:
+            _.map: (tiling, _) =>
+              tiling
+          .distinctByBoundaryEquivalency2
+          .map:
+            (_, None)
+      .map: (tiling, _) =>
+        tiling
