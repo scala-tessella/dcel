@@ -264,8 +264,8 @@ enum Tree[A]:
     * @param fold
     *   A binary function that combines two values of type A into one. Applied to compress branch values and
     *   their child values.
-    * 
-   * @return
+    *
+    * @return
     *   A new tree with the branch values simplified according to the provided folding function, while
     *   maintaining the tree structure where necessary.
     */
