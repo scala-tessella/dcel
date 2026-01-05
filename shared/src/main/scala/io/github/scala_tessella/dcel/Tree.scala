@@ -366,16 +366,19 @@ enum Tree[A]:
     loop(ordinal, this)
     ("graph G {" :: ("}" :: elements).reverse).mkString("\n")
 
-  def ensureDepthOneBranchesHaveValidValues(isInvalid: A => Boolean, fromChildren: List[Tree[A]] => A): Tree[A] =
+  def ensureDepthOneBranchesHaveValidValues(isInvalid: A => Boolean, recomputeValue: List[Tree[A]] => A): Tree[A] =
     this match
-      case Leaf(value) => Leaf(value)
+      case leaf: Leaf[A]           => leaf
       case Branch(value, children) =>
-        val newChildren =
-          children
-            .map:
-              case Branch(value, children) if isInvalid(value) => Branch(fromChildren(children), children)
-              case child => child
-        Branch(value, newChildren)
+        def updateChild(tree: Tree[A]): Tree[A] = tree match
+          case Branch(v, c) if isInvalid(v) => Branch(recomputeValue(c), c)
+          case other                        => other
+
+        Branch(
+          value,
+          children.map:
+            updateChild
+        )
 
 object Tree:
 
