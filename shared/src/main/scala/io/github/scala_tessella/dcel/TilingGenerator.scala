@@ -268,9 +268,13 @@ object TilingGenerator:
         uniformity: Option[Int] = None,
         gonality: Option[Int] = None
     ): List[TilingDCEL] =
+      if uniformity.exists: u =>
+        gonality.exists: g =>
+          u < g
+      then
+        throw new IllegalArgumentException("Uniformity cannot be lower than  gonality")
       val startingSize =
         tilings.size
-
       (0 until steps).foldLeft(tilings): (grownTilings, step) =>
         val (growable, alreadyGrownWithHoleFilling) = grownTilings.partition: tiling =>
           tiling.innerFaces.size == startingSize + order * step
