@@ -364,19 +364,27 @@ enum Tree[A]:
         case "" => ""
         case l  => s""" [label="$l"]"""
 
-    def loop(currentId: Int, tree: Tree[A]): Int =
-      val label = formatLabel(tree.value)
-      lines ::= s"$currentId$label"
+    def iterate(nodes: List[Tree[A]], parentId: Int): Int => TailRec[Int] =
+      startId =>
+        nodes match
+          case Nil    => done(startId)
+          case h :: t =>
+            val childId = startId + 1
+            lines ::= s"$parentId -- $childId"
+            tailcall:
+              deepMap(h)(childId)
+            .flatMap: nextId =>
+              iterate(t, parentId)(nextId)
 
-      tree match
-        case Leaf(_)             => currentId
-        case Branch(_, children) =>
-          children.foldLeft(currentId): (lastId, child) =>
-            val childId = lastId + 1
-            lines ::= s"$currentId -- $childId"
-            loop(childId, child)
+    def deepMap(node: Tree[A]): Int => TailRec[Int] =
+      currentId =>
+        lines ::= s"$currentId${formatLabel(node.value)}"
+        node match
+          case Leaf(_)             => done(currentId)
+          case Branch(_, children) => tailcall:
+            iterate(children, currentId)(currentId)
 
-    loop(1, this): Unit
+    deepMap(this)(1).result: Unit
     ("graph G {" :: lines.reverse ::: List("}")).mkString("\n")
 
   /** Retrieves the first leaf value of the tree, if it exists.
