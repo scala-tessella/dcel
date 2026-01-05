@@ -274,8 +274,9 @@ object TilingGenerator:
       val startingSize =
         tilings.size
       (0 until steps).foldLeft(tilings): (grownTilings, step) =>
-        val (growable, alreadyGrownWithHoleFilling) = grownTilings.partition: tiling =>
-          tiling.innerFaces.size == startingSize + order * step
+        val (growable, alreadyGrownWithHoleFilling) =
+          grownTilings.partition: tiling =>
+            tiling.innerFaces.size == startingSize + order * step
         val nowGrown                                =
           growable
             .map: tiling =>
