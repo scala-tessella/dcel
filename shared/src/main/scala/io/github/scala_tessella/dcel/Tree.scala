@@ -366,7 +366,10 @@ enum Tree[A]:
     loop(ordinal, this)
     ("graph G {" :: ("}" :: elements).reverse).mkString("\n")
 
-  def ensureDepthOneBranchesHaveValidValues(isInvalid: A => Boolean, recomputeValue: List[Tree[A]] => A): Tree[A] =
+  def ensureDepthOneBranchesHaveValidValues(
+      isInvalid: A => Boolean,
+      recomputeValue: List[Tree[A]] => A
+  ): Tree[A] =
     this match
       case leaf: Leaf[A]           => leaf
       case Branch(value, children) =>

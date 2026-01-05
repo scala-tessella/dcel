@@ -1,7 +1,10 @@
 package io.github.scala_tessella.dcel
 
 import io.github.scala_tessella.dcel.TilingEquivalency.{hasSameSizesOf, isBoundaryEquivalentTo}
-import io.github.scala_tessella.dcel.TilingUniformity.uniformityTreeUncompressed
+import io.github.scala_tessella.dcel.TilingUniformity.{
+  gonalitySampleInnerVertexIds,
+  uniformityTreeUncompressed
+}
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, RegularPolygon}
 import io.github.scala_tessella.dcel.structure.Vertex
 import io.github.scala_tessella.ring_seq.RingSeq.rotationsAndReflections
@@ -259,7 +262,12 @@ object TilingGenerator:
 
   extension (tilings: List[TilingDCEL])
 
-    def expandRotationallyMore(order: Int, steps: Int = 1, uniformity: Option[Int] = None): List[TilingDCEL] =
+    def expandRotationallyMore(
+        order: Int,
+        steps: Int = 1,
+        uniformity: Option[Int] = None,
+        gonality: Option[Int] = None
+    ): List[TilingDCEL] =
       val startingSize =
         tilings.size
 
@@ -274,9 +282,20 @@ object TilingGenerator:
                   expandedTiling.boundarySimplePolygon.toAngles.forall: angle =>
                     angle.toRational <= Rational(300)
                 .filter: expandedTiling =>
-                  uniformity match
-                    case Some(value) => /*t.gonality <= value && */
-                      expandedTiling.uniformityTree.sizeLeaves <= value
-                    case None        => true
+                  (uniformity, gonality) match
+                    case (None, None)       => true
+                    case (Some(u), None)    => expandedTiling.uniformityTree.sizeLeaves <= u
+                    case (None, Some(g))    => expandedTiling.gonalitySampleInnerVertexIds.size <= g
+                    case (Some(u), Some(g)) =>
+                      val trees           = expandedTiling.gonalityTreesUnsafe
+                      val gonalityOrder   = trees.size
+                      def uniformityOrder =
+                        trees
+                          .map: (_, tree) =>
+                            tree.sizeLeaves
+                          .sum
+
+                      gonalityOrder <= g && uniformityOrder <= u
+
         (alreadyGrownWithHoleFilling :: nowGrown)
           .distinctByBoundaryEquivalency2

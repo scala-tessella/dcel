@@ -188,8 +188,10 @@ final case class TilingDCEL private (
       .map:
         case leaf: Leaf[VertexId]     => leaf
         case child @ Branch(value, _) =>
-          Branch(value, child.flattenLeaves.map: vertexId =>
-            Leaf(vertexId)
+          Branch(
+            value,
+            child.flattenLeaves.map: vertexId =>
+              Leaf(vertexId)
           )
 
   def gonalityTreesUnsafe: List[(List[RegularPolygon], Tree[VertexId])] =
