@@ -370,14 +370,11 @@ enum Tree[A]:
     this match
       case leaf: Leaf[A]           => leaf
       case Branch(value, children) =>
-        def updateChild(tree: Tree[A]): Tree[A] = tree match
-          case Branch(v, c) if isInvalid(v) => Branch(recomputeValue(c), c)
-          case other                        => other
-
         Branch(
           value,
           children.map:
-            updateChild
+            case Branch(v, c) if isInvalid(v) => Branch(recomputeValue(c), c)
+            case other                        => other
         )
 
 object Tree:
