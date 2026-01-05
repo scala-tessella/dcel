@@ -180,7 +180,7 @@ final case class TilingDCEL private (
     */
   def gonalityTrees: List[Tree[VertexId]] =
     uniformityTree
-      .ensureDepthOneBranchesHaveValidValues(_.isEmpty, _.flatMap(_.value))
+      .ensureDepthOneBranchesHaveValidValues(_.isEmpty, _.head.firstLeaf.get)
       .children
       .map: child =>
         child.map: vertexIds =>
