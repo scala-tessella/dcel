@@ -1,10 +1,7 @@
 package io.github.scala_tessella.dcel
 
 import io.github.scala_tessella.dcel.TilingEquivalency.{hasSameSizesOf, isBoundaryEquivalentTo}
-import io.github.scala_tessella.dcel.TilingUniformity.{
-  gonalitySampleInnerVertexIds,
-  uniformityTreeUncompressed
-}
+import io.github.scala_tessella.dcel.TilingUniformity.gonalitySampleInnerVertexIds
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, RegularPolygon}
 import io.github.scala_tessella.dcel.structure.Vertex
 import io.github.scala_tessella.ring_seq.RingSeq.rotationsAndReflections
@@ -177,7 +174,8 @@ object TilingGenerator:
   private def getSignature(tiling: TilingDCEL, v: Vertex): VertexSignature =
     val edges = v.incidentEdgesUnsafe
     // Collect number of sides of incident faces
-    val sides = edges.flatMap(_.incidentFace).filter(_ != tiling.outerFace).map(_.halfEdgesUnsafe.size)
+    val sides =
+      edges.flatMap(_.incidentFace).filter(_ != tiling.outerFace).map(_.halfEdgesUnsafe.size)
     normalizeSignature(sides)
 
   extension (tilings: List[TilingDCEL])
@@ -213,9 +211,9 @@ object TilingGenerator:
 
   extension (tiling: TilingDCEL)
 
-    private def gonality: Int =
-      tiling.uniformityTreeUncompressed(Option(0)).sizeLeaves
-
+//    private def gonality: Int =
+//      tiling.uniformityTreeUncompressed(Option(0)).sizeLeaves
+//
     def expandRotationally(order: Int): List[TilingDCEL] =
       if !List(2, 3, 4, 6).contains(order) then throw new IllegalArgumentException("Invalid order")
 
@@ -269,8 +267,8 @@ object TilingGenerator:
         gonality: Option[Int] = None
     ): List[TilingDCEL] =
       if uniformity.exists: u =>
-        gonality.exists: g =>
-          u < g
+          gonality.exists: g =>
+            u < g
       then
         throw new IllegalArgumentException("Uniformity cannot be lower than  gonality")
       val startingSize =
