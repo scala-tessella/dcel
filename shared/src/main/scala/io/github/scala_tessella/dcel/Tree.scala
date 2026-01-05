@@ -366,19 +366,17 @@ enum Tree[A]:
     loop(ordinal, this)
     ("graph G {" :: ("}" :: elements).reverse).mkString("\n")
 
-  /**
-   * Retrieves the first leaf value of the tree, if it exists.
-   *
-   * The method traverses the tree starting from the root and returns the value
-   * of the first leaf node encountered during the traversal. If the tree is empty
-   * or no leaf is found, it returns None.
-   *
-   * @return
-   * An Option containing the value of the first leaf node, or None if no leaf exists.
-   */
+  /** Retrieves the first leaf value of the tree, if it exists.
+    *
+    * The method traverses the tree starting from the root and returns the value of the first leaf node
+    * encountered during the traversal. If the tree is empty or no leaf is found, it returns None.
+    *
+    * @return
+    *   An Option containing the value of the first leaf node, or None if no leaf exists.
+    */
   def firstLeaf: Option[A] =
     foldAlt(
-      leaf   = value         => Option(value),
+      leaf = value => Option(value),
       branch = (_, children) => children.headOption.flatten
     )
 
