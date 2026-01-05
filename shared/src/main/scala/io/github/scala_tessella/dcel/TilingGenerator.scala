@@ -255,17 +255,22 @@ object TilingGenerator:
 //      val angles = tiling.boundarySimplePolygon.toAngles
 //      val edgeStartAlt = (0 until segmentSize).maxBy(i => angles(i).toRational)
 
+      val initialVertexId = boundaryVertexIds(edgeStartIndex)
+
+      /** Attempt initial addition, then propagate to other segments if successful */
       def maybeSymmetricAddition(regularPolygon: RegularPolygon): Option[TilingDCEL] =
-        val initialVertexId = boundaryVertexIds(edgeStartIndex)
+        (1 until order).foldLeft(tiling.maybeAddRegularPolygonToBoundary(
+          initialVertexId,
+          regularPolygon
+        ).toOption): (maybeTiling, segmentIndex) =>
+          maybeTiling.flatMap: currentTiling =>
+            val symmetricVertexId = boundaryVertexIds(edgeStartIndex + segmentIndex * segmentSize)
+            currentTiling.maybeAddRegularPolygonToBoundary(symmetricVertexId, regularPolygon).toOption
 
-        // Attempt initial addition, then propagate to other segments if successful
-        (1 until order).foldLeft(tiling.maybeAddRegularPolygonToBoundary(initialVertexId, regularPolygon).toOption):
-          (maybeTiling, segmentIndex) =>
-            maybeTiling.flatMap: currentTiling =>
-              val symmetricVertexId = boundaryVertexIds(edgeStartIndex + segmentIndex * segmentSize)
-              currentTiling.maybeAddRegularPolygonToBoundary(symmetricVertexId, regularPolygon).toOption
-
-      regularPolygons.toList.flatMap(maybeSymmetricAddition)
+      for
+        regularPolygon <- regularPolygons.toList
+        grownTiling    <- maybeSymmetricAddition(regularPolygon)
+      yield grownTiling
 
   extension (tilings: List[TilingDCEL])
 
