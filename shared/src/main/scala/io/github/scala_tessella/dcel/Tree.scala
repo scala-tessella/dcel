@@ -342,29 +342,42 @@ enum Tree[A]:
   def addLeaf(elem: A, acceptsNewChild: Tree[A] => Boolean): Tree[A] =
     addNodeToLastChild(_ => Leaf(elem), acceptsNewChild)
 
-  /** Export to a DOT graph */
+  /** Converts the tree structure into a DOT representation for graph visualization.
+    *
+    * The method generates a DOT-format string that describes the structure and values of the tree, suitable
+    * for visualization using graph tools like Graphviz. Optionally, a custom labeling function can be
+    * provided to customize the labels of tree nodes in the graph.
+    *
+    * @param labeler
+    *   A function that takes a tree node value of type `A` and returns a string to be used as the label for
+    *   that node in the graph. If no label is specified (or an empty string is returned by the function), the
+    *   node will appear unlabeled in the graph.
+    *
+    * @return
+    *   A string representing the tree in DOT format, which can be used to visualize the tree as a graph.
+    */
   def toDOT(labeler: A => String = (_: A) => ""): String =
-    var ordinal: Int           =
-      1
-    var elements: List[String] =
-      Nil
+    var lines: List[String] = Nil
 
-    def loop(assignedOrdinal: Int, tree: Tree[A]): Unit =
-      val label: String =
-        labeler(tree.value) match
-          case e if e.isEmpty => ""
-          case additional     => s""" [label="$additional"]"""
-      elements ::= assignedOrdinal.toString + label
+    def formatLabel(value: A): String =
+      labeler(value) match
+        case "" => ""
+        case l  => s""" [label="$l"]"""
+
+    def loop(currentId: Int, tree: Tree[A]): Int =
+      val label = formatLabel(tree.value)
+      lines ::= s"$currentId$label"
+
       tree match
-        case Leaf(_)             => ()
+        case Leaf(_)             => currentId
         case Branch(_, children) =>
-          children.foreach: child =>
-            ordinal += 1
-            elements ::= s"$assignedOrdinal -- $ordinal"
-            loop(ordinal, child)
+          children.foldLeft(currentId): (lastId, child) =>
+            val childId = lastId + 1
+            lines ::= s"$currentId -- $childId"
+            loop(childId, child)
 
-    loop(ordinal, this)
-    ("graph G {" :: ("}" :: elements).reverse).mkString("\n")
+    loop(1, this): Unit
+    ("graph G {" :: lines.reverse ::: List("}")).mkString("\n")
 
   /** Retrieves the first leaf value of the tree, if it exists.
     *
