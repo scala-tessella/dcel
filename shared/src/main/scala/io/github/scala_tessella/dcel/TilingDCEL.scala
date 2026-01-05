@@ -186,10 +186,10 @@ final case class TilingDCEL private (
         child.map: vertexIds =>
           vertexIds.headOption.getOrElse(VertexId(-1))
       .map:
-        case child @ Leaf(_value)              => child
-        case child @ Branch(_value, _children) =>
-          Branch(_value, child.flattenLeaves.map:
-            Leaf(_)
+        case leaf: Leaf[VertexId]     => leaf
+        case child @ Branch(value, _) =>
+          Branch(value, child.flattenLeaves.map: vertexId =>
+            Leaf(vertexId)
           )
 
   def gonalityTreesUnsafe: List[(List[RegularPolygon], Tree[VertexId])] =
