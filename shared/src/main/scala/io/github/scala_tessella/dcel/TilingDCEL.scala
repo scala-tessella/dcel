@@ -179,8 +179,11 @@ final case class TilingDCEL private (
     *   just one representative vertex id instead of the full list.
     */
   def gonalityTrees: List[Tree[VertexId]] =
-    uniformityTree
-      .ensureDepthOneBranchesHaveValidValues(_.isEmpty, _.head.firstLeaf.get)
+    val adjusted = uniformityTree match
+      case Leaf(Nil)         => Leaf(Nil)
+      case Leaf(value)       => Branch(value, List(Leaf(value)))
+      case branch: Branch[_] => branch
+    adjusted.ensureDepthOneBranchesHaveValidValues(_.isEmpty, _.head.firstLeaf.get)
       .children
       .map: child =>
         child.map: vertexIds =>
