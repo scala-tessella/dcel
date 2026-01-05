@@ -3,7 +3,7 @@ package io.github.scala_tessella.dcel
 import io.github.scala_tessella.dcel.TilingEquivalency.{hasSameSizesOf, isBoundaryEquivalentTo}
 import io.github.scala_tessella.dcel.TilingUniformity.gonalitySampleInnerVertexIds
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, RegularPolygon}
-import io.github.scala_tessella.dcel.structure.Vertex
+import io.github.scala_tessella.dcel.structure.{Vertex, VertexId}
 import io.github.scala_tessella.ring_seq.RingSeq.rotationsAndReflections
 import spire.math.Rational
 
@@ -244,41 +244,28 @@ object TilingGenerator:
           _.id
       if boundaryVertexIds.size % order != 0 then
         throw new IllegalArgumentException("Boundary not a multiple of order")
-      val step = boundaryVertexIds.size / order
+      val segmentSize = boundaryVertexIds.size / order
 
       // find in the segment the vertex with the lowest vertex id
-      val edgeStart =
-        (0 until step).minBy: index =>
-          boundaryVertexIds(index).value
+      val edgeStartIndex: Int =
+        (0 until segmentSize).minBy: index =>
+          boundaryVertexIds(index)
 
 //      // find in the segment the vertex with the smallest interior angle sum
 //      val angles = tiling.boundarySimplePolygon.toAngles
-//      val edgeStartAlt = (0 until step).maxBy(i => angles(i).toRational)
+//      val edgeStartAlt = (0 until segmentSize).maxBy(i => angles(i).toRational)
 
-      // try adding regular polygons to the edge starting at this vertex
-      val additions          =
-        regularPolygons.toList
-          .map: regularPolygon =>
-            tiling
-              .maybeAddRegularPolygonToBoundary(
-                boundaryVertexIds(edgeStart),
-                regularPolygon
-              )
-              .map: tilingDCEL =>
-                (regularPolygon, tilingDCEL)
-          .flatMap: either =>
-            either.toOption
+      def maybeSymmetricAddition(regularPolygon: RegularPolygon): Option[TilingDCEL] =
+        val initialVertexId = boundaryVertexIds(edgeStartIndex)
 
-      // for the success cases, repeat the addition symmetrically to the other segments
-      additions.flatMap: (regularPolygon, grownTiling) =>
-        (1 until order).foldLeft(Option(grownTiling)): (maybeGrown, i) =>
-          maybeGrown.flatMap: grown =>
-            grown
-              .maybeAddRegularPolygonToBoundary(
-                boundaryVertexIds(edgeStart + i * step),
-                regularPolygon
-              )
-              .toOption
+        // Attempt initial addition, then propagate to other segments if successful
+        (1 until order).foldLeft(tiling.maybeAddRegularPolygonToBoundary(initialVertexId, regularPolygon).toOption):
+          (maybeTiling, segmentIndex) =>
+            maybeTiling.flatMap: currentTiling =>
+              val symmetricVertexId = boundaryVertexIds(edgeStartIndex + segmentIndex * segmentSize)
+              currentTiling.maybeAddRegularPolygonToBoundary(symmetricVertexId, regularPolygon).toOption
+
+      regularPolygons.toList.flatMap(maybeSymmetricAddition)
 
   extension (tilings: List[TilingDCEL])
 
