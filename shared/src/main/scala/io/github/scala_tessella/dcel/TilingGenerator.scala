@@ -209,17 +209,36 @@ object TilingGenerator:
             tiling :: list
         .reverse
 
+  val validRotationalSymmetryOrders: Set[Int]     = Set(2, 3, 4, 6)
+  val targetRegularPolygons: List[RegularPolygon] =
+    List(3, 4, 6, 12).map:
+      RegularPolygon.apply
+
   extension (tiling: TilingDCEL)
 
 //    private def gonality: Int =
 //      tiling.uniformityTreeUncompressed(Option(0)).sizeLeaves
 //
+
+    /** Expands the given tiling rotationally by attempting to add regular polygons to its boundary, ensuring
+      * symmetry based on the specified rotational order.
+      *
+      * @param order
+      *   The rotational symmetry order. Must be one of the [[validRotationalSymmetryOrders]].
+      *
+      * @throws IllegalArgumentException
+      *   if the order is invalid or if the boundary size is not a multiple of the order.
+      *
+      * @return
+      *   A list of resulting tilings (TilingDCEL) produced by the rotational expansion.
+      */
     def expandRotationally(order: Int): List[TilingDCEL] =
-      if !List(2, 3, 4, 6).contains(order) then throw new IllegalArgumentException("Invalid order")
+      require(validRotationalSymmetryOrders.contains(order), s"Invalid rotational symmetry: $order")
 
       // take the first segment of boundary vertices
-
-      val boundaryVertexIds = tiling.boundaryVertices.map(_.id)
+      val boundaryVertexIds =
+        tiling.boundaryVertices.map:
+          _.id
       if boundaryVertexIds.size % order != 0 then
         throw new IllegalArgumentException("Boundary not a multiple of order")
       val step = boundaryVertexIds.size / order
@@ -235,26 +254,26 @@ object TilingGenerator:
 
       // try adding regular polygons of size 3, 4, 6, 12 to the edge starting at this vertex
       val additions =
-        List(3, 4, 6, 12)
-          .map: sides =>
+        targetRegularPolygons
+          .map: regularPolygon =>
             tiling
               .maybeAddRegularPolygonToBoundary(
                 boundaryVertexIds(edgeStart),
-                RegularPolygon(sides)
+                regularPolygon
               )
               .map: tilingDCEL =>
-                (sides, tilingDCEL)
+                (regularPolygon, tilingDCEL)
           .flatMap: either =>
             either.toOption
 
       // for the success cases, repeat the addition symmetrically to the other segments
-      additions.flatMap: (sides, grownTiling) =>
+      additions.flatMap: (regularPolygon, grownTiling) =>
         (1 until order).foldLeft(Option(grownTiling)): (maybeGrown, i) =>
           maybeGrown.flatMap: grown =>
             grown
               .maybeAddRegularPolygonToBoundary(
                 boundaryVertexIds(edgeStart + i * step),
-                RegularPolygon(sides)
+                regularPolygon
               )
               .toOption
 
