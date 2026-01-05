@@ -209,9 +209,9 @@ object TilingGenerator:
             tiling :: list
         .reverse
 
-  val validRotationalSymmetryOrders: Set[Int]     = Set(2, 3, 4, 6)
-  val targetRegularPolygons: List[RegularPolygon] =
-    List(3, 4, 6, 12).map:
+  val validRotationalSymmetryOrders: Set[Int]    = Set(2, 3, 4, 6)
+  val targetRegularPolygons: Set[RegularPolygon] =
+    Set(3, 4, 6, 12).map:
       RegularPolygon.apply
 
   extension (tiling: TilingDCEL)
@@ -225,14 +225,17 @@ object TilingGenerator:
       *
       * @param order
       *   The rotational symmetry order. Must be one of the [[validRotationalSymmetryOrders]].
-      *
-      * @throws IllegalArgumentException
-      *   if the order is invalid or if the boundary size is not a multiple of the order.
-      *
+      * @param regularPolygons
+      *   The set of different regular polygons that will be added.
       * @return
       *   A list of resulting tilings (TilingDCEL) produced by the rotational expansion.
+      * @throws IllegalArgumentException
+      *   if the order is invalid or if the boundary size is not a multiple of the order.
       */
-    def expandRotationally(order: Int): List[TilingDCEL] =
+    def expandRotationally(
+        order: Int,
+        regularPolygons: Set[RegularPolygon] = targetRegularPolygons
+    ): List[TilingDCEL] =
       require(validRotationalSymmetryOrders.contains(order), s"Invalid rotational symmetry: $order")
 
       // take the first segment of boundary vertices
@@ -252,9 +255,9 @@ object TilingGenerator:
 //      val angles = tiling.boundarySimplePolygon.toAngles
 //      val edgeStartAlt = (0 until step).maxBy(i => angles(i).toRational)
 
-      // try adding regular polygons of size 3, 4, 6, 12 to the edge starting at this vertex
-      val additions =
-        targetRegularPolygons
+      // try adding regular polygons to the edge starting at this vertex
+      val additions          =
+        regularPolygons.toList
           .map: regularPolygon =>
             tiling
               .maybeAddRegularPolygonToBoundary(
