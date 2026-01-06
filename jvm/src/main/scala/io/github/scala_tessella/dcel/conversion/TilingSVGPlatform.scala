@@ -13,105 +13,99 @@ object TilingSVGPlatform:
 
   def fromMetadata(metadata: String): Either[TilingError, TilingDCEL] =
 
+    // Helper to extract attributes efficiently from a Node
     def getAttr(node: Node, attr: String): Either[ValidationError, String] =
-      node.attribute(attr)
-        .map:
-          _.text
-        .toRight(ValidationError(s"${node.label} missing '$attr'"))
+      val seq = node.attribute(attr)
+      if seq.isEmpty then Left(ValidationError(s"${node.label} missing '$attr'"))
+      else Right(seq.head.text)
 
     def attrAs[T](node: Node, attr: String, f: String => T, typeName: String): Either[ValidationError, T] =
-      for
-        str <- getAttr(node, attr)
-        res <- Try(f(str)).toEither.left.map: e =>
-                 ValidationError(s"Invalid $typeName in ${node.label} attribute '$attr': ${e.getMessage}")
-      yield res
+      getAttr(node, attr).flatMap: str =>
+        Try(f(str)).toEither.left.map: e =>
+          ValidationError(s"Invalid $typeName in ${node.label} attribute '$attr': ${e.getMessage}")
 
     for
       xmlRoot <-
         Try(XML.loadString(metadata)).toEither.left.map(e => ValidationError(s"Invalid XML: ${e.getMessage}"))
 
+      // 1. Process Vertices in a single pass
       vertexNodes = (xmlRoot \ "vertices" \ "vertex").toList
-      vertices   <-
-        vertexNodes
-          .map: vNode =>
-            for
-              id       <- getAttr(vNode, "id")
-              x        <- attrAs(vNode, "x", BigDecimal.apply, "BigDecimal")
-              y        <- attrAs(vNode, "y", BigDecimal.apply, "BigDecimal")
-              vertexId <- VertexId.fromString(id)
-            yield Vertex(vertexId, BigPoint(x, y))
-          .sequence
-      vertexMap   = vertices.associateValues:
-                      _.id
+      vertices   <- vertexNodes.map { vNode =>
+                      for
+                        id       <- getAttr(vNode, "id")
+                        x        <- attrAs(vNode, "x", BigDecimal.apply, "BigDecimal")
+                        y        <- attrAs(vNode, "y", BigDecimal.apply, "BigDecimal")
+                        vertexId <- VertexId.fromString(id)
+                      yield Vertex(vertexId, BigPoint(x, y))
+                    }.sequence
 
+      vertexMap = vertices.associateValues(_.id)
+
+      // 2. Process Half-Edges efficiently
+      // We zip with index immediately to avoid repeated index lookups later
       halfEdgeNodes = (xmlRoot \ "half-edges" \ "half-edge").toList
-      halfEdges    <-
-        halfEdgeNodes
-          .map: heNode =>
-            for
-              originId <- getAttr(heNode, "origin")
-              vertexId <- VertexId.fromString(originId)
-              origin   <- vertexMap.get(vertexId).toRight(NotFoundError(
-                            "Vertex for half-edge origin",
-                            originId
-                          ))
-            yield HalfEdge(origin)
-          .sequence
-      halfEdgeMap   =
-        halfEdges.zipWithIndex
-          .map: (he, i) =>
-            i -> he
-          .toMap
+      halfEdges    <- halfEdgeNodes.map { heNode =>
+                        for
+                          originId <- getAttr(heNode, "origin")
+                          vertexId <- VertexId.fromString(originId)
+                          origin   <- vertexMap.get(vertexId).toRight(NotFoundError(
+                                        "Vertex for half-edge origin",
+                                        originId
+                                      ))
+                        yield HalfEdge(origin)
+                      }.sequence
 
+      // Use an array-backed lookup if possible, or a direct Map for speed
+      halfEdgeMap = halfEdges.zipWithIndex
+                      .map: (he, i) =>
+                        i -> he
+                      .toMap
+
+      // 3. Process Faces
       faceNodes = (xmlRoot \ "faces" \ "face").toList
-      faces    <-
-        faceNodes
-          .map: fNode =>
-            for
-              id     <- getAttr(fNode, "id")
-              faceId <- FaceId.fromString(id)
-            yield Face(faceId)
-          .sequence
-      faceMap   = faces.associateValues:
-                    _.id
+      faces    <- faceNodes
+                    .map: fNode =>
+                      for
+                        id     <- getAttr(fNode, "id")
+                        faceId <- FaceId.fromString(id)
+                      yield Face(faceId)
+                    .sequence
 
+      faceMap =
+        faces.associateValues:
+          _.id
+
+      // 4. Wiring: Perform side-effecting wiring in grouped iterations
       _ <- vertexNodes.zip(vertices)
              .map: (vNode, vertex) =>
-               vNode.attribute("leaving")
-                 .map:
-                   _.text
-                 .traverse: leavingIdStr =>
-                   for
-                     leavingId   <- Try(leavingIdStr.toInt).toEither.left.map: _ =>
-                                      ValidationError(s"Invalid leaving ID: $leavingIdStr")
-                     leavingEdge <-
-                       halfEdgeMap.get(leavingId).toRight(NotFoundError("Leaving edge", leavingId.toString))
-                   yield vertex.leaving = Some(leavingEdge)
+               vNode.attribute("leaving").map(_.text).traverse: leavingIdStr =>
+                 for
+                   leavingId   <- Try(leavingIdStr.toInt).toEither.left.map: _ =>
+                                    ValidationError(s"Invalid leaving ID: $leavingIdStr")
+                   leavingEdge <-
+                     halfEdgeMap.get(leavingId).toRight(NotFoundError("Leaving edge", leavingId.toString))
+                 yield vertex.leaving = Some(leavingEdge)
              .sequence
 
-      _ <- halfEdgeNodes.zip(halfEdges)
-             .map: (heNode, he) =>
-               for
-                 twinId       <- attrAs(heNode, "twin", _.toInt, "Int")
-                 twinEdge     <- halfEdgeMap.get(twinId).toRight(NotFoundError("Twin edge", twinId.toString))
-                 _             = he.twin = Some(twinEdge)
-                 nextId       <- attrAs(heNode, "next", _.toInt, "Int")
-                 nextEdge     <- halfEdgeMap.get(nextId).toRight(NotFoundError("Next edge", nextId.toString))
-                 _             = he.next = Some(nextEdge)
-                 prevId       <- attrAs(heNode, "prev", _.toInt, "Int")
-                 prevEdge     <- halfEdgeMap.get(prevId).toRight(NotFoundError("Prev edge", prevId.toString))
-                 _             = he.prev = Some(prevEdge)
-                 faceId       <- getAttr(heNode, "face")
-                 validated    <- FaceId.fromString(faceId)
-                 incidentFace <- faceMap.get(validated).toRight(NotFoundError("Incident face", faceId))
-                 _             = he.incidentFace = Some(incidentFace)
-                 angleStr     <- getAttr(heNode, "angle")
-                 angle         = AngleDegree(
-                                   Rational(angleStr)
-                                 ) // .toRight(ValidationError(s"Invalid angle format: $angleStr"))
-                 _ = he.angle = Some(angle)
-               yield ()
-             .sequence
+      _ <- halfEdgeNodes.zip(halfEdges).map { (heNode, he) =>
+             for
+               twinId       <- attrAs(heNode, "twin", _.toInt, "Int")
+               twinEdge     <- halfEdgeMap.get(twinId).toRight(NotFoundError("Twin edge", twinId.toString))
+               _             = he.twin = Some(twinEdge)
+               nextId       <- attrAs(heNode, "next", _.toInt, "Int")
+               nextEdge     <- halfEdgeMap.get(nextId).toRight(NotFoundError("Next edge", nextId.toString))
+               _             = he.next = Some(nextEdge)
+               prevId       <- attrAs(heNode, "prev", _.toInt, "Int")
+               prevEdge     <- halfEdgeMap.get(prevId).toRight(NotFoundError("Prev edge", prevId.toString))
+               _             = he.prev = Some(prevEdge)
+               faceId       <- getAttr(heNode, "face")
+               validated    <- FaceId.fromString(faceId)
+               incidentFace <- faceMap.get(validated).toRight(NotFoundError("Incident face", faceId))
+               _             = he.incidentFace = Some(incidentFace)
+               angleStr     <- getAttr(heNode, "angle")
+               _             = he.angle = Some(AngleDegree(Rational(angleStr)))
+             yield ()
+           }.sequence
 
       _ <- faceNodes.zip(faces)
              .map: (fNode, f) =>
