@@ -362,7 +362,7 @@ object TilingGenerator:
 
         def cutter(g: Int, tilingG: Int): Boolean =
           val limits = List(16, 32, 64, 128)
-          limits.indices.forall:index =>
+          limits.indices.forall: index =>
             !(g > (index + 1) && expectedTotalPolygons > limits(index) && tilingG == (index + 1))
 
         val (growable, alreadyGrownWithHoleFilling) =
