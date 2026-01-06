@@ -16,6 +16,8 @@ object FaceId extends Prefixable:
 
   def fromString(s: String): Either[ValidationError, FaceId] = fromStringUntrusted(s)
 
+  private[dcel] def fromStringUnsafe(s: String): FaceId = fromStringTrusted(s)
+
   extension (id: FaceId)
 
     def value: Int = id

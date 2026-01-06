@@ -9,6 +9,9 @@ trait Prefixable:
 
   private[structure] def prefixedString(i: Int): String = s"$prefix$i"
 
+  private[structure] def fromStringTrusted(s: String): Int =
+    Integer.parseInt(s.substring(prefix.length))
+
   /** Parses a string representation of an ID into its numeric component, ensuring the string contains the
     * required prefix and a valid numeric part.
     *

@@ -16,6 +16,8 @@ object VertexId extends Prefixable:
 
   def fromString(s: String): Either[ValidationError, VertexId] = fromStringUntrusted(s)
 
+  private[dcel] def fromStringUnsafe(s: String): VertexId = fromStringTrusted(s)
+
   extension (id: VertexId)
 
     def value: Int = id
