@@ -31,16 +31,16 @@ class PrefixableSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       customIdTester.fromStringUntrusted("ID-123").value shouldBe 123
     )
 
-  it should "throw IllegalArgumentException if the prefix is missing or incorrect" in:
+  it should "fail if the prefix is missing or incorrect" in:
     // Wrong prefix for the specific tester
     vertexIdTester.fromStringUntrusted("F1").left.value.message should include("Invalid id prefix: `F1`")
 
-  it should "throw IllegalArgumentException if the string is too short" in:
+  it should "fail validation if the string is too short" in:
     vertexIdTester.fromStringUntrusted("V").left.value.message should include(
-      "Invalid numeric part in id: `V`"
+      "Missing numeric part in id: `V`"
     )
 
-  it should "throw IllegalArgumentException if the numeric part is not an integer" in:
+  it should "fail if the numeric part is not an integer" in:
     allAssert(
       vertexIdTester.fromStringUntrusted("Vabc").left.value.message should include(
         "Invalid numeric part in id: `Vabc`"
@@ -50,10 +50,10 @@ class PrefixableSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       )
     )
 
-  it should "throw IllegalArgumentException for empty strings" in:
+  it should "fail for empty strings" in:
     vertexIdTester.fromStringUntrusted("").left.value.message should include("Invalid id prefix: ``")
 
-  it should "throw IllegalArgumentException if there are leading spaces" in:
+  it should "fail if there are leading spaces" in:
     vertexIdTester.fromStringUntrusted(" V1").left.value.message should include("Invalid id prefix: ` V1`")
 
   it should "distinguish between IDs with different prefixes" in:
@@ -64,8 +64,12 @@ class PrefixableSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       faceIdTester.fromStringUntrusted(vId).left.value.message should include("Invalid id prefix: `V5`")
     )
 
-  it should "correctly handle negative integers if they are used as IDs" in:
-    vertexIdTester.fromStringUntrusted("V-1").value shouldBe -1
+  it should "fail for a negative integer" in:
+    vertexIdTester.fromStringUntrusted("V-1").left.value.message should include(
+      "Invalid numeric part in id: `V-1`"
+    )
 
   it should "fail if the prefix is correct but the numeric part is missing" in:
-    customIdTester.fromStringUntrusted("ID-").left.value.message should include("Invalid")
+    customIdTester.fromStringUntrusted("ID-").left.value.message should include(
+      "Missing numeric part in id: `ID-`"
+    )
