@@ -26,137 +26,158 @@ object TilingSVGPlatform:
 
     for
       xmlRoot <-
-        Try(XML.loadString(metadata)).toEither.left.map(e => ValidationError(s"Invalid XML: ${e.getMessage}"))
+        Try(XML.loadString(metadata)).toEither.left.map: e => 
+          ValidationError(s"Invalid XML: ${e.getMessage}")
 
       // 1. Process Vertices in a single pass
       vertexNodes = (xmlRoot \ "vertices" \ "vertex").toList
-      vertices   <- vertexNodes.map { vNode =>
-                      for
-                        id       <- getAttr(vNode, "id")
-                        x        <- attrAs(vNode, "x", BigDecimal.apply, "BigDecimal")
-                        y        <- attrAs(vNode, "y", BigDecimal.apply, "BigDecimal")
-                        vertexId <- VertexId.fromString(id)
-                      yield Vertex(vertexId, BigPoint(x, y))
-                    }.sequence
+      vertices   <- 
+        vertexNodes
+          .map: vNode =>
+            for
+              id       <- getAttr(vNode, "id")
+              x        <- attrAs(vNode, "x", BigDecimal.apply, "BigDecimal")
+              y        <- attrAs(vNode, "y", BigDecimal.apply, "BigDecimal")
+              vertexId <- VertexId.fromString(id)
+            yield Vertex(vertexId, BigPoint(x, y))
+          .sequence
 
       vertexMap = vertices.associateValues(_.id)
 
       // 2. Process Half-Edges efficiently
       // We zip with index immediately to avoid repeated index lookups later
       halfEdgeNodes = (xmlRoot \ "half-edges" \ "half-edge").toList
-      halfEdges    <- halfEdgeNodes.map { heNode =>
-                        for
-                          originId <- getAttr(heNode, "origin")
-                          vertexId <- VertexId.fromString(originId)
-                          origin   <- vertexMap.get(vertexId).toRight(NotFoundError(
-                                        "Vertex for half-edge origin",
-                                        originId
-                                      ))
-                        yield HalfEdge(origin)
-                      }.sequence
+      halfEdges    <- 
+        halfEdgeNodes
+          .map: heNode =>
+            for
+              originId <- getAttr(heNode, "origin")
+              vertexId <- VertexId.fromString(originId)
+              origin   <- vertexMap.get(vertexId).toRight(NotFoundError(
+                            "Vertex for half-edge origin",
+                            originId
+                          ))
+            yield HalfEdge(origin)
+          .sequence
 
       // Use an array-backed lookup if possible, or a direct Map for speed
-      halfEdgeMap = halfEdges.zipWithIndex
-                      .map: (he, i) =>
-                        i -> he
-                      .toMap
+      halfEdgeMap = 
+        halfEdges
+          .zipWithIndex
+          .map: (he, i) =>
+            i -> he
+          .toMap
 
       // 3. Process Faces
       faceNodes = (xmlRoot \ "faces" \ "face").toList
-      faces    <- faceNodes
-                    .map: fNode =>
-                      for
-                        id     <- getAttr(fNode, "id")
-                        faceId <- FaceId.fromString(id)
-                      yield Face(faceId)
-                    .sequence
+      faces    <- 
+        faceNodes
+          .map: fNode =>
+            for
+              id     <- getAttr(fNode, "id")
+              faceId <- FaceId.fromString(id)
+            yield Face(faceId)
+          .sequence
 
       faceMap =
         faces.associateValues:
           _.id
 
       // 4. Wiring: Perform side-effecting wiring in grouped iterations
-      _ <- vertexNodes.zip(vertices)
-             .map: (vNode, vertex) =>
-               vNode.attribute("leaving").map(_.text).traverse: leavingIdStr =>
-                 for
-                   leavingId   <- Try(leavingIdStr.toInt).toEither.left.map: _ =>
-                                    ValidationError(s"Invalid leaving ID: $leavingIdStr")
-                   leavingEdge <-
-                     halfEdgeMap.get(leavingId).toRight(NotFoundError("Leaving edge", leavingId.toString))
-                 yield vertex.leaving = Some(leavingEdge)
-             .sequence
+      _ <- vertexNodes
+        .zip(vertices)
+        .map: (vNode, vertex) =>
+          vNode.attribute("leaving").map(_.text).traverse: leavingIdStr =>
+            for
+              leavingId   <- Try(leavingIdStr.toInt).toEither.left.map: _ =>
+                ValidationError(s"Invalid leaving ID: $leavingIdStr")
+              leavingEdge <-
+                halfEdgeMap.get(leavingId).toRight(NotFoundError("Leaving edge", leavingId.toString))
+            yield vertex.leaving = Some(leavingEdge)
+        .sequence
 
-      _ <- halfEdgeNodes.zip(halfEdges).map { (heNode, he) =>
-             for
-               twinId       <- attrAs(heNode, "twin", _.toInt, "Int")
-               twinEdge     <- halfEdgeMap.get(twinId).toRight(NotFoundError("Twin edge", twinId.toString))
-               _             = he.twin = Some(twinEdge)
-               nextId       <- attrAs(heNode, "next", _.toInt, "Int")
-               nextEdge     <- halfEdgeMap.get(nextId).toRight(NotFoundError("Next edge", nextId.toString))
-               _             = he.next = Some(nextEdge)
-               prevId       <- attrAs(heNode, "prev", _.toInt, "Int")
-               prevEdge     <- halfEdgeMap.get(prevId).toRight(NotFoundError("Prev edge", prevId.toString))
-               _             = he.prev = Some(prevEdge)
-               faceId       <- getAttr(heNode, "face")
-               validated    <- FaceId.fromString(faceId)
-               incidentFace <- faceMap.get(validated).toRight(NotFoundError("Incident face", faceId))
-               _             = he.incidentFace = Some(incidentFace)
-               angleStr     <- getAttr(heNode, "angle")
-               _             = he.angle = Some(AngleDegree(Rational(angleStr)))
-             yield ()
-           }.sequence
+      _ <- 
+        halfEdgeNodes
+          .zip(halfEdges)
+          .map: (heNode, he) =>
+            for
+              twinId       <- attrAs(heNode, "twin", _.toInt, "Int")
+              twinEdge     <- halfEdgeMap.get(twinId).toRight(NotFoundError("Twin edge", twinId.toString))
+              _             = he.twin = Some(twinEdge)
+              nextId       <- attrAs(heNode, "next", _.toInt, "Int")
+              nextEdge     <- halfEdgeMap.get(nextId).toRight(NotFoundError("Next edge", nextId.toString))
+              _             = he.next = Some(nextEdge)
+              prevId       <- attrAs(heNode, "prev", _.toInt, "Int")
+              prevEdge     <- halfEdgeMap.get(prevId).toRight(NotFoundError("Prev edge", prevId.toString))
+              _             = he.prev = Some(prevEdge)
+              faceId       <- getAttr(heNode, "face")
+              validated    <- FaceId.fromString(faceId)
+              incidentFace <- faceMap.get(validated).toRight(NotFoundError("Incident face", faceId))
+              _             = he.incidentFace = Some(incidentFace)
+              angleStr     <- getAttr(heNode, "angle")
+              _             = he.angle = Some(AngleDegree(Rational(angleStr)))
+            yield ()
+          .sequence
 
-      _ <- faceNodes.zip(faces)
-             .map: (fNode, f) =>
-               for
-                 // optional outer-component
-                 _ <- fNode.attribute("outer-component")
-                        .map:
-                          _.text
-                        .traverse: ocIdStr =>
-                          for
-                            ocId   <- Try(ocIdStr.toInt).toEither.left.map: _ =>
-                                        ValidationError(s"Invalid outer-component ID: $ocIdStr")
-                            ocEdge <-
-                              halfEdgeMap.get(ocId).toRight(NotFoundError(
-                                "Outer component edge",
-                                ocId.toString
-                              ))
-                          yield f.outerComponent = Some(ocEdge)
-                 // optional inner-components
-                 _ <- fNode.attribute("inner-components")
-                        .map:
-                          _.text
-                        .filter:
-                          _.nonEmpty
-                        .traverse: icIdsStr =>
-                          val idsEither =
-                            icIdsStr.split(',').toList
-                              .map: idStr =>
-                                Try(idStr.trim.toInt).toEither.left.map: _ =>
-                                  ValidationError(s"Invalid inner-component ID: $idStr")
-                              .sequence
-                          for
-                            ids     <- idsEither
-                            icEdges <-
-                              ids
-                                .map: id =>
-                                  halfEdgeMap.get(id).toRight(NotFoundError(
-                                    "Inner component edge",
-                                    id.toString
-                                  ))
-                                .sequence
-                          yield f.innerComponents =
-                            icEdges.map: halfEdge =>
-                              Some(halfEdge)
-               yield ()
-             .sequence
+      _ <- 
+        faceNodes
+          .zip(faces)
+          .map: (fNode, f) =>
+            for
+              // optional outer-component
+              _ <- 
+                fNode
+                  .attribute("outer-component")
+                  .map:
+                    _.text
+                  .traverse: ocIdStr =>
+                    for
+                      ocId   <- Try(ocIdStr.toInt).toEither.left.map: _ =>
+                                  ValidationError(s"Invalid outer-component ID: $ocIdStr")
+                      ocEdge <-
+                        halfEdgeMap.get(ocId).toRight(NotFoundError(
+                          "Outer component edge",
+                          ocId.toString
+                        ))
+                    yield f.outerComponent = Some(ocEdge)
+               // optional inner-components
+              _ <- 
+                fNode
+                  .attribute("inner-components")
+                  .map:
+                    _.text
+                  .filter:
+                    _.nonEmpty
+                  .traverse: icIdsStr =>
+                    val idsEither =
+                      icIdsStr
+                        .split(',').toList
+                        .map: idStr =>
+                          Try(idStr.trim.toInt).toEither.left.map: _ =>
+                            ValidationError(s"Invalid inner-component ID: $idStr")
+                        .sequence
+                    for
+                      ids     <- idsEither
+                      icEdges <-
+                        ids
+                          .map: id =>
+                            halfEdgeMap.get(id).toRight(NotFoundError(
+                              "Inner component edge",
+                              id.toString
+                            ))
+                          .sequence
+                    yield f.innerComponents =
+                      icEdges.map: halfEdge =>
+                        Some(halfEdge)
+            yield ()
+           
+          .sequence
 
       outerFace <-
         faceMap.get(FaceId.outerId).toRight(ValidationError("Outer face (ID 0) not found in metadata"))
-      innerFaces = faces.filterNot:
-                     _.id == FaceId.outerId
+      innerFaces = 
+        faces.filterNot:
+          _.id == FaceId.outerId
       tiling     = TilingDCEL.fromUntrusted(vertices, halfEdges, innerFaces, outerFace)
       validated <-
         if vertices.isEmpty && halfEdges.isEmpty && innerFaces.isEmpty then
