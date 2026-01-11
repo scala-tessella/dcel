@@ -215,9 +215,9 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
     // Triangle vertices should be labeled V1, V2, v3
     allAssert(
-      svg should include(">V1</text>"),
-      svg should include(">V2</text>"),
-      svg should include(">V3</text>")
+      svg should include(">1</text>"),
+      svg should include(">2</text>"),
+      svg should include(">3</text>")
     )
 
   it should "handle negative coordinates correctly" in:
@@ -283,7 +283,7 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     allAssert(
       svg should include("<svg"),
       svg should include("<circle"),
-      svg should include(">V1</text>"),
+      svg should include(">1</text>"),
       svg should not include "<line",
       svg should include("</svg>")
     )

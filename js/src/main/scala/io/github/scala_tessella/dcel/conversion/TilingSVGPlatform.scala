@@ -67,11 +67,10 @@ object TilingSVGPlatform:
       vertices <- vertexAttrs
                     .map: attrs =>
                       for
-                        id       <- getAttr(attrs, "vertex", "id")
-                        x        <- attrAs(attrs, "vertex", "x", BigDecimal.apply, "BigDecimal")
-                        y        <- attrAs(attrs, "vertex", "y", BigDecimal.apply, "BigDecimal")
-                        vertexId <- VertexId.fromString(id)
-                      yield Vertex(vertexId, BigPoint(x, y))
+                        id <- attrAs(attrs, "vertex", "id", _.toInt, "Int")
+                        x  <- attrAs(attrs, "vertex", "x", BigDecimal.apply, "BigDecimal")
+                        y  <- attrAs(attrs, "vertex", "y", BigDecimal.apply, "BigDecimal")
+                      yield Vertex(VertexId(id), BigPoint(x, y))
                     .sequence
       vertexMap = vertices.associateValues: vertex =>
                     vertex.id
@@ -86,11 +85,10 @@ object TilingSVGPlatform:
       heAllocated  <- heIdAndAttrs
                         .map: (id, attrs) =>
                           for
-                            originId <- getAttr(attrs, "half-edge", "origin")
-                            vertexId <- VertexId.fromString(originId)
-                            origin   <- vertexMap.get(vertexId).toRight(NotFoundError(
+                            originId <- attrAs(attrs, "half-edge", "origin", _.toInt, "Int")
+                            origin   <- vertexMap.get(VertexId(originId)).toRight(NotFoundError(
                                           "Vertex for half-edge origin",
-                                          originId
+                                          originId.toString
                                         ))
                           yield id -> HalfEdge(origin)
                         .sequence
@@ -106,9 +104,8 @@ object TilingSVGPlatform:
       faces  <- faceAttrs
                   .map: attrs =>
                     for
-                      id     <- getAttr(attrs, "face", "id")
-                      faceId <- FaceId.fromString(id)
-                    yield Face(faceId)
+                      id <- attrAs(attrs, "face", "id", _.toInt, "Int")
+                    yield Face(FaceId(id))
                   .sequence
       faceMap = faces.associateValues(_.id)
 
@@ -141,9 +138,9 @@ object TilingSVGPlatform:
                  prevId       <- attrAs(attrs, "half-edge", "prev", _.toInt, "Int")
                  prevEdge     <- halfEdgeMap.get(prevId).toRight(NotFoundError("Prev edge", prevId.toString))
                  _             = he.prev = Some(prevEdge)
-                 faceId       <- getAttr(attrs, "half-edge", "face")
-                 validated    <- FaceId.fromString(faceId)
-                 incidentFace <- faceMap.get(validated).toRight(NotFoundError("Incident face", faceId))
+                 faceId       <- attrAs(attrs, "half-edge", "face", _.toInt, "Int")
+                 incidentFace <-
+                   faceMap.get(FaceId(faceId)).toRight(NotFoundError("Incident face", faceId.toString))
                  _             = he.incidentFace = Some(incidentFace)
                  angleStr     <- getAttr(attrs, "half-edge", "angle")
                  angle         = AngleDegree(Rational(angleStr))

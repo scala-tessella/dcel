@@ -26,20 +26,19 @@ object TilingSVGPlatform:
 
     for
       xmlRoot <-
-        Try(XML.loadString(metadata)).toEither.left.map: e => 
+        Try(XML.loadString(metadata)).toEither.left.map: e =>
           ValidationError(s"Invalid XML: ${e.getMessage}")
 
       // 1. Process Vertices in a single pass
       vertexNodes = (xmlRoot \ "vertices" \ "vertex").toList
-      vertices   <- 
+      vertices   <-
         vertexNodes
           .map: vNode =>
             for
-              id       <- getAttr(vNode, "id")
+              id       <- attrAs(vNode, "id", _.toInt, "Int")
               x        <- attrAs(vNode, "x", BigDecimal.apply, "BigDecimal")
               y        <- attrAs(vNode, "y", BigDecimal.apply, "BigDecimal")
-              vertexId <- VertexId.fromString(id)
-            yield Vertex(vertexId, BigPoint(x, y))
+            yield Vertex(VertexId(id), BigPoint(x, y))
           .sequence
 
       vertexMap = vertices.associateValues(_.id)
@@ -47,21 +46,20 @@ object TilingSVGPlatform:
       // 2. Process Half-Edges efficiently
       // We zip with index immediately to avoid repeated index lookups later
       halfEdgeNodes = (xmlRoot \ "half-edges" \ "half-edge").toList
-      halfEdges    <- 
+      halfEdges    <-
         halfEdgeNodes
           .map: heNode =>
             for
-              originId <- getAttr(heNode, "origin")
-              vertexId <- VertexId.fromString(originId)
-              origin   <- vertexMap.get(vertexId).toRight(NotFoundError(
+              id       <- attrAs(heNode, "origin", _.toInt, "Int")
+              origin   <- vertexMap.get(VertexId(id)).toRight(NotFoundError(
                             "Vertex for half-edge origin",
-                            originId
+                            id.toString
                           ))
             yield HalfEdge(origin)
           .sequence
 
       // Use an array-backed lookup if possible, or a direct Map for speed
-      halfEdgeMap = 
+      halfEdgeMap =
         halfEdges
           .zipWithIndex
           .map: (he, i) =>
@@ -70,13 +68,12 @@ object TilingSVGPlatform:
 
       // 3. Process Faces
       faceNodes = (xmlRoot \ "faces" \ "face").toList
-      faces    <- 
+      faces    <-
         faceNodes
           .map: fNode =>
             for
-              id     <- getAttr(fNode, "id")
-              faceId <- FaceId.fromString(id)
-            yield Face(faceId)
+              id <- attrAs(fNode, "id", _.toInt, "Int")
+            yield Face(FaceId(id))
           .sequence
 
       faceMap =
@@ -96,7 +93,7 @@ object TilingSVGPlatform:
             yield vertex.leaving = Some(leavingEdge)
         .sequence
 
-      _ <- 
+      _ <-
         halfEdgeNodes
           .zip(halfEdges)
           .map: (heNode, he) =>
@@ -110,22 +107,21 @@ object TilingSVGPlatform:
               prevId       <- attrAs(heNode, "prev", _.toInt, "Int")
               prevEdge     <- halfEdgeMap.get(prevId).toRight(NotFoundError("Prev edge", prevId.toString))
               _             = he.prev = Some(prevEdge)
-              faceId       <- getAttr(heNode, "face")
-              validated    <- FaceId.fromString(faceId)
-              incidentFace <- faceMap.get(validated).toRight(NotFoundError("Incident face", faceId))
+              id           <- attrAs(heNode, "face", _.toInt, "Int")
+              incidentFace <- faceMap.get(FaceId(id)).toRight(NotFoundError("Incident face", id.toString))
               _             = he.incidentFace = Some(incidentFace)
               angleStr     <- getAttr(heNode, "angle")
               _             = he.angle = Some(AngleDegree(Rational(angleStr)))
             yield ()
           .sequence
 
-      _ <- 
+      _ <-
         faceNodes
           .zip(faces)
           .map: (fNode, f) =>
             for
               // optional outer-component
-              _ <- 
+              _ <-
                 fNode
                   .attribute("outer-component")
                   .map:
@@ -141,7 +137,7 @@ object TilingSVGPlatform:
                         ))
                     yield f.outerComponent = Some(ocEdge)
                // optional inner-components
-              _ <- 
+              _ <-
                 fNode
                   .attribute("inner-components")
                   .map:
@@ -170,12 +166,12 @@ object TilingSVGPlatform:
                       icEdges.map: halfEdge =>
                         Some(halfEdge)
             yield ()
-           
+
           .sequence
 
       outerFace <-
         faceMap.get(FaceId.outerId).toRight(ValidationError("Outer face (ID 0) not found in metadata"))
-      innerFaces = 
+      innerFaces =
         faces.filterNot:
           _.id == FaceId.outerId
       tiling     = TilingDCEL.fromUntrusted(vertices, halfEdges, innerFaces, outerFace)

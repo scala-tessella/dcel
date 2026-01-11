@@ -8,7 +8,7 @@ import io.github.scala_tessella.dcel.geometry.{
   BigRadian,
   SimplePolygon
 }
-import io.github.scala_tessella.dcel.structure.{FaceId, HalfEdge, Vertex, VertexId}
+import io.github.scala_tessella.dcel.structure.{HalfEdge, Vertex, VertexId}
 import io.github.scala_tessella.dcel.{TilingDCEL, TilingError}
 import io.github.scala_tessella.dcel.TilingUniformity.scanUniformityTree
 import io.github.scala_tessella.ring_seq.SymmetryOps.{
@@ -339,7 +339,7 @@ object TilingSVG:
         val point = vertex.coords.scaled(config.scale).flippedY
         val x     = (point.x + config.strokeWidth * 2.5).format
         val y     = (point.y - config.strokeWidth * 2.5).format
-        textAt(x, y, vertex.id.toPrefixedString)
+        textAt(x, y, vertex.id.toString)
 
     (circles, labels)
 
@@ -354,7 +354,7 @@ object TilingSVG:
       val point = vertex.coords.scaled(config.scale).flippedY
       val x     = (point.x + config.strokeWidth * 2.5).format
       val y     = (point.y - config.strokeWidth * 2.5).format
-      textAt(x, y, vertex.id.toPrefixedString)
+      textAt(x, y, vertex.id.toString)
 
     (circles, labels)
 
@@ -379,7 +379,7 @@ object TilingSVG:
   private def createFaceLabels(tilingDCEL: TilingDCEL, config: SvgConfig): Seq[Elem] =
     tilingDCEL.innerFaces.map: face =>
       val (x, y) = calculateCentroid(face.getVerticesUnsafe).toSvgCoords(config.scale)
-      textAt(x, y, face.id.toPrefixedString)
+      textAt(x, y, face.id.toString)
 
   private def createTraversalArrows(tilingDCEL: TilingDCEL, config: SvgConfig): Seq[Elem] =
     if !config.showHalfEdgeTraversal then Nil
@@ -450,7 +450,7 @@ object TilingSVG:
           val textX = (BigDecimal(midX) - perpX).format
           val textY = (BigDecimal(midY) - perpY).format
 
-          textAt(textX, textY, face.id.toPrefixedString)
+          textAt(textX, textY, face.id.toString)
 
   extension (simple: SimplePolygon)
 
@@ -1022,7 +1022,7 @@ object TilingSVG:
 
       val vertexNodes  = tiling.vertices.map: vertex =>
         val attrsList = List(
-          Some("id" -> vertex.id.toPrefixedString),
+          Some("id" -> vertex.id.toString),
           Some("x"  -> vertex.coords.x.toString),
           Some("y"  -> vertex.coords.y.toString),
           vertex.leaving
@@ -1039,7 +1039,7 @@ object TilingSVG:
           .map: (halfEdge, id) =>
             val attrsList = List(
               Some("id"     -> id),
-              Some("origin" -> halfEdge.origin.id.toPrefixedString),
+              Some("origin" -> halfEdge.origin.id.toString),
               halfEdge.twin
                 .flatMap: twinHalfEdge =>
                   halfEdgeIds.get(twinHalfEdge)
@@ -1056,7 +1056,7 @@ object TilingSVG:
                 .map: prevId =>
                   "prev" -> prevId,
               halfEdge.incidentFace.map: face =>
-                "face" -> face.id.toPrefixedString,
+                "face" -> face.id.toString,
               halfEdge.angle.map: angleDegree =>
                 "angle" -> angleDegree.toRational
             ).flatten
@@ -1066,7 +1066,7 @@ object TilingSVG:
       val faceNodes = tiling.faces.map: f =>
         val attrsList =
           List(
-            Some("id" -> f.id.toPrefixedString),
+            Some("id" -> f.id.toString),
             f.outerComponent
               .flatMap: halfEdge =>
                 halfEdgeIds.get(halfEdge)
