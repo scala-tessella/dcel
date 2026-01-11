@@ -21,7 +21,7 @@ class TilingSVGPlatformSpec extends AnyFlatSpec with Matchers with TilingTestHel
       vertices.isEmpty shouldBe true,
       halfEdges.isEmpty shouldBe true,
       faces.size shouldBe 1,
-      (faces.head \@ "id") shouldBe "F0",
+      (faces.head \@ "id") shouldBe "0",
       faces.head.attribute("outer-component").isEmpty shouldBe true
     )
   }
