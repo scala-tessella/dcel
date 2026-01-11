@@ -132,25 +132,10 @@ object TilingSVG:
     elem("polygon", new UnprefixedAttribute("points", points, more))
 
   private def lineElem(x1: String, y1: String, x2: String, y2: String, more: MetaData = Null): Elem =
-    val attributes =
-      new UnprefixedAttribute(
-        "x1",
-        x1,
-        new UnprefixedAttribute(
-          "y1",
-          y1,
-          new UnprefixedAttribute("x2", x2, new UnprefixedAttribute("y2", y2, more))
-        )
-      )
-    elem("line", attributes)
+    elem("line", attrs("x1" -> x1, "y1" -> y1, "x2" -> x2, "y2" -> y2).append(more))
 
   private def circleElem(cx: String, cy: String, r: String, more: MetaData = Null): Elem =
-    val attributes = new UnprefixedAttribute(
-      "cx",
-      cx,
-      new UnprefixedAttribute("cy", cy, new UnprefixedAttribute("r", r, more))
-    )
-    elem("circle", attributes)
+    elem("circle", attrs("cx" -> cx, "cy" -> cy, "r" -> r).append(more))
 
   private def gElem(children: Seq[Node], attributes: MetaData = Null): Elem =
     elem("g", attributes, children = children)
