@@ -600,29 +600,35 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   behavior of "TilingSVG.fromMetadata"
 
   it should "successfully reconstruct an empty tiling from metadata" in:
-    val metadata      = emptyTiling.toMetadata
-    val reconstructed = fromMetadata(metadata)
+    val metadata          = emptyTiling.toMetadata
+    val reconstructed     = fromMetadata(metadata)
+    val reconstructedFast = fromMetadataFast(metadata)
     allAssert(
       reconstructed.isRight shouldBe true,
+      reconstructedFast.isRight shouldBe true,
       reconstructed.value.isEmpty shouldBe true,
       TilingDCEL.empty.isBoundaryEquivalentTo(reconstructed.value) shouldBe true
     )
 
   it should "successfully reconstruct a single triangle from metadata (round-trip)" in:
-    val metadata      = triangle.toMetadata
-    val reconstructed = fromMetadata(metadata)
+    val metadata          = triangle.toMetadata
+    val reconstructed     = fromMetadata(metadata)
+    val reconstructedFast = fromMetadataFast(metadata)
     allAssert(
       reconstructed.isRight shouldBe true,
+      reconstructedFast.isRight shouldBe true,
       validate(reconstructed.value) shouldBe Right(()),
       triangle.isBoundaryEquivalentTo(reconstructed.value) shouldBe true
     )
 
   it should "successfully reconstruct a triangle-based tessellation from metadata (round-trip)" in:
-    val net           = TilingBuilder.createTriangleNet(4, 4)
-    val metadata      = net.toMetadata
-    val reconstructed = fromMetadata(metadata)
+    val net               = TilingBuilder.createTriangleNet(4, 4)
+    val metadata          = net.toMetadata
+    val reconstructed     = fromMetadata(metadata)
+    val reconstructedFast = fromMetadataFast(metadata)
     allAssert(
       reconstructed.isRight shouldBe true,
+      reconstructedFast.isRight shouldBe true,
       validate(reconstructed.value) shouldBe Right(()),
       net.isBoundaryEquivalentTo(reconstructed.value) shouldBe true
     )

@@ -1100,3 +1100,6 @@ object TilingSVG:
     */
   def fromMetadata(metadata: String): Either[TilingError, TilingDCEL] =
     TilingSVGPlatform.fromMetadata(metadata)
+
+  def fromMetadataFast(metadata: String): Either[TilingError, TilingDCEL] =
+    TilingSVGPlatform.fromMetadataFast(metadata)

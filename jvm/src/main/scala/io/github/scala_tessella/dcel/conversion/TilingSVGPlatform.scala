@@ -35,9 +35,9 @@ object TilingSVGPlatform:
         vertexNodes
           .map: vNode =>
             for
-              id       <- attrAs(vNode, "id", _.toInt, "Int")
-              x        <- attrAs(vNode, "x", BigDecimal.apply, "BigDecimal")
-              y        <- attrAs(vNode, "y", BigDecimal.apply, "BigDecimal")
+              id <- attrAs(vNode, "id", _.toInt, "Int")
+              x  <- attrAs(vNode, "x", BigDecimal.apply, "BigDecimal")
+              y  <- attrAs(vNode, "y", BigDecimal.apply, "BigDecimal")
             yield Vertex(VertexId(id), BigPoint(x, y))
           .sequence
 
@@ -50,11 +50,11 @@ object TilingSVGPlatform:
         halfEdgeNodes
           .map: heNode =>
             for
-              id       <- attrAs(heNode, "origin", _.toInt, "Int")
-              origin   <- vertexMap.get(VertexId(id)).toRight(NotFoundError(
-                            "Vertex for half-edge origin",
-                            id.toString
-                          ))
+              id     <- attrAs(heNode, "origin", _.toInt, "Int")
+              origin <- vertexMap.get(VertexId(id)).toRight(NotFoundError(
+                          "Vertex for half-edge origin",
+                          id.toString
+                        ))
             yield HalfEdge(origin)
           .sequence
 
@@ -82,16 +82,16 @@ object TilingSVGPlatform:
 
       // 4. Wiring: Perform side-effecting wiring in grouped iterations
       _ <- vertexNodes
-        .zip(vertices)
-        .map: (vNode, vertex) =>
-          vNode.attribute("leaving").map(_.text).traverse: leavingIdStr =>
-            for
-              leavingId   <- Try(leavingIdStr.toInt).toEither.left.map: _ =>
-                ValidationError(s"Invalid leaving ID: $leavingIdStr")
-              leavingEdge <-
-                halfEdgeMap.get(leavingId).toRight(NotFoundError("Leaving edge", leavingId.toString))
-            yield vertex.leaving = Some(leavingEdge)
-        .sequence
+             .zip(vertices)
+             .map: (vNode, vertex) =>
+               vNode.attribute("leaving").map(_.text).traverse: leavingIdStr =>
+                 for
+                   leavingId   <- Try(leavingIdStr.toInt).toEither.left.map: _ =>
+                                    ValidationError(s"Invalid leaving ID: $leavingIdStr")
+                   leavingEdge <-
+                     halfEdgeMap.get(leavingId).toRight(NotFoundError("Leaving edge", leavingId.toString))
+                 yield vertex.leaving = Some(leavingEdge)
+             .sequence
 
       _ <-
         halfEdgeNodes
@@ -136,7 +136,7 @@ object TilingSVGPlatform:
                           ocId.toString
                         ))
                     yield f.outerComponent = Some(ocEdge)
-               // optional inner-components
+              // optional inner-components
               _ <-
                 fNode
                   .attribute("inner-components")
@@ -166,7 +166,6 @@ object TilingSVGPlatform:
                       icEdges.map: halfEdge =>
                         Some(halfEdge)
             yield ()
-
           .sequence
 
       outerFace <-
@@ -181,3 +180,54 @@ object TilingSVGPlatform:
         else
           tiling
     yield validated
+
+  def fromMetadataFast(metadata: String): Either[TilingError, TilingDCEL] =
+    try
+      val xmlRoot = XML.loadString(metadata)
+
+      val vertexNodes = (xmlRoot \ "vertices" \ "vertex").toList
+      val vertices    = vertexNodes.map: vNode =>
+        Vertex(
+          VertexId(vNode.attribute("id").get.head.text.toInt),
+          BigPoint(
+            BigDecimal(vNode.attribute("x").get.head.text),
+            BigDecimal(vNode.attribute("y").get.head.text)
+          )
+        )
+
+      val vertexMap = vertices.map(v => v.id -> v).toMap
+
+      val halfEdgeNodes = (xmlRoot \ "half-edges" \ "half-edge").toList
+      val halfEdges     = halfEdgeNodes.map: heNode =>
+        HalfEdge(vertexMap(VertexId(heNode.attribute("origin").get.head.text.toInt)))
+
+      val halfEdgeMap = halfEdges.zipWithIndex.map((he, i) => i -> he).toMap
+
+      val faceNodes = (xmlRoot \ "faces" \ "face").toList
+      val faces     = faceNodes.map(fNode => Face(FaceId(fNode.attribute("id").get.head.text.toInt)))
+      val faceMap   = faces.map(f => f.id -> f).toMap
+
+      vertexNodes.zip(vertices).foreach: (vNode, vertex) =>
+        vNode.attribute("leaving").foreach: attr =>
+          vertex.leaving = Some(halfEdgeMap(attr.head.text.toInt))
+
+      halfEdgeNodes.zip(halfEdges).foreach: (heNode, he) =>
+        he.twin = Some(halfEdgeMap(heNode.attribute("twin").get.head.text.toInt))
+        he.next = Some(halfEdgeMap(heNode.attribute("next").get.head.text.toInt))
+        he.prev = Some(halfEdgeMap(heNode.attribute("prev").get.head.text.toInt))
+        he.incidentFace = Some(faceMap(FaceId(heNode.attribute("face").get.head.text.toInt)))
+        he.angle = Some(AngleDegree(Rational(heNode.attribute("angle").get.head.text)))
+
+      faceNodes.zip(faces).foreach: (fNode, f) =>
+        fNode.attribute("outer-component").foreach: attr =>
+          f.outerComponent = Some(halfEdgeMap(attr.head.text.toInt))
+        fNode.attribute("inner-components").filter(_.nonEmpty).foreach: attr =>
+          f.innerComponents = attr.head.text.split(',').map(id => Some(halfEdgeMap(id.trim.toInt))).toList
+
+      val outerFace  = faceMap(FaceId.outerId)
+      val innerFaces = faces.filterNot(_.id == FaceId.outerId)
+
+      if vertices.isEmpty && halfEdges.isEmpty && innerFaces.isEmpty then Right(TilingDCEL.empty)
+      else TilingDCEL.fromUntrusted(vertices, halfEdges, innerFaces, outerFace)
+    catch
+      case e: Throwable => Left(ValidationError(s"Fast metadata parsing failed: ${e.getMessage}"))
