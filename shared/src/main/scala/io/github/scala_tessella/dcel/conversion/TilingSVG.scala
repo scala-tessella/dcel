@@ -226,6 +226,16 @@ object TilingSVG:
 
     (innerAngleLabels, outerAngleLabels)
 
+  private def vertexToSvg(vertex: Vertex, label: String, config: SvgConfig, radiusMultiplier: Double = 4.0, more: MetaData = Null): (Elem, Elem) =
+    val (cx, cy) = vertex.coords.toSvgCoords(config.scale)
+    val circle = circleElem(cx, cy, (config.strokeWidth * radiusMultiplier).toString, more)
+
+    val point = vertex.coords.scaled(config.scale).flippedY
+    val lx = (point.x + config.strokeWidth * 2.5).format
+    val ly = (point.y - config.strokeWidth * 2.5).format
+    val text = textAt(lx, ly, label)
+    (circle, text)
+
   private def createBoundaryElements(tilingDCEL: TilingDCEL, config: SvgConfig): Option[Elem] =
     tilingDCEL.boundaryVertices match
       case vertices if vertices.nonEmpty =>
@@ -293,70 +303,38 @@ object TilingSVG:
     )
 
   private def createVertexElements(tilingDCEL: TilingDCEL, config: SvgConfig): (Seq[Elem], Seq[Elem]) =
+    val classes = if config.showUniformity then tilingDCEL.uniformityTree.flattenLeaves else Nil
+    val indexMap =
+      classes
+        .zipWithIndex
+        .flatMap: (ids, idx) =>
+          ids.map:
+            _ -> idx
+        .toMap
 
-    val circles =
-      if config.showUniformity then
-        val classes  = tilingDCEL.uniformityTree.flattenLeaves
-        val indexMap = classes.zipWithIndex
-          .flatMap: (vertexIds, index) =>
-            vertexIds.map((_, index))
-          .toMap
-        tilingDCEL.vertices.map: vertex =>
-          val index      = indexMap.get(vertex.id)
-          val multiplier = if index.isDefined then 20 else 2
-          val (cx, cy)   = vertex.coords.toSvgCoords(config.scale)
-          circleElem(
-            cx,
-            cy,
-            (config.strokeWidth * multiplier).toString,
-            attrs("fill" -> index.map(uniformColorMap).getOrElse("red"))
-          )
-      else
-        tilingDCEL.vertices.map: vertex =>
-          val (cx, cy) = vertex.coords.toSvgCoords(config.scale)
-          circleElem(cx, cy, (config.strokeWidth * 2).toString)
-
-    val labels =
-      tilingDCEL.vertices.map: vertex =>
-        val point = vertex.coords.scaled(config.scale).flippedY
-        val x     = (point.x + config.strokeWidth * 2.5).format
-        val y     = (point.y - config.strokeWidth * 2.5).format
-        textAt(x, y, vertex.id.toString)
-
-    (circles, labels)
+    tilingDCEL.vertices
+      .map: vertex =>
+        val colorIdx = indexMap.get(vertex.id)
+        val (radiusMultiplier, meta) = colorIdx match
+          case Some(idx) => (20.0, attrs("fill" -> uniformColorMap.getOrElse(idx, "red")))
+          case None => (2.0, Null)
+        vertexToSvg(vertex, vertex.id.toString, config, radiusMultiplier, meta)
+      .unzip
 
   private def createSimpleVertexElements(vertices: List[Vertex], config: SvgConfig): (Seq[Elem], Seq[Elem]) =
-
-    val circles =
-      vertices.map: vertex =>
-        val (cx, cy) = vertex.coords.toSvgCoords(config.scale)
-        circleElem(cx, cy, (config.strokeWidth * 4).toString)
-
-    val labels = vertices.map: vertex =>
-      val point = vertex.coords.scaled(config.scale).flippedY
-      val x     = (point.x + config.strokeWidth * 2.5).format
-      val y     = (point.y - config.strokeWidth * 2.5).format
-      textAt(x, y, vertex.id.toString)
-
-    (circles, labels)
+    vertices
+      .map: vertex =>
+        vertexToSvg(vertex, vertex.id.toString, config)
+      .unzip
 
   private def createIndexVertexElements(
-      vertices: List[(Vertex, Int)],
-      config: SvgConfig
+    vertices: List[(Vertex, Int)],
+    config: SvgConfig
   ): (Seq[Elem], Seq[Elem]) =
-
-    val circles =
-      vertices.map(_._1).map: vertex =>
-        val (cx, cy) = vertex.coords.toSvgCoords(config.scale)
-        circleElem(cx, cy, (config.strokeWidth * 4).toString)
-
-    val labels = vertices.map: (vertex, index) =>
-      val point = vertex.coords.scaled(config.scale).flippedY
-      val x     = (point.x + config.strokeWidth * 2.5).format
-      val y     = (point.y - config.strokeWidth * 2.5).format
-      textAt(x, y, s"${vertex.id.value} - $index")
-
-    (circles, labels)
+    vertices
+      .map: (vertex, index) =>
+        vertexToSvg(vertex, s"${vertex.id.value} - $index", config)
+      .unzip
 
   private def createFaceLabels(tilingDCEL: TilingDCEL, config: SvgConfig): Seq[Elem] =
     tilingDCEL.innerFaces.map: face =>
