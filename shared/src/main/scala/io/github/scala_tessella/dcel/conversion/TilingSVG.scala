@@ -25,6 +25,10 @@ object TilingSVG:
       val scaledPoint: BigPoint = bigPoint.scaled(scale).flippedY
       (scaledPoint.x.format, scaledPoint.y.format)
 
+    private def toSvgLabelCoords(scale: Double, offsetX: Double, offsetY: Double): (String, String) =
+      val scaledPoint: BigPoint = bigPoint.scaled (scale).flippedY
+      ((scaledPoint.x + BigDecimal (offsetX) ).format, (scaledPoint.y + BigDecimal (offsetY) ).format)
+
   private case class Arrow(
       tipX: String,
       tipY: String,
@@ -162,8 +166,7 @@ object TilingSVG:
     val origin        = halfEdge.origin.coords
     val angleText     = f"${halfEdge.angle.get.toRational.toDouble}%.0f°"
     val labelDistance = config.strokeWidth * 8
-    val labelX        = (origin.x * config.scale + direction.x * labelDistance).format
-    val labelY        = (-origin.y * config.scale - direction.y * labelDistance).format
+    val (labelX, labelY) = origin.toSvgLabelCoords(config.scale, direction.x.toDouble * labelDistance, -direction.y.toDouble * labelDistance)
     textAt(labelX, labelY, angleText)
 
   private def createSvgSection(title: String, content: Seq[Node], attributes: MetaData = Null): NodeSeq =
@@ -230,9 +233,8 @@ object TilingSVG:
     val (cx, cy) = vertex.coords.toSvgCoords(config.scale)
     val circle = circleElem(cx, cy, (config.strokeWidth * radiusMultiplier).toString, more)
 
-    val point = vertex.coords.scaled(config.scale).flippedY
-    val lx = (point.x + config.strokeWidth * 2.5).format
-    val ly = (point.y - config.strokeWidth * 2.5).format
+    val offset = config.strokeWidth * 2.5
+    val (lx, ly) = vertex.coords.toSvgLabelCoords(config.scale, offset, -offset)
     val text = textAt(lx, ly, label)
     (circle, text)
 
@@ -407,8 +409,7 @@ object TilingSVG:
           val perpY = if length > BigDecimal(BigDecimalGeometry.ACCURACY) then dx * offsetDistance / length
           else BigDecimal(0)
 
-          val textX = (BigDecimal(midX) - perpX).format
-          val textY = (BigDecimal(midY) - perpY).format
+          val (textX, textY) = midPoint.toSvgLabelCoords(config.scale, -perpX.toDouble, -perpY.toDouble)
 
           textAt(textX, textY, face.id.toString)
 
@@ -440,10 +441,9 @@ object TilingSVG:
             circleElem(cx, cy, (strokeWidth * 2).toString)
 
         val labels = vertices.indices.map: index =>
-          val point = vertices(index).scaled(scale).flippedY
-          val x     = (point.x + strokeWidth * 2.5).format
-          val y     = (point.y - strokeWidth * 2.5).format
-          textAt(x, y, s"$index") // - ${simple.toAngles(index)}°")
+          val offset   = strokeWidth * 2.5
+          val (lx, ly) = vertices(index).toSvgLabelCoords(scale, offset, -offset)
+          textAt(lx, ly, s"$index") // - ${simple.toAngles(index)}°")
 
         (circles, labels)
 
@@ -886,9 +886,9 @@ object TilingSVG:
       sb.append("\n")
 
       for vertex <- tiling.innerVertices do
-        val point = vertex.coords.scaled(scale).flippedY
-        val x     = (point.x + strokeWidth * 2.5).format
-        val y     = (point.y - strokeWidth * 2.5).format
+        val point = vertex.coords
+        val offset = strokeWidth * 2.5
+        val (x, y) = point.toSvgLabelCoords(scale, offset, -offset)
         sb.append(s"""    <text x="$x" y="$y">${vertex.id.value}</text>""").append("\n")
 
       sb.append("  </g>\n")
