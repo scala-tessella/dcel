@@ -44,14 +44,15 @@ object TilingSVGPlatform:
       return Left(ValidationError("Required metadata tags (<vertices>, <half-edges>, <faces>) not found"))
 
     // Single pass to extract all attributes by tag type
-    val extracted = TagRe.findAllMatchIn(metadata).foldLeft(Map.empty[
-      String,
-      List[Map[String, String]]
-    ].withDefaultValue(Nil)): (acc, m) =>
-      val tagName = m.group(1)
-      if tagName == "vertex" || tagName == "half-edge" || tagName == "face" then
-        acc.updated(tagName, parseAttrs(m.group(2)) :: acc(tagName))
-      else acc
+    val emptyMap = Map.empty[String, List[Map[String, String]]].withDefaultValue(Nil)
+    val extracted =
+      TagRe
+        .findAllMatchIn(metadata)
+        .foldLeft(emptyMap): (acc, m) =>
+          val tagName = m.group(1)
+          if tagName == "vertex" || tagName == "half-edge" || tagName == "face" then
+            acc.updated(tagName, parseAttrs(m.group(2)) :: acc(tagName))
+          else acc
 
     val vertexAttrs   = extracted("vertex").reverse
     val halfEdgeAttrs = extracted("half-edge").reverse
