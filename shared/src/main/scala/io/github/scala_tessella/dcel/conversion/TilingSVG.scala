@@ -26,8 +26,8 @@ object TilingSVG:
       (scaledPoint.x.format, scaledPoint.y.format)
 
     private def toSvgLabelCoords(scale: Double, offsetX: Double, offsetY: Double): (String, String) =
-      val scaledPoint: BigPoint = bigPoint.scaled (scale).flippedY
-      ((scaledPoint.x + BigDecimal (offsetX) ).format, (scaledPoint.y + BigDecimal (offsetY) ).format)
+      val scaledPoint: BigPoint = bigPoint.scaled(scale).flippedY
+      ((scaledPoint.x + BigDecimal(offsetX)).format, (scaledPoint.y + BigDecimal(offsetY)).format)
 
   private case class Arrow(
       tipX: String,
@@ -163,10 +163,14 @@ object TilingSVG:
   // ---------- end helpers ----------
 
   private def createAngleLabel(halfEdge: HalfEdge, direction: BigPoint, config: SvgConfig): Elem =
-    val origin        = halfEdge.origin.coords
-    val angleText     = f"${halfEdge.angle.get.toRational.toDouble}%.0f°"
-    val labelDistance = config.strokeWidth * 8
-    val (labelX, labelY) = origin.toSvgLabelCoords(config.scale, direction.x.toDouble * labelDistance, -direction.y.toDouble * labelDistance)
+    val origin           = halfEdge.origin.coords
+    val angleText        = f"${halfEdge.angle.get.toRational.toDouble}%.0f°"
+    val labelDistance    = config.strokeWidth * 8
+    val (labelX, labelY) = origin.toSvgLabelCoords(
+      config.scale,
+      direction.x.toDouble * labelDistance,
+      -direction.y.toDouble * labelDistance
+    )
     textAt(labelX, labelY, angleText)
 
   private def createSvgSection(title: String, content: Seq[Node], attributes: MetaData = Null): NodeSeq =
@@ -229,13 +233,19 @@ object TilingSVG:
 
     (innerAngleLabels, outerAngleLabels)
 
-  private def vertexToSvg(vertex: Vertex, label: String, config: SvgConfig, radiusMultiplier: Double = 4.0, more: MetaData = Null): (Elem, Elem) =
+  private def vertexToSvg(
+      vertex: Vertex,
+      label: String,
+      config: SvgConfig,
+      radiusMultiplier: Double = 4.0,
+      more: MetaData = Null
+  ): (Elem, Elem) =
     val (cx, cy) = vertex.coords.toSvgCoords(config.scale)
-    val circle = circleElem(cx, cy, (config.strokeWidth * radiusMultiplier).toString, more)
+    val circle   = circleElem(cx, cy, (config.strokeWidth * radiusMultiplier).toString, more)
 
-    val offset = config.strokeWidth * 2.5
+    val offset   = config.strokeWidth * 2.5
     val (lx, ly) = vertex.coords.toSvgLabelCoords(config.scale, offset, -offset)
-    val text = textAt(lx, ly, label)
+    val text     = textAt(lx, ly, label)
     (circle, text)
 
   private def createBoundaryElements(tilingDCEL: TilingDCEL, config: SvgConfig): Option[Elem] =
@@ -305,7 +315,7 @@ object TilingSVG:
     )
 
   private def createVertexElements(tilingDCEL: TilingDCEL, config: SvgConfig): (Seq[Elem], Seq[Elem]) =
-    val classes = if config.showUniformity then tilingDCEL.uniformityTree.flattenLeaves else Nil
+    val classes  = if config.showUniformity then tilingDCEL.uniformityTree.flattenLeaves else Nil
     val indexMap =
       classes
         .zipWithIndex
@@ -316,10 +326,10 @@ object TilingSVG:
 
     tilingDCEL.vertices
       .map: vertex =>
-        val colorIdx = indexMap.get(vertex.id)
+        val colorIdx                 = indexMap.get(vertex.id)
         val (radiusMultiplier, meta) = colorIdx match
           case Some(idx) => (20.0, attrs("fill" -> uniformColorMap.getOrElse(idx, "red")))
-          case None => (2.0, Null)
+          case None      => (2.0, Null)
         vertexToSvg(vertex, vertex.id.toString, config, radiusMultiplier, meta)
       .unzip
 
@@ -330,8 +340,8 @@ object TilingSVG:
       .unzip
 
   private def createIndexVertexElements(
-    vertices: List[(Vertex, Int)],
-    config: SvgConfig
+      vertices: List[(Vertex, Int)],
+      config: SvgConfig
   ): (Seq[Elem], Seq[Elem]) =
     vertices
       .map: (vertex, index) =>
@@ -786,7 +796,7 @@ object TilingSVG:
       val cycleDuration = animationDuration + pauseBetweenSteps
 
       def getKeyTimes: String =
-        val stepTimes = (0 until totalSteps).map: i =>
+        val stepTimes   = (0 until totalSteps).map: i =>
           f"${i * stepDuration / cycleDuration}%.4f"
         val endAnimTime = f"${animationDuration / cycleDuration}%.4f"
         (stepTimes :+ endAnimTime :+ "1").mkString(";")
@@ -864,7 +874,7 @@ object TilingSVG:
           s"""    <circle cx="$x" cy="$y" r="$vertexRadius" fill="${colorSeq.head}" visibility="${visibilitySeq.head}">"""
         ).append("\n"): Unit
 
-        val keyTimes    = getKeyTimes
+        val keyTimes = getKeyTimes
 
         // Color animation
         val values = (colorSeq :+ colorSeq.last :+ colorSeq.head).mkString(";")
@@ -887,7 +897,7 @@ object TilingSVG:
       sb.append("\n")
 
       for vertex <- tiling.innerVertices do
-        val point = vertex.coords
+        val point  = vertex.coords
         val offset = strokeWidth * 2.5
         val (x, y) = point.toSvgLabelCoords(scale, offset, -offset)
         sb.append(s"""    <text x="$x" y="$y">${vertex.id.value}</text>""").append("\n")
@@ -901,7 +911,7 @@ object TilingSVG:
 
       // Multiple overlapping text elements, each visible during its step
       for i <- 0 until totalSteps do
-        val keyTimes    = getKeyTimes
+        val keyTimes = getKeyTimes
 
         val visValues        =
           (0 until totalSteps)
@@ -930,7 +940,7 @@ object TilingSVG:
       val classesLabelY = viewBox.minY + BigDecimal(35)
 
       for i <- 0 until totalSteps do
-        val keyTimes    = getKeyTimes
+        val keyTimes = getKeyTimes
 
         val visValues        =
           (0 until totalSteps).map: j =>
