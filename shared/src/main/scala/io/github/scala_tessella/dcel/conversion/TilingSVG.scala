@@ -785,6 +785,12 @@ object TilingSVG:
       val stepDuration  = animationDuration / totalSteps
       val cycleDuration = animationDuration + pauseBetweenSteps
 
+      def getKeyTimes: String =
+        val stepTimes = (0 until totalSteps).map: i =>
+          f"${i * stepDuration / cycleDuration}%.4f"
+        val endAnimTime = f"${animationDuration / cycleDuration}%.4f"
+        (stepTimes :+ endAnimTime :+ "1").mkString(";")
+
       // Build per-step vertex->colorIndex map
       val vertexToColorAtStep: Map[Int, Map[VertexId, Int]] =
         trees.zipWithIndex
@@ -858,12 +864,7 @@ object TilingSVG:
           s"""    <circle cx="$x" cy="$y" r="$vertexRadius" fill="${colorSeq.head}" visibility="${visibilitySeq.head}">"""
         ).append("\n"): Unit
 
-        // Build keyTimes: allocate time proportionally, hold last value during pause
-        val stepTimes   =
-          (0 until totalSteps).map: i =>
-            f"${i * stepDuration / cycleDuration}%.4f"
-        val endAnimTime = f"${animationDuration / cycleDuration}%.4f"
-        val keyTimes    = (stepTimes :+ endAnimTime :+ "1").mkString(";")
+        val keyTimes    = getKeyTimes
 
         // Color animation
         val values = (colorSeq :+ colorSeq.last :+ colorSeq.head).mkString(";")
@@ -900,15 +901,7 @@ object TilingSVG:
 
       // Multiple overlapping text elements, each visible during its step
       for i <- 0 until totalSteps do
-        val stepTimes   = (0 until totalSteps).map(j =>
-          f"${
-              j * stepDuration / cycleDuration
-            }%.4f"
-        )
-        val endAnimTime = f"${
-            animationDuration / cycleDuration
-          }%.4f"
-        val keyTimes    = (stepTimes :+ endAnimTime :+ "1").mkString(";")
+        val keyTimes    = getKeyTimes
 
         val visValues        =
           (0 until totalSteps)
@@ -937,14 +930,7 @@ object TilingSVG:
       val classesLabelY = viewBox.minY + BigDecimal(35)
 
       for i <- 0 until totalSteps do
-        val stepTimes   = (0 until totalSteps).map: j =>
-          f"${
-              j * stepDuration / cycleDuration
-            }%.4f"
-        val endAnimTime = f"${
-            animationDuration / cycleDuration
-          }%.4f"
-        val keyTimes    = (stepTimes :+ endAnimTime :+ "1").mkString(";")
+        val keyTimes    = getKeyTimes
 
         val visValues        =
           (0 until totalSteps).map: j =>
