@@ -7,7 +7,7 @@
       <parameters>
         <parameter value="-Xsemanticdb" />
         <parameter value="-semanticdb-target" />
-        <parameter value="$PROJECT_DIR$/target/scala-3.7.4/test-meta" />
+        <parameter value="$PROJECT_DIR$/target/scala-3.8.1/test-meta" />
       </parameters>
     </profile>
     <profile name="sbt 3" modules="dcel-root.dcel.dcelJVM.main">
@@ -15,20 +15,21 @@
       <option name="uncheckedWarnings" value="true" />
       <option name="featureWarnings" value="true" />
       <parameters>
+        <parameter value="-experimental" />
         <parameter value="-Wvalue-discard" />
         <parameter value="-Wnonunit-statement" />
         <parameter value="-Wunused:imports" />
         <parameter value="-Xsemanticdb" />
         <parameter value="-semanticdb-target" />
-        <parameter value="$PROJECT_DIR$/jvm/target/scala-3.7.4/meta" />
-        <parameter value="-Xfatal-warnings" />
+        <parameter value="$PROJECT_DIR$/jvm/target/scala-3.8.1/meta" />
+        <parameter value="-Werror" />
       </parameters>
     </profile>
     <profile name="sbt 4" modules="dcel-root.main">
       <parameters>
         <parameter value="-Xsemanticdb" />
         <parameter value="-semanticdb-target" />
-        <parameter value="$PROJECT_DIR$/target/scala-3.7.4/meta" />
+        <parameter value="$PROJECT_DIR$/target/scala-3.8.1/meta" />
       </parameters>
     </profile>
     <profile name="sbt 5" modules="dcel-root.dcel.dcelJS.main">
@@ -37,13 +38,14 @@
       <option name="featureWarnings" value="true" />
       <parameters>
         <parameter value="-scalajs" />
+        <parameter value="-experimental" />
         <parameter value="-Wvalue-discard" />
         <parameter value="-Wnonunit-statement" />
         <parameter value="-Wunused:imports" />
         <parameter value="-Xsemanticdb" />
         <parameter value="-semanticdb-target" />
-        <parameter value="$PROJECT_DIR$/js/target/scala-3.7.4/meta" />
-        <parameter value="-Xfatal-warnings" />
+        <parameter value="$PROJECT_DIR$/js/target/scala-3.8.1/meta" />
+        <parameter value="-Werror" />
       </parameters>
     </profile>
     <profile name="sbt 6" modules="dcel-root.dcel.dcelJS.test">
@@ -52,12 +54,13 @@
       <option name="featureWarnings" value="true" />
       <parameters>
         <parameter value="-scalajs" />
+        <parameter value="-experimental" />
         <parameter value="-Wvalue-discard" />
         <parameter value="-Wnonunit-statement" />
         <parameter value="-Wunused:imports" />
         <parameter value="-Xsemanticdb" />
         <parameter value="-semanticdb-target" />
-        <parameter value="$PROJECT_DIR$/js/target/scala-3.7.4/test-meta" />
+        <parameter value="$PROJECT_DIR$/js/target/scala-3.8.1/test-meta" />
       </parameters>
     </profile>
     <profile name="sbt 7" modules="dcel-root.dcel.dcelJVM.test">
@@ -65,12 +68,13 @@
       <option name="uncheckedWarnings" value="true" />
       <option name="featureWarnings" value="true" />
       <parameters>
+        <parameter value="-experimental" />
         <parameter value="-Wvalue-discard" />
         <parameter value="-Wnonunit-statement" />
         <parameter value="-Wunused:imports" />
         <parameter value="-Xsemanticdb" />
         <parameter value="-semanticdb-target" />
-        <parameter value="$PROJECT_DIR$/jvm/target/scala-3.7.4/test-meta" />
+        <parameter value="$PROJECT_DIR$/jvm/target/scala-3.8.1/test-meta" />
       </parameters>
     </profile>
   </component>

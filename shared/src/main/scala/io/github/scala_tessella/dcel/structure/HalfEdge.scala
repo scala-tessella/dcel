@@ -6,6 +6,7 @@ import io.github.scala_tessella.ring_seq.RingSeq.slidingO
 
 import scala.annotation.tailrec
 import scala.collection.mutable
+import scala.language.experimental.relaxedLambdaSyntax
 
 /** Represents a directed half-edge in the DCEL.
   *
@@ -42,29 +43,24 @@ final class HalfEdge(
       validate().toErrorSuffix
     val destinationStr        =
       destination
-        .map: vertex =>
-          vertex.id.toPrefixedString
+        .map: vertex => vertex.id.toPrefixedString
         .getOrElse("?")
     s"HalfEdge ${origin.id.toPrefixedString} -> $destinationStr$validationErrorSuffix"
 
   def destination: Option[Vertex] =
-    twin.map: halfEdge =>
-      halfEdge.origin
+    twin.map: halfEdge => halfEdge.origin
 
   private[dcel] def destinationUnsafe: Vertex =
     twin.get.origin
 
   def isLoop: Option[Boolean] =
-    destination.map: halfEdge =>
-      halfEdge == origin
+    destination.map: halfEdge => halfEdge == origin
 
   def endpointsAsVertices: Option[(Vertex, Vertex)] =
-    destination.map: halfEdge =>
-      (origin, halfEdge)
+    destination.map: halfEdge => (origin, halfEdge)
 
   def maybeId: Option[HalfEdgeId] =
-    endpointsAsVertices.map: (orig, dest) =>
-      (orig.id, dest.id)
+    endpointsAsVertices.map: (orig, dest) => (orig.id, dest.id)
 
   private[dcel] def idUnsafe: HalfEdgeId =
     (origin.id, destinationUnsafe.id)
@@ -105,13 +101,23 @@ final class HalfEdge(
 
     collectEdges(startEdge, Nil)
 
+  /**
+   * Computes the next half-edge in a sequence based on the twin relationship.
+   *
+   * This method takes a HalfEdge as input, retrieves its twin (if available),
+   * and then attempts to extract the next HalfEdge in the sequence from that twin.
+   *
+   * @return An Option containing the next HalfEdge if it exists, or None if the twin
+   *         or the next HalfEdge is not defined.
+   */
+  def maybeNextOfTwin: HalfEdge => Option[HalfEdge] =
+    halfEdge => halfEdge.twin.flatMap: maybeHalfEdge => maybeHalfEdge.next
+    
   private[dcel] def vertexTraversalUnsafe[T](f: HalfEdge => T = identity): List[T] =
-    traverseUnsafe[T](_.twin.flatMap(_.next)): halfEdge =>
-      f(halfEdge)
+    traverseUnsafe[T](maybeNextOfTwin): halfEdge => f(halfEdge)
 
   def vertexTraversal[T](f: HalfEdge => T = identity): Either[TopologyError, List[T]] =
-    traverse[T](_.twin.flatMap(_.next)): halfEdge =>
-      f(halfEdge)
+    traverse[T](maybeNextOfTwin): halfEdge => f(halfEdge)
 
   private def traverse[T](direction: HalfEdge => Option[HalfEdge])(f: HalfEdge => T =
     identity): Either[TopologyError, List[T]] =
@@ -138,12 +144,10 @@ final class HalfEdge(
     collectEdges(startEdge, Nil)
 
   private[dcel] def faceTraversalUnsafe[T](f: HalfEdge => T = identity): List[T] =
-    traverseUnsafe[T](_.next): halfEdge =>
-      f(halfEdge)
+    traverseUnsafe[T](_.next): halfEdge => f(halfEdge)
 
   def faceTraversal[T](f: HalfEdge => T = identity): Either[TopologyError, List[T]] =
-    traverse[T](_.next): halfEdge =>
-      f(halfEdge)
+    traverse[T](_.next): halfEdge => f(halfEdge)
 
   def hasIncidentFace(face: Face): Boolean =
     incidentFace.contains(face)
@@ -278,19 +282,17 @@ object HalfEdge:
 
     // Helper function to link edges in a cycle
     private[dcel] def linkInCycle(): Unit =
-      linkIn(_.slidingO(2))
+      linkIn: halfEdges => halfEdges.slidingO(2)
 
     // Helper function to link edges in a sequence
     private[dcel] def linkInSequence(): Unit =
-      linkIn(_.sliding(2))
+      linkIn: halfEdges => halfEdges.sliding(2)
 
     private[dcel] def setIncidentFace(face: Face): Unit =
-      halfEdges.foreach: halfEdge =>
-        halfEdge.incidentFace = Some(face)
+      halfEdges.foreach: halfEdge => halfEdge.incidentFace = Some(face)
 
     private[dcel] def setAngle(angle: AngleDegree): Unit =
-      halfEdges.foreach: halfEdge =>
-        halfEdge.angle = Some(angle)
+      halfEdges.foreach: halfEdge => halfEdge.angle = Some(angle)
 
     private[dcel] def linkFace(face: Face, angle: AngleDegree): Unit =
       halfEdges.linkInCycle()
@@ -300,16 +302,13 @@ object HalfEdge:
 
     def interiorAnglesSum(outerFace: Face): AngleDegree =
       halfEdges
-        .filterNot: halfEdge =>
-          halfEdge.hasIncidentFace(outerFace)
-        .flatMap: halfEdge =>
-          halfEdge.angle
+        .filterNot: halfEdge => halfEdge.hasIncidentFace(outerFace)
+        .flatMap: halfEdge => halfEdge.angle
         .sumExact
 
     def getPath(from: Vertex, to: Vertex): List[HalfEdge] =
       val startEdgeOpt =
-        halfEdges.find: halfEdge =>
-          halfEdge.origin == from
+        halfEdges.find: halfEdge => halfEdge.origin == from
 
       startEdgeOpt match
         case Some(startEdge) =>
@@ -341,19 +340,15 @@ object HalfEdge:
         degrees(edge.destinationUnsafe) -= 1
 
       val balanced =
-        degrees.filter: (_, degree) =>
-          degree != 0
+        degrees.filter: (_, degree) => degree != 0
 
       val startVertexOpt =
         if balanced.isEmpty then
-          halfEdges.headOption.map: halfEdge =>
-            halfEdge.origin
+          halfEdges.headOption.map: halfEdge => halfEdge.origin
         else if balanced.size == 2 then
           balanced
-            .find: (_, degree) =>
-              degree == 1
-            .map: (vertex, _) =>
-              vertex
+            .find: (_, degree) => degree == 1
+            .map: (vertex, _) => vertex
         else
           None
 
@@ -391,8 +386,8 @@ object HalfEdge:
       ordered += current
       remaining -= current
       while remaining.nonEmpty do
-        val nextOpt = remaining.find: halfEdge =>
-          current.destination.contains(halfEdge.origin)
+        val nextOpt =
+          remaining.find: halfEdge => current.destination.contains(halfEdge.origin)
         nextOpt match
           case Some(next) =>
             ordered += next

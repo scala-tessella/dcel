@@ -1,5 +1,5 @@
 ThisBuild / version := "0.1.0-SNAPSHOT"
-ThisBuild / scalaVersion := "3.7.4"
+ThisBuild / scalaVersion := "3.8.1"
 ThisBuild / organization := "io.github.scala-tessella"
 
 // Enable semanticdb for Scalafix (Scala 3)
@@ -26,6 +26,7 @@ lazy val commonSettings = Seq(
   // Compiler hygiene: turn on key warnings and make them fail the build
   scalacOptions ++= Seq(
     "-deprecation",         // warn on deprecated APIs
+    "-experimental",
     "-feature",             // warn on feature imports/usages
     "-unchecked",           // extra checks for pattern matches, etc.
     "-Wvalue-discard",      // warn when a non-Unit value is ignored
@@ -34,10 +35,10 @@ lazy val commonSettings = Seq(
   ),
   // Apply fatal warnings only for main (Compile), not for tests
   Compile / scalacOptions ++= Seq(
-    "-Xfatal-warnings"
+    "-Werror"
   ),
   Test / scalacOptions --= Seq(
-    "-Xfatal-warnings"
+    "-Werror"
   ),
   // Optional: keep the REPL (console) friendly by stripping fatal warnings there too
   Compile / console / scalacOptions --= Seq("-Xfatal-warnings"),
