@@ -5,6 +5,7 @@ import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigDecimalGeometry, 
 import io.github.scala_tessella.dcel.{IncompleteError, TopologyError}
 
 import scala.collection.mutable
+import scala.language.experimental.relaxedLambdaSyntax
 
 /** Represents a single vertex in the DCEL.
   *
@@ -53,16 +54,14 @@ final class Vertex(
     incidentEdgesUnsafe.interiorAnglesSum(outerFace)
 
   def currentInteriorAngleSum(outerFace: Face): Either[TopologyError, AngleDegree] =
-    incidentEdges.map: halfEdge =>
-      halfEdge.interiorAnglesSum(outerFace)
+    incidentEdges.map: halfEdge => halfEdge.interiorAnglesSum(outerFace)
 
   def degree: Int = incidentEdgesUnsafe.length
 
   def isThread: Boolean = degree == 2
 
   private[dcel] def adjacentVerticesUnsafe: List[Vertex] =
-    incidentEdgesUnsafe.map: halfEdge =>
-      halfEdge.destinationUnsafe
+    incidentEdgesUnsafe.map: halfEdge => halfEdge.destinationUnsafe
 
   // Safe helper returning all adjacent vertices
   def adjacentVertices: Either[TopologyError, List[Vertex]] =
@@ -79,12 +78,10 @@ final class Vertex(
       builder.result()
 
   private[dcel] def incidentFacesUnsafe: List[Face] =
-    incidentEdgesUnsafe.flatMap: halfEdge =>
-      halfEdge.incidentFace
+    incidentEdgesUnsafe.flatMap: halfEdge => halfEdge.incidentFace
 
   private[dcel] def findEdgeBetweenUnsafe(other: Vertex): Option[HalfEdge] =
-    incidentEdgesUnsafe.find: halfEdge =>
-      halfEdge.destination.contains(other)
+    incidentEdgesUnsafe.find: halfEdge => halfEdge.destination.contains(other)
 
   // BFS to get all vertices within distance
   def bfsVertices(distance: Int): Set[Vertex] =
@@ -118,10 +115,8 @@ object Vertex:
       sharedVertices: Set[Vertex]
   ): Map[Vertex, List[Vertex]] =
     boundaryEdges
-      .filter: halfEdge =>
-        sharedVertices.contains(halfEdge.origin)
-      .groupBy: halfEdge =>
-        halfEdge.origin
+      .filter: halfEdge => sharedVertices.contains(halfEdge.origin)
+      .groupBy: halfEdge => halfEdge.origin
       .view
       .mapValues: halfEdges =>
         halfEdges.flatMap: halfEdge =>
