@@ -283,35 +283,6 @@ enum Tree[A]:
   def foldValues(gBranch: List[A] => A): A =
     simpleFold(identity, gBranch)
 
-  /** Quicker traversing last child only, but not tail recursive. */
-  def addNodeToLastChild(f: Tree[A] => Tree[A], acceptsNewChild: Tree[A] => Boolean): Tree[A] =
-
-    def loop(node: Tree[A]): Tree[A] =
-      node match
-        case Leaf(_)                 => node
-        case Branch(value, children) =>
-          Branch(
-            value,
-            if acceptsNewChild(node) then children :+ f(node)
-            else children.init :+ loop(children.last)
-          )
-
-    loop(this)
-
-  def removeLastChildLeaf(f: Tree[A] => Tree[A]): Tree[A] =
-
-    def loop(node: Tree[A]): Tree[A] =
-      node match
-        case Leaf(_)                 => node
-        case Branch(value, children) =>
-          Branch(
-            value,
-            if children.last.isLeaf then children.init
-            else children.init :+ loop(f(children.last))
-          )
-
-    loop(this)
-
   def pruneLastEmptyBranch: Tree[A] =
 
     def loop(node: Tree[A]): Tree[A] =
@@ -331,18 +302,6 @@ enum Tree[A]:
 
     loop(this)
 
-  /** Adds one leaf to an existing branch node
-    *
-    * @param elem
-    *   the added leaf's value
-    * @param acceptsNewChild
-    *   checks if the branch supports the addition
-    * @todo
-    *   test how it works if the condition is never satisfied
-    */
-  def addLeaf(elem: A, acceptsNewChild: Tree[A] => Boolean): Tree[A] =
-    addNodeToLastChild(_ => Leaf(elem), acceptsNewChild)
-
   /** Converts the tree structure into a DOT representation for graph visualization.
     *
     * The method generates a DOT-format string that describes the structure and values of the tree, suitable
@@ -360,10 +319,19 @@ enum Tree[A]:
   def toDOT(labeler: A => String = (_: A) => ""): String =
     var lines: List[String] = Nil
 
+    def escapeDotLabel(s: String): String =
+      s.flatMap:
+        case '\\' => "\\\\"
+        case '"'  => "\\\""
+        case '\n' => "\\n"
+        case '\r' => "\\r"
+        case '\t' => "\\t"
+        case c    => c.toString
+      
     def formatLabel(value: A): String =
       labeler(value) match
         case "" => ""
-        case l  => s""" [label="$l"]"""
+        case l  => s""" [label="${escapeDotLabel(l)}"]"""
 
     def iterate(nodes: List[Tree[A]], parentId: Int): Int => TailRec[Int] =
       startId =>
