@@ -149,7 +149,12 @@ enum Tree[A]:
 
   /** Returns the depth of the tree. */
   def depth: Int =
-    simpleFold(_ => 1, childrenDepths => 1 + (0 :: childrenDepths).max)
+    foldAlt(
+      _ => 1,
+      (_, childrenDepths) =>
+        if childrenDepths.isEmpty then 1
+        else 1 + childrenDepths.max
+    )
 
   /** Checks if the tree contains the specified element. */
   def contains(element: A): Boolean =
@@ -327,7 +332,7 @@ enum Tree[A]:
         case '\r' => "\\r"
         case '\t' => "\\t"
         case c    => c.toString
-      
+
     def formatLabel(value: A): String =
       labeler(value) match
         case "" => ""
