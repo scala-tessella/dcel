@@ -83,7 +83,7 @@ object TilingDeletion:
         face: Face,
         innerTwins: List[HalfEdge]
     ): Either[TilingError, Unit] =
-      innerTwins.maybePath match
+      innerTwins.maybePathUnsafe match
         case None       => Left(
             TopologyError(s"Removing face ${face.id} would partition the tiling in two disconnected halves.")
           )
@@ -97,7 +97,7 @@ object TilingDeletion:
 
     private def performFaceDeletion(faceToDelete: Face, classification: EdgeClassification): TilingDCEL =
       val EdgeClassification(faceEdges, boundaryTwins, innerTwins) = classification
-      val orderedInnerTwins                                        = innerTwins.maybePath.getOrElse(List.empty)
+      val orderedInnerTwins                                        = innerTwins.maybePathUnsafe.getOrElse(List.empty)
 
       val newOuterEdges = createNewOuterBoundaryEdges(orderedInnerTwins)
       relinkBoundaryAroundDeletedFace(boundaryTwins, newOuterEdges)

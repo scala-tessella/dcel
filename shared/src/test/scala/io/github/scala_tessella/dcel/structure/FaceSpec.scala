@@ -213,7 +213,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val he2  = HalfEdge(v2, incidentFace = Some(face))
 
     he1.next = Some(he2)
-    // he2.next is None - broken chain
+    // he2.next is None - a broken chain
     face.outerComponent = Some(he1)
 
     val result = face.getVertices
@@ -260,7 +260,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val he2  = HalfEdge(v2, incidentFace = Some(face))
 
     he1.next = Some(he2)
-    // he2.next is None - broken chain
+    // he2.next is None - a broken chain
     face.outerComponent = Some(he1)
 
     val result = face.halfEdges
@@ -295,7 +295,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val v1   = createVertex(V1, 0, 0)
     val face = Face(FaceId(1))
     val he1  = HalfEdge(v1, incidentFace = Some(face))
-    // he1.next is None - broken chain
+    // he1.next is None - a broken chain
     face.outerComponent = Some(he1)
 
     face.halfEdges.isLeft shouldBe true
@@ -341,7 +341,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     face.areaUnsafe shouldBe BigDecimal(1)
 
   it should "calculate area using shoelace formula correctly" in:
-    // Create a rectangular face with known area
+    // Create a rectangular face with a known area
     val v1 = createVertex(V1, 0, 0)
     val v2 = createVertex(V2, 2, 0)
     val v3 = createVertex(V3, 2, 3)
@@ -453,12 +453,12 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   behavior of "Face companion object - adjacencyMap"
 
-  it should "return empty adjacencies for faces with no edges" in:
+  it should "return empty adjacency for faces with no edges" in:
     val face1 = Face(F1)
     val face2 = Face(F2)
     val faces = List(face1, face2)
 
-    val adjacencyMap = Face.adjacencyMap(faces)
+    val adjacencyMap = faces.adjacencyMapUnsafe
     allAssert(
       adjacencyMap(face1) shouldBe List.empty[Face],
       adjacencyMap(face2) shouldBe List.empty[Face]
@@ -518,7 +518,7 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     face2.outerComponent = Some(he2_14)
 
     val faces        = List(face1, face2)
-    val adjacencyMap = Face.adjacencyMap(faces)
+    val adjacencyMap = faces.adjacencyMapUnsafe
 
     allAssert(
       adjacencyMap(face1) should contain(face2),
@@ -530,12 +530,12 @@ class FaceSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val faces         = List(face1)
 
     // This should not crash even though edges don't have twins properly set
-    val adjacencyMap = Face.adjacencyMap(faces)
+    val adjacencyMap = faces.adjacencyMapUnsafe
     adjacencyMap shouldBe a[Map[Face, List[Face]]]
 
   behavior of "Face companion object - breadthFirstSearch"
 
-  it should "return single face when no adjacencies exist" in:
+  it should "return single face when no adjacency exist" in:
     val face1     = Face(F1)
     val adjacency = Map(face1 -> List.empty[Face])
 

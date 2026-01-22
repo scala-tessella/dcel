@@ -306,7 +306,7 @@ object HalfEdge:
         .flatMap: halfEdge => halfEdge.angle
         .sumExact
 
-    def getPath(from: Vertex, to: Vertex): List[HalfEdge] =
+    def getPathUnsafe(from: Vertex, to: Vertex): List[HalfEdge] =
       val startEdgeOpt =
         halfEdges.find: halfEdge => halfEdge.origin == from
 
@@ -329,7 +329,7 @@ object HalfEdge:
       *
       * @return
       */
-    def maybePath: Option[List[HalfEdge]] =
+    def maybePathUnsafe: Option[List[HalfEdge]] =
       if halfEdges.isEmpty then return Some(Nil)
 
       val degrees = mutable.Map.empty[Vertex, Int].withDefaultValue(0)

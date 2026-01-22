@@ -274,8 +274,8 @@ object TilingAddition:
 //      println(s"boundaryEdges.map(_.origin.id) = ${boundaryEdges.map(_.origin.id)}")
 
       // 1. Determine the shorter path (the "hole") on the boundary between the two vertices.
-      val pathFwd  = boundaryEdges.getPath(from = v_match, to = v_new)
-      val pathBack = boundaryEdges.getPath(from = v_new, to = v_match)
+      val pathFwd  = boundaryEdges.getPathUnsafe(from = v_match, to = v_new)
+      val pathBack = boundaryEdges.getPathUnsafe(from = v_new, to = v_match)
 
       val (holePath, isForward) =
         determinePathDirection(pathFwd, pathBack)
@@ -939,7 +939,7 @@ object TilingAddition:
 
     // Determine which closure point results in a smaller path on the boundary
     def shortestBoundaryPathLength(to: Vertex): Int =
-      val pathLength = boundaryEdges.getPath(from = startVertex, to = to).length
+      val pathLength = boundaryEdges.getPathUnsafe(from = startVertex, to = to).length
       math.min(pathLength, boundaryEdges.length - pathLength)
 
     val forwardPathLength  = shortestBoundaryPathLength(endOfFirstBlock.oldVertex)

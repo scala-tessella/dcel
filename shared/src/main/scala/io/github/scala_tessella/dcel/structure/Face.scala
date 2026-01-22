@@ -117,24 +117,24 @@ object Face:
 
   def outer: Face = Face(FaceId.outerId)
 
-  def adjacencyMap(faces: List[Face]): Map[Face, List[Face]] =
-    val faceSet = faces.toSet
-    faces.associate: face =>
-      face
-        .halfEdges.getOrElse(List.empty)
-        .flatMap: halfEdge =>
-          for
-            twin         <- halfEdge.twin
-            incidentFace <- twin.incidentFace
-            if faceSet.contains(incidentFace)
-          yield incidentFace
 
   extension (faces: List[Face])
+
+    def adjacencyMapUnsafe: Map[Face, List[Face]] =
+      val faceSet = faces.toSet
+      faces.associate: face =>
+        face
+          .halfEdges.toOption.get
+          .flatMap: halfEdge =>
+            for
+              twin         <- halfEdge.twin
+              incidentFace <- twin.incidentFace
+              if faceSet.contains(incidentFace)
+            yield incidentFace
 
     def isConnected: Boolean =
 
       if faces.isEmpty then true
       else
-        val adjacency = Face.adjacencyMap(faces)
-        val reachable = breadthFirstSearch(faces.head, adjacency)
+        val reachable = breadthFirstSearch(faces.head, adjacencyMapUnsafe)
         reachable.size == faces.size
