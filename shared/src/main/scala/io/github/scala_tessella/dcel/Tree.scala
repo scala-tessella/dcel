@@ -1,7 +1,6 @@
 package io.github.scala_tessella.dcel
 
 import scala.util.control.TailCalls.{TailRec, done, tailcall}
-import scala.language.experimental.relaxedLambdaSyntax
 
 enum Tree[A]:
   case Leaf(_value: A)
@@ -41,7 +40,9 @@ enum Tree[A]:
     this match
       case Leaf(value)             => fLeaf(value)
       case Branch(value, children) =>
-        val folded = children.map: child => child.fold(fLeaf, fBranch, gBranch)
+        val folded =
+          children.map:
+            _.fold(fLeaf, fBranch, gBranch)
         gBranch(fBranch(value) :: folded)
 
   /** Same as fold but with the branch case in a single function; more ergonomic in some occasions.
@@ -57,7 +58,9 @@ enum Tree[A]:
     this match
       case Leaf(value)             => fLeaf(value)
       case Branch(value, children) =>
-        val folded = children.map: child => child.foldAlt(fLeaf, fBranch)
+        val folded =
+          children.map:
+            _.foldAlt(fLeaf, fBranch)
         fBranch(value, folded)
 
   /** Transforms the children of a tree using a specified function and applies the transformation recursively.
@@ -74,7 +77,9 @@ enum Tree[A]:
     this match
       case Leaf(_)                 => this
       case Branch(value, children) =>
-        val transformed = f(children).map: child => child.transformChildren(f)
+        val transformed = 
+          f(children).map:
+            _.transformChildren(f)
         Branch(value, transformed)
 
   /** Same as fold but tail recursive.
@@ -103,7 +108,8 @@ enum Tree[A]:
         case Branch(value, children) =>
           tailcall:
             iterate(children)
-          .map: iteratedChildren => gBranch(fBranch(value) :: iteratedChildren)
+          .map:
+            iteratedChildren => gBranch(fBranch(value) :: iteratedChildren)
 
     deepMap(this).result // unwrap result to plain node
 
@@ -121,7 +127,8 @@ enum Tree[A]:
         case Branch(value, children) =>
           tailcall:
             iterate(children)
-          .map: iteratedChildren => fBranch(value, iteratedChildren)
+          .map:
+            iteratedChildren => fBranch(value, iteratedChildren)
 
     deepMap(this).result
 
@@ -224,14 +231,19 @@ enum Tree[A]:
     this match
       case Leaf(_)             => this
       case Branch(_, children) =>
-        val values = children.map: child => child.value
+        val values = 
+          children.map:
+            _.value
         val shrunk: A = fLeaves(values)
         val allLeaves: Boolean =
-          children.forall: child => child.isLeaf
+          children.forall:
+            _.isLeaf
         if allLeaves then
           Leaf(shrunk)
         else
-          val mapped = children.map: child => child.shrink(fLeaves)
+          val mapped = 
+            children.map:
+              _.shrink(fLeaves)
           Branch(shrunk, mapped)
 
   /** Substitutes branch values with op on leaves. */
@@ -239,10 +251,13 @@ enum Tree[A]:
     foldAlt(
       value => Leaf(value),
       (_, children) =>
-        val values = children.map: child => child.value
+        val values =
+          children.map:
+            _.value
         val shrunk: A = fLeaves(values)
         val allLeaves: Boolean =
-          children.forall: child => child.isLeaf
+          children.forall:
+            _.isLeaf
         if allLeaves then
           Leaf(shrunk)
         else
@@ -281,7 +296,8 @@ enum Tree[A]:
         case Leaf(_)                 => node
         case Branch(value, children) =>
           val emptyOrWithLeaves =
-            children.isEmpty || children.exists: child => child.isLeaf
+            children.isEmpty || children.exists:
+              _.isLeaf
           if emptyOrWithLeaves then
             node
           else
@@ -333,7 +349,8 @@ enum Tree[A]:
             lines ::= s"$parentId -- $childId"
             tailcall:
               deepMap(h)(childId)
-            .flatMap: nextId => iterate(t, parentId)(nextId)
+            .flatMap:
+              nextId => iterate(t, parentId)(nextId)
 
     def deepMap(node: Tree[A]): Int => TailRec[Int] =
       currentId =>
@@ -394,7 +411,8 @@ object Tree:
         tailcall:
           deepMap(h)
         .flatMap: node => // you can flat map over TailRec
-          iterateRaw(t, deepMap).map: nodes => node :: nodes
+          iterateRaw(t, deepMap).map:
+            nodes => node :: nodes
 
   /** Builds up a tree from a seed value using co-recursion. This is the dual of fold - an abstraction over
     * structural co-recursion.
@@ -443,7 +461,8 @@ object Tree:
       else
         tailcall:
           iterate(next(initial))
-        .map: values => Branch(fBranch(initial), values)
+        .map:
+          children => Branch(fBranch(initial), children)
 
     deepMap(seed).result
 
