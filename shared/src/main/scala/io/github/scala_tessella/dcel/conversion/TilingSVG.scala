@@ -233,6 +233,10 @@ object TilingSVG:
       val (minX, maxX, minY, maxY) = (xs.min, xs.max, ys.min, ys.max)
       ViewBox(minX - padding, minY - padding, (maxX - minX) + 2 * padding, (maxY - minY) + 2 * padding)
 
+  private def svgWithViewBox(viewBox: ViewBox, children: Seq[String]): String =
+    val (width, height) = viewBox.dimensions
+    svgElem(width.toString, height.toString, viewBox.formatted, children)
+
   private def createHalfEdgeArrows(halfEdges: List[HalfEdge], config: SvgConfig): Seq[String] =
     val segments =
       halfEdges
@@ -569,14 +573,9 @@ object TilingSVG:
     ): String =
       val vertices        = simple.toBigPoints
       val viewBox         = calculateViewBox(vertices, scale, padding)
-      val (width, height) = viewBox.dimensions
-
-      svgElem(
-        width = width.toString,
-        height = height.toString,
-        viewBox = viewBox.formatted,
-        children =
-          Seq(gElem(Seq(section(vertices, showReflection = showReflection, showRotation = showRotation))))
+      svgWithViewBox(
+        viewBox,
+        Seq(gElem(Seq(section(vertices, showReflection = showReflection, showRotation = showRotation))))
       )
 
     /** Chooses from the result of the `parallelogonIndices` an origin index and two repeat ones to
@@ -625,13 +624,10 @@ object TilingSVG:
               width = viewBox.width + diffFour.x.abs,
               height = viewBox.height + diffFour.y.abs
             )
-          val (width, height) = viewBoxAdjusted.dimensions
 
-          svgElem(
-            width = width.toString,
-            height = height.toString,
-            viewBox = viewBoxAdjusted.formatted,
-            children = Seq(
+          svgWithViewBox(
+            viewBoxAdjusted,
+            Seq(
               gElem(Seq(one)),
               gElem(Seq(one), attrs("transform" -> s"translate(${diffTwo.x}, ${-diffTwo.y})")),
               gElem(Seq(one), attrs("transform" -> s"translate(${diffThree.x}, ${-diffThree.y})")),
@@ -666,7 +662,6 @@ object TilingSVG:
           )
         val vertices        = tiling.vertices.map(_.coords)
         val viewBox         = calculateViewBox(vertices, scale, padding)
-        val (width, height) = viewBox.dimensions
 
         // Generate all elements
         val edgeLines                            = createEdgeLines(tiling, scale)
@@ -760,12 +755,7 @@ object TilingSVG:
           )
         )
 
-        svgElem(
-          width = width.toString,
-          height = height.toString,
-          viewBox = viewBox.formatted,
-          children = Seq(gElem(sections))
-        )
+        svgWithViewBox(viewBox, Seq(gElem(sections)))
 
     /** Generates an SVG representation of the tiling. The width, height, and viewBox are automatically
       * calculated to fit the tiling at the given scale.
