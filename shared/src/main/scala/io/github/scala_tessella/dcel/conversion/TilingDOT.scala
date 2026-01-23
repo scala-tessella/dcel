@@ -31,7 +31,7 @@ object TilingDOT:
       sb.append("\n")
 
       // Boundary (outer-face) edges: directed edges along the boundary half-edges
-      val boundaryEdges = 
+      val boundaryEdges =
         tiling.boundaryEdges.sortBy:
           _.idUnsafe
       boundaryEdges.foreach: halfEdge =>
@@ -47,17 +47,17 @@ object TilingDOT:
         .foreach: halfEdge =>
           val isBoundary = tiling.isBoundaryEdge(halfEdge)
           val twinOpt    = halfEdge.twin
-  
+
           if !isBoundary && twinOpt.isDefined && !tiling.isBoundaryEdge(twinOpt.get) then
             val (origId, destId) = halfEdge.idUnsafe
-            val vA   = vNodeId(origId)
-            val vB   = vNodeId(destId)
-              // Normalize pair to avoid duplicates (emit once per undirected pair)
-              val pair = if vA <= vB then (vA, vB) else (vB, vA)
-              if !innerPairsEmitted.contains(pair) then
-                innerPairsEmitted += pair
-                // Use a directed edge with dir=none to appear undirected in GraphViz
-                sb.append(s"""  "${pair._1}" -> "${pair._2}" [dir=none];\n""")
+            val vA               = vNodeId(origId)
+            val vB               = vNodeId(destId)
+            // Normalize pair to avoid duplicates (emit once per undirected pair)
+            val pair             = if vA <= vB then (vA, vB) else (vB, vA)
+            if !innerPairsEmitted.contains(pair) then
+              innerPairsEmitted += pair
+              // Use a directed edge with dir=none to appear undirected in GraphViz
+              sb.append(s"""  "${pair._1}" -> "${pair._2}" [dir=none];\n""")
 
       sb.append("}\n")
       sb.toString

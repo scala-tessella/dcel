@@ -17,7 +17,6 @@ import spire.math.Rational
 import scala.collection.mutable
 import scala.util.Try
 import scala.math.BigDecimal.RoundingMode
-import scala.xml.*
 
 object TilingSVG:
 
@@ -43,8 +42,9 @@ object TilingSVG:
   private case class ViewBox(minX: BigDecimal, minY: BigDecimal, width: BigDecimal, height: BigDecimal):
     private def rounded(value: BigDecimal): BigDecimal =
       value.setScale(0, RoundingMode.CEILING)
-    val formatted: String      = s"${minX.format} ${minY.format} ${rounded(width).format} ${rounded(height).format}"
-    val dimensions: (Int, Int) = (rounded(width).toInt, rounded(height).toInt)
+    val formatted: String                              =
+      s"${minX.format} ${minY.format} ${rounded(width).format} ${rounded(height).format}"
+    val dimensions: (Int, Int)                         = (rounded(width).toInt, rounded(height).toInt)
 
   // Public options for callers (ergonomic API)
   case class SvgOptions(
@@ -112,60 +112,72 @@ object TilingSVG:
   private def calculateDirection(from: BigPoint, to: BigPoint): BigPoint =
     BigPoint.fromPolar(BigDecimal(1.0), from.angleTo(to))
 
-  // Helper to create MetaData more idiomatically
-  private def attrs(tuples: (String, Any)*): MetaData =
-    tuples.foldRight[MetaData](Null):
-      case ((key, value), acc) => new UnprefixedAttribute(key, value.toString, acc)
+  private type Attrs = Seq[(String, String)]
 
-  // New: a small wrapper to avoid passing `null` at call sites.
-  // prefix = None means “no namespace prefix”
-  private def elem(
+  private def attrs(tuples: (String, Any)*): Attrs =
+    tuples.map: (key, value) =>
+      key -> value.toString
+
+  private def renderAttrs(attributes: Attrs): String =
+    if attributes.isEmpty then ""
+    else
+      attributes
+        .map: (key, value) =>
+          s""" $key="$value""""
+        .mkString
+
+  private def escapeText(content: String): String =
+    content
+      .replace("&", "&amp;")
+      .replace("<", "&lt;")
+      .replace(">", "&gt;")
+
+  private def tag(
       label: String,
-      attributes: MetaData = Null,
-      scope: NamespaceBinding = TopScope,
-      children: Seq[Node] = Seq.empty,
-      prefix: Option[String] = None,
-      minimizeEmpty: Boolean = true
-  ): Elem =
-    Elem(prefix.orNull, label, attributes, scope, minimizeEmpty, children*)
+      attributes: Attrs = Nil,
+      children: Seq[String] = Nil,
+      selfClosing: Boolean = false
+  ): String =
+    if children.isEmpty && selfClosing then s"<$label${renderAttrs(attributes)}/>"
+    else
+      val body = children.mkString("\n")
+      s"<$label${renderAttrs(attributes)}>$body</$label>"
 
-  // ---------- Elem helpers (null-free call sites) ----------
+  private def comment(text: String): String =
+    s"<!-- $text -->"
 
-  private def textAt(x: String, y: String, content: String, more: MetaData = Null): Elem =
-    val attributes = new UnprefixedAttribute("x", x, new UnprefixedAttribute("y", y, more))
-    elem("text", attributes, children = Seq(Text(content)))
+  // ---------- String XML helpers ----------
 
-  private def polygonElem(points: String, more: MetaData = Null): Elem =
-    elem("polygon", new UnprefixedAttribute("points", points, more))
+  private def textAt(x: String, y: String, content: String, more: Attrs = Nil): String =
+    val attributes = attrs("x" -> x, "y" -> y) ++ more
+    tag("text", attributes, Seq(escapeText(content)))
 
-  private def lineElem(x1: String, y1: String, x2: String, y2: String, more: MetaData = Null): Elem =
-    elem("line", attrs("x1" -> x1, "y1" -> y1, "x2" -> x2, "y2" -> y2).append(more))
+  private def polygonElem(points: String, more: Attrs = Nil): String =
+    tag("polygon", attrs("points" -> points) ++ more, selfClosing = true)
 
-  private def circleElem(cx: String, cy: String, r: String, more: MetaData = Null): Elem =
-    elem("circle", attrs("cx" -> cx, "cy" -> cy, "r" -> r).append(more))
+  private def lineElem(x1: String, y1: String, x2: String, y2: String, more: Attrs = Nil): String =
+    tag("line", attrs("x1" -> x1, "y1" -> y1, "x2" -> x2, "y2" -> y2) ++ more, selfClosing = true)
 
-  private def gElem(children: Seq[Node], attributes: MetaData = Null): Elem =
-    elem("g", attributes, children = children)
+  private def circleElem(cx: String, cy: String, r: String, more: Attrs = Nil): String =
+    tag("circle", attrs("cx" -> cx, "cy" -> cy, "r" -> r) ++ more, selfClosing = true)
 
-  private def svgElem(width: String, height: String, viewBox: String, children: Seq[Node]): Elem =
-    val attributes =
-      new UnprefixedAttribute(
-        "width",
-        width,
-        new UnprefixedAttribute(
-          "height",
-          height,
-          new UnprefixedAttribute(
-            "viewBox",
-            viewBox,
-            new UnprefixedAttribute("xmlns", "http://www.w3.org/2000/svg", Null)
-          )
-        )
-      )
-    elem("svg", attributes, children = children)
+  private def gElem(children: Seq[String], attributes: Attrs = Nil): String =
+    tag("g", attributes, children)
+
+  private def svgElem(width: String, height: String, viewBox: String, children: Seq[String]): String =
+    tag(
+      "svg",
+      attrs(
+        "width"   -> width,
+        "height"  -> height,
+        "viewBox" -> viewBox,
+        "xmlns"   -> "http://www.w3.org/2000/svg"
+      ),
+      children
+    )
   // ---------- end helpers ----------
 
-  private def createAngleLabel(halfEdge: HalfEdge, direction: BigPoint, config: SvgConfig): Elem =
+  private def createAngleLabel(halfEdge: HalfEdge, direction: BigPoint, config: SvgConfig): String =
     val origin           = halfEdge.origin.coords
     val angleText        = f"${halfEdge.angle.get.toRational.toDouble}%.0f°"
     val labelDistance    = config.strokeWidth * 8
@@ -176,9 +188,9 @@ object TilingSVG:
     )
     textAt(labelX, labelY, angleText)
 
-  private def createSvgSection(title: String, content: Seq[Node], attributes: MetaData = Null): NodeSeq =
-    if content.isEmpty then NodeSeq.Empty
-    else Seq(Comment(s" $title "), gElem(content, attributes))
+  private def createSvgSection(title: String, content: Seq[String], attributes: Attrs = Nil): Option[String] =
+    if content.isEmpty then None
+    else Some(Seq(comment(title), gElem(content, attributes)).mkString("\n"))
 
   private def calculateViewBox(vertices: List[BigPoint], scale: Double, padding: Double): ViewBox =
     if vertices.isEmpty then ViewBox(BigDecimal(0), BigDecimal(0), BigDecimal(0), BigDecimal(0))
@@ -189,21 +201,24 @@ object TilingSVG:
       val (minX, maxX, minY, maxY) = (xs.min, xs.max, ys.min, ys.max)
       ViewBox(minX - padding, minY - padding, (maxX - minX) + 2 * padding, (maxY - minY) + 2 * padding)
 
-  private def createHalfEdgeArrows(halfEdges: List[HalfEdge], config: SvgConfig): Seq[Elem] =
-    halfEdges.sortBy(_.idUnsafe).flatMap: halfEdge =>
-      for
-        arrow <- createArrow(
-                   halfEdge.origin.coords,
-                   halfEdge.destinationUnsafe.coords,
-                   config.scale,
-                   config.strokeWidth * 3
-                 )
-      yield polygonElem(arrow.formatted)
+  private def createHalfEdgeArrows(halfEdges: List[HalfEdge], config: SvgConfig): Seq[String] =
+    halfEdges
+      .sortBy:
+        _.idUnsafe
+      .flatMap: halfEdge =>
+        for
+          arrow <- createArrow(
+                     halfEdge.origin.coords,
+                     halfEdge.destinationUnsafe.coords,
+                     config.scale,
+                     config.strokeWidth * 3
+                   )
+        yield polygonElem(arrow.formatted)
 
-  private def createEdgeLines(tilingDCEL: TilingDCEL, scale: Double): Seq[Elem] =
+  private def createEdgeLines(tilingDCEL: TilingDCEL, scale: Double): Seq[String] =
     val drawnEdges = mutable.Set.empty[HalfEdge]
     tilingDCEL.halfEdges
-      .sortBy: 
+      .sortBy:
         _.idUnsafe
       .flatMap: halfEdge =>
         if drawnEdges.contains(halfEdge) || halfEdge.twin.isEmpty then None
@@ -214,7 +229,7 @@ object TilingSVG:
           val (x2, y2) = twin.origin.coords.toSvgCoords(scale)
           Some(lineElem(x1, y1, x2, y2))
 
-  private def createAngleLabels(tilingDCEL: TilingDCEL, config: SvgConfig): (Seq[Elem], Seq[Elem]) =
+  private def createAngleLabels(tilingDCEL: TilingDCEL, config: SvgConfig): (Seq[String], Seq[String]) =
     val innerAngleLabels =
       tilingDCEL.innerFaces
         .sortBy:
@@ -235,7 +250,7 @@ object TilingSVG:
           calculateCentroid(vertices)
         .getOrElse(BigPoint.origin)
 
-    val outerAngleLabels = 
+    val outerAngleLabels =
       tilingDCEL.boundaryEdges
         .sortBy:
           _.idUnsafe
@@ -251,8 +266,8 @@ object TilingSVG:
       label: String,
       config: SvgConfig,
       radiusMultiplier: Double = 4.0,
-      more: MetaData = Null
-  ): (Elem, Elem) =
+      more: Attrs = Nil
+  ): (String, String) =
     val (cx, cy) = vertex.coords.toSvgCoords(config.scale)
     val circle   = circleElem(cx, cy, (config.strokeWidth * radiusMultiplier).toString, more)
 
@@ -261,7 +276,7 @@ object TilingSVG:
     val text     = textAt(lx, ly, label)
     (circle, text)
 
-  private def createBoundaryElements(tilingDCEL: TilingDCEL, config: SvgConfig): Option[Elem] =
+  private def createBoundaryElements(tilingDCEL: TilingDCEL, config: SvgConfig): Option[String] =
     tilingDCEL.boundaryVertices match
       case vertices if vertices.nonEmpty =>
         val points =
@@ -327,7 +342,7 @@ object TilingSVG:
       49 -> "maroon"
     )
 
-  private def createVertexElements(tilingDCEL: TilingDCEL, config: SvgConfig): (Seq[Elem], Seq[Elem]) =
+  private def createVertexElements(tilingDCEL: TilingDCEL, config: SvgConfig): (Seq[String], Seq[String]) =
     val classes  = if config.showUniformity then tilingDCEL.uniformityTree.flattenLeaves else Nil
     val indexMap =
       classes
@@ -344,11 +359,14 @@ object TilingSVG:
         val colorIdx                 = indexMap.get(vertex.id)
         val (radiusMultiplier, meta) = colorIdx match
           case Some(idx) => (20.0, attrs("fill" -> uniformColorMap.getOrElse(idx, "red")))
-          case None      => (2.0, Null)
+          case None      => (2.0, Nil)
         vertexToSvg(vertex, vertex.id.toString, config, radiusMultiplier, meta)
       .unzip
 
-  private def createSimpleVertexElements(vertices: List[Vertex], config: SvgConfig): (Seq[Elem], Seq[Elem]) =
+  private def createSimpleVertexElements(
+      vertices: List[Vertex],
+      config: SvgConfig
+  ): (Seq[String], Seq[String]) =
     vertices
       .map: vertex =>
         vertexToSvg(vertex, vertex.id.toString, config)
@@ -357,13 +375,13 @@ object TilingSVG:
   private def createIndexVertexElements(
       vertices: List[(Vertex, Int)],
       config: SvgConfig
-  ): (Seq[Elem], Seq[Elem]) =
+  ): (Seq[String], Seq[String]) =
     vertices
       .map: (vertex, index) =>
         vertexToSvg(vertex, s"${vertex.id.value} - $index", config)
       .unzip
 
-  private def createFaceLabels(tilingDCEL: TilingDCEL, config: SvgConfig): Seq[Elem] =
+  private def createFaceLabels(tilingDCEL: TilingDCEL, config: SvgConfig): Seq[String] =
     tilingDCEL.innerFaces
       .sortBy:
         _.id.value
@@ -371,7 +389,7 @@ object TilingSVG:
         val (x, y) = calculateCentroid(face.getVerticesUnsafe).toSvgCoords(config.scale)
         textAt(x, y, face.id.toString)
 
-  private def createTraversalArrows(tilingDCEL: TilingDCEL, config: SvgConfig): Seq[Elem] =
+  private def createTraversalArrows(tilingDCEL: TilingDCEL, config: SvgConfig): Seq[String] =
     if !config.showHalfEdgeTraversal then Nil
     else
       tilingDCEL.innerFaces
@@ -393,7 +411,7 @@ object TilingSVG:
                 yield polygonElem(arrow.formatted)
               case _                 => None
 
-  private def createLeavingEdgeMarkers(tilingDCEL: TilingDCEL, config: SvgConfig): Seq[Elem] =
+  private def createLeavingEdgeMarkers(tilingDCEL: TilingDCEL, config: SvgConfig): Seq[String] =
     if !config.leavingEdgeMarkers then Nil
     else
       tilingDCEL.vertices
@@ -411,7 +429,7 @@ object TilingSVG:
                      )
           yield polygonElem(arrow.formatted)
 
-  private def createFaceIdsOnEdges(tilingDCEL: TilingDCEL, config: SvgConfig): Seq[Elem] =
+  private def createFaceIdsOnEdges(tilingDCEL: TilingDCEL, config: SvgConfig): Seq[String] =
     if !config.faceIdsOnEdges then Nil
     else
       tilingDCEL.halfEdges
@@ -426,24 +444,24 @@ object TilingSVG:
             val destination = dest.coords
             val segment     = BigLineSegment(origin, destination)
             val midPoint    = segment.midPoint
-  
+
             // Calculate direction in SVG coordinate space
             val originSvg      = origin.scaled(config.scale).flippedY
             val destinationSvg = destination.scaled(config.scale).flippedY
             val dx             = destinationSvg.x - originSvg.x
             val dy             = destinationSvg.y - originSvg.y
-  
+
             // Calculate perpendicular offset in SVG space (to the left of the direction)
             val offsetDistance = config.strokeWidth * 4
             val length         = spire.math.sqrt(dx.pow(2) + dy.pow(2))
-  
+
             val perpX = if length > BigDecimal(BigDecimalGeometry.ACCURACY) then -dy * offsetDistance / length
             else BigDecimal(0)
             val perpY = if length > BigDecimal(BigDecimalGeometry.ACCURACY) then dx * offsetDistance / length
             else BigDecimal(0)
-  
+
             val (textX, textY) = midPoint.toSvgLabelCoords(config.scale, -perpX.toDouble, -perpY.toDouble)
-  
+
             textAt(textX, textY, face.id.toString)
 
   extension (simple: SimplePolygon)
@@ -455,7 +473,7 @@ object TilingSVG:
         scale: Double = 50.0,
         showReflection: Boolean = false,
         showRotation: Boolean = false
-    ): Elem =
+    ): String =
 
       // Generate all elements
       val boundaryPolygon =
@@ -493,7 +511,7 @@ object TilingSVG:
 
       val rotations =
         simple.rotationalIndices match
-          case _ :: Nil => NodeSeq.Empty
+          case _ :: Nil => Seq.empty[String]
           case indices  =>
             val ends     = indices.map: index =>
               vertices(index)
@@ -504,14 +522,12 @@ object TilingSVG:
 
       // Build sections
       val boundarySection =
-        boundaryPolygon
-          .map: polygon =>
-            createSvgSection(
-              "Boundary Highlight",
-              Seq(polygon),
-              attrs("stroke" -> "red", "stroke-width" -> strokeWidth * 3, "fill" -> "none")
-            )
-          .getOrElse(NodeSeq.Empty)
+        boundaryPolygon.flatMap: polygon =>
+          createSvgSection(
+            "Boundary Highlight",
+            Seq(polygon),
+            attrs("stroke" -> "red", "stroke-width" -> strokeWidth * 3, "fill" -> "none")
+          )
 
       val reflection =
         if showReflection then
@@ -520,8 +536,7 @@ object TilingSVG:
             reflections,
             attrs("stroke" -> "green", "stroke-dasharray" -> "2")
           )
-        else
-          NodeSeq.Empty
+        else None
 
       val rotation =
         if showRotation then
@@ -530,8 +545,7 @@ object TilingSVG:
             rotations,
             attrs("stroke" -> "orange", "stroke-width" -> "3", "stroke-dasharray" -> "1")
           )
-        else
-          NodeSeq.Empty
+        else None
 
       val sections = List(
         boundarySection,
@@ -553,21 +567,17 @@ object TilingSVG:
         showReflection: Boolean = false,
         showRotation: Boolean = false
     ): String =
-      val svg: Elem =
+      val vertices        = simple.toBigPoints
+      val viewBox         = calculateViewBox(vertices, scale, padding)
+      val (width, height) = viewBox.dimensions
 
-        val vertices        = simple.toBigPoints
-        val viewBox         = calculateViewBox(vertices, scale, padding)
-        val (width, height) = viewBox.dimensions
-
-        svgElem(
-          width = width.toString,
-          height = height.toString,
-          viewBox = viewBox.formatted,
-          children =
-            Seq(gElem(section(vertices, showReflection = showReflection, showRotation = showRotation)))
-        )
-
-      new PrettyPrinter(120, 2).format(svg)
+      svgElem(
+        width = width.toString,
+        height = height.toString,
+        viewBox = viewBox.formatted,
+        children =
+          Seq(gElem(Seq(section(vertices, showReflection = showReflection, showRotation = showRotation))))
+      )
 
     /** Chooses from the result of the `parallelogonIndices` an origin index and two repeat ones to
       * quadruplicate the tiling along its parallel segments.
@@ -617,24 +627,21 @@ object TilingSVG:
             )
           val (width, height) = viewBoxAdjusted.dimensions
 
-          val svg =
-            svgElem(
-              width = width.toString,
-              height = height.toString,
-              viewBox = viewBoxAdjusted.formatted,
-              children = Seq(
-                gElem(one),
-                gElem(one, attrs("transform" -> s"translate(${diffTwo.x}, ${-diffTwo.y})")),
-                gElem(one, attrs("transform" -> s"translate(${diffThree.x}, ${-diffThree.y})")),
-                gElem(one, attrs("transform" -> s"translate(${diffFour.x}, ${-diffFour.y})"))
-              )
+          svgElem(
+            width = width.toString,
+            height = height.toString,
+            viewBox = viewBoxAdjusted.formatted,
+            children = Seq(
+              gElem(Seq(one)),
+              gElem(Seq(one), attrs("transform" -> s"translate(${diffTwo.x}, ${-diffTwo.y})")),
+              gElem(Seq(one), attrs("transform" -> s"translate(${diffThree.x}, ${-diffThree.y})")),
+              gElem(Seq(one), attrs("transform" -> s"translate(${diffFour.x}, ${-diffFour.y})"))
             )
-
-          new PrettyPrinter(120, 2).format(svg)
+          )
 
   extension (tiling: TilingDCEL)
 
-    /** Generates an SVG XML element. */
+    /** Generates an SVG XML string. */
     def toScalableVectorGraphicsXml(
         strokeWidth: Double = 1.0,
         padding: Double = 20.0,
@@ -643,125 +650,122 @@ object TilingSVG:
         leavingEdgeMarkers: Boolean = false,
         faceIdsOnEdges: Boolean = false,
         showUniformity: Boolean = false
-    ): Elem =
-      val svg: Elem =
-        if tiling.vertices.isEmpty then
-          svgElem("0", "0", "0 0 0 0", Seq.empty)
-        else
-          val config          =
-            SvgConfig(
-              strokeWidth,
-              padding,
-              scale,
-              showHalfEdgeTraversal,
-              leavingEdgeMarkers,
-              faceIdsOnEdges,
-              showUniformity
-            )
-          val vertices        = tiling.vertices.map(_.coords)
-          val viewBox         = calculateViewBox(vertices, scale, padding)
-          val (width, height) = viewBox.dimensions
-
-          // Generate all elements
-          val edgeLines                            = createEdgeLines(tiling, scale)
-          val innerFaceArrows                      = createHalfEdgeArrows(tiling.innerFaces.flatMap(_.halfEdgesUnsafe), config)
-          val outerFaceArrows                      = createHalfEdgeArrows(tiling.boundaryEdges, config)
-          val (innerAngleLabels, outerAngleLabels) = createAngleLabels(tiling, config)
-          val boundaryPolygon                      = createBoundaryElements(tiling, config)
-          val (vertexCircles, vertexLabels)        = createVertexElements(tiling, config)
-          val faceLabels                           = createFaceLabels(tiling, config)
-          val traversalArrows                      = createTraversalArrows(tiling, config)
-          val leavingEdgeMarkersSvg                = createLeavingEdgeMarkers(tiling, config)
-          val faceIdsOnEdgesSvg                    = createFaceIdsOnEdges(tiling, config)
-
-          // Build sections
-          val boundarySection = boundaryPolygon.map(polygon =>
-            createSvgSection(
-              "Boundary Highlight",
-              Seq(polygon),
-              attrs("stroke" -> "red", "stroke-width" -> strokeWidth * 3, "fill" -> "none")
-            )
-          ).getOrElse(NodeSeq.Empty)
-
-          val sections = List(
-            createSvgSection("Edges", edgeLines, attrs("stroke" -> "black", "stroke-width" -> strokeWidth)),
-            boundarySection,
-            createSvgSection(
-              "Inner Face Half-Edge Direction Arrows",
-              innerFaceArrows,
-              attrs("fill" -> "blue", "stroke" -> "blue", "stroke-width" -> strokeWidth * 0.5)
-            ),
-            createSvgSection(
-              "Outer Face Half-Edge Direction Arrows",
-              outerFaceArrows,
-              attrs("fill" -> "black", "stroke" -> "black", "stroke-width" -> strokeWidth * 0.5)
-            ),
-            createSvgSection(
-              "Half-Edge Face Traversal",
-              traversalArrows,
-              attrs("fill" -> "darkcyan", "stroke" -> "darkcyan", "stroke-width" -> strokeWidth * 0.5)
-            ),
-            createSvgSection(
-              "Leaving Edge Markers",
-              leavingEdgeMarkersSvg,
-              attrs("fill" -> "yellow", "stroke" -> "yellow", "stroke-width" -> 1.5 * strokeWidth)
-            ),
-            createSvgSection(
-              "Face Ids On Edges Labels",
-              faceIdsOnEdgesSvg,
-              attrs(
-                "font-size"          -> (strokeWidth * 4).toInt,
-                "text-anchor"        -> "middle",
-                "alignment-baseline" -> "middle",
-                "fill"               -> "blue"
-              )
-            ),
-            createSvgSection("Vertices", vertexCircles, attrs("fill" -> "red")),
-            createSvgSection(
-              "Vertex Labels",
-              vertexLabels,
-              attrs("font-size" -> (strokeWidth * 8).toInt, "fill" -> "darkblue")
-            ),
-            createSvgSection(
-              "Face Labels",
-              faceLabels,
-              attrs(
-                "font-size"         -> (strokeWidth * 6).toInt,
-                "fill"              -> "green",
-                "text-anchor"       -> "middle",
-                "dominant-baseline" -> "middle"
-              )
-            ),
-            createSvgSection(
-              "Inner Angle Labels",
-              innerAngleLabels,
-              attrs(
-                "font-size"         -> (strokeWidth * 5).toInt,
-                "fill"              -> "purple",
-                "text-anchor"       -> "middle",
-                "dominant-baseline" -> "middle"
-              )
-            ),
-            createSvgSection(
-              "Outer Angle Labels",
-              outerAngleLabels,
-              attrs(
-                "font-size"         -> (strokeWidth * 5).toInt,
-                "fill"              -> "orange",
-                "text-anchor"       -> "middle",
-                "dominant-baseline" -> "middle"
-              )
-            )
-          ).flatten
-
-          svgElem(
-            width = width.toString,
-            height = height.toString,
-            viewBox = viewBox.formatted,
-            children = Seq(gElem(sections))
+    ): String =
+      if tiling.vertices.isEmpty then
+        """<svg width="0" height="0" viewBox="0 0 0 0" xmlns="http://www.w3.org/2000/svg"/>"""
+      else
+        val config          =
+          SvgConfig(
+            strokeWidth,
+            padding,
+            scale,
+            showHalfEdgeTraversal,
+            leavingEdgeMarkers,
+            faceIdsOnEdges,
+            showUniformity
           )
+        val vertices        = tiling.vertices.map(_.coords)
+        val viewBox         = calculateViewBox(vertices, scale, padding)
+        val (width, height) = viewBox.dimensions
 
-      svg
+        // Generate all elements
+        val edgeLines                            = createEdgeLines(tiling, scale)
+        val innerFaceArrows                      = createHalfEdgeArrows(tiling.innerFaces.flatMap(_.halfEdgesUnsafe), config)
+        val outerFaceArrows                      = createHalfEdgeArrows(tiling.boundaryEdges, config)
+        val (innerAngleLabels, outerAngleLabels) = createAngleLabels(tiling, config)
+        val boundaryPolygon                      = createBoundaryElements(tiling, config)
+        val (vertexCircles, vertexLabels)        = createVertexElements(tiling, config)
+        val faceLabels                           = createFaceLabels(tiling, config)
+        val traversalArrows                      = createTraversalArrows(tiling, config)
+        val leavingEdgeMarkersSvg                = createLeavingEdgeMarkers(tiling, config)
+        val faceIdsOnEdgesSvg                    = createFaceIdsOnEdges(tiling, config)
+
+        // Build sections
+        val boundarySection = boundaryPolygon.flatMap(polygon =>
+          createSvgSection(
+            "Boundary Highlight",
+            Seq(polygon),
+            attrs("stroke" -> "red", "stroke-width" -> strokeWidth * 3, "fill" -> "none")
+          )
+        )
+
+        val sections = List(
+          createSvgSection("Edges", edgeLines, attrs("stroke" -> "black", "stroke-width" -> strokeWidth)),
+          boundarySection,
+          createSvgSection(
+            "Inner Face Half-Edge Direction Arrows",
+            innerFaceArrows,
+            attrs("fill" -> "blue", "stroke" -> "blue", "stroke-width" -> strokeWidth * 0.5)
+          ),
+          createSvgSection(
+            "Outer Face Half-Edge Direction Arrows",
+            outerFaceArrows,
+            attrs("fill" -> "black", "stroke" -> "black", "stroke-width" -> strokeWidth * 0.5)
+          ),
+          createSvgSection(
+            "Half-Edge Face Traversal",
+            traversalArrows,
+            attrs("fill" -> "darkcyan", "stroke" -> "darkcyan", "stroke-width" -> strokeWidth * 0.5)
+          ),
+          createSvgSection(
+            "Leaving Edge Markers",
+            leavingEdgeMarkersSvg,
+            attrs("fill" -> "yellow", "stroke" -> "yellow", "stroke-width" -> 1.5 * strokeWidth)
+          ),
+          createSvgSection(
+            "Face Ids On Edges Labels",
+            faceIdsOnEdgesSvg,
+            attrs(
+              "font-size"          -> (strokeWidth * 4).toInt,
+              "text-anchor"        -> "middle",
+              "alignment-baseline" -> "middle",
+              "fill"               -> "blue"
+            )
+          ),
+          createSvgSection("Vertices", vertexCircles, attrs("fill" -> "red")),
+          createSvgSection(
+            "Vertex Labels",
+            vertexLabels,
+            attrs("font-size" -> (strokeWidth * 8).toInt, "fill" -> "darkblue")
+          ),
+          createSvgSection(
+            "Face Labels",
+            faceLabels,
+            attrs(
+              "font-size"         -> (strokeWidth * 6).toInt,
+              "fill"              -> "green",
+              "text-anchor"       -> "middle",
+              "dominant-baseline" -> "middle"
+            )
+          ),
+          createSvgSection(
+            "Inner Angle Labels",
+            innerAngleLabels,
+            attrs(
+              "font-size"         -> (strokeWidth * 5).toInt,
+              "fill"              -> "purple",
+              "text-anchor"       -> "middle",
+              "dominant-baseline" -> "middle"
+            )
+          ),
+          createSvgSection(
+            "Outer Angle Labels",
+            outerAngleLabels,
+            attrs(
+              "font-size"         -> (strokeWidth * 5).toInt,
+              "fill"              -> "orange",
+              "text-anchor"       -> "middle",
+              "dominant-baseline" -> "middle"
+            )
+          )
+        ).flatten
+
+        svgElem(
+          width = width.toString,
+          height = height.toString,
+          viewBox = viewBox.formatted,
+          children = Seq(gElem(sections))
+        )
 
     /** Generates an SVG representation of the tiling. The width, height, and viewBox are automatically
       * calculated to fit the tiling at the given scale.
@@ -775,18 +779,15 @@ object TilingSVG:
         faceIdsOnEdges: Boolean = false,
         showUniformity: Boolean = false
     ): String =
-      new PrettyPrinter(120, 2)
-        .format(
-          toScalableVectorGraphicsXml(
-            strokeWidth,
-            padding,
-            scale,
-            showHalfEdgeTraversal,
-            leavingEdgeMarkers,
-            faceIdsOnEdges,
-            showUniformity
-          )
-        )
+      toScalableVectorGraphicsXml(
+        strokeWidth,
+        padding,
+        scale,
+        showHalfEdgeTraversal,
+        leavingEdgeMarkers,
+        faceIdsOnEdges,
+        showUniformity
+      )
 
     // New ergonomic overload using options
     def toScalableVectorGraphics(options: SvgOptions): String =
@@ -995,7 +996,7 @@ object TilingSVG:
       * an SVG. This metadata includes all vertices, half-edges, and faces, along with their properties and
       * relationships, ensuring that the [[TilingDCEL]] can be fully reconstructed later.
       */
-    def toMetadataXml: Elem =
+    def toMetadataXml: String =
 
       val halfEdgeIds: Map[HalfEdge, Int] = tiling.halfEdges.zipWithIndex.toMap
 
@@ -1010,8 +1011,8 @@ object TilingSVG:
             .map: id =>
               "leaving" -> id
         ).flatten
-        elem("vertex", attrs(attrsList*))
-      val verticesElem = elem("vertices", children = vertexNodes)
+        tag("vertex", attrs(attrsList*), selfClosing = true)
+      val verticesElem = tag("vertices", children = vertexNodes)
 
       val halfEdgeNodes =
         tiling.halfEdges.zipWithIndex
@@ -1039,8 +1040,8 @@ object TilingSVG:
               halfEdge.angle.map: angleDegree =>
                 "angle" -> angleDegree.toRational
             ).flatten
-            elem("half-edge", attrs(attrsList*))
-      val halfEdgesElem = elem("half-edges", children = halfEdgeNodes)
+            tag("half-edge", attrs(attrsList*), selfClosing = true)
+      val halfEdgesElem = tag("half-edges", children = halfEdgeNodes)
 
       val faceNodes = tiling.faces.map: f =>
         val attrsList =
@@ -1061,18 +1062,17 @@ object TilingSVG:
           attrsList :+ ("inner-components" -> innerIds.mkString(","))
         else
           attrsList
-        elem("face", attrs(allAttrs*))
-      val facesElem = elem("faces", children = faceNodes)
+        tag("face", attrs(allAttrs*), selfClosing = true)
+      val facesElem = tag("faces", children = faceNodes)
 
-      elem(
-        "tessella-dcel",
-        children = Seq(verticesElem, halfEdgesElem, facesElem),
-        prefix = Some("tessella"),
-        scope = NamespaceBinding("tessella", "https://github.com/scala-tessella/tessella", TopScope)
+      tag(
+        "tessella:tessella-dcel",
+        attrs("xmlns:tessella" -> "https://github.com/scala-tessella/tessella"),
+        children = Seq(verticesElem, halfEdgesElem, facesElem)
       )
 
     def toMetadata: String =
-      toMetadataXml.toString
+      toMetadataXml
 
   /** Deserializes the XML metadata that includes all vertices, half-edges, and faces, along with their
     * properties and relationships, and fully reconstructs the complete structure of a [[TilingDCEL]].
