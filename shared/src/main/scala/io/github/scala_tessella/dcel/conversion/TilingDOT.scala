@@ -26,8 +26,8 @@ object TilingDOT:
       tiling.vertices
         .sortBy:
           _.id.value
-        .foreach:
-          vertex => sb.append(s"""  "${vNodeId(vertex.id)}" [label="${vertex.id.value}"];\n""")
+        .foreach: vertex =>
+          sb.append(s"""  "${vNodeId(vertex.id)}" [label="${vertex.id.value}"];\n""")
       sb.append("\n")
 
       // Boundary (outer-face) edges: directed edges along the boundary half-edges

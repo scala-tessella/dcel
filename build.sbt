@@ -61,14 +61,14 @@ lazy val commonSettings = Seq(
 // JVM-specific settings
 lazy val jvmSettings = Seq(
   libraryDependencies ++= Seq(
-    "org.scala-lang.modules" %% "scala-xml" % "2.4.0"
+//    "org.scala-lang.modules" %% "scala-xml" % "2.4.0"
   )
 )
 
 // JS-specific settings
 lazy val jsSettings = Seq(
   libraryDependencies ++= Seq(
-    "org.scala-lang.modules" %%% "scala-xml" % "2.4.0"
+//    "org.scala-lang.modules" %%% "scala-xml" % "2.4.0"
   ),
   // Use Node.js for testing
   jsEnv := new org.scalajs.jsenv.nodejs.NodeJSEnv(),

@@ -49,49 +49,46 @@ class TilingSVGPlatformSpec extends AnyFlatSpec with Matchers with TilingTestHel
 
     allAssert(
       metadata should include("""xmlns:tessella="https://github.com/scala-tessella/tessella""""),
-      metadata should include("<tessella:tessella-dcel"), {
-        allAssert(
-          vertices.size shouldBe 3, {
-            val assertions =
-              vertices.map: vertex =>
-                allAssert(
-                  vertex.get("id") shouldBe defined,
-                  vertex.get("x") shouldBe defined,
-                  vertex.get("y") shouldBe defined,
-                  vertex.get("leaving") shouldBe defined
-                )
-            allAssert(assertions*)
-          }
-        )
-      }, {
-        allAssert(
-          halfEdges.size shouldBe 6, {
-            val assertions =
-              halfEdges.map: halfEdge =>
-                allAssert(
-                  halfEdge.get("id") shouldBe defined,
-                  halfEdge.get("origin") shouldBe defined,
-                  halfEdge.get("twin") shouldBe defined,
-                  halfEdge.get("next") shouldBe defined,
-                  halfEdge.get("prev") shouldBe defined,
-                  halfEdge.get("face") shouldBe defined,
-                  halfEdge.get("angle") shouldBe defined
-                )
-            allAssert(assertions*)
-          }
-        )
-      }, {
-        allAssert(
-          faces.size shouldBe 2, {
-            val assertions =
-              faces.map: face =>
-                face.get("id") shouldBe defined
-            allAssert(assertions*)
-          },
-          // All faces in a complete tiling must have an outer component
-          faces.count(_.get("outer-component").isDefined).shouldBe(2)
-        )
-      }
+      metadata should include("<tessella:tessella-dcel"),
+      allAssert(
+        vertices.size shouldBe 3, {
+          val assertions =
+            vertices.map: vertex =>
+              allAssert(
+                vertex.get("id") shouldBe defined,
+                vertex.get("x") shouldBe defined,
+                vertex.get("y") shouldBe defined,
+                vertex.get("leaving") shouldBe defined
+              )
+          allAssert(assertions*)
+        }
+      ),
+      allAssert(
+        halfEdges.size shouldBe 6, {
+          val assertions =
+            halfEdges.map: halfEdge =>
+              allAssert(
+                halfEdge.get("id") shouldBe defined,
+                halfEdge.get("origin") shouldBe defined,
+                halfEdge.get("twin") shouldBe defined,
+                halfEdge.get("next") shouldBe defined,
+                halfEdge.get("prev") shouldBe defined,
+                halfEdge.get("face") shouldBe defined,
+                halfEdge.get("angle") shouldBe defined
+              )
+          allAssert(assertions*)
+        }
+      ),
+      allAssert(
+        faces.size shouldBe 2, {
+          val assertions =
+            faces.map: face =>
+              face.get("id") shouldBe defined
+          allAssert(assertions*)
+        },
+        // All faces in a complete tiling must have an outer component
+        faces.count(_.get("outer-component").isDefined).shouldBe(2)
+      )
     )
   }
 
@@ -103,12 +100,9 @@ class TilingSVGPlatformSpec extends AnyFlatSpec with Matchers with TilingTestHel
 
     allAssert(
       metadata should include("""xmlns:tessella="https://github.com/scala-tessella/tessella""""),
-      metadata should include("<tessella:tessella-dcel"), {
-        vertices.size shouldBe 4
-      }, {
-        halfEdges.size shouldBe 8
-      }, {
-        faces.size shouldBe 2
-      }
+      metadata should include("<tessella:tessella-dcel"),
+      vertices.size shouldBe 4,
+      halfEdges.size shouldBe 8,
+      faces.size shouldBe 2
     )
   }
