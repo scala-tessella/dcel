@@ -31,9 +31,13 @@ object RegularPolygon:
     *   If the provided interior angle does not form a valid regular polygon.
     */
   def fromInteriorAngle(alpha: AngleDegree): RegularPolygon =
-    360 / alpha.supplement.toRational match
-      case n if n.isWhole => n.toInt
-      case _              => throw new IllegalArgumentException(s"Invalid interior angle: $alpha")
+    val external = alpha.supplement.toRational
+    if external == 0 then
+      throw new IllegalArgumentException(s"Invalid interior angle: $alpha")
+    else
+      360 / external match
+        case n if n.isWhole => n.toInt
+        case _              => throw new IllegalArgumentException(s"Invalid interior angle: $alpha")
 
   extension (sides: RegularPolygon)
 

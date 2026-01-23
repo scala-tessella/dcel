@@ -16,7 +16,7 @@ object BigDecimalGeometry:
   extension (bigDecimal: BigDecimal)
 
     def almostEqual(other: BigDecimal): Boolean =
-      bigDecimal - other < BigAcc
+      (bigDecimal - other).abs <= BigAcc
 
     /** Formats a decimal number to a maximum of 6 decimal places, removing trailing zeros */
     def format: String =

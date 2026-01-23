@@ -7,6 +7,16 @@ import org.scalatest.matchers.should.Matchers
 
 class BigDecimalGeometrySpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
+  behavior of "BigDecimalGeometry.almostEqual"
+
+  it should "be symmetric and use absolute difference" in
+    allAssert(
+      BigDecimal(1.0).almostEqual(BigDecimal(1.0 + ACCURACY / 2)) shouldBe true,
+      BigDecimal(1.0 + ACCURACY / 2).almostEqual(BigDecimal(1.0)) shouldBe true,
+      BigDecimal(-1000).almostEqual(BigDecimal(0)) shouldBe false,
+      BigDecimal(0).almostEqual(BigDecimal(-1000)) shouldBe false
+    )
+
   behavior of "BigDecimalGeometry.format"
 
   it should "format with up to 6 decimals and strip trailing zeros" in
