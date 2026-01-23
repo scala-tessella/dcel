@@ -196,6 +196,9 @@ object TilingSVG:
     if content.isEmpty then None
     else Some(Seq(comment(title), gElem(content, attributes)).mkString("\n"))
 
+  private def assembleSections(sections: Option[String]*): Seq[String] =
+    sections.flatten.toSeq
+
   private def calculateViewBox(vertices: List[BigPoint], scale: Double, padding: Double): ViewBox =
     if vertices.isEmpty then ViewBox(BigDecimal(0), BigDecimal(0), BigDecimal(0), BigDecimal(0))
     else
@@ -551,7 +554,7 @@ object TilingSVG:
           )
         else None
 
-      val sections = List(
+      val sections = assembleSections(
         boundarySection,
         createSvgSection("Vertices", vertexCircles, attrs("fill" -> "darkred")),
         createSvgSection(
@@ -561,7 +564,7 @@ object TilingSVG:
         ),
         reflection,
         rotation
-      ).flatten
+      )
       gElem(sections)
 
     def toScalableVectorG(
@@ -693,7 +696,7 @@ object TilingSVG:
           )
         )
 
-        val sections = List(
+        val sections = assembleSections(
           createSvgSection("Edges", edgeLines, attrs("stroke" -> "black", "stroke-width" -> strokeWidth)),
           boundarySection,
           createSvgSection(
@@ -762,7 +765,7 @@ object TilingSVG:
               "dominant-baseline" -> "middle"
             )
           )
-        ).flatten
+        )
 
         svgElem(
           width = width.toString,
