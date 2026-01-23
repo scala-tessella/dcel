@@ -132,6 +132,15 @@ object TilingSVG:
   private def calculateDirection(from: BigPoint, to: BigPoint): BigPoint =
     BigPoint.fromPolar(BigDecimal(1.0), from.angleTo(to))
 
+  private def createArrowsFromPoints(
+      segments: Seq[(BigPoint, BigPoint)],
+      config: SvgConfig,
+      arrowSize: Double
+  ): Seq[String] =
+    segments.flatMap: (origin, destination) =>
+      createArrow(origin, destination, config.scale, arrowSize).map: arrow =>
+        polygonElem(arrow.formatted)
+
   private type Attrs = Seq[(String, String)]
 
   private def attrs(tuples: (String, Any)*): Attrs =
@@ -225,18 +234,13 @@ object TilingSVG:
       ViewBox(minX - padding, minY - padding, (maxX - minX) + 2 * padding, (maxY - minY) + 2 * padding)
 
   private def createHalfEdgeArrows(halfEdges: List[HalfEdge], config: SvgConfig): Seq[String] =
-    halfEdges
-      .sortBy:
-        _.idUnsafe
-      .flatMap: halfEdge =>
-        for
-          arrow <- createArrow(
-                     halfEdge.origin.coords,
-                     halfEdge.destinationUnsafe.coords,
-                     config.scale,
-                     config.strokeWidth * 3
-                   )
-        yield polygonElem(arrow.formatted)
+    val segments =
+      halfEdges
+        .sortBy:
+          _.idUnsafe
+        .map: halfEdge =>
+          (halfEdge.origin.coords, halfEdge.destinationUnsafe.coords)
+    createArrowsFromPoints(segments, config, config.strokeWidth * 3)
 
   private def createEdgeLines(tilingDCEL: TilingDCEL, scale: Double): Seq[String] =
     val drawnEdges = mutable.Set.empty[HalfEdge]
@@ -400,36 +404,33 @@ object TilingSVG:
   private def createTraversalArrows(tilingDCEL: TilingDCEL, config: SvgConfig): Seq[String] =
     if !config.showHalfEdgeTraversal then Nil
     else
-      sortedInnerFaces(tilingDCEL).flatMap: face =>
-        val halfEdges = face.halfEdgesUnsafe
-        if halfEdges.length <= 1 then Nil
-        else
-          val looped = halfEdges :+ halfEdges.head
-          looped.sliding(2).flatMap:
-            case he1 :: he2 :: Nil =>
-              for
-                dest1 <- he1.destination
-                dest2 <- he2.destination
-                mid1   = BigLineSegment(he1.origin.coords, dest1.coords).midPoint
-                mid2   = BigLineSegment(he2.origin.coords, dest2.coords).midPoint
-                arrow <- createArrow(mid1, mid2, config.scale, config.strokeWidth * 2.5)
-              yield polygonElem(arrow.formatted)
-            case _                 => None
+      val segments =
+        sortedInnerFaces(tilingDCEL).flatMap: face =>
+          val halfEdges = face.halfEdgesUnsafe
+          if halfEdges.length <= 1 then Nil
+          else
+            val looped = halfEdges :+ halfEdges.head
+            looped.sliding(2).flatMap:
+              case he1 :: he2 :: Nil =>
+                for
+                  dest1 <- he1.destination
+                  dest2 <- he2.destination
+                  mid1   = BigLineSegment(he1.origin.coords, dest1.coords).midPoint
+                  mid2   = BigLineSegment(he2.origin.coords, dest2.coords).midPoint
+                yield (mid1, mid2)
+              case _                 => None
+      createArrowsFromPoints(segments, config, config.strokeWidth * 2.5)
 
   private def createLeavingEdgeMarkers(tilingDCEL: TilingDCEL, config: SvgConfig): Seq[String] =
     if !config.leavingEdgeMarkers then Nil
     else
-      sortedVertices(tilingDCEL).flatMap: vertex =>
-        for
-          edge  <- vertex.leaving
-          dest  <- edge.destination
-          arrow <- createArrow(
-                     vertex.coords,
-                     BigLineSegment(vertex.coords, dest.coords).midPoint,
-                     config.scale,
-                     config.strokeWidth * 2
-                   )
-        yield polygonElem(arrow.formatted)
+      val segments =
+        sortedVertices(tilingDCEL).flatMap: vertex =>
+          for
+            edge <- vertex.leaving
+            dest <- edge.destination
+          yield (vertex.coords, BigLineSegment(vertex.coords, dest.coords).midPoint)
+      createArrowsFromPoints(segments, config, config.strokeWidth * 2)
 
   private def createFaceIdsOnEdges(tilingDCEL: TilingDCEL, config: SvgConfig): Seq[String] =
     if !config.faceIdsOnEdges then Nil
