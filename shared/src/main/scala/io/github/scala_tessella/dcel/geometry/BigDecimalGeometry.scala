@@ -101,14 +101,14 @@ object BigDecimalGeometry:
       */
     def addSegment(segment: BigLineSegment): Unit =
       val cells = getCellsForSegment(segment)
-      cells.foreach: (row, col) =>
-        grid(row)(col) += segment
+      cells.foreach:
+        (row, col) => grid(row)(col) += segment
 
     /** Adds multiple line segments to the grid
       */
     def addSegments(segments: Seq[BigLineSegment]): Unit =
-      segments.foreach: segment =>
-        addSegment(segment)
+      segments.foreach: 
+        addSegment
 
     /** Finds all segments in the grid that could potentially intersect the given segment
       */
@@ -116,8 +116,8 @@ object BigDecimalGeometry:
       val cells      = getCellsForSegment(segment)
       val candidates = mutable.Set.empty[BigLineSegment]
 
-      cells.foreach: (row, col) =>
-        candidates ++= grid(row)(col)
+      cells.foreach:
+        (row, col) => candidates ++= grid(row)(col)
 
       candidates.toSet
 
@@ -186,9 +186,9 @@ object BigDecimalGeometry:
           // Check for intersections by only comparing segments from the smaller collection
           // with potentially intersecting segments from the larger collection
           smaller.exists: segment =>
-            val candidates = grid.getPotentialIntersections(segment)
-            candidates.exists: candidateSegment =>
-              segment.properlyIntersects(candidateSegment)
+            val candidateSegments = grid.getPotentialIntersections(segment)
+            candidateSegments.exists:
+              segment.properlyIntersects
 
     def properIntersections(
         segments1: Seq[BigLineSegment],
@@ -215,8 +215,8 @@ object BigDecimalGeometry:
           val seen          = scala.collection.mutable.HashSet.empty[(BigLineSegment, BigLineSegment)]
 
           smaller.foreach: segment =>
-            val candidates = grid.getPotentialIntersections(segment)
-            candidates.foreach: candidateSegment =>
+            val candidateSegments = grid.getPotentialIntersections(segment)
+            candidateSegments.foreach: candidateSegment =>
               if segment.properlyIntersects(candidateSegment) then
                 val pair = (segment, candidateSegment)
                 if !seen.contains(pair) then
@@ -241,6 +241,8 @@ object BigDecimalGeometry:
       // To avoid O(N^2), we add segments one by one and check against already added ones
       segments.exists: segment =>
         val candidates = grid.getPotentialIntersections(segment)
-        val found      = candidates.exists(_.properlyIntersects(segment))
+        val found      =
+          candidates.exists:
+            _.properlyIntersects(segment)
         grid.addSegment(segment)
         found

@@ -20,8 +20,8 @@ object SimplePolygon:
 
   private def degreesToAngles(degrees: Int*): Vector[AngleDegree] =
     degrees
-      .map: degree =>
-        AngleDegree(degree)
+      .map:
+        AngleDegree(_)
       .toVector
 
   private[dcel] def apply(degrees: Int*): SimplePolygon =
@@ -90,7 +90,8 @@ object SimplePolygon:
 
     /** Exterior turn at each vertex along the boundary */
     def toTurns: Vector[AngleDegree] =
-      angles.map(_.normalised.supplement)
+      angles.map:
+        _.normalised.supplement
 
     def toBigPoints: List[BigPoint] =
       SimplePolygon.bigPointsFrom(angles.toAngles)
@@ -104,8 +105,8 @@ object SimplePolygon:
       else
         val straightAngles = Vector.fill(n - 1)(AngleDegree(180))
         SimplePolygon(
-          angles.flatMap: angle =>
-            angle +: straightAngles
+          angles.flatMap:
+            _ +: straightAngles
         )
 
     def rotationalSymmetryOrder: Int =
@@ -114,10 +115,11 @@ object SimplePolygon:
     def rotationalIndices: List[Int] =
       val symmetryOrder = angles.rotationalSymmetryOrder
       val segmentSize   = angles.size / symmetryOrder
-      val first         = (0 until segmentSize).maxBy: index =>
-        angles(index).toRational
-      (0 until symmetryOrder).toList.map: index =>
-        first + index * segmentSize
+      val first         = 
+        (0 until segmentSize).maxBy:
+          index => angles(index).toRational
+      (0 until symmetryOrder).toList.map:
+        index => first + index * segmentSize
 
     def reflectionalSymmetryOrder: Int =
       angles.symmetry
@@ -147,8 +149,8 @@ object SimplePolygon:
       parallelogonIndices.nonEmpty
 
     private[dcel] def isEquilateralTriangle: Boolean =
-      angles.forall: angle =>
-        angle == AngleDegree(180) || angle == AngleDegree(60)
+      angles.forall:
+        angle => angle == AngleDegree(180) || angle == AngleDegree(60)
 
     /** Returns the indices of the vertices of the parallelogon, if found
       *
@@ -164,8 +166,8 @@ object SimplePolygon:
         val turns: Vector[AngleDegree] = toTurns
 
         def areOpposite(xs: Vector[AngleDegree], ys: Vector[AngleDegree]): Boolean =
-          xs.lazyZip(ys).forall: (xAngles, yAngles) =>
-            areFitting(xAngles, yAngles)
+          xs.lazyZip(ys).forall:
+            areFitting
 
         // Slices the circular `turns` vector.
         def circularSlice(start: Int, stop: Int): Vector[AngleDegree] =
@@ -192,10 +194,10 @@ object SimplePolygon:
 
         // all combinations of indices for the start of three consecutive segments in the 6-sides parallelogon
         val halfIndices =
-          (0 until half - 1).view.flatMap: i =>
-            (i until half - 1).view.flatMap: j =>
-              (j + 1 until half).map: k =>
-                List(i, j, k)
+          (0 until half - 1).view.flatMap:
+            i => (i until half - 1).view.flatMap:
+              j => (j + 1 until half).map:
+                k => List(i, j, k)
 
         // separate the degenerate square results, where the first two indices are the same
         val (sqr, hex) = halfIndices.partition: indexes =>
@@ -203,7 +205,8 @@ object SimplePolygon:
             case i :: j :: _ => i == j
 
         def completeHalf(ijk: List[Int]): List[Int] =
-          ijk ::: ijk.map(_ + half)
+          ijk ::: ijk.map: index =>
+            index + half
 
         def isParallelogon(ijk: List[Int]): Boolean =
           val startStops = completeHalf(ijk) :+ (ijk.head + n)
@@ -214,8 +217,8 @@ object SimplePolygon:
 
           /** Checks that the 3 first segments fits into their opposites */
           def allSegmentsFitting(f: Vector[AngleDegree] => Vector[AngleDegree] = identity): Boolean =
-            (0 to 2).forall: i =>
-              areOpposite(segments(i), f(segments(i + 3)))
+            (0 to 2).forall:
+              i => areOpposite(segments(i), f(segments(i + 3)))
 
           allSegmentsFitting() || allSegmentsFitting(_.reverse)
 

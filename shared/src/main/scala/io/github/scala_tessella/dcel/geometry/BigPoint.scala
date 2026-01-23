@@ -165,8 +165,8 @@ object BigPoint:
 
       val segments =
         (0 until n)
-          .iterator.map: i =>
-            BigLineSegment(points(i), points((i + 1) % n))
+          .iterator.map:
+            i => BigLineSegment(points(i), points((i + 1) % n))
           .toArray
 
       boundary:
