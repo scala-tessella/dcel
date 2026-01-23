@@ -20,6 +20,10 @@ import scala.math.BigDecimal.RoundingMode
 
 object TilingSVG:
 
+  // Pre-compile Regexes outside the method to avoid re-compilation
+  private val TagRe  = """<\s*([\w\-]+)\b([^>]*?)(/?)>""".r
+  private val AttrRe = """([A-Za-z_][\w\-]*)\s*=\s*"([^"]*)"""".r
+
   extension (bigPoint: BigPoint)
     private def toSvgCoords(scale: Double): (String, String) =
       val scaledPoint: BigPoint = bigPoint.scaled(scale).flippedY
@@ -1078,7 +1082,34 @@ object TilingSVG:
     * properties and relationships, and fully reconstructs the complete structure of a [[TilingDCEL]].
     */
   def fromMetadata(metadata: String): Either[TilingError, TilingDCEL] =
-    TilingSVGPlatform.fromMetadata(metadata)
+    // Optimized attribute parsing: single pass into a mutable Map
+    def parseAttrs(attrStr: String): Map[String, String] =
+      val m = Map.newBuilder[String, String]
+      AttrRe.findAllMatchIn(attrStr).foreach: mat =>
+        m += (mat.group(1) -> mat.group(2))
+      m.result()
+
+    // Check presence once
+    if !metadata.contains("<vertices") || !metadata.contains("<half-edges") || !metadata.contains("<faces")
+    then
+      return Left(ValidationError("Required metadata tags (<vertices>, <half-edges>, <faces>) not found"))
+
+    // Single pass to extract all attributes by tag type
+    val emptyMap  = Map.empty[String, List[Map[String, String]]].withDefaultValue(Nil)
+    val extracted =
+      TagRe
+        .findAllMatchIn(metadata)
+        .foldLeft(emptyMap): (acc, m) =>
+          val tagName = m.group(1)
+          if tagName == "vertex" || tagName == "half-edge" || tagName == "face" then
+            acc.updated(tagName, parseAttrs(m.group(2)) :: acc(tagName))
+          else acc
+
+    val vertexAttrs   = extracted("vertex").reverse
+    val halfEdgeAttrs = extracted("half-edge").reverse
+    val faceAttrs     = extracted("face").reverse
+
+    TilingSVG.reconstructDCEL(vertexAttrs, halfEdgeAttrs, faceAttrs)
 
   private[conversion] def reconstructDCEL(
       vertexAttrs: List[Map[String, String]],
