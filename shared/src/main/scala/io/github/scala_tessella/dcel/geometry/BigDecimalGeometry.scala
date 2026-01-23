@@ -101,13 +101,13 @@ object BigDecimalGeometry:
       */
     def addSegment(segment: BigLineSegment): Unit =
       val cells = getCellsForSegment(segment)
-      cells.foreach:
-        (row, col) => grid(row)(col) += segment
+      cells.foreach: (row, col) =>
+        grid(row)(col) += segment
 
     /** Adds multiple line segments to the grid
       */
     def addSegments(segments: Seq[BigLineSegment]): Unit =
-      segments.foreach: 
+      segments.foreach:
         addSegment
 
     /** Finds all segments in the grid that could potentially intersect the given segment
@@ -116,8 +116,8 @@ object BigDecimalGeometry:
       val cells      = getCellsForSegment(segment)
       val candidates = mutable.Set.empty[BigLineSegment]
 
-      cells.foreach:
-        (row, col) => candidates ++= grid(row)(col)
+      cells.foreach: (row, col) =>
+        candidates ++= grid(row)(col)
 
       candidates.toSet
 

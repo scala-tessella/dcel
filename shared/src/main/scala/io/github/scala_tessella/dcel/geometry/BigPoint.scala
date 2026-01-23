@@ -37,7 +37,7 @@ object BigPoint:
   def onSegment(p: BigPoint, q: BigPoint, r: BigPoint): Boolean =
     val acc = BigDecimal(ACCURACY)
     q.x <= spire.math.max(p.x, r.x) + acc && q.x >= spire.math.min(p.x, r.x) - acc
-      && q.y <= spire.math.max(p.y, r.y) + acc && q.y >= spire.math.min(p.y, r.y) - acc
+    && q.y <= spire.math.max(p.y, r.y) + acc && q.y >= spire.math.min(p.y, r.y) - acc
 
   /** A point in the plane defined by its 2 Cartesian coordinates x and y. */
   extension (point: BigPoint)
@@ -165,8 +165,8 @@ object BigPoint:
 
       val segments =
         (0 until n)
-          .iterator.map:
-            i => BigLineSegment(points(i), points((i + 1) % n))
+          .iterator.map: i =>
+            BigLineSegment(points(i), points((i + 1) % n))
           .toArray
 
       boundary:

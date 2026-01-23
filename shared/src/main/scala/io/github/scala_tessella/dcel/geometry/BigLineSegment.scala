@@ -99,8 +99,8 @@ object BigLineSegment:
   extension (segments: Seq[BigLineSegment])
 
     def toPoints: Seq[BigPoint] =
-      segments.flatMap:
-        segment => List(segment.p1, segment.p2)
+      segments.flatMap: segment =>
+        List(segment.p1, segment.p2)
 
     /** Checks if this list of segments has any proper intersections with another list. Uses spatial
       * partitioning for better performance.
@@ -124,6 +124,6 @@ object BigLineSegment:
 
     def totalLength: BigDecimal =
       segments
-        .map: 
+        .map:
           _.length
         .sum

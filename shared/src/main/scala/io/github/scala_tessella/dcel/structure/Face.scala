@@ -5,8 +5,6 @@ import io.github.scala_tessella.dcel.*
 import io.github.scala_tessella.dcel.geometry.AngleDegree
 import io.github.scala_tessella.dcel.structure.Utils.breadthFirstSearch
 
-import scala.language.experimental.relaxedLambdaSyntax
-
 /** Represents a single face in the DCEL.
   *
   * @param id
@@ -40,12 +38,14 @@ final class Face(
   def area: Either[TopologyError, BigDecimal] =
     getVertices.map: vertices =>
       vertices
-        .map: vertex => vertex.coords
+        .map:
+          _.coords
         .area
 
   private[dcel] def areaUnsafe: BigDecimal =
     getVerticesUnsafe
-      .map: vertex => vertex.coords
+      .map:
+        _.coords
       .area
 
   def hasHoles: Boolean =
@@ -68,7 +68,8 @@ final class Face(
       case errors => Left(IncompleteError(errors.mkString(", ")))
 
   private[dcel] def getVerticesUnsafe: List[Vertex] =
-    outerComponent.get.faceTraversalUnsafe: halfEdge => halfEdge.origin
+    outerComponent.get.faceTraversalUnsafe: halfEdge =>
+      halfEdge.origin
 
   /** Get all vertices that form the boundary of a face. Returns vertices in the order they appear around the
     * face boundary.
@@ -77,7 +78,8 @@ final class Face(
     outerComponent match
       case None            => Right(List.empty)
       case Some(startEdge) =>
-        startEdge.faceTraversal: halfEdge => halfEdge.origin
+        startEdge.faceTraversal: halfEdge =>
+          halfEdge.origin
 
   private[dcel] def halfEdgesUnsafe: List[HalfEdge] =
     outerComponent.get.faceTraversalUnsafe()
@@ -90,13 +92,15 @@ final class Face(
       case Some(start) => start.faceTraversal()
 
   private[dcel] def anglesUnsafe: List[AngleDegree] =
-    halfEdgesUnsafe.map: halfEdge => halfEdge.angle.get
+    halfEdgesUnsafe.map:
+      _.angle.get
 
   def angles: Either[TilingError, List[AngleDegree]] =
     halfEdges
       .flatMap: edges =>
         edges
-          .map: halfEdge => halfEdge.angle.toRight(GeometryError("Cannot find interior angle"))
+          .map:
+            _.angle.toRight(GeometryError("Cannot find interior angle"))
           .sequence
 
   private[dcel] def hasEqualAnglesUnsafe: Boolean =
@@ -104,7 +108,8 @@ final class Face(
 
   /** Checks if the interior angles of the face are all equal. */
   def hasEqualAngles: Either[TilingError, Boolean] =
-    angles.map: interiorAngles => interiorAngles.toSet.size == 1
+    angles.map: interiorAngles =>
+      interiorAngles.toSet.size == 1
 
 object Face:
 
@@ -116,7 +121,6 @@ object Face:
     new Face(id, outerComponent, innerComponents)
 
   def outer: Face = Face(FaceId.outerId)
-
 
   extension (faces: List[Face])
 

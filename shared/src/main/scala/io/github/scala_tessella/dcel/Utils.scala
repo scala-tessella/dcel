@@ -48,8 +48,8 @@ object Utils:
       */
     def associate[T](f: A => T): Map[A, T] =
       seq.iterator
-        .map:
-          elem => elem -> f(elem)
+        .map: elem =>
+          elem -> f(elem)
         .toMap
 
     /** Creates a `Map` where each key is the result of applying a function to the elements of the sequence
@@ -62,6 +62,6 @@ object Utils:
       */
     def associateValues[T](f: A => T): Map[T, A] =
       seq.iterator
-        .map:
-          elem => f(elem) -> elem
+        .map: elem =>
+          f(elem) -> elem
         .toMap
