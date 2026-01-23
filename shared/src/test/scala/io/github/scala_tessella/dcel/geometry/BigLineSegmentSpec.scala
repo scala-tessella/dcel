@@ -22,6 +22,14 @@ class BigLineSegmentSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       )
     start.unitPath(angles).zip(result).forall(_.almostEquals(_)) shouldBe true
 
+  behavior of "BigLineSegment.intersects"
+
+  it should "treat near-collinear crossings as intersections" in:
+    val delta = BigDecimal(BigDecimalGeometry.ACCURACY / 4)
+    val s1    = BigLineSegment(BigPoint(0, 0), BigPoint(2, 0))
+    val s2    = BigLineSegment(BigPoint(1, -delta), BigPoint(1, delta))
+    s1.intersects(s2) shouldBe true
+
   it should "find a path of unit length sides from a shifted start" in:
     val start  = BigLineSegment(BigPoint(0, 1), BigPoint(1, 1))
     val result =

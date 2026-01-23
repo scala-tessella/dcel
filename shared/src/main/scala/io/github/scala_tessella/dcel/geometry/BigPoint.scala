@@ -35,8 +35,9 @@ object BigPoint:
   /** Checks if point q lies on segment pr, assuming they are collinear.
     */
   def onSegment(p: BigPoint, q: BigPoint, r: BigPoint): Boolean =
-    q.x <= spire.math.max(p.x, r.x) && q.x >= spire.math.min(p.x, r.x)
-      && q.y <= spire.math.max(p.y, r.y) && q.y >= spire.math.min(p.y, r.y)
+    val acc = BigDecimal(ACCURACY)
+    q.x <= spire.math.max(p.x, r.x) + acc && q.x >= spire.math.min(p.x, r.x) - acc
+      && q.y <= spire.math.max(p.y, r.y) + acc && q.y >= spire.math.min(p.y, r.y) - acc
 
   /** A point in the plane defined by its 2 Cartesian coordinates x and y. */
   extension (point: BigPoint)
