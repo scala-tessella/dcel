@@ -6,98 +6,108 @@ import org.scalatest.matchers.should.Matchers
 
 class TilingSVGPlatformSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
+  private val TagRe  = """<\s*([\w\-]+)\b([^>]*?)(/?)>""".r
+  private val AttrRe = """([A-Za-z_][\w\-]*)\s*=\s*"([^"]*)"""".r
+
+  private def extractAttrs(metadata: String, tagName: String): List[Map[String, String]] =
+    def parseAttrs(attrStr: String): Map[String, String] =
+      val m = Map.newBuilder[String, String]
+      AttrRe.findAllMatchIn(attrStr).foreach: mat =>
+        m += (mat.group(1) -> mat.group(2))
+      m.result()
+
+    TagRe
+      .findAllMatchIn(metadata)
+      .collect:
+        case m if m.group(1) == tagName => parseAttrs(m.group(2))
+      .toList
+
   behavior of "TilingSVG.toMetadata"
 
   it should "generate metadata for an empty tiling" in {
-    val metadataXml = scala.xml.XML.loadString(emptyTiling.toMetadata)
-    val vertices    = metadataXml \ "vertices" \ "vertex"
-    val halfEdges   = metadataXml \ "half-edges" \ "half-edge"
-    val faces       = metadataXml \ "faces" \ "face"
+    val metadata  = emptyTiling.toMetadata
+    val vertices  = extractAttrs(metadata, "vertex")
+    val halfEdges = extractAttrs(metadata, "half-edge")
+    val faces     = extractAttrs(metadata, "face")
 
     allAssert(
-      metadataXml.scope.getURI("tessella") shouldBe "https://github.com/scala-tessella/tessella",
-      metadataXml.label shouldBe "tessella-dcel",
-      metadataXml.prefix shouldBe "tessella",
+      metadata should include("""xmlns:tessella="https://github.com/scala-tessella/tessella""""),
+      metadata should include("<tessella:tessella-dcel"),
       vertices.isEmpty shouldBe true,
       halfEdges.isEmpty shouldBe true,
       faces.size shouldBe 1,
-      (faces.head \@ "id") shouldBe "0",
-      faces.head.attribute("outer-component").isEmpty shouldBe true
+      faces.head.get("id") shouldBe Some("0"),
+      faces.head.get("outer-component") shouldBe None
     )
   }
 
   it should "generate correct metadata for a single triangle tiling" in {
-    val metadataXml = scala.xml.XML.loadString(triangle.toMetadata)
+    val metadata  = triangle.toMetadata
+    val vertices  = extractAttrs(metadata, "vertex")
+    val halfEdges = extractAttrs(metadata, "half-edge")
+    val faces     = extractAttrs(metadata, "face")
 
     allAssert(
-      metadataXml.scope.getURI("tessella") shouldBe "https://github.com/scala-tessella/tessella",
-      metadataXml.label shouldBe "tessella-dcel",
-      metadataXml.prefix shouldBe "tessella", {
-        val vertices = metadataXml \ "vertices" \ "vertex"
+      metadata should include("""xmlns:tessella="https://github.com/scala-tessella/tessella""""),
+      metadata should include("<tessella:tessella-dcel"), {
         allAssert(
           vertices.size shouldBe 3, {
             val assertions =
               vertices.map: vertex =>
                 allAssert(
-                  vertex.attribute("id") shouldBe defined,
-                  vertex.attribute("x") shouldBe defined,
-                  vertex.attribute("y") shouldBe defined,
-                  vertex.attribute("leaving") shouldBe defined
+                  vertex.get("id") shouldBe defined,
+                  vertex.get("x") shouldBe defined,
+                  vertex.get("y") shouldBe defined,
+                  vertex.get("leaving") shouldBe defined
                 )
             allAssert(assertions*)
           }
         )
       }, {
-        val halfEdges = metadataXml \ "half-edges" \ "half-edge"
         allAssert(
           halfEdges.size shouldBe 6, {
             val assertions =
               halfEdges.map: halfEdge =>
                 allAssert(
-                  halfEdge.attribute("id") shouldBe defined,
-                  halfEdge.attribute("origin") shouldBe defined,
-                  halfEdge.attribute("twin") shouldBe defined,
-                  halfEdge.attribute("next") shouldBe defined,
-                  halfEdge.attribute("prev") shouldBe defined,
-                  halfEdge.attribute("face") shouldBe defined,
-                  halfEdge.attribute("angle") shouldBe defined
+                  halfEdge.get("id") shouldBe defined,
+                  halfEdge.get("origin") shouldBe defined,
+                  halfEdge.get("twin") shouldBe defined,
+                  halfEdge.get("next") shouldBe defined,
+                  halfEdge.get("prev") shouldBe defined,
+                  halfEdge.get("face") shouldBe defined,
+                  halfEdge.get("angle") shouldBe defined
                 )
             allAssert(assertions*)
           }
         )
       }, {
-        val faces = metadataXml \ "faces" \ "face"
         allAssert(
           faces.size shouldBe 2, {
             val assertions =
               faces.map: face =>
-                face.attribute("id") shouldBe defined
+                face.get("id") shouldBe defined
             allAssert(assertions*)
           },
           // All faces in a complete tiling must have an outer component
-          faces
-            .count: face =>
-              face.attribute("outer-component").isDefined
-            .shouldBe(2)
+          faces.count(_.get("outer-component").isDefined).shouldBe(2)
         )
       }
     )
   }
 
   it should "generate correct metadata for a single square tiling" in {
-    val metadataXml = scala.xml.XML.loadString(square.toMetadata)
+    val metadata  = square.toMetadata
+    val vertices  = extractAttrs(metadata, "vertex")
+    val halfEdges = extractAttrs(metadata, "half-edge")
+    val faces     = extractAttrs(metadata, "face")
 
     allAssert(
-      metadataXml.scope.getURI("tessella") shouldBe "https://github.com/scala-tessella/tessella",
-      metadataXml.label shouldBe "tessella-dcel",
-      metadataXml.prefix shouldBe "tessella", {
-        val vertices = metadataXml \ "vertices" \ "vertex"
+      metadata should include("""xmlns:tessella="https://github.com/scala-tessella/tessella""""),
+      metadata should include("<tessella:tessella-dcel"), {
         vertices.size shouldBe 4
       }, {
-        val halfEdges = metadataXml \ "half-edges" \ "half-edge"
         halfEdges.size shouldBe 8
       }, {
-        val faces = metadataXml \ "faces" \ "face"
         faces.size shouldBe 2
       }
     )
