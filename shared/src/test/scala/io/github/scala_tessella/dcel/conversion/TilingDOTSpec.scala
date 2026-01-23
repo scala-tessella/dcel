@@ -28,7 +28,7 @@ class TilingDOTSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
     val vertexNodeRegex = """\[\s*label="V [^"]*"\]""".r
     val faceNodeRegex   = """\[\s*label="F [^"]*"\]""".r
-    val heNodeRegex     = """\[\s*label="HE \d+"\]""".r
+    val heNodeRegex     = """\[\s*label="HE [^"]+"\]""".r
 
     allAssert(
       vertexNodeRegex.findAllIn(dot).size shouldBe numVertices,
@@ -79,3 +79,8 @@ class TilingDOTSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val dot1 = square.toCompleteDOT
     val dot2 = square.toCompleteDOT
     dot1 shouldEqual dot2
+
+  it should "use half-edge id tuples for half-edge node ids" in:
+    val dot = triangle.toCompleteDOT
+    triangle.halfEdges.foreach: halfEdge =>
+      dot should include(s""""e:${halfEdge.idUnsafe}"""")

@@ -11,7 +11,8 @@ object TilingDOT:
       * between them, undirected if inner edges, directed if outer edges.
       */
     def toSimplifiedDOT: String =
-      def vNodeId(v: Vertex): String = s"""v:${v.id.value}"""
+      def vNodeId(id: VertexId): String = s"""v:${id.value}"""
+//      def vNodeId(v: Vertex): String    = vNodeId(v.id)
 
       val sb = new StringBuilder
       sb.append("digraph SimplifiedTiling {\n")
@@ -22,32 +23,41 @@ object TilingDOT:
       sb.append("  node [shape=circle, fontname=\"Helvetica\"];\n\n")
 
       // Emit all vertices as nodes
-      tiling.vertices.foreach: v =>
-        sb.append(s"""  "${vNodeId(v)}" [label="${v.id.value}"];\n""")
+      tiling.vertices
+        .sortBy:
+          _.id.value
+        .foreach:
+          vertex => sb.append(s"""  "${vNodeId(vertex.id)}" [label="${vertex.id.value}"];\n""")
       sb.append("\n")
 
       // Boundary (outer-face) edges: directed edges along the boundary half-edges
-      val boundaryEdges = tiling.boundaryEdges
-      boundaryEdges.foreach: he =>
-        he.destination.foreach: dst =>
-          sb.append(s"""  "${vNodeId(he.origin)}" -> "${vNodeId(dst)}";\n""")
+      val boundaryEdges = 
+        tiling.boundaryEdges.sortBy:
+          _.idUnsafe
+      boundaryEdges.foreach: halfEdge =>
+        val (origId, destId) = halfEdge.idUnsafe
+        sb.append(s"""  "${vNodeId(origId)}" -> "${vNodeId(destId)}";\n""")
 
       // Inner edges: add a single undirected-looking edge per twin pair (dir=none)
       // Exclude any pair that is on the boundary
       val innerPairsEmitted = scala.collection.mutable.HashSet.empty[(String, String)]
-      tiling.halfEdges.foreach: he =>
-        val isBoundary = tiling.isBoundaryEdge(he)
-        val twinOpt    = he.twin
-
-        if !isBoundary && twinOpt.isDefined && !tiling.isBoundaryEdge(twinOpt.get) then
-          val vA   = vNodeId(he.origin)
-          val vB   = vNodeId(he.destinationUnsafe)
-          // Normalize pair to avoid duplicates (emit once per undirected pair)
-          val pair = if vA <= vB then (vA, vB) else (vB, vA)
-          if !innerPairsEmitted.contains(pair) then
-            innerPairsEmitted += pair
-            // Use a directed edge with dir=none to appear undirected in GraphViz
-            sb.append(s"""  "${pair._1}" -> "${pair._2}" [dir=none];\n""")
+      tiling.halfEdges
+        .sortBy:
+          _.idUnsafe
+        .foreach: halfEdge =>
+          val isBoundary = tiling.isBoundaryEdge(halfEdge)
+          val twinOpt    = halfEdge.twin
+  
+          if !isBoundary && twinOpt.isDefined && !tiling.isBoundaryEdge(twinOpt.get) then
+            val (origId, destId) = halfEdge.idUnsafe
+            val vA   = vNodeId(origId)
+            val vB   = vNodeId(destId)
+              // Normalize pair to avoid duplicates (emit once per undirected pair)
+              val pair = if vA <= vB then (vA, vB) else (vB, vA)
+              if !innerPairsEmitted.contains(pair) then
+                innerPairsEmitted += pair
+                // Use a directed edge with dir=none to appear undirected in GraphViz
+                sb.append(s"""  "${pair._1}" -> "${pair._2}" [dir=none];\n""")
 
       sb.append("}\n")
       sb.toString
@@ -57,13 +67,10 @@ object TilingDOT:
       // Helpers to build stable identifiers for DOT nodes
       def vNodeId(v: Vertex): String   = s"""v:${v.id.value}"""
       def fNodeId(f: Face): String     = s"""f:${f.id.value}"""
-      // Half-edges do not have IDs; use their index in tiling.halfEdges
-      val heIndex: Map[HalfEdge, Int]  = tiling.halfEdges.zipWithIndex.toMap
-      def eNodeId(e: HalfEdge): String =
-        heIndex.get(e)
-          .map: index =>
-            s"e:$index"
-          .getOrElse(s"e:unknown")
+      val verticesSorted               = tiling.vertices.sortBy(_.id.value)
+      val facesSorted                  = tiling.faces.sortBy(_.id.value)
+      val halfEdgesSorted              = tiling.halfEdges.sortBy(_.idUnsafe)
+      def eNodeId(e: HalfEdge): String = s"e:${e.idUnsafe}"
 
       val sb = new StringBuilder
 
@@ -78,7 +85,7 @@ object TilingDOT:
       sb.append("    label=\"Vertices\";\n")
       sb.append("    color=lightblue;\n")
       sb.append("    node [shape=circle, style=filled, fillcolor=\"#e6f2ff\", fontname=\"Helvetica\"];\n")
-      tiling.vertices.foreach { v =>
+      verticesSorted.foreach { v =>
         val id    = vNodeId(v)
         val label = s"V ${v.id.value}"
         sb.append(s"""    "$id" [label="$label"];\n""")
@@ -90,7 +97,7 @@ object TilingDOT:
       sb.append("    label=\"Faces\";\n")
       sb.append("    color=lightgreen;\n")
       sb.append("    node [shape=diamond, style=filled, fillcolor=\"#eaffea\", fontname=\"Helvetica\"];\n")
-      tiling.faces.foreach: face =>
+      facesSorted.foreach: face =>
         val id    = fNodeId(face)
         val label = s"F ${face.id.value}"
         sb.append(s"""    "$id" [label="$label"];\n""")
@@ -101,22 +108,21 @@ object TilingDOT:
       sb.append("    label=\"HalfEdges\";\n")
       sb.append("    color=lightgrey;\n")
       sb.append("    node [shape=box, style=filled, fillcolor=\"#f5f5f5\", fontname=\"Helvetica\"];\n")
-      tiling.halfEdges.foreach: halfEdge =>
+      halfEdgesSorted.foreach: halfEdge =>
         val id    = eNodeId(halfEdge)
-        val idx   = heIndex.getOrElse(halfEdge, -1)
-        val label = s"HE $idx"
+        val label = s"HE ${halfEdge.idUnsafe}"
         sb.append(s"""    "$id" [label="$label"];\n""")
       sb.append("  }\n\n")
 
       // Edges describing topology relations
 
       // Vertex -> leaving half-edge
-      tiling.vertices.foreach: v =>
+      verticesSorted.foreach: v =>
         v.leaving.foreach: e =>
           sb.append(s"""  "${vNodeId(v)}" -> "${eNodeId(e)}" [label="leaving"];\n""")
 
       // HalfEdge relations: origin, destination, twin, next, prev, incident face
-      tiling.halfEdges.foreach: e =>
+      halfEdgesSorted.foreach: e =>
         // origin
         sb.append(s"""  "${eNodeId(e)}" -> "${vNodeId(e.origin)}" [label="origin"];\n""")
 
@@ -140,7 +146,7 @@ object TilingDOT:
           sb.append(s"""  "${eNodeId(e)}" -> "${fNodeId(f)}" [label="face"];\n""")
 
       // Face -> outer component; Face -> inner components (if any)
-      tiling.faces.foreach: f =>
+      facesSorted.foreach: f =>
         f.outerComponent.foreach: start =>
           sb.append(s"""  "${fNodeId(f)}" -> "${eNodeId(start)}" [label="outer"];\n""")
 //      tiling.faces.foreach { f =>
