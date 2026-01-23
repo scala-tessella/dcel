@@ -11,9 +11,6 @@ import org.scalatest.matchers.should.Matchers
 
 class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
-  private val TagRe  = """<\s*([\w\-]+)\b([^>]*?)(/?)>""".r
-  private val AttrRe = """([A-Za-z_][\w\-]*)\s*=\s*"([^"]*)"""".r
-
   private def extractAttrs(metadata: String, tagName: String): List[Map[String, String]] =
     def parseAttrs(attrStr: String): Map[String, String] =
       val m = Map.newBuilder[String, String]

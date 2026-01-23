@@ -21,8 +21,8 @@ import scala.math.BigDecimal.RoundingMode
 object TilingSVG:
 
   // Pre-compile Regexes outside the method to avoid re-compilation
-  private val TagRe  = """<\s*([\w\-]+)\b([^>]*?)(/?)>""".r
-  private val AttrRe = """([A-Za-z_][\w\-]*)\s*=\s*"([^"]*)"""".r
+  private[conversion] val TagRe  = """<\s*([\w\-]+)\b([^>]*?)(/?)>""".r
+  private[conversion] val AttrRe = """([A-Za-z_][\w\-]*)\s*=\s*"([^"]*)"""".r
 
   extension (bigPoint: BigPoint)
     private def toSvgCoords(scale: Double): (String, String) =
@@ -382,23 +382,23 @@ object TilingSVG:
         vertexToSvg(vertex, vertex.id.toString, config, radiusMultiplier, meta)
       .unzip
 
-  private def createSimpleVertexElements(
-      vertices: List[Vertex],
-      config: SvgConfig
-  ): (Seq[String], Seq[String]) =
-    vertices
-      .map: vertex =>
-        vertexToSvg(vertex, vertex.id.toString, config)
-      .unzip
-
-  private def createIndexVertexElements(
-      vertices: List[(Vertex, Int)],
-      config: SvgConfig
-  ): (Seq[String], Seq[String]) =
-    vertices
-      .map: (vertex, index) =>
-        vertexToSvg(vertex, s"${vertex.id.value} - $index", config)
-      .unzip
+//  private def createSimpleVertexElements(
+//      vertices: List[Vertex],
+//      config: SvgConfig
+//  ): (Seq[String], Seq[String]) =
+//    vertices
+//      .map: vertex =>
+//        vertexToSvg(vertex, vertex.id.toString, config)
+//      .unzip
+//
+//  private def createIndexVertexElements(
+//      vertices: List[(Vertex, Int)],
+//      config: SvgConfig
+//  ): (Seq[String], Seq[String]) =
+//    vertices
+//      .map: (vertex, index) =>
+//        vertexToSvg(vertex, s"${vertex.id.value} - $index", config)
+//      .unzip
 
   private def createFaceLabels(tilingDCEL: TilingDCEL, config: SvgConfig): Seq[String] =
     sortedInnerFaces(tilingDCEL).map: face =>
