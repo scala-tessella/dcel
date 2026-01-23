@@ -1,5 +1,7 @@
 package io.github.scala_tessella.dcel
 
+import scala.language.experimental.relaxedLambdaSyntax
+
 object Utils:
 
   extension [E, A](eitherList: List[Either[E, A]])
@@ -30,9 +32,7 @@ object Utils:
       */
     def traverse[E, B](f: A => Either[E, B]): Either[E, Option[B]] =
       maybeA match
-        case Some(a) =>
-          f(a).map: b =>
-            Some(b)
+        case Some(a) => f(a).map: b => Some(b)
         case None    => Right(None)
 
   extension [A](seq: Seq[A])
@@ -48,8 +48,7 @@ object Utils:
       */
     def associate[T](f: A => T): Map[A, T] =
       seq.iterator
-        .map: elem =>
-          elem -> f(elem)
+        .map: elem => elem -> f(elem)
         .toMap
 
     /** Creates a `Map` where each key is the result of applying a function to the elements of the sequence
@@ -62,6 +61,5 @@ object Utils:
       */
     def associateValues[T](f: A => T): Map[T, A] =
       seq.iterator
-        .map: elem =>
-          f(elem) -> elem
+        .map: elem => f(elem) -> elem
         .toMap
