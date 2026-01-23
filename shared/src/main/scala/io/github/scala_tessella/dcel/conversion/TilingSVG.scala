@@ -16,6 +16,7 @@ import spire.math.Rational
 
 import scala.collection.mutable
 import scala.util.Try
+import scala.math.BigDecimal.RoundingMode
 import scala.xml.*
 
 object TilingSVG:
@@ -40,8 +41,10 @@ object TilingSVG:
     val formatted: String = s"$tipX,$tipY $baseX1,$baseY1 $baseX2,$baseY2"
 
   private case class ViewBox(minX: BigDecimal, minY: BigDecimal, width: BigDecimal, height: BigDecimal):
-    val formatted: String      = s"${minX.format} ${minY.format} ${width.format} ${height.format}"
-    val dimensions: (Int, Int) = (width.toInt, height.toInt)
+    private def rounded(value: BigDecimal): BigDecimal =
+      value.setScale(0, RoundingMode.CEILING)
+    val formatted: String      = s"${minX.format} ${minY.format} ${rounded(width).format} ${rounded(height).format}"
+    val dimensions: (Int, Int) = (rounded(width).toInt, rounded(height).toInt)
 
   // Public options for callers (ergonomic API)
   case class SvgOptions(
@@ -187,7 +190,7 @@ object TilingSVG:
       ViewBox(minX - padding, minY - padding, (maxX - minX) + 2 * padding, (maxY - minY) + 2 * padding)
 
   private def createHalfEdgeArrows(halfEdges: List[HalfEdge], config: SvgConfig): Seq[Elem] =
-    halfEdges.flatMap: halfEdge =>
+    halfEdges.sortBy(_.idUnsafe).flatMap: halfEdge =>
       for
         arrow <- createArrow(
                    halfEdge.origin.coords,
@@ -199,22 +202,28 @@ object TilingSVG:
 
   private def createEdgeLines(tilingDCEL: TilingDCEL, scale: Double): Seq[Elem] =
     val drawnEdges = mutable.Set.empty[HalfEdge]
-    tilingDCEL.halfEdges.flatMap: halfEdge =>
-      if drawnEdges.contains(halfEdge) || halfEdge.twin.isEmpty then None
-      else
-        val twin     = halfEdge.twin.get
-        drawnEdges ++= List(halfEdge, twin)
-        val (x1, y1) = halfEdge.origin.coords.toSvgCoords(scale)
-        val (x2, y2) = twin.origin.coords.toSvgCoords(scale)
-        Some(lineElem(x1, y1, x2, y2))
+    tilingDCEL.halfEdges
+      .sortBy: 
+        _.idUnsafe
+      .flatMap: halfEdge =>
+        if drawnEdges.contains(halfEdge) || halfEdge.twin.isEmpty then None
+        else
+          val twin     = halfEdge.twin.get
+          drawnEdges ++= List(halfEdge, twin)
+          val (x1, y1) = halfEdge.origin.coords.toSvgCoords(scale)
+          val (x2, y2) = twin.origin.coords.toSvgCoords(scale)
+          Some(lineElem(x1, y1, x2, y2))
 
   private def createAngleLabels(tilingDCEL: TilingDCEL, config: SvgConfig): (Seq[Elem], Seq[Elem]) =
     val innerAngleLabels =
-      tilingDCEL.innerFaces.flatMap: face =>
-        val centroid = calculateCentroid(face.getVerticesUnsafe)
-        face.halfEdgesUnsafe.map: halfEdge =>
-          val direction = calculateDirection(halfEdge.origin.coords, centroid)
-          createAngleLabel(halfEdge, direction, config)
+      tilingDCEL.innerFaces
+        .sortBy:
+          _.id.value
+        .flatMap: face =>
+          val centroid = calculateCentroid(face.getVerticesUnsafe)
+          face.halfEdgesUnsafe.map: halfEdge =>
+            val direction = calculateDirection(halfEdge.origin.coords, centroid)
+            createAngleLabel(halfEdge, direction, config)
 
     val tilingCentroid =
       tilingDCEL.innerFaces.headOption
@@ -226,10 +235,14 @@ object TilingSVG:
           calculateCentroid(vertices)
         .getOrElse(BigPoint.origin)
 
-    val outerAngleLabels = tilingDCEL.boundaryEdges.map: halfEdge =>
-      val inwardDirection  = calculateDirection(halfEdge.origin.coords, tilingCentroid)
-      val outwardDirection = BigPoint(-inwardDirection.x, -inwardDirection.y)
-      createAngleLabel(halfEdge, outwardDirection, config)
+    val outerAngleLabels = 
+      tilingDCEL.boundaryEdges
+        .sortBy:
+          _.idUnsafe
+        .map: halfEdge =>
+          val inwardDirection  = calculateDirection(halfEdge.origin.coords, tilingCentroid)
+          val outwardDirection = BigPoint(-inwardDirection.x, -inwardDirection.y)
+          createAngleLabel(halfEdge, outwardDirection, config)
 
     (innerAngleLabels, outerAngleLabels)
 
@@ -325,6 +338,8 @@ object TilingSVG:
         .toMap
 
     tilingDCEL.vertices
+      .sortBy:
+        _.id.value
       .map: vertex =>
         val colorIdx                 = indexMap.get(vertex.id)
         val (radiusMultiplier, meta) = colorIdx match
@@ -349,79 +364,87 @@ object TilingSVG:
       .unzip
 
   private def createFaceLabels(tilingDCEL: TilingDCEL, config: SvgConfig): Seq[Elem] =
-    tilingDCEL.innerFaces.map: face =>
-      val (x, y) = calculateCentroid(face.getVerticesUnsafe).toSvgCoords(config.scale)
-      textAt(x, y, face.id.toString)
+    tilingDCEL.innerFaces
+      .sortBy:
+        _.id.value
+      .map: face =>
+        val (x, y) = calculateCentroid(face.getVerticesUnsafe).toSvgCoords(config.scale)
+        textAt(x, y, face.id.toString)
 
   private def createTraversalArrows(tilingDCEL: TilingDCEL, config: SvgConfig): Seq[Elem] =
     if !config.showHalfEdgeTraversal then Nil
     else
-      tilingDCEL.innerFaces.flatMap: face =>
-        val halfEdges = face.halfEdgesUnsafe
-        if halfEdges.length <= 1 then Nil
-        else
-          val looped = halfEdges :+ halfEdges.head
-          looped.sliding(2).flatMap:
-            case he1 :: he2 :: Nil =>
-              for
-                dest1 <- he1.destination
-                dest2 <- he2.destination
-                mid1   = BigLineSegment(he1.origin.coords, dest1.coords).midPoint
-                mid2   = BigLineSegment(he2.origin.coords, dest2.coords).midPoint
-                arrow <- createArrow(mid1, mid2, config.scale, config.strokeWidth * 2.5)
-              yield polygonElem(arrow.formatted)
-            case _                 => None
+      tilingDCEL.innerFaces
+        .sortBy:
+          _.id.value
+        .flatMap: face =>
+          val halfEdges = face.halfEdgesUnsafe
+          if halfEdges.length <= 1 then Nil
+          else
+            val looped = halfEdges :+ halfEdges.head
+            looped.sliding(2).flatMap:
+              case he1 :: he2 :: Nil =>
+                for
+                  dest1 <- he1.destination
+                  dest2 <- he2.destination
+                  mid1   = BigLineSegment(he1.origin.coords, dest1.coords).midPoint
+                  mid2   = BigLineSegment(he2.origin.coords, dest2.coords).midPoint
+                  arrow <- createArrow(mid1, mid2, config.scale, config.strokeWidth * 2.5)
+                yield polygonElem(arrow.formatted)
+              case _                 => None
 
   private def createLeavingEdgeMarkers(tilingDCEL: TilingDCEL, config: SvgConfig): Seq[Elem] =
     if !config.leavingEdgeMarkers then Nil
     else
-      tilingDCEL.vertices.flatMap: vertex =>
-        for
-          edge  <- vertex.leaving
-          dest  <- edge.destination
-          arrow <- createArrow(
-                     vertex.coords,
-                     BigLineSegment(vertex.coords, dest.coords).midPoint,
-                     config.scale,
-                     config.strokeWidth * 2
-                   )
-        yield polygonElem(arrow.formatted)
+      tilingDCEL.vertices
+        .sortBy:
+          _.id.value
+        .flatMap: vertex =>
+          for
+            edge  <- vertex.leaving
+            dest  <- edge.destination
+            arrow <- createArrow(
+                       vertex.coords,
+                       BigLineSegment(vertex.coords, dest.coords).midPoint,
+                       config.scale,
+                       config.strokeWidth * 2
+                     )
+          yield polygonElem(arrow.formatted)
 
   private def createFaceIdsOnEdges(tilingDCEL: TilingDCEL, config: SvgConfig): Seq[Elem] =
     if !config.faceIdsOnEdges then Nil
     else
-      tilingDCEL.halfEdges.flatMap: edge =>
-        for
-          dest <- edge.destination
-          face <- edge.incidentFace
-        yield
-          val origin      = edge.origin.coords
-          val destination = dest.coords
-          val segment     = BigLineSegment(origin, destination)
-          val midPoint    = segment.midPoint
-
-          // Transform midpoint to SVG coordinates first
-          val (midX, midY) = midPoint.toSvgCoords(config.scale)
-
-          // Calculate direction in SVG coordinate space
-          val (originX, originY) = origin.toSvgCoords(config.scale)
-          val (destX, destY)     = destination.toSvgCoords(config.scale)
-
-          val dx = BigDecimal(destX) - BigDecimal(originX)
-          val dy = BigDecimal(destY) - BigDecimal(originY)
-
-          // Calculate perpendicular offset in SVG space (to the left of the direction)
-          val offsetDistance = config.strokeWidth * 4
-          val length         = spire.math.sqrt(dx.pow(2) + dy.pow(2))
-
-          val perpX = if length > BigDecimal(BigDecimalGeometry.ACCURACY) then -dy * offsetDistance / length
-          else BigDecimal(0)
-          val perpY = if length > BigDecimal(BigDecimalGeometry.ACCURACY) then dx * offsetDistance / length
-          else BigDecimal(0)
-
-          val (textX, textY) = midPoint.toSvgLabelCoords(config.scale, -perpX.toDouble, -perpY.toDouble)
-
-          textAt(textX, textY, face.id.toString)
+      tilingDCEL.halfEdges
+        .sortBy:
+          _.idUnsafe
+        .flatMap: edge =>
+          for
+            dest <- edge.destination
+            face <- edge.incidentFace
+          yield
+            val origin      = edge.origin.coords
+            val destination = dest.coords
+            val segment     = BigLineSegment(origin, destination)
+            val midPoint    = segment.midPoint
+  
+            // Calculate direction in SVG coordinate space
+            val originSvg      = origin.scaled(config.scale).flippedY
+            val destinationSvg = destination.scaled(config.scale).flippedY
+            val dx             = destinationSvg.x - originSvg.x
+            val dy             = destinationSvg.y - originSvg.y
+  
+            // Calculate perpendicular offset in SVG space (to the left of the direction)
+            val offsetDistance = config.strokeWidth * 4
+            val length         = spire.math.sqrt(dx.pow(2) + dy.pow(2))
+  
+            val perpX = if length > BigDecimal(BigDecimalGeometry.ACCURACY) then -dy * offsetDistance / length
+            else BigDecimal(0)
+            val perpY = if length > BigDecimal(BigDecimalGeometry.ACCURACY) then dx * offsetDistance / length
+            else BigDecimal(0)
+  
+            val (textX, textY) = midPoint.toSvgLabelCoords(config.scale, -perpX.toDouble, -perpY.toDouble)
+  
+            textAt(textX, textY, face.id.toString)
 
   extension (simple: SimplePolygon)
 

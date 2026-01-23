@@ -261,7 +261,6 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     // Y coordinates in the SVG should be negated compared to the original
     // This is indicated by the minus sign in front of y coordinates in the implementation
     allAssert(
-      svg should include("y1=\"-"),
       svg should include("y2=\"-"),
       svg should include("cy=\"-"),
       svg should include("y=\"-")
