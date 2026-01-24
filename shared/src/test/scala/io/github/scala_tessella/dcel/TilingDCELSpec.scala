@@ -249,7 +249,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     )
 
   it should "return the DCEL around the inner vertex with varying distances" in:
-    val net = TilingBuilder.createRhombusNet(6, 6)
+    val net = TilingBuilder.createRhombusNet(6, 6).value
     allAssert(
       net.getDcelAtVertex(VertexId(25), 0).value.innerFaces.size shouldBe 4,
       net.getDcelAtVertex(VertexId(25), 1).value.innerFaces.size shouldBe 12,
@@ -270,7 +270,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 //
 //  behavior of "TilingDCEL.groupedInnerVertices"
 
-  def net: TilingDCEL = TilingBuilder.createRhombusNet(3, 6)
+  def net: TilingDCEL = TilingBuilder.createRhombusNet(3, 6).value
 
   def holeInNet2: TilingDCEL = net.deleteEdge(VertexId(14), VertexId(15)).value
 
@@ -285,7 +285,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   behavior of "TilingDCEL.uniformity"
 
   it should "calculate the uniformity of a square net" in:
-    val net = TilingBuilder.createRhombusNet(6, 6)
+    val net = TilingBuilder.createRhombusNet(6, 6).value
     net.uniformityTree.orderedForComparison.flattenLeaves shouldBe
       List(
         List(
@@ -329,7 +329,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     TilingDCEL.empty.doubleArea.value.isEmpty shouldBe true
 
   it should "double a 2x1 square net along the longest segment" in:
-    val doubled = TilingBuilder.createRhombusNet(2, 1).doubleArea
+    val doubled = TilingBuilder.createRhombusNet(2, 1).value.doubleArea
     val result  = doubled.value
     allAssert(
       result.halfEdges.size shouldBe 24,
@@ -339,7 +339,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     )
 
   it should "double a 1x2 square net along the longest segment" in:
-    val doubled = TilingBuilder.createRhombusNet(1, 2).doubleArea
+    val doubled = TilingBuilder.createRhombusNet(1, 2).value.doubleArea
     val result  = doubled.value
     allAssert(
       result.halfEdges.size shouldBe 24,

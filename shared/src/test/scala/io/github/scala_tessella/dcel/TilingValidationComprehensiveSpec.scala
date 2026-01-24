@@ -231,7 +231,7 @@ class TilingValidationComprehensiveSpec extends AnyFlatSpec with Matchers with T
     )
 
   it should "fail when interior vertex angles do not sum to a full circle" in:
-    val tiling   = TilingBuilder.createRhombusNet(2, 2)
+    val tiling   = TilingBuilder.createRhombusNet(2, 2).value
     // pick an interior vertex (shared one) and distort one incident angle
     val shared   = tiling.findVertexUnsafe(V5).get
     val incident = shared.incidentEdgesUnsafe.head

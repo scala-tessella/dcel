@@ -120,7 +120,7 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
     )
 
   it should "be converted from a 2x2 square net" in:
-    val tilingDCEL = TilingBuilder.createRhombusNet(2, 2)
+    val tilingDCEL = TilingBuilder.createRhombusNet(2, 2).value
     val torus      = TilingTorusDCEL.fromTilingDCEL(tilingDCEL).value
 //    val scale: Double = 1.0 / 2.0
 //    println(result.value.toSVG3D(TorusSvg3DOptions().copy(
@@ -146,7 +146,7 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
     )
 
   it should "be converted from a 3x3 square net" in:
-    val tilingDCEL = TilingBuilder.createRhombusNet(3, 3)
+    val tilingDCEL = TilingBuilder.createRhombusNet(3, 3).value
 //    println(tilingDCEL.toTorusCheck)
     val torus      = TilingTorusDCEL.fromTilingDCEL(tilingDCEL).value
 //    val scale: Double = 1.0 / 3.0
@@ -166,7 +166,7 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
     )
 
   it should "be converted from a 3x2 square net" in:
-    val tilingDCEL = TilingBuilder.createRhombusNet(3, 2)
+    val tilingDCEL = TilingBuilder.createRhombusNet(3, 2).value
 //    println(tilingDCEL.toTorusCheck)
     val torus      = TilingTorusDCEL.fromTilingDCEL(tilingDCEL).value
     allAssert(

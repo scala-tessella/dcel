@@ -54,7 +54,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     )
 
   it should "delete a face that is not on the boundary" in:
-    val tiling = TilingBuilder.createRhombusNet(3, 3)
+    val tiling = TilingBuilder.createRhombusNet(3, 3).value
     val result = tiling.deleteFace(FaceId(5))
     allAssert(
       result.isRight shouldBe true, {
@@ -290,7 +290,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
   /** <img src="file:../../../../../resources/deletableNonBoundaryPath.svg"/> */
   def deletableNonBoundaryPath: TilingDCEL =
-    TilingBuilder.createRhombusNet(2, 2)
+    TilingBuilder.createRhombusNet(2, 2).value
       .deleteEdge(V4, V5).value
       .deleteEdge(V5, V6).value
 
@@ -306,7 +306,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
   /** <img src="file:../../../../../resources/partitioningNonBoundaryFace.svg"/> */
   def partitioningNonBoundaryFace: TilingDCEL =
-    TilingBuilder.createRhombusNet(4, 3)
+    TilingBuilder.createRhombusNet(4, 3).value
       .deleteEdge(VertexId(8), VertexId(13)).value
       .addRegularPolygon(VertexId(7), VertexId(8), RegularPolygon(3)).value
       .addRegularPolygon(VertexId(21), VertexId(8), RegularPolygon(3)).value
@@ -322,7 +322,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   behavior of "TilingDCEL.deleteVertex"
 
   it should "delete an interior vertex" in:
-    val result = TilingBuilder.createRhombusNet(2, 2)
+    val result = TilingBuilder.createRhombusNet(2, 2).value
       .deleteVertex(V5)
     allAssert(
       result.isRight shouldBe true, {

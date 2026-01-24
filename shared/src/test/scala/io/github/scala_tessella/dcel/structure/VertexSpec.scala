@@ -311,7 +311,7 @@ class VertexSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     adjacent should contain theSameElementsAs List(v1, v2, v3, v4)
 
   it should "compute all adjacent vertices" in:
-    val tiling = TilingBuilder.createRhombusNet(2, 2)
+    val tiling = TilingBuilder.createRhombusNet(2, 2).value
     tiling.vertices
       .map: vertex =>
         vertex.id -> vertex.adjacentVerticesUnsafe.map: adjacentVertex =>

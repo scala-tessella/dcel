@@ -15,19 +15,19 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
     square.rotationalSymmetryOrder shouldBe 4
 
   it should "calculate the rotational symmetry for a 2x2 square" in:
-    val square2x2 = TilingBuilder.createRhombusNet(2, 2)
+    val square2x2 = TilingBuilder.createRhombusNet(2, 2).value
     square2x2.rotationalSymmetryOrder shouldBe 4
 
   it should "calculate the rotational symmetry for a 3x3 square" in:
-    val square3x3 = TilingBuilder.createRhombusNet(3, 3)
+    val square3x3 = TilingBuilder.createRhombusNet(3, 3).value
     square3x3.rotationalSymmetryOrder shouldBe 4
 
   it should "calculate the rotational symmetry for a 4x4 square" in:
-    val square4x4 = TilingBuilder.createRhombusNet(4, 4)
+    val square4x4 = TilingBuilder.createRhombusNet(4, 4).value
     square4x4.rotationalSymmetryOrder shouldBe 4
 
   it should "calculate the rotational symmetry for a 3x2 rectangle" in:
-    val rectangle3x2 = TilingBuilder.createRhombusNet(3, 2)
+    val rectangle3x2 = TilingBuilder.createRhombusNet(3, 2).value
     rectangle3x2.rotationalSymmetryOrder shouldBe 2
 
   it should "calculate the rotational symmetry for an equilateral triangle" in:
@@ -61,7 +61,7 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
   /** <img src="file:../../../../../resources/symmetry/oneAsymmHole.svg"/> */
   val oneAsymmetricHole: TilingDCEL =
-    TilingBuilder.createRhombusNet(4, 4)
+    TilingBuilder.createRhombusNet(4, 4).value
       .deleteEdge(V6, VertexId(7)).value
 
   it should "calculate the rotational symmetry for a 4x4 square with one asymmetric hole" in:
@@ -69,7 +69,7 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
   /** <img src="file:../../../../../resources/symmetry/twoAsymmHoles.svg"/> */
   val twoAsymmetricHoles: TilingDCEL =
-    TilingBuilder.createRhombusNet(4, 4)
+    TilingBuilder.createRhombusNet(4, 4).value
       .deleteEdge(V6, VertexId(7)).value
       .deleteEdge(VertexId(17), VertexId(22)).value
 
@@ -78,7 +78,7 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
   /** <img src="file:../../../../../resources/symmetry/fourRotationalHoles.svg"/> */
   val fourRotationalHoles: TilingDCEL =
-    TilingBuilder.createRhombusNet(4, 4)
+    TilingBuilder.createRhombusNet(4, 4).value
       .deleteEdge(V6, VertexId(7)).value
       .deleteEdge(VertexId(17), VertexId(22)).value
       .deleteEdge(VertexId(19), VertexId(20)).value
@@ -89,7 +89,7 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
   /** <img src="file:../../../../../resources/symmetry/twoRotationalHoles.svg"/> */
   val twoRotationalHoles: TilingDCEL =
-    TilingBuilder.createRhombusNet(4, 4)
+    TilingBuilder.createRhombusNet(4, 4).value
       .deleteEdge(V6, VertexId(7)).value
       .deleteEdge(VertexId(19), VertexId(20)).value
 
@@ -102,7 +102,7 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
   /** <img src="file:../../../../../resources/symmetry/twoReflectionalHoles.svg"/> */
   val twoReflectionalHoles: TilingDCEL =
-    TilingBuilder.createRhombusNet(4, 4)
+    TilingBuilder.createRhombusNet(4, 4).value
       .deleteEdge(V6, VertexId(7)).value
       .deleteEdge(VertexId(9), VertexId(10)).value
 
@@ -115,7 +115,7 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
   behavior of "TilingSymmetry.rotationalVertexIds"
 
   it should "calculate the rotational vertex ids for a 4x4 square" in:
-    val square4x4 = TilingBuilder.createRhombusNet(4, 4)
+    val square4x4 = TilingBuilder.createRhombusNet(4, 4).value
     square4x4.rotationalVertexIds shouldBe
       List(
         BoundaryVertex(V1),
@@ -125,7 +125,7 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
       )
 
   it should "calculate the rotational vertex ids for a 3x3 square" in:
-    val square3x3 = TilingBuilder.createRhombusNet(3, 3)
+    val square3x3 = TilingBuilder.createRhombusNet(3, 3).value
     square3x3.rotationalVertexIds shouldBe
       List(
         BoundaryVertex(V1),
@@ -149,19 +149,19 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
     square.reflectionalSymmetryOrder shouldBe 4
 
   it should "calculate the reflectional symmetry for a 2x2 square" in:
-    val square2x2 = TilingBuilder.createRhombusNet(2, 2)
+    val square2x2 = TilingBuilder.createRhombusNet(2, 2).value
     square2x2.reflectionalSymmetryOrder shouldBe 4
 
   it should "calculate the reflectional symmetry for a 3x3 square" in:
-    val square3x3 = TilingBuilder.createRhombusNet(3, 3)
+    val square3x3 = TilingBuilder.createRhombusNet(3, 3).value
     square3x3.reflectionalSymmetryOrder shouldBe 4
 
   it should "calculate the reflectional symmetry for a 4x4 square" in:
-    val square4x4 = TilingBuilder.createRhombusNet(4, 4)
+    val square4x4 = TilingBuilder.createRhombusNet(4, 4).value
     square4x4.reflectionalSymmetryOrder shouldBe 4
 
   it should "calculate the reflectional symmetry for a 3x2 rectangle" in:
-    val rectangle3x2 = TilingBuilder.createRhombusNet(3, 2)
+    val rectangle3x2 = TilingBuilder.createRhombusNet(3, 2).value
     rectangle3x2.reflectionalSymmetryOrder shouldBe 2
 
   it should "calculate the reflectional symmetry for an equilateral triangle" in:

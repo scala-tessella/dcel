@@ -355,24 +355,56 @@ object TilingBuilder:
     * @param angle
     *   degree of the first interior angle of each rhombus, the default angle creates a square net
     */
-  def createRhombusNet(width: Int, height: Int, angle: AngleDegree = AngleDegree(90)): TilingDCEL =
-    if width <= 0 || height <= 0 then
-      return TilingDCEL.empty
+  def createRhombusNet(
+      width: Int,
+      height: Int,
+      angle: AngleDegree = AngleDegree(90)
+  ): Either[TilingError, TilingDCEL] =
+    for
+      refinedWidth  <-
+        width
+          .refineEither[Positive]
+          .left
+          .map: message =>
+            ValidationError(s"Invalid width: $message")
+      refinedHeight <-
+        height
+          .refineEither[Positive]
+          .left
+          .map: message =>
+            ValidationError(s"Invalid height: $message")
+      tiling <- createRhombusNetRefined(refinedWidth, refinedHeight, angle)
+    yield tiling
+
+  private def createRhombusNetRefined(
+      width: PositiveInt,
+      height: PositiveInt,
+      angle: AngleDegree
+  ): Either[TilingError, TilingDCEL] =
+    Right(createRhombusNetUnsafe(width, height, angle))
+
+  private def createRhombusNetUnsafe(
+      width: PositiveInt,
+      height: PositiveInt,
+      angle: AngleDegree
+  ): TilingDCEL =
+    val w: Int = width
+    val h: Int = height
 
     val alpha1 = angle
     val alpha2 = angle.supplement
 
-    val (points, vertices) = pointsVertices(height, width, angle)
+    val (points, vertices) = pointsVertices(h, w, angle)
 
-    val faces  = netFaces(height, width)
+    val faces  = netFaces(h, w)
     val fOuter = Face.outer
 
-    val (horizontal, vSlope) = horizontalAndVSlope(height, width, vertices)
+    val (horizontal, vSlope) = horizontalAndVSlope(h, w, vertices)
 
-    setLeavingEdges(height, width, vertices, horizontal, vSlope)
+    setLeavingEdges(h, w, vertices, horizontal, vSlope)
 
     // Link inner faces
-    for j <- 0 until height; i <- 0 until width do
+    for j <- 0 until h; i <- 0 until w do
       val face             = faces(j)(i)
       val (e1, e2, e3, e4) = netHalfEdges(horizontal, vSlope, i, j)
 
@@ -380,7 +412,7 @@ object TilingBuilder:
       e2.angle = Some(alpha2)
       e4.angle = Some(alpha2)
 
-    val outerBoundaryCW = linkOuterFace(height, width, horizontal, vSlope, fOuter)
+    val outerBoundaryCW = linkOuterFace(h, w, horizontal, vSlope, fOuter)
 
     val allHalfEdges =
       toHalfEdges(horizontal) ++ toHalfEdges(vSlope)
