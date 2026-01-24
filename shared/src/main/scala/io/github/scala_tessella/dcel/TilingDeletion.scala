@@ -155,10 +155,21 @@ object TilingDeletion:
       updateVertexLeavingPointers(finalVertices, removedEdges, finalHalfEdges)
       recalculateBoundaryAngles(boundaryTwins, innerTwins, finalHalfEdges)
 
+      finalizeDeletion(
+        finalVertices,
+        finalHalfEdges,
+        tiling.innerFaces.filterNot(_ == faceToDelete)
+      )
+
+    private def finalizeDeletion(
+        finalVertices: List[Vertex],
+        finalHalfEdges: List[HalfEdge],
+        finalInnerFaces: List[Face]
+    ): TilingDCEL =
       TilingDCEL(
         vertices = finalVertices,
         halfEdges = finalHalfEdges,
-        innerFaces = tiling.innerFaces.filterNot(_ == faceToDelete),
+        innerFaces = finalInnerFaces,
         outerFace = tiling.outerFace
       )
 
@@ -299,13 +310,7 @@ object TilingDeletion:
           val finalHalfEdges  = tiling.halfEdges.filterNot(edgesToRemove.contains)
           val finalInnerFaces = tiling.innerFaces.filterNot(_ == faceToRemove)
 
-          val adjustedTiling      =
-            TilingDCEL(
-              vertices = finalVertices,
-              halfEdges = finalHalfEdges,
-              innerFaces = finalInnerFaces,
-              outerFace = tiling.outerFace
-            )
+          val adjustedTiling = finalizeDeletion(finalVertices, finalHalfEdges, finalInnerFaces)
           val survivingFacePoints =
             faceToSurvive.halfEdgesUnsafe.map(_.origin.coords)
           if !survivingFacePoints.hasNoAlmostEqualPoints() then
