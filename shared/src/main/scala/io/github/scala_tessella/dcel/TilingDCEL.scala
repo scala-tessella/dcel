@@ -107,7 +107,7 @@ final case class TilingDCEL private (
     yield face.getVerticesUnsafe
 
   private[dcel] def getAnglesAtVertexUnsafe(vertex: Vertex): List[AngleDegree] =
-    val edges  = vertex.incidentEdgesUnsafe
+    val edges = vertex.incidentEdgesUnsafe
     edges.map: halfEdge =>
       halfEdge.angle.get
 

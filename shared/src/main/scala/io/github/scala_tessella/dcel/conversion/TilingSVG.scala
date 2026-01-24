@@ -252,10 +252,10 @@ object TilingSVG:
       if drawnEdges.contains(halfEdge) || halfEdge.twin.isEmpty then None
       else
         val twin     = halfEdge.twin.get
-          drawnEdges ++= List(halfEdge, twin)
-          val (x1, y1) = halfEdge.origin.coords.toSvgCoords(scale)
-          val (x2, y2) = twin.origin.coords.toSvgCoords(scale)
-          Some(lineElem(x1, y1, x2, y2))
+        drawnEdges ++= List(halfEdge, twin)
+        val (x1, y1) = halfEdge.origin.coords.toSvgCoords(scale)
+        val (x2, y2) = twin.origin.coords.toSvgCoords(scale)
+        Some(lineElem(x1, y1, x2, y2))
 
   private def createAngleLabels(tilingDCEL: TilingDCEL, config: SvgConfig): (Seq[String], Seq[String]) =
     val innerAngleLabels =
@@ -571,8 +571,8 @@ object TilingSVG:
         showReflection: Boolean = false,
         showRotation: Boolean = false
     ): String =
-      val vertices        = simple.toBigPoints
-      val viewBox         = calculateViewBox(vertices, scale, padding)
+      val vertices = simple.toBigPoints
+      val viewBox  = calculateViewBox(vertices, scale, padding)
       svgWithViewBox(
         viewBox,
         Seq(gElem(Seq(section(vertices, showReflection = showReflection, showRotation = showRotation))))
@@ -650,7 +650,7 @@ object TilingSVG:
       if tiling.vertices.isEmpty then
         """<svg width="0" height="0" viewBox="0 0 0 0" xmlns="http://www.w3.org/2000/svg"/>"""
       else
-        val config          =
+        val config   =
           SvgConfig(
             strokeWidth,
             padding,
@@ -660,8 +660,8 @@ object TilingSVG:
             faceIdsOnEdges,
             showUniformity
           )
-        val vertices        = tiling.vertices.map(_.coords)
-        val viewBox         = calculateViewBox(vertices, scale, padding)
+        val vertices = tiling.vertices.map(_.coords)
+        val viewBox  = calculateViewBox(vertices, scale, padding)
 
         // Generate all elements
         val edgeLines                            = createEdgeLines(tiling, scale)

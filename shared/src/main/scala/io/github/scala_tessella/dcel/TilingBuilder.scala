@@ -21,7 +21,7 @@ object TilingBuilder:
 
   private type PositiveInt = Int :| Positive
 
-  private final case class RectNetEdges(
+  final private case class RectNetEdges(
       vertices: Array[Array[Vertex]],
       horizontal: Array[Array[(HalfEdge, HalfEdge)]],
       vSlope: Array[Array[(HalfEdge, HalfEdge)]],
@@ -33,26 +33,25 @@ object TilingBuilder:
       height: Int
   ): Either[TilingError, (PositiveInt, PositiveInt)] =
     for
-      refinedWidth  <-
-        width
-          .refineEither[Positive]
-          .left
-          .map: message =>
-            ValidationError(s"Invalid width: $message")
-      refinedHeight <-
-        height
-          .refineEither[Positive]
-          .left
-          .map: message =>
-            ValidationError(s"Invalid height: $message")
+      refinedWidth  <- refineOrError[Int, Positive](width, "width")
+      refinedHeight <- refineOrError[Int, Positive](height, "height")
     yield (refinedWidth, refinedHeight)
+
+  private def refineOrError[A, C](value: A, label: String)(using
+      RuntimeConstraint[A, C]
+  ): Either[TilingError, A :| C] =
+    value
+      .refineEither[C]
+      .left
+      .map: message =>
+        ValidationError(s"Invalid $label: $message")
 
   private def buildRectNetEdges(
       height: Int,
       width: Int,
       angle: AngleDegree
   ): RectNetEdges =
-    val (_, vertices) = pointsVertices(height, width, angle)
+    val (_, vertices)        = pointsVertices(height, width, angle)
     val (horizontal, vSlope) = horizontalAndVSlope(height, width, vertices)
     setLeavingEdges(height, width, vertices, horizontal, vSlope)
     RectNetEdges(vertices, horizontal, vSlope, Face.outer)
@@ -319,7 +318,7 @@ object TilingBuilder:
   def createTriangleNet(width: Int, height: Int): Either[TilingError, TilingDCEL] =
     for
       (refinedWidth, refinedHeight) <- validatePositiveDimensions(width, height)
-      tiling                         <- createTriangleNetRefined(refinedWidth, refinedHeight)
+      tiling                        <- createTriangleNetRefined(refinedWidth, refinedHeight)
     yield tiling
 
   private def createTriangleNetRefined(
@@ -341,7 +340,7 @@ object TilingBuilder:
       buildRectNetEdges(h, w, triangleAngle)
 
     // Two triangular faces per rhombus cell
-    val faces  =
+    val faces     =
       Array.tabulate(h, w, 2): (j, i, k) =>
         Face(FaceId((j * w + i) * 2 + k + 1))
     // These diagonals split each rhombus into two equilateral triangles
@@ -392,12 +391,8 @@ object TilingBuilder:
   ): Either[TilingError, TilingDCEL] =
     for
       (refinedWidth, refinedHeight) <- validatePositiveDimensions(width, height)
-      refinedAngle  <-
-        angle
-          .refineEither[HexagonInteriorAngle]
-          .left
-          .map: message =>
-            ValidationError(s"Invalid angle: $message")
+      refinedAngle                  <-
+        refineOrError[AngleDegree, HexagonInteriorAngle](angle, "angle")
 
       tiling <- createRhombusNetRefined(refinedWidth, refinedHeight, refinedAngle)
     yield tiling
@@ -422,7 +417,7 @@ object TilingBuilder:
 
     val RectNetEdges(vertices, horizontal, vSlope, fOuter) =
       buildRectNetEdges(h, w, angle)
-    val faces  = netFaces(h, w)
+    val faces                                              = netFaces(h, w)
 
     // Link inner faces
     for j <- 0 until h; i <- 0 until w do
@@ -463,23 +458,19 @@ object TilingBuilder:
   ): Either[TilingError, TilingDCEL] =
     for
       (refinedWidth, refinedHeight) <- validatePositiveDimensions(width, height)
-      refinedAngle  <-
-        angle
-          .refineEither[HexagonInteriorAngle]
-          .left
-          .map: message =>
-            ValidationError(s"Invalid angle: $message")
-      tiling <- createHexagonNetRefined(refinedWidth, refinedHeight, refinedAngle)
+      refinedAngle                  <-
+        refineOrError[AngleDegree, HexagonInteriorAngle](angle, "angle")
+      tiling                        <- createHexagonNetRefined(refinedWidth, refinedHeight, refinedAngle)
     yield tiling
 
-  private final class HexagonInteriorAngle
+  final private class HexagonInteriorAngle
   private given Constraint[AngleDegree, HexagonInteriorAngle] with
     inline def test(inline value: AngleDegree): Boolean =
       !value.isFullCircle && value.toRational > 0 && value.toRational < 180
-    inline def message: String =
+    inline def message: String                          =
       "Angle must be between 0 and 180 degrees (exclusive)."
 
-  private type HexagonAngle  = AngleDegree :| HexagonInteriorAngle
+  private type HexagonAngle = AngleDegree :| HexagonInteriorAngle
   private val defaultHexagonAngle: HexagonAngle =
     AngleDegree(120).refineUnsafe[HexagonInteriorAngle]
   private val defaultRhombusAngle: HexagonAngle =
@@ -497,8 +488,8 @@ object TilingBuilder:
       height: PositiveInt,
       angle: HexagonAngle
   ): TilingDCEL =
-    val w: Int = width
-    val h: Int = height
+    val w: Int             = width
+    val h: Int             = height
     val alpha: AngleDegree = angle
 
     val beta: AngleDegree = (alpha / 2).supplement
@@ -666,10 +657,9 @@ object TilingBuilder:
         if f(x, y)
       yield transform(x, y)
     holes
-      .foldLeft(createTriangleNet(width, height)):
-        (either, vertexId) =>
-          either.flatMap: tilingDCEL =>
-            tilingDCEL.maybeDeleteVertex(vertexId)
+      .foldLeft(createTriangleNet(width, height)): (either, vertexId) =>
+        either.flatMap: tilingDCEL =>
+          tilingDCEL.maybeDeleteVertex(vertexId)
       .toOption.getOrElse(TilingDCEL.empty)
 
   extension (halfEdges: List[HalfEdge])
