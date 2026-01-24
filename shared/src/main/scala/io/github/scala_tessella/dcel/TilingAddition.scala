@@ -239,6 +239,24 @@ object TilingAddition:
           Right((grownTiling, deepCopiedOriginal, containerFace, maybeHoleClosure))
       yield result
 
+    private def growthResult(
+        startVertex: Vertex,
+        endVertex: Vertex,
+        edgeToBuildOn: HalfEdge,
+        angles: List[AngleDegree],
+        points: List[BigPoint]
+    ): Either[TilingError, (TilingDCEL, TilingDCEL, Face, Option[OldNewVertexPair])] =
+      val containerFace          = edgeToBuildOn.incidentFace.get
+      val containerBoundaryEdges = containerFace.halfEdgesUnsafe
+      growthWithHoleCheck(
+        startVertex,
+        endVertex,
+        edgeToBuildOn,
+        angles,
+        points,
+        containerBoundaryEdges
+      )
+
     private def determinePathDirection(
         pathFwd: List[HalfEdge],
         pathBack: List[HalfEdge]
@@ -444,22 +462,19 @@ object TilingAddition:
         end: VertexId,
         simple: SimplePolygon
     ): Either[TilingError, TilingDCEL] =
-      val either: Either[TilingError, (TilingDCEL, TilingDCEL, Face, Option[OldNewVertexPair])] =
+      val either =
         for
           (startVertex, endVertex, edgeToBuildOn) <-
             tiling.findVerticesAndEdgeBetween(start, end)
           points                                   = calculateVertexPoints(simple.toAngles, startVertex.coords, endVertex.coords)
           _                                       <- validatePoints(points)
           result                                  <-
-            val containerFace          = edgeToBuildOn.incidentFace.get
-            val containerBoundaryEdges = containerFace.halfEdgesUnsafe
-            growthWithHoleCheck(
+            growthResult(
               startVertex,
               endVertex,
               edgeToBuildOn,
               simple.toAngles.toList,
-              points,
-              containerBoundaryEdges
+              points
             )
         yield result
 
@@ -553,22 +568,19 @@ object TilingAddition:
         end: VertexId,
         polygon: RegularPolygon
     ): Either[TilingError, TilingDCEL] =
-      val either: Either[TilingError, (TilingDCEL, TilingDCEL, Face, Option[OldNewVertexPair])] =
+      val either =
         for
           (startVertex, endVertex, edgeToBuildOn) <-
             tiling.findVerticesAndEdgeBetween(start, end)
           angles                                   = polygon.angles
           points                                   = calculateVertexPoints(angles, startVertex.coords, endVertex.coords)
           result                                  <-
-            val containerFace          = edgeToBuildOn.incidentFace.get
-            val containerBoundaryEdges = containerFace.halfEdgesUnsafe
-            growthWithHoleCheck(
+            growthResult(
               startVertex,
               endVertex,
               edgeToBuildOn,
               angles.toList,
-              points,
-              containerBoundaryEdges
+              points
             )
         yield result
 
