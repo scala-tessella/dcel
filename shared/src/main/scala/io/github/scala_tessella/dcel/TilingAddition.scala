@@ -124,30 +124,47 @@ object TilingAddition:
       adjustedTempVertices: List[Vertex],
       boundaryEdges: List[HalfEdge]
   ): Either[TilingError, Unit] =
+    def segmentsFromPairs[A](pairs: Vector[List[A]])(toSegment: (A, A) => BigLineSegment): Vector[BigLineSegment] =
+      pairs.map:
+        case a :: b :: Nil => toSegment(a, b)
+        case _             => throw new Error("Pairs not in list")
+
+    def decodeIntersectionPairs(
+        intersections: Vector[(BigLineSegment, BigLineSegment)],
+        newSides: Vector[BigLineSegment],
+        oldSides: Vector[BigLineSegment],
+        verticesPairs: Vector[List[Vertex]],
+        edgesPairs: Vector[List[HalfEdge]]
+    ): Vector[(List[Vertex], List[HalfEdge])] =
+      intersections.map: (segment1, segment2) =>
+        val newIndex = newSides.indexOf(segment1)
+        if newIndex >= 0 then
+          val j = oldSides.indexOf(segment2)
+          if j < 0 then throw new Error("Segment 2 not in list")
+          (verticesPairs(newIndex), edgesPairs(j))
+        else
+          val oldIndex = oldSides.indexOf(segment1)
+          if oldIndex < 0 then throw new Error("Intersection not in either list")
+          val i = newSides.indexOf(segment2)
+          if i < 0 then throw new Error("Segment 2 not in list")
+          (verticesPairs(i), edgesPairs(oldIndex))
+
     // Create line segments for the new boundary
     val verticesPairs = adjustedTempVertices.sliding(2).toVector
-    val newSides      = verticesPairs.map:
-      case p1 :: p2 :: Nil => BigLineSegment(p1.coords, p2.coords)
-      case _               => throw new Error("Edge vertices not in pair")
+    val newSides      =
+      segmentsFromPairs(verticesPairs): (p1, p2) =>
+        BigLineSegment(p1.coords, p2.coords)
 
     val edgesPairs = boundaryEdges.slidingO(2).toVector
-    val oldSides   = edgesPairs.map:
-      case e1 :: e2 :: Nil => BigLineSegment(e1.origin.coords, e2.origin.coords)
-      case _               => throw new Error("Edges not in pair")
+    val oldSides   =
+      segmentsFromPairs(edgesPairs): (e1, e2) =>
+        BigLineSegment(e1.origin.coords, e2.origin.coords)
 
     // Check for intersections
     if oldSides.hasProperIntersections(newSides) then
       val intersections = oldSides.properIntersections(newSides)
-      val decoded       = intersections.map: (segment1, segment2) =>
-        newSides.indexOf(segment1) match
-          case -1 => oldSides.indexOf(segment1) match
-              case -1 => throw new Error("Intersection not in either list")
-              case j  => newSides.indexOf(segment2) match
-                  case -1 => throw new Error("Segment 2 not in list")
-                  case i  => (verticesPairs(i), edgesPairs(j))
-          case i  => oldSides.indexOf(segment2) match
-              case -1 => throw new Error("Segment 2 not in list")
-              case j  => (verticesPairs(i), edgesPairs(j))
+      val decoded       =
+        decodeIntersectionPairs(intersections.toVector, newSides, oldSides, verticesPairs, edgesPairs)
       val vertexIds     =
         decoded.map: (verticesPair, edgesPair) =>
           (
