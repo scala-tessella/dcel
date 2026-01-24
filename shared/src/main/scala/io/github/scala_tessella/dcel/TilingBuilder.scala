@@ -373,20 +373,27 @@ object TilingBuilder:
           .left
           .map: message =>
             ValidationError(s"Invalid height: $message")
-      tiling <- createRhombusNetRefined(refinedWidth, refinedHeight, angle)
+      refinedAngle  <-
+        angle
+          .refineEither[HexagonInteriorAngle]
+          .left
+          .map: message =>
+            ValidationError(s"Invalid angle: $message")
+
+      tiling <- createRhombusNetRefined(refinedWidth, refinedHeight, refinedAngle)
     yield tiling
 
   private def createRhombusNetRefined(
       width: PositiveInt,
       height: PositiveInt,
-      angle: AngleDegree
+      angle: HexagonAngle = defaultRhombusAngle
   ): Either[TilingError, TilingDCEL] =
     Right(createRhombusNetUnsafe(width, height, angle))
 
   private def createRhombusNetUnsafe(
       width: PositiveInt,
       height: PositiveInt,
-      angle: AngleDegree
+      angle: HexagonAngle
   ): TilingDCEL =
     val w: Int = width
     val h: Int = height
@@ -475,6 +482,8 @@ object TilingBuilder:
   private type HexagonAngle  = AngleDegree :| HexagonInteriorAngle
   private val defaultHexagonAngle: HexagonAngle =
     AngleDegree(120).refineUnsafe[HexagonInteriorAngle]
+  private val defaultRhombusAngle: HexagonAngle =
+    AngleDegree(90).refineUnsafe[HexagonInteriorAngle]
 
   private def createHexagonNetRefined(
       width: PositiveInt,
