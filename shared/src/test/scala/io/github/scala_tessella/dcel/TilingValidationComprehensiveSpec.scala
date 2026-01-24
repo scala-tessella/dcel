@@ -247,6 +247,9 @@ class TilingValidationComprehensiveSpec extends AnyFlatSpec with Matchers with T
   it should "succeed on regular shapes with unit-length edges" in:
     validateSpatially(square) shouldBe Right(())
 
+  it should "treat an empty tiling as spatially valid" in:
+    validateSpatially(TilingDCEL.empty) shouldBe Right(())
+
   it should "fail when has vertices in almost the same position" in:
     val incorrect =
       TilingBuilder.buildDCELFromPointsUnsafe(
@@ -266,3 +269,8 @@ class TilingValidationComprehensiveSpec extends AnyFlatSpec with Matchers with T
       res.isLeft shouldBe true,
       res.left.value.message should include("does not have unit length")
     )
+
+  behavior of "TilingValidation.validateTopologically"
+
+  it should "treat an empty tiling as topologically valid" in:
+    validateTopologically(TilingDCEL.empty) shouldBe Right(())

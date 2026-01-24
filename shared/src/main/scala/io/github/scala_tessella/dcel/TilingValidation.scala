@@ -8,7 +8,7 @@ import scala.collection.mutable
 
 object TilingValidation:
 
-  def validateCompleteness(tiling: TilingDCEL): Either[TilingError, Unit] =
+  private[dcel] def validateCompleteness(tiling: TilingDCEL): Either[TilingError, Unit] =
     val errors = mutable.ListBuffer[String]()
     tiling.vertices.foreach: vertex =>
       if vertex.validate().isLeft then
@@ -22,14 +22,13 @@ object TilingValidation:
     if errors.isEmpty then Right(())
     else Left(TilingError.combineErrors(errors.toList, TilingError.incomplete))
 
-  def validateTopologically(tiling: TilingDCEL): Either[TilingError, Unit] =
+  private[dcel] def validateTopologically(tiling: TilingDCEL): Either[TilingError, Unit] =
     val errors = mutable.ListBuffer[String]()
 
     // Precompute sets for membership checks
     val vertexSet    = tiling.vertices.toSet
     val edgeSet      = tiling.halfEdges.toSet
     val innerFaceSet = tiling.innerFaces.toSet
-    val faceSet      = tiling.faces.toSet
 
     // Check vertex consistency
     tiling.vertices.foreach: vertex =>
@@ -96,8 +95,10 @@ object TilingValidation:
       tiling.outerFace.outerComponent.map: face =>
         face.faceTraversal()
     maybeOuterTraversalEdges match
-      case None                      => errors += "Outer face traversal failed: no traversal found"
-      case Some(outerTraversalEdges) =>
+      case None if outerEdgesClaimed.nonEmpty =>
+        errors += "Outer face traversal failed: no traversal found"
+      case None                               => ()
+      case Some(outerTraversalEdges)          =>
         if outerTraversalEdges.isLeft then
           errors += "Outer face traversal failed: " + outerTraversalEdges.swap.getOrElse("")
         else if outerEdgesClaimed.diff(outerTraversalEdges.toOption.get.toSet).nonEmpty then
@@ -111,7 +112,7 @@ object TilingValidation:
 
     if errors.isEmpty then Right(()) else Left(TilingError.combineErrors(errors.toList, TilingError.topology))
 
-  def validateGeometrically(tiling: TilingDCEL): Either[TilingError, Unit] =
+  private[dcel] def validateGeometrically(tiling: TilingDCEL): Either[TilingError, Unit] =
     val errors = mutable.ListBuffer[String]()
 
     // Disallow full-circle or invalid angles on any half-edge
@@ -189,7 +190,7 @@ object TilingValidation:
 
     if errors.isEmpty then Right(()) else Left(TilingError.combineErrors(errors.toList, TilingError.geometry))
 
-  def validateSpatially(tiling: TilingDCEL): Either[TilingError, Unit] =
+  private[dcel] def validateSpatially(tiling: TilingDCEL): Either[TilingError, Unit] =
     val errors = mutable.ListBuffer[String]()
 
     SimplePolygon.fromUntrusted(tiling.boundarySimplePolygon.toAngles) match
