@@ -202,20 +202,6 @@ object TilingBuilder:
       else if i > 0 then v.leaving = Some(horizontal(j)(i - 1)._2)
       else if j > 0 then v.leaving = Some(vSlope(j - 1)(i)._2)
 
-  private def setOuterAngles(
-      outerBoundaryCW: List[HalfEdge],
-      allHalfEdges: List[HalfEdge],
-      fOuter: Face
-  ): Unit =
-    // Set outer angles
-    for outerEdge <- outerBoundaryCW do
-      val vertex         = outerEdge.origin
-      val incident       =
-        allHalfEdges.filter: halfEdge =>
-          halfEdge.origin == vertex
-      val innerAnglesSum = incident.interiorAnglesSum(fOuter)
-      outerEdge.angle = Some(innerAnglesSum.conjugate)
-
   private def netFaces(height: Int, width: Int): Array[Array[Face]] =
     Array.tabulate(height, width): (j, i) =>
       Face(FaceId(j * width + i + 1))
@@ -323,7 +309,7 @@ object TilingBuilder:
     val allHalfEdges =
       toHalfEdges(horizontal) ++ toHalfEdges(vSlope) ++ toHalfEdges(diagonals)
 
-    setOuterAngles(outerBoundaryCW, allHalfEdges, fOuter)
+    allHalfEdges.setOuterEdgeAngles(outerBoundaryCW, fOuter)
 
     TilingDCEL(
       vertices = vertices.flatten.toList,
@@ -371,7 +357,7 @@ object TilingBuilder:
     val allHalfEdges =
       toHalfEdges(horizontal) ++ toHalfEdges(vSlope)
 
-    setOuterAngles(outerBoundaryCW, allHalfEdges, fOuter)
+    allHalfEdges.setOuterEdgeAngles(outerBoundaryCW, fOuter)
 
     TilingDCEL(
       vertices = vertices.flatten.toList,
