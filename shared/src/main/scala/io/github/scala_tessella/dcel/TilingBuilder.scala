@@ -267,32 +267,58 @@ object TilingBuilder:
     * @param height
     *   number of triangle pairs (rhombi) on each colum
     */
-  def createTriangleNet(width: Int, height: Int): TilingDCEL =
-    if width <= 0 || height <= 0 then
-      return TilingDCEL.empty
+  def createTriangleNet(width: Int, height: Int): Either[TilingError, TilingDCEL] =
+    for
+      refinedWidth  <-
+        width
+          .refineEither[Positive]
+          .left
+          .map: message =>
+            ValidationError(s"Invalid width: $message")
+      refinedHeight <-
+        height
+          .refineEither[Positive]
+          .left
+          .map: message =>
+            ValidationError(s"Invalid height: $message")
+      tiling <- createTriangleNetRefined(refinedWidth, refinedHeight)
+    yield tiling
+
+  private def createTriangleNetRefined(
+      width: PositiveInt,
+      height: PositiveInt
+  ): Either[TilingError, TilingDCEL] =
+    Right(createTriangleNetUnsafe(width, height))
+
+  private def createTriangleNetUnsafe(
+      width: PositiveInt,
+      height: PositiveInt
+  ): TilingDCEL =
+    val w: Int = width
+    val h: Int = height
 
     val triangleAngle = AngleDegree(60)
 
-    val (points, vertices) = pointsVertices(height, width, triangleAngle)
+    val (points, vertices) = pointsVertices(h, w, triangleAngle)
 
     // Two triangular faces per rhombus cell
     val faces  =
-      Array.tabulate(height, width, 2): (j, i, k) =>
-        Face(FaceId((j * width + i) * 2 + k + 1))
+      Array.tabulate(h, w, 2): (j, i, k) =>
+        Face(FaceId((j * w + i) * 2 + k + 1))
     val fOuter = Face.outer
 
-    val (horizontal, vSlope) = horizontalAndVSlope(height, width, vertices)
+    val (horizontal, vSlope) = horizontalAndVSlope(h, w, vertices)
 
     // These diagonals split each rhombus into two equilateral triangles
     val diagonals =
-      Array.tabulate(height, width): (j, i) =>
+      Array.tabulate(h, w): (j, i) =>
         createTwinPair(vertices(j)(i + 1), vertices(j + 1)(i))
 
     // Set leaving edges for vertices
-    setLeavingEdges(height, width, vertices, horizontal, vSlope)
+    setLeavingEdges(h, w, vertices, horizontal, vSlope)
 
     // Link inner faces
-    for j <- 0 until height; i <- 0 until width do
+    for j <- 0 until h; i <- 0 until w do
       val face1 = faces(j)(i)(0) // Triangle (v_ji, v_ji1, v_j1i)
       val face2 = faces(j)(i)(1) // Triangle (v_ji1, v_j1i1, v_j1i)
 
@@ -306,7 +332,7 @@ object TilingBuilder:
       // Link face2
       List(e2, e3, e_diag_rev).linkFace(face2, triangleAngle)
 
-    val outerBoundaryCW = linkOuterFace(height, width, horizontal, vSlope, fOuter)
+    val outerBoundaryCW = linkOuterFace(h, w, horizontal, vSlope, fOuter)
 
     val allHalfEdges =
       toHalfEdges(horizontal) ++ toHalfEdges(vSlope) ++ toHalfEdges(diagonals)
@@ -599,7 +625,7 @@ object TilingBuilder:
         if f(x, y)
       yield transform(x, y)
     holes
-      .foldLeft(Right(createTriangleNet(width, height)): Either[TilingError, TilingDCEL]):
+      .foldLeft(createTriangleNet(width, height)):
         (either, vertexId) =>
           either.flatMap: tilingDCEL =>
             tilingDCEL.maybeDeleteVertex(vertexId)

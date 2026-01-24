@@ -915,7 +915,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
   /** Vertex crossing <img src="file:../../../../../resources/vertexCrossing.svg"/> */
   def vertexCrossing: TilingDCEL =
-    TilingBuilder.createTriangleNet(4, 4)
+    TilingBuilder.createTriangleNet(4, 4).value
       .deleteVertex(VertexId(13)).value
       .deleteFace(FaceId(16)).value
       .deleteFace(FaceId(15)).value

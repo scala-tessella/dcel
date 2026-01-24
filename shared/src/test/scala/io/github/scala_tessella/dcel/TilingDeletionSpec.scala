@@ -342,7 +342,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     )
 
   it should "delete a boundary vertex" in:
-    val result = TilingBuilder.createTriangleNet(3, 3)
+    val result = TilingBuilder.createTriangleNet(3, 3).value
       .deleteVertex(V1)
     allAssert(
       result.isRight shouldBe true, {
@@ -352,7 +352,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     )
 
   it should "delete another boundary vertex" in:
-    val result = TilingBuilder.createTriangleNet(3, 3)
+    val result = TilingBuilder.createTriangleNet(3, 3).value
       .deleteVertex(V2)
     allAssert(
       result.isRight shouldBe true, {
@@ -362,7 +362,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     )
 
   it should "delete a third boundary vertex" in:
-    val result = TilingBuilder.createTriangleNet(3, 3)
+    val result = TilingBuilder.createTriangleNet(3, 3).value
       .deleteVertex(V3)
     allAssert(
       result.isRight shouldBe true, {
@@ -372,7 +372,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     )
 
   it should "delete a fourth boundary vertex" in:
-    val result = TilingBuilder.createTriangleNet(3, 3)
+    val result = TilingBuilder.createTriangleNet(3, 3).value
       .deleteVertex(V4)
     allAssert(
       result.isRight shouldBe true, {

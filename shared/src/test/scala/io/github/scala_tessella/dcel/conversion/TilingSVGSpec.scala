@@ -712,7 +712,7 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     )
 
   it should "successfully reconstruct a triangle-based tessellation from metadata (round-trip)" in:
-    val net           = TilingBuilder.createTriangleNet(4, 4)
+    val net           = TilingBuilder.createTriangleNet(4, 4).value
     val metadata      = net.toMetadata
     val reconstructed = fromMetadata(metadata)
     allAssert(

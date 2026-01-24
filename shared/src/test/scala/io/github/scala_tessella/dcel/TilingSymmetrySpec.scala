@@ -34,7 +34,7 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
     triangle.rotationalSymmetryOrder shouldBe 3
 
   it should "calculate the rotational symmetry for a triangle net" in:
-    val triangleNet = TilingBuilder.createTriangleNet(3, 3)
+    val triangleNet = TilingBuilder.createTriangleNet(3, 3).value
     triangleNet.rotationalSymmetryOrder shouldBe 2
 
   it should "calculate the rotational symmetry for a regular hexagon" in:
@@ -168,7 +168,7 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
     triangle.reflectionalSymmetryOrder shouldBe 3
 
   it should "calculate the reflectional symmetry for a triangle net" in:
-    val triangleNet = TilingBuilder.createTriangleNet(3, 3)
+    val triangleNet = TilingBuilder.createTriangleNet(3, 3).value
     triangleNet.reflectionalSymmetryOrder shouldBe 2
 
   it should "calculate the reflectional symmetry for a regular hexagon" in:

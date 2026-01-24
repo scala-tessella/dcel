@@ -261,7 +261,7 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
     )
 
   it should "be converted from a 1x1 triangle net" in:
-    val tilingDCEL = TilingBuilder.createTriangleNet(1, 1)
+    val tilingDCEL = TilingBuilder.createTriangleNet(1, 1).value
     val torus      = TilingTorusDCEL.fromTilingDCEL(tilingDCEL).value
     allAssert(
       torus.faces.size shouldBe 2,
@@ -281,7 +281,7 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
     )
 
   it should "be converted from a 2x1 triangle net" in:
-    val tilingDCEL = TilingBuilder.createTriangleNet(2, 1)
+    val tilingDCEL = TilingBuilder.createTriangleNet(2, 1).value
     val torus      = TilingTorusDCEL.fromTilingDCEL(tilingDCEL).value
     allAssert(
       torus.faces.size shouldBe 4,

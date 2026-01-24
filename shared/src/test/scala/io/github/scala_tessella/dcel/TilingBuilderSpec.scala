@@ -153,15 +153,15 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
 
     /** <img src="file:../../../../../resources/triangleNet.svg"/> */
     val triangleNet: TilingDCEL =
-      TilingBuilder.createTriangleNet(3, 3)
+      TilingBuilder.createTriangleNet(3, 3).value
     validate(triangleNet).isRight shouldBe true
 
-  it should "return an empty tiling for non-positive dimensions" in:
+  it should "return an error for non-positive dimensions" in:
     allAssert(
-      TilingBuilder.createTriangleNet(0, 3).isEmpty shouldBe true,
-      TilingBuilder.createTriangleNet(3, 0).isEmpty shouldBe true,
-      TilingBuilder.createTriangleNet(-1, 2).isEmpty shouldBe true,
-      TilingBuilder.createTriangleNet(2, -1).isEmpty shouldBe true
+      TilingBuilder.createTriangleNet(0, 3).isLeft shouldBe true,
+      TilingBuilder.createTriangleNet(3, 0).isLeft shouldBe true,
+      TilingBuilder.createTriangleNet(-1, 2).isLeft shouldBe true,
+      TilingBuilder.createTriangleNet(2, -1).isLeft shouldBe true
     )
 
   behavior of "TilingBuilder.createHexagonNet"
