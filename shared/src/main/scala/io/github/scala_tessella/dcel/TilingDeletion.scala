@@ -198,7 +198,7 @@ object TilingDeletion:
           List(halfEdge.origin, halfEdge.destinationUnsafe)
       val verticesOnNewBoundary =
         (fromBoundary ::: fromInner).distinct
-      val boundaryEdges =
+      val boundaryEdges         =
         verticesOnNewBoundary.flatMap: vertex =>
           vertex.incidentEdgesUnsafe.find: halfEdge =>
             tiling.isBoundaryEdge(halfEdge)
@@ -310,7 +310,7 @@ object TilingDeletion:
           val finalHalfEdges  = tiling.halfEdges.filterNot(edgesToRemove.contains)
           val finalInnerFaces = tiling.innerFaces.filterNot(_ == faceToRemove)
 
-          val adjustedTiling = finalizeDeletion(finalVertices, finalHalfEdges, finalInnerFaces)
+          val adjustedTiling      = finalizeDeletion(finalVertices, finalHalfEdges, finalInnerFaces)
           val survivingFacePoints =
             faceToSurvive.halfEdgesUnsafe.map(_.origin.coords)
           if !survivingFacePoints.hasNoAlmostEqualPoints() then

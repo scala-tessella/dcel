@@ -124,7 +124,10 @@ object TilingAddition:
       adjustedTempVertices: List[Vertex],
       boundaryEdges: List[HalfEdge]
   ): Either[TilingError, Unit] =
-    def segmentsFromPairs[A](pairs: Vector[List[A]])(toSegment: (A, A) => BigLineSegment): Vector[BigLineSegment] =
+    def segmentsFromPairs[A](pairs: Vector[List[A]])(toSegment: (
+        A,
+        A
+    ) => BigLineSegment): Vector[BigLineSegment] =
       pairs.map:
         case a :: b :: Nil => toSegment(a, b)
         case _             => throw new Error("Pairs not in list")
@@ -145,7 +148,7 @@ object TilingAddition:
         else
           val oldIndex = oldSides.indexOf(segment1)
           if oldIndex < 0 then throw new Error("Intersection not in either list")
-          val i = newSides.indexOf(segment2)
+          val i        = newSides.indexOf(segment2)
           if i < 0 then throw new Error("Segment 2 not in list")
           (verticesPairs(i), edgesPairs(oldIndex))
 

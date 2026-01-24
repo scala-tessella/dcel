@@ -288,7 +288,7 @@ object TilingUniformity:
       */
     def scanUniformityTree: List[Tree[List[VertexId]]] =
       // Optimization: compute the full tree first to find the max required depth
-      val fullTree       = uniformityTreeUncompressed(None)
+      val fullTree = uniformityTreeUncompressed(None)
 //      val fullCompressed =
 //        fullTree.compress:
 //          _ ::: _
