@@ -11,6 +11,8 @@ import io.github.scala_tessella.dcel.geometry.{
 }
 import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
 import io.github.scala_tessella.dcel.TilingAddition.addRegularPolygonToBoundary
+import io.github.iltotore.iron.*
+import io.github.iltotore.iron.constraint.numeric.*
 import spire.implicits.*
 
 import scala.collection.mutable
@@ -377,14 +379,64 @@ object TilingBuilder:
     *   are all equal and computed to satisfy the polygon angle sum. Constraint: 0 < angle < 180. Default 120
     *   creates the regular honeycomb.
     */
-  def createHexagonNet(width: Int, height: Int, angle: AngleDegree = AngleDegree(120)): TilingDCEL =
-    if width <= 0 || height <= 0 then
-      return TilingDCEL.empty
+  def createHexagonNet(
+      width: Int,
+      height: Int,
+      angle: AngleDegree = AngleDegree(120)
+  ): Either[TilingError, TilingDCEL] =
+    for
+      refinedWidth  <-
+        width
+          .refineEither[Positive]
+          .left
+          .map: message =>
+            ValidationError(s"Invalid width: $message")
+      refinedHeight <-
+        height
+          .refineEither[Positive]
+          .left
+          .map: message =>
+            ValidationError(s"Invalid height: $message")
+      refinedAngle  <-
+        angle
+          .refineEither[HexagonInteriorAngle]
+          .left
+          .map: message =>
+            ValidationError(s"Invalid angle: $message")
+      tiling <- createHexagonNetRefined(refinedWidth, refinedHeight, refinedAngle)
+    yield tiling
 
-    if angle.isFullCircle || angle.toRational <= 0 || angle.toRational >= 180 then
-      return TilingDCEL.empty
+  private final class HexagonInteriorAngle
+  private given Constraint[AngleDegree, HexagonInteriorAngle] with
+    inline def test(inline value: AngleDegree): Boolean =
+      !value.isFullCircle && value.toRational > 0 && value.toRational < 180
+    inline def message: String =
+      "Angle must be between 0 and 180 degrees (exclusive)."
 
-    val alpha             = angle
+  private type PositiveInt   = Int :| Positive
+  private type HexagonAngle  = AngleDegree :| HexagonInteriorAngle
+  private val defaultHexagonAngle: HexagonAngle =
+    AngleDegree(120).refineUnsafe[HexagonInteriorAngle]
+
+  private def createHexagonNetRefined(
+      width: PositiveInt,
+      height: PositiveInt,
+      angle: HexagonAngle = defaultHexagonAngle
+  ): Either[TilingError, TilingDCEL] =
+    Right(createHexagonNetUnsafe(width, height, angle))
+
+  private inline def unwrap[A, C](value: A :| C): A =
+    value.asInstanceOf[A]
+
+  private def createHexagonNetUnsafe(
+      width: PositiveInt,
+      height: PositiveInt,
+      angle: HexagonAngle
+  ): TilingDCEL =
+    val w = unwrap(width)
+    val h = unwrap(height)
+    val alpha = unwrap(angle)
+
     val beta: AngleDegree = (alpha / 2).supplement
 
     // Interior angles per vertex in CCW order: [alpha, beta, beta, alpha, beta, beta]
@@ -458,12 +510,12 @@ object TilingBuilder:
         }
       )
 
-    val faces  = netFaces(height, width)
+    val faces  = netFaces(h, w)
     val fOuter = Face.outer
 
     for
-      j <- 0 until height
-      i <- 0 until width
+      j <- 0 until h
+      i <- 0 until w
     do
       val face       = faces(j)(i)
       val b          = baseTriple(i, j)

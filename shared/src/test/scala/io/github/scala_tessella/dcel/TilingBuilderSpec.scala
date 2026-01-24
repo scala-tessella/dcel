@@ -170,21 +170,21 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
 
     /** <img src="file:../../../../../resources/hexagonNet.svg"/> */
     val hexagonNet: TilingDCEL =
-      TilingBuilder.createHexagonNet(3, 3, AngleDegree(90))
+      TilingBuilder.createHexagonNet(3, 3, AngleDegree(90)).value
     validate(hexagonNet).isRight shouldBe true
 
-  it should "return an empty tiling for non-positive dimensions" in:
+  it should "return an error for non-positive dimensions" in:
     allAssert(
-      TilingBuilder.createHexagonNet(0, 3, AngleDegree(120)).isEmpty shouldBe true,
-      TilingBuilder.createHexagonNet(3, 0, AngleDegree(120)).isEmpty shouldBe true,
-      TilingBuilder.createHexagonNet(-1, 2, AngleDegree(120)).isEmpty shouldBe true,
-      TilingBuilder.createHexagonNet(2, -1, AngleDegree(120)).isEmpty shouldBe true
+      TilingBuilder.createHexagonNet(0, 3, AngleDegree(120)).isLeft shouldBe true,
+      TilingBuilder.createHexagonNet(3, 0, AngleDegree(120)).isLeft shouldBe true,
+      TilingBuilder.createHexagonNet(-1, 2, AngleDegree(120)).isLeft shouldBe true,
+      TilingBuilder.createHexagonNet(2, -1, AngleDegree(120)).isLeft shouldBe true
     )
 
-  it should "return an empty tiling for invalid interior angles" in:
+  it should "return an error for invalid interior angles" in:
     allAssert(
-      TilingBuilder.createHexagonNet(3, 3, AngleDegree(0)).isEmpty shouldBe true,
-      TilingBuilder.createHexagonNet(3, 3, AngleDegree(180)).isEmpty shouldBe true
+      TilingBuilder.createHexagonNet(3, 3, AngleDegree(0)).isLeft shouldBe true,
+      TilingBuilder.createHexagonNet(3, 3, AngleDegree(180)).isLeft shouldBe true
     )
 
   behavior of "TilingBuilder.createRing"

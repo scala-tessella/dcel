@@ -52,11 +52,11 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
     )
 
   it should "calculate the rotational symmetry for a 2x1 hexagon net" in:
-    val hex2x1 = TilingBuilder.createHexagonNet(2, 1)
+    val hex2x1 = TilingBuilder.createHexagonNet(2, 1).value
     hex2x1.rotationalSymmetryOrder shouldBe 2
 
   it should "calculate the rotational symmetry for a 4x4 hexagon net" in:
-    val hex4x4 = TilingBuilder.createHexagonNet(4, 4)
+    val hex4x4 = TilingBuilder.createHexagonNet(4, 4).value
     hex4x4.rotationalSymmetryOrder shouldBe 2
 
   /** <img src="file:../../../../../resources/symmetry/oneAsymmHole.svg"/> */
@@ -175,11 +175,11 @@ class TilingSymmetrySpec extends AnyFlatSpec with Matchers with TilingTestHelper
     hexagon.reflectionalSymmetryOrder shouldBe 6
 
   it should "calculate the reflectional symmetry for a 2x1 hexagon net" in:
-    val hex2x1 = TilingBuilder.createHexagonNet(2, 1)
+    val hex2x1 = TilingBuilder.createHexagonNet(2, 1).value
     hex2x1.reflectionalSymmetryOrder shouldBe 2
 
   it should "calculate the reflectional symmetry for a 4x4 hexagon net" in:
-    val hex4x4 = TilingBuilder.createHexagonNet(4, 4)
+    val hex4x4 = TilingBuilder.createHexagonNet(4, 4).value
     hex4x4.reflectionalSymmetryOrder shouldBe 2
 
   it should "calculate the reflectional symmetry for a modified 4x4 square" in:

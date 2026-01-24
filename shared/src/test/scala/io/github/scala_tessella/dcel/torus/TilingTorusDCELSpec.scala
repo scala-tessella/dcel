@@ -233,7 +233,7 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
 //    )
 
   it should "be converted from a 4x4 hexagon net" in:
-    val tilingDCEL     = TilingBuilder.createHexagonNet(4, 4)
+    val tilingDCEL     = TilingBuilder.createHexagonNet(4, 4).value
 //    println(tilingDCEL.toTorusCheck)
     val torus          = TilingTorusDCEL.fromTilingDCEL(tilingDCEL).value
     val uScale: Double = 1.0 / (4 * 1.5)
@@ -247,7 +247,7 @@ class TilingTorusDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
     )
 
   it should "be converted from a 8x8 hexagon net" in:
-    val tilingDCEL = TilingBuilder.createHexagonNet(8, 8)
+    val tilingDCEL = TilingBuilder.createHexagonNet(8, 8).value
 //    println(tilingDCEL.toTorusCheck)
     val torus      = TilingTorusDCEL.fromTilingDCEL(tilingDCEL).value
 //    val uScale: Double = 1.0 / (8 * 1.5)

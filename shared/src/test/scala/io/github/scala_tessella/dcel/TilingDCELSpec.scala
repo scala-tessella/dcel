@@ -349,7 +349,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     )
 
   it should "double a 3x2 hex net along the longest segment" in:
-    val doubled = TilingBuilder.createHexagonNet(3, 2).doubleArea
+    val doubled = TilingBuilder.createHexagonNet(3, 2).value.doubleArea
     val result  = doubled.value
     allAssert(
       result.halfEdges.size shouldBe 98,
@@ -359,7 +359,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     )
 
   it should "double a 2x3 hex net along the longest segment" in:
-    val doubled = TilingBuilder.createHexagonNet(2, 3).doubleArea
+    val doubled = TilingBuilder.createHexagonNet(2, 3).value.doubleArea
     val result  = doubled.value
     allAssert(
       result.halfEdges.size shouldBe 98,

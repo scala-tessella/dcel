@@ -101,7 +101,7 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
 
   they should "be true for a 8x8 joined regular hexagons boundary" in:
     val sixtyFourJoinedHexs: SimplePolygon =
-      TilingBuilder.createHexagonNet(8, 8).boundarySimplePolygon
+      TilingBuilder.createHexagonNet(8, 8).value.boundarySimplePolygon
 //    println(sixtyFourJoinedHexs.toParallelogonTiling())
     allAssert(
       sixtyFourJoinedHexs.parallelogonIndices shouldBe List(0, 3, 18, 31, 34, 49),
