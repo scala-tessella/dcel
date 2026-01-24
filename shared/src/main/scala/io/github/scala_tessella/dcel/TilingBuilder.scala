@@ -425,17 +425,14 @@ object TilingBuilder:
   ): Either[TilingError, TilingDCEL] =
     Right(createHexagonNetUnsafe(width, height, angle))
 
-  private inline def unwrap[A, C](value: A :| C): A =
-    value.asInstanceOf[A]
-
   private def createHexagonNetUnsafe(
       width: PositiveInt,
       height: PositiveInt,
       angle: HexagonAngle
   ): TilingDCEL =
-    val w = unwrap(width)
-    val h = unwrap(height)
-    val alpha = unwrap(angle)
+    val w: Int = width
+    val h: Int = height
+    val alpha: AngleDegree = angle
 
     val beta: AngleDegree = (alpha / 2).supplement
 
