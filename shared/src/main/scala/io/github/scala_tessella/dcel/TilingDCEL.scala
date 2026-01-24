@@ -106,8 +106,7 @@ final case class TilingDCEL private (
       face <- findInnerFace(faceId)
     yield face.getVerticesUnsafe
 
-  private[dcel] def getAnglesAtVertexUnsafe(vertexId: VertexId): List[AngleDegree] =
-    val vertex = findVertexUnsafe(vertexId).get
+  private[dcel] def getAnglesAtVertexUnsafe(vertex: Vertex): List[AngleDegree] =
     val edges  = vertex.incidentEdgesUnsafe
     edges.map: halfEdge =>
       halfEdge.angle.get
@@ -120,10 +119,9 @@ final case class TilingDCEL private (
   def getAnglesAtVertex(vertexId: VertexId): Either[NotFoundError, List[AngleDegree]] =
     for
       vertex <- findVertex(vertexId)
-    yield getAnglesAtVertexUnsafe(vertexId)
+    yield getAnglesAtVertexUnsafe(vertex)
 
-  private[dcel] def getInnerAnglesAtVertexUnsafe(vertexId: VertexId): List[AngleDegree] =
-    val vertex            = findVertexUnsafe(vertexId).get
+  private[dcel] def getInnerAnglesAtVertexUnsafe(vertex: Vertex): List[AngleDegree] =
     val edges             = vertex.incidentEdgesUnsafe
     val boundaryEdgeIndex =
       edges.indexWhere: halfEdge =>
@@ -143,7 +141,7 @@ final case class TilingDCEL private (
   def getInnerAnglesAtVertex(vertexId: VertexId): Either[NotFoundError, List[AngleDegree]] =
     for
       vertex <- findVertex(vertexId)
-    yield getInnerAnglesAtVertexUnsafe(vertexId)
+    yield getInnerAnglesAtVertexUnsafe(vertex)
 
   /** Retrieves a reduced TilingDCEL around a vertex containing only the polygons reached within the given
     * vertex-distance. Distance is clamped to >= 0.
