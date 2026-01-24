@@ -1,5 +1,6 @@
 package io.github.scala_tessella.dcel
 
+import io.github.scala_tessella.dcel.TilingBuilder.*
 import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
 
 import scala.annotation.tailrec
@@ -152,7 +153,7 @@ object TilingDeletion:
           verticesInUse.contains(vertex)
 
       updateVertexLeavingPointers(finalVertices, removedEdges, finalHalfEdges)
-      recalculateBoundaryAngles(boundaryTwins, innerTwins)
+      recalculateBoundaryAngles(boundaryTwins, innerTwins, finalHalfEdges)
 
       TilingDCEL(
         vertices = finalVertices,
@@ -173,7 +174,11 @@ object TilingDeletion:
           vertex.leaving = finalHalfEdges.find: halfEdge =>
             halfEdge.origin == vertex
 
-    private def recalculateBoundaryAngles(boundaryTwins: List[HalfEdge], innerTwins: List[HalfEdge]): Unit =
+    private def recalculateBoundaryAngles(
+        boundaryTwins: List[HalfEdge],
+        innerTwins: List[HalfEdge],
+        allHalfEdges: List[HalfEdge]
+    ): Unit =
       val fromBoundary          =
         boundaryTwins.map: halfEdge =>
           halfEdge.origin
@@ -182,13 +187,11 @@ object TilingDeletion:
           List(halfEdge.origin, halfEdge.destinationUnsafe)
       val verticesOnNewBoundary =
         (fromBoundary ::: fromInner).distinct
-      verticesOnNewBoundary.foreach: vertex =>
-        val angleSum = vertex.currentInteriorAngleSumUnsafe(tiling.outerFace)
-        vertex.incidentEdgesUnsafe
-          .find: halfEdge =>
+      val boundaryEdges =
+        verticesOnNewBoundary.flatMap: vertex =>
+          vertex.incidentEdgesUnsafe.find: halfEdge =>
             tiling.isBoundaryEdge(halfEdge)
-          .foreach: halfEdge =>
-            halfEdge.angle = Some(angleSum.conjugate)
+      allHalfEdges.setOuterEdgeAngles(boundaryEdges.distinct, tiling.outerFace)
 
     private def deleteIncidentFace(halfEdge: HalfEdge): Either[TilingError, TilingDCEL] =
       halfEdge.incidentFace
