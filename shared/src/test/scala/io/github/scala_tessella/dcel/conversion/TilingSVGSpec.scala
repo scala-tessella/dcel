@@ -623,7 +623,7 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
       vertices.isEmpty shouldBe true,
       halfEdges.isEmpty shouldBe true,
       faces.size shouldBe 1,
-      faces.head.get("id") shouldBe Some("0"),
+      faces.head.get("id") shouldBe Some("F0"),
       faces.head.get("outer-component") shouldBe None
     )
 

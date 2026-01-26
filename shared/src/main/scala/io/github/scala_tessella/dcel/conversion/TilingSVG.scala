@@ -992,7 +992,7 @@ object TilingSVG:
 
       val vertexNodes  = tiling.vertices.map: vertex =>
         val attrsList = List(
-          Some("id" -> vertex.id.toString),
+          Some("id" -> vertex.id.toPrefixedString),
           Some("x"  -> vertex.coords.x.toString),
           Some("y"  -> vertex.coords.y.toString),
           vertex.leaving
@@ -1009,7 +1009,7 @@ object TilingSVG:
           .map: (halfEdge, id) =>
             val attrsList = List(
               Some("id"     -> id),
-              Some("origin" -> halfEdge.origin.id.toString),
+              Some("origin" -> halfEdge.origin.id.toPrefixedString),
               halfEdge.twin
                 .flatMap: twinHalfEdge =>
                   halfEdgeIds.get(twinHalfEdge)
@@ -1026,7 +1026,7 @@ object TilingSVG:
                 .map: prevId =>
                   "prev" -> prevId,
               halfEdge.incidentFace.map: face =>
-                "face" -> face.id.toString,
+                "face" -> face.id.toPrefixedString,
               halfEdge.angle.map: angleDegree =>
                 "angle" -> angleDegree.toRational
             ).flatten
@@ -1036,7 +1036,7 @@ object TilingSVG:
       val faceNodes = tiling.faces.map: f =>
         val attrsList =
           List(
-            Some("id" -> f.id.toString),
+            Some("id" -> f.id.toPrefixedString),
             f.outerComponent
               .flatMap: halfEdge =>
                 halfEdgeIds.get(halfEdge)
@@ -1125,10 +1125,10 @@ object TilingSVG:
       vertices <- vertexAttrs
                     .map: attrs =>
                       for
-                        id <- attrAs(attrs, "vertex", "id", _.toInt, "Int")
+                        id <- attrAs(attrs, "vertex", "id", VertexId.fromStringUnsafe, "VertexId")
                         x  <- attrAs(attrs, "vertex", "x", BigDecimal.apply, "BigDecimal")
                         y  <- attrAs(attrs, "vertex", "y", BigDecimal.apply, "BigDecimal")
-                      yield Vertex(VertexId(id), BigPoint(x, y))
+                      yield Vertex(id, BigPoint(x, y))
                     .sequence
       vertexMap = vertices.associateValues:
                     _.id
@@ -1141,8 +1141,9 @@ object TilingSVG:
       heAllocated  <- heIdAndAttrs
                         .map: (id, attrs) =>
                           for
-                            originId <- attrAs(attrs, "half-edge", "origin", _.toInt, "Int")
-                            origin   <- vertexMap.get(VertexId(originId)).toRight(
+                            originId <-
+                              attrAs(attrs, "half-edge", "origin", VertexId.fromStringUnsafe, "VertexId")
+                            origin   <- vertexMap.get(originId).toRight(
                                           NotFoundError("Vertex for half-edge origin", originId.toString)
                                         )
                           yield id -> HalfEdge(origin)
@@ -1153,8 +1154,8 @@ object TilingSVG:
                         .map((_, halfEdge) => halfEdge)
 
       faces  <- faceAttrs.map(attrs =>
-                  for id <- attrAs(attrs, "face", "id", _.toInt, "Int")
-                  yield Face(FaceId(id))
+                  for id <- attrAs(attrs, "face", "id", FaceId.fromStringUnsafe, "FaceId")
+                  yield Face(id)
                 ).sequence
       faceMap = faces.associateValues:
                   _.id
@@ -1184,8 +1185,8 @@ object TilingSVG:
                prevId       <- attrAs(attrs, "half-edge", "prev", _.toInt, "Int")
                prevEdge     <- halfEdgeMap.get(prevId).toRight(NotFoundError("Prev edge", prevId.toString))
                _             = he.prev = Some(prevEdge)
-               faceId       <- attrAs(attrs, "half-edge", "face", _.toInt, "Int")
-               incidentFace <- faceMap.get(FaceId(faceId)).toRight(
+               faceId       <- attrAs(attrs, "half-edge", "face", FaceId.fromStringUnsafe, "FaceId")
+               incidentFace <- faceMap.get(faceId).toRight(
                                  NotFoundError("Incident face", faceId.toString)
                                )
                _             = he.incidentFace = Some(incidentFace)
