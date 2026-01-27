@@ -1084,6 +1084,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val result = triangle.rawFan(originVertex)
 
     allAssert(
+      factor shouldBe 5,
       result.isRight shouldBe true, {
         val grown = result.value
         allAssert(
@@ -1102,6 +1103,45 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val result = square.rawFan(originVertex)
 
     allAssert(
+      factor shouldBe 3,
+      result.isRight shouldBe true, {
+        val grown = result.value
+        allAssert(
+          grown.innerFaces.size shouldBe (factor + 1),
+          verifyValidTiling(grown)
+        )
+      }
+    )
+
+  it should "expand a rhombus fan around a boundary vertex" in :
+    val originVertex = rhombus.vertices.find(_.id == V1).get
+    val angleSum = originVertex.currentInteriorAngleSumUnsafe(square.outerFace)
+    val factor =
+      math.floor(AngleDegree(360).toRational.toDouble / angleSum.toRational.toDouble).toInt - 1
+
+    val result = rhombus.rawFan(originVertex)
+
+    allAssert(
+      factor shouldBe 5,
+      result.isRight shouldBe true, {
+        val grown = result.value
+        allAssert(
+          grown.innerFaces.size shouldBe (factor + 1),
+          verifyValidTiling(grown)
+        )
+      }
+    )
+
+  it should "expand a rhombus fan around another boundary vertex" in :
+    val originVertex = rhombus.vertices.find(_.id == V2).get
+    val angleSum = originVertex.currentInteriorAngleSumUnsafe(square.outerFace)
+    val factor =
+      math.floor(AngleDegree(360).toRational.toDouble / angleSum.toRational.toDouble).toInt - 1
+
+    val result = rhombus.rawFan(originVertex)
+
+    allAssert(
+      factor shouldBe 2,
       result.isRight shouldBe true, {
         val grown = result.value
         allAssert(
