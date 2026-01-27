@@ -316,6 +316,13 @@ final case class TilingDCEL private (
         case Some((origin, repeat))                              =>
           Right(this.rawDouble(boundaryVertices(origin), boundaryVertices(repeat)))
 
+  def fanAt(vertexId: VertexId): Either[TilingError, TilingDCEL] =
+    for
+      vertex <- findVertex(vertexId)
+      result <- this.rawFan(vertex)
+    yield
+      result
+
   def maybeDeleteVertex(vertexId: VertexId): Either[TilingError, TilingDCEL] =
     this.deepCopy.deleteVertex(vertexId)
 
