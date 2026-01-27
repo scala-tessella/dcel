@@ -6,11 +6,13 @@ import io.github.scala_tessella.dcel.geometry.{
   AngleDegree,
   BigLineSegment,
   BigPoint,
+  BigRadian,
   RegularPolygon,
   SimplePolygon
 }
 import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
 import io.github.scala_tessella.ring_seq.RingSeq.{rotateRight, slidingO}
+import spire.implicits.BigDecimalIsTrig
 
 import scala.annotation.tailrec
 
@@ -184,6 +186,224 @@ object TilingAddition:
       Right(())
 
   private type OldNewVertexPair = (oldVertex: Vertex, newVertex: Vertex)
+
+  private def mergeTilings(base: TilingDCEL, other: TilingDCEL): TilingDCEL =
+    // -----------------------------------------------------------------------
+    // 1. Identify coincident vertices between base and other
+    // -----------------------------------------------------------------------
+    import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.ACCURACY
+    import scala.collection.mutable
+
+    val sharedVertexPairs: List[(Vertex, Vertex)] =
+      base.vertices.sameCoords(other.vertices, accuracy = ACCURACY)
+
+    // Map: "secondary" (other) vertex id -> "primary" (base) vertex id
+    val substitutionMap: Map[VertexId, VertexId] =
+      sharedVertexPairs
+        .map: (orig, copied) =>
+          copied.id -> orig.id
+        .toMap
+
+    def repOf(id: VertexId): VertexId =
+      substitutionMap.getOrElse(id, id)
+
+    val allOldVertices: List[Vertex] =
+      base.vertices ++ other.vertices
+
+    // Representative id -> merged Vertex
+    val repToVertex = mutable.HashMap.empty[VertexId, Vertex]
+
+    allOldVertices.foreach: vertex =>
+      val r = repOf(vertex.id)
+      if !repToVertex.contains(r) then
+        // Use coordinates of the first encountered vertex in that equivalence class
+        repToVertex(r) = Vertex(r, vertex.coords)
+
+    // Every old vertex id maps to its merged vertex
+    val newVertexOfId: Map[VertexId, Vertex] =
+      allOldVertices
+        .map: vertex =>
+          vertex.id -> repToVertex(repOf(vertex.id))
+        .toMap
+
+    val newVertices: List[Vertex] =
+      repToVertex.values.toList
+
+    // -----------------------------------------------------------------------
+    // 2. Clone half-edges and faces for the union of the two tilings
+    // -----------------------------------------------------------------------
+    val allOldEdges: List[HalfEdge] =
+      base.halfEdges ++ other.halfEdges
+
+    val allOldFaces: List[Face] =
+      // include both outers and inners, but we will rebuild the single outer face later
+      (base.outerFace :: base.innerFaces) ++ (other.outerFace :: other.innerFaces)
+
+    val edgeMap = mutable.HashMap.empty[HalfEdge, HalfEdge]
+    // 2.a – create new edges with merged origins and copy angles only
+    allOldEdges.foreach: halfEdge =>
+      val newOrigin = newVertexOfId(halfEdge.origin.id)
+      val ne        = HalfEdge(newOrigin)
+      ne.angle = halfEdge.angle
+      edgeMap(halfEdge) = ne
+
+    // 2.b – create inner faces only (discard old outers, we will recompute boundary)
+    val faceMap = mutable.HashMap.empty[Face, Face]
+    allOldFaces.foreach: face =>
+      if face.id != FaceId.outerId then
+        faceMap.getOrElseUpdate(face, Face(face.id)): Unit
+
+    // 2.c – wire next / prev / incidentFace from old to new via maps
+    allOldEdges.foreach:
+      oldEdge =>
+        val newEdge = edgeMap(oldEdge)
+        oldEdge.next.foreach: on =>
+          newEdge.next = Some(edgeMap(on))
+        oldEdge.prev.foreach: op =>
+          newEdge.prev = Some(edgeMap(op))
+        oldEdge.incidentFace.foreach:
+          oldFace =>
+            if oldFace.id != FaceId.outerId then
+              // inner face
+              newEdge.incidentFace = Some(faceMap(oldFace))
+            // else: old outer face, leave as boundary (incidentFace = None)
+
+    // 2.d – set outerComponent / innerComponents on inner faces only
+    allOldFaces.foreach: face =>
+      if face.id != FaceId.outerId then
+        val newFace = faceMap(face)
+        face.outerComponent.foreach: startOld =>
+          newFace.outerComponent = Some(edgeMap(startOld))
+        newFace.innerComponents =
+          face.innerComponents.map: maybeHalfEdge =>
+            maybeHalfEdge.map: halfEdge =>
+              edgeMap(halfEdge)
+
+    // 2.e – (re)wire twins purely by endpoints in the merged graph
+    val dirBuckets =
+      mutable.HashMap.empty[(VertexId, VertexId), mutable.ArrayBuffer[HalfEdge]]
+
+    edgeMap.values.foreach: e =>
+      e.next.foreach: n =>
+        val key = (e.origin.id, n.origin.id)
+        val buf = dirBuckets.getOrElseUpdate(key, mutable.ArrayBuffer.empty[HalfEdge])
+        buf += e
+
+    dirBuckets.foreach:
+      case ((o, d), buf) =>
+        val oppKey = (d, o)
+        dirBuckets.get(oppKey).foreach: oppBuf =>
+          val count = math.min(buf.size, oppBuf.size)
+          var i     = 0
+          while i < count do
+            val e1 = buf(i)
+            val e2 = oppBuf(i)
+            if e1.twin.isEmpty && e2.twin.isEmpty then
+              e1.twinWith(e2)
+            i += 1
+
+    // -----------------------------------------------------------------------
+    // 3. Collapse duplicated seam edges (same origin/destination)
+    // -----------------------------------------------------------------------
+    val allNewEdgesInitial: List[HalfEdge] =
+      edgeMap.values.toList
+
+    val toRemove = mutable.Set.empty[HalfEdge]
+
+    // Group by undirected key (min(originId, destId), max(originId, destId))
+    val byUndirected: Map[(VertexId, VertexId), List[HalfEdge]] =
+      allNewEdgesInitial
+        .map: halfEdge =>
+          val oId = halfEdge.origin.id
+          val dId = halfEdge.destinationUnsafe.id
+          if oId.value <= dId.value then ((oId, dId), halfEdge) else ((dId, oId), halfEdge)
+        .groupMap((vertexIdPair, _) => vertexIdPair): (_, halfEdge) =>
+          halfEdge
+
+    byUndirected.values.foreach: edges =>
+      // Partition by direction (origin,dest)
+      val byDir = edges.groupBy: e =>
+        (e.origin.id, e.destinationUnsafe.id)
+      if byDir.size >= 2 then
+        // One representative per direction, prefer edges with an incident inner face
+        val mainPerDir: Map[(VertexId, VertexId), HalfEdge] =
+          byDir.view
+            .mapValues: sameDirEdges =>
+              sameDirEdges
+                .find:
+                  _.incidentFace.isDefined
+                .getOrElse(sameDirEdges.head)
+            .toMap
+
+        // Wire the two main directions as twins
+        val mains = mainPerDir.values.toList
+        if mains.size == 2 then
+          val a = mains.head
+          val b = mains(1)
+          a.twinWith(b)
+
+        // All other edges in each direction are redundant; rewire their neighbours to the main
+        byDir.foreach:
+          case ((origId, destId), sameDirEdges) =>
+            if sameDirEdges.size > 1 then
+              val main = mainPerDir((origId, destId))
+              sameDirEdges.foreach: redundant =>
+                if redundant ne main then
+                  // Redirect prev / next around redundant edge to main
+                  redundant.prev.foreach: p =>
+                    if p.next.contains(redundant) then p.next = Some(main)
+                  redundant.next.foreach: n =>
+                    if n.prev.contains(redundant) then n.prev = Some(main)
+                  toRemove += redundant
+
+    val allNewEdgesNoDuplicates: List[HalfEdge] =
+      allNewEdgesInitial.filterNot(toRemove.contains)
+
+    // -----------------------------------------------------------------------
+    // 4. Rebuild outer face and assign boundary edges
+    // -----------------------------------------------------------------------
+    // Boundary edges are those not incident to any inner face
+    val boundaryEdges =
+      allNewEdgesNoDuplicates.filter:
+        _.incidentFace.isEmpty
+
+    val newOuterFace = Face(FaceId.outerId)
+
+    if boundaryEdges.nonEmpty then
+      val ordered = boundaryEdges.orderBoundary
+      // Link boundary cycle and assign outer face
+      ordered.linkInCycle()
+      ordered.foreach: e =>
+        e.incidentFace = Some(newOuterFace)
+      newOuterFace.outerComponent = ordered.headOption
+      // Recompute boundary angles from incident inner angles, as in TilingBuilder.setOuterAngles
+      ordered.foreach: outerEdge =>
+        val vertex         = outerEdge.origin
+        val incidentAtV    = allNewEdgesNoDuplicates.filter:
+          _.origin eq vertex
+        val innerAnglesSum = incidentAtV.interiorAnglesSum(newOuterFace)
+        outerEdge.angle = Some(innerAnglesSum.conjugate)
+
+    // -----------------------------------------------------------------------
+    // 5. Ensure each merged vertex has a leaving edge
+    // -----------------------------------------------------------------------
+    val allNewEdges = allNewEdgesNoDuplicates
+
+    newVertices.foreach: vertex =>
+      // Prefer a boundary edge as leaving if available, else any incident edge
+      val boundaryLeaving = boundaryEdges.find:
+        _.origin eq vertex
+      val anyLeaving      = allNewEdges.find:
+        _.origin eq vertex
+      vertex.leaving = boundaryLeaving.orElse(anyLeaving)
+
+    // -----------------------------------------------------------------------
+    // 6. Build merged faces lists and validate
+    // -----------------------------------------------------------------------
+    val newInnerFaces: List[Face] =
+      faceMap.values.toList
+
+    TilingDCEL(newVertices, allNewEdges, newInnerFaces, newOuterFace)
 
   extension (tiling: TilingDCEL)
 
@@ -657,232 +877,7 @@ object TilingAddition:
           faceIdTranslation
         )
 
-      // -----------------------------------------------------------------------
-      // 1. Identify coincident vertices between original and translated copy
-      // -----------------------------------------------------------------------
-      import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.ACCURACY
-
-      val sharedVertexPairs: List[(Vertex, Vertex)] =
-        tiling.vertices.sameCoords(translated.vertices, accuracy = ACCURACY)
-
-      // Map: "secondary" (translated) vertex id -> "primary" (original) vertex id
-      val substitutionMap: Map[VertexId, VertexId] =
-        sharedVertexPairs
-          .map: (orig, copied) =>
-            copied.id -> orig.id
-          .toMap
-
-      // -----------------------------------------------------------------------
-      // 2. Build merged vertex set by identifying coincident vertices
-      // -----------------------------------------------------------------------
-      import scala.collection.mutable
-
-      def repOf(id: VertexId): VertexId =
-        substitutionMap.getOrElse(id, id)
-
-      val allOldVertices: List[Vertex] =
-        tiling.vertices ++ translated.vertices
-
-      // Representative id -> merged Vertex
-      val repToVertex = mutable.HashMap.empty[VertexId, Vertex]
-
-      allOldVertices.foreach: vertex =>
-        val r = repOf(vertex.id)
-        if !repToVertex.contains(r) then
-          // Use coordinates of the first encountered vertex in that equivalence class
-          repToVertex(r) = Vertex(r, vertex.coords)
-
-      // Every old vertex id maps to its merged vertex
-      val newVertexOfId: Map[VertexId, Vertex] =
-        allOldVertices
-          .map: vertex =>
-            vertex.id -> repToVertex(repOf(vertex.id))
-          .toMap
-
-      val newVertices: List[Vertex] =
-        repToVertex.values.toList
-
-      // -----------------------------------------------------------------------
-      // 3. Clone half-edges and faces for the union of the two tilings
-      // -----------------------------------------------------------------------
-      val allOldEdges: List[HalfEdge] =
-        tiling.halfEdges ++ translated.halfEdges
-
-      val allOldFaces: List[Face] =
-        // include both outers and inners, but we will rebuild the single outer face later
-        (tiling.outerFace :: tiling.innerFaces) ++ (translated.outerFace :: translated.innerFaces)
-
-      val edgeMap = mutable.HashMap.empty[HalfEdge, HalfEdge]
-      // 3.a – create new edges with merged origins and copy angles only
-      allOldEdges.foreach: halfEdge =>
-        val newOrigin = newVertexOfId(halfEdge.origin.id)
-        val ne        = HalfEdge(newOrigin)
-        ne.angle = halfEdge.angle
-        edgeMap(halfEdge) = ne
-
-      // 3.b – create inner faces only (discard old outers, we will recompute boundary)
-      val faceMap = mutable.HashMap.empty[Face, Face]
-      allOldFaces.foreach: face =>
-        if face.id != FaceId.outerId then
-          faceMap.getOrElseUpdate(face, Face(face.id)): Unit
-
-      // 3.c – wire next / prev / incidentFace from old to new via maps
-      allOldEdges.foreach:
-        oldEdge =>
-          val newEdge = edgeMap(oldEdge)
-          oldEdge.next.foreach: on =>
-            newEdge.next = Some(edgeMap(on))
-          oldEdge.prev.foreach: op =>
-            newEdge.prev = Some(edgeMap(op))
-          oldEdge.incidentFace.foreach:
-            oldFace =>
-              if oldFace.id != FaceId.outerId then
-                // inner face
-                newEdge.incidentFace = Some(faceMap(oldFace))
-              // else: old outer face, leave as boundary (incidentFace = None)
-
-      // 3.d – set outerComponent / innerComponents on inner faces only
-      allOldFaces.foreach: face =>
-        if face.id != FaceId.outerId then
-          val newFace = faceMap(face)
-          face.outerComponent.foreach: startOld =>
-            newFace.outerComponent = Some(edgeMap(startOld))
-          newFace.innerComponents =
-            face.innerComponents.map: maybeHalfEdge =>
-              maybeHalfEdge.map: halfEdge =>
-                edgeMap(halfEdge)
-
-      // 3.e – (re)wire twins purely by endpoints in the merged graph
-      val dirBuckets =
-        mutable.HashMap.empty[(VertexId, VertexId), mutable.ArrayBuffer[HalfEdge]]
-
-      edgeMap.values.foreach: e =>
-        e.next.foreach: n =>
-          val key = (e.origin.id, n.origin.id)
-          val buf = dirBuckets.getOrElseUpdate(key, mutable.ArrayBuffer.empty[HalfEdge])
-          buf += e
-
-      dirBuckets.foreach:
-        case ((o, d), buf) =>
-          val oppKey = (d, o)
-          dirBuckets.get(oppKey).foreach: oppBuf =>
-            val count = math.min(buf.size, oppBuf.size)
-            var i     = 0
-            while i < count do
-              val e1 = buf(i)
-              val e2 = oppBuf(i)
-              if e1.twin.isEmpty && e2.twin.isEmpty then
-                e1.twinWith(e2)
-              i += 1
-
-      // -----------------------------------------------------------------------
-      // 3.f – collapse duplicated seam edges (same origin/destination)
-      // -----------------------------------------------------------------------
-      val allNewEdgesInitial: List[HalfEdge] =
-        edgeMap.values.toList
-
-      val toRemove = mutable.Set.empty[HalfEdge]
-
-      // Group by undirected key (min(originId, destId), max(originId, destId))
-      val byUndirected: Map[(VertexId, VertexId), List[HalfEdge]] =
-        allNewEdgesInitial
-          .map: halfEdge =>
-            val oId = halfEdge.origin.id
-            val dId = halfEdge.destinationUnsafe.id
-            if oId.value <= dId.value then ((oId, dId), halfEdge) else ((dId, oId), halfEdge)
-          .groupMap((vertexIdPair, _) => vertexIdPair): (_, halfEdge) =>
-            halfEdge
-
-      byUndirected.values.foreach: edges =>
-        // Partition by direction (origin,dest)
-        val byDir = edges.groupBy: e =>
-          (e.origin.id, e.destinationUnsafe.id)
-        if byDir.size >= 2 then
-          // One representative per direction, prefer edges with an incident inner face
-          val mainPerDir: Map[(VertexId, VertexId), HalfEdge] =
-            byDir.view
-              .mapValues: sameDirEdges =>
-                sameDirEdges
-                  .find:
-                    _.incidentFace.isDefined
-                  .getOrElse(sameDirEdges.head)
-              .toMap
-
-          // Wire the two main directions as twins
-          val mains = mainPerDir.values.toList
-          if mains.size == 2 then
-            val a = mains.head
-            val b = mains(1)
-            a.twinWith(b)
-
-          // All other edges in each direction are redundant; rewire their neighbours to the main
-          byDir.foreach:
-            case ((origId, destId), sameDirEdges) =>
-              if sameDirEdges.size > 1 then
-                val main = mainPerDir((origId, destId))
-                sameDirEdges.foreach: redundant =>
-                  if redundant ne main then
-                    // Redirect prev / next around redundant edge to main
-                    redundant.prev.foreach: p =>
-                      if p.next.contains(redundant) then p.next = Some(main)
-                    redundant.next.foreach: n =>
-                      if n.prev.contains(redundant) then n.prev = Some(main)
-                    toRemove += redundant
-
-      val allNewEdgesNoDuplicates: List[HalfEdge] =
-        allNewEdgesInitial.filterNot(toRemove.contains)
-
-      // -----------------------------------------------------------------------
-      // 4. Rebuild outer face and assign boundary edges
-      // -----------------------------------------------------------------------
-      // Boundary edges are those not incident to any inner face
-      val boundaryEdges =
-        allNewEdgesNoDuplicates.filter:
-          _.incidentFace.isEmpty
-
-      val newOuterFace = Face(FaceId.outerId)
-
-      if boundaryEdges.nonEmpty then
-        val ordered = boundaryEdges.orderBoundary
-        // Link boundary cycle and assign outer face
-        ordered.linkInCycle()
-        ordered.foreach: e =>
-          e.incidentFace = Some(newOuterFace)
-        newOuterFace.outerComponent = ordered.headOption
-        // Recompute boundary angles from incident inner angles, as in TilingBuilder.setOuterAngles
-        ordered.foreach: outerEdge =>
-          val vertex         = outerEdge.origin
-          val incidentAtV    = allNewEdgesNoDuplicates.filter:
-            _.origin eq vertex
-          val innerAnglesSum = incidentAtV.interiorAnglesSum(newOuterFace)
-          outerEdge.angle = Some(innerAnglesSum.conjugate)
-
-      // -----------------------------------------------------------------------
-      // 5. Ensure each merged vertex has a leaving edge
-      // -----------------------------------------------------------------------
-      val allNewEdges = allNewEdgesNoDuplicates
-
-      newVertices.foreach: vertex =>
-        // Prefer a boundary edge as leaving if available, else any incident edge
-        val boundaryLeaving = boundaryEdges.find:
-          _.origin eq vertex
-        val anyLeaving      = allNewEdges.find:
-          _.origin eq vertex
-        vertex.leaving = boundaryLeaving.orElse(anyLeaving)
-
-      // -----------------------------------------------------------------------
-      // 6. Build merged faces lists and validate
-      // -----------------------------------------------------------------------
-      val newInnerFaces: List[Face] =
-        faceMap.values.toList
-
-      //          TilingDCEL.fromUntrusted(
-      //            vertices = newVertices,
-      //            halfEdges = allNewEdges,
-      //            innerFaces = newInnerFaces,
-      //            outerFace = newOuterFace
-      //          )
-      TilingDCEL(newVertices, allNewEdges, newInnerFaces, newOuterFace)
+      mergeTilings(tiling, translated)
 
     /** Multiply the tiling as a fan centered at the given vertex.
      *
@@ -894,15 +889,100 @@ object TilingAddition:
         Right(tiling)
       else
         // 1. check if origin is the id of an existing boundary vertex, otherwise return a validation error
+        val originId = origin.id
+        if !tiling.boundaryVertices.exists(_.id == originId) then
+          return Left(ValidationError(s"Vertex ${origin.id.toPrefixedString} is not on the boundary."))
+
         // 2. calculate max multiplication factor, is the integer part of 360° divided by the sum interior angles, minus 1
+        val anglesSum = origin.currentInteriorAngleSumUnsafe(tiling.outerFace)
+        val factor    =
+          (math.floor(AngleDegree(360).toRational.toDouble / anglesSum.toRational.toDouble).toInt - 1)
+
         // 3. if it is 0 (the interior angles more than 180°) return the tiling itself
+        if factor <= 0 then
+          return Right(tiling)
+
+        def boundaryEdgesAtOrigin(target: TilingDCEL): Either[TilingError, (HalfEdge, HalfEdge)] =
+          val boundaryEdges = target.boundaryEdges
+          val edgeOutOpt    =
+            boundaryEdges.find: halfEdge =>
+              halfEdge.origin.id == originId
+          val edgeInOpt     =
+            boundaryEdges.find: halfEdge =>
+              halfEdge.destination.exists(_.id == originId)
+          (edgeInOpt, edgeOutOpt) match
+            case (Some(edgeIn), Some(edgeOut)) => Right((edgeIn, edgeOut))
+            case _                             =>
+              Left(ValidationError(s"Adjacent boundary edges not found for ${originId.toPrefixedString}."))
+
         // 4. calculate the two perimeter edges adjacent to the origin vertex, and call A the first and Z the second
+        val zEdge =
+          boundaryEdgesAtOrigin(tiling) match
+            case Left(_)             =>
+              return Left(ValidationError(
+                s"Adjacent boundary edges not found for ${originId.toPrefixedString}."
+              ))
+            case Right((_, edgeOut)) => edgeOut
+
+        def rotateAround(center: BigPoint, angle: BigRadian)(point: BigPoint): BigPoint =
+          val dx   = point.x - center.x
+          val dy   = point.y - center.y
+          val cosA = spire.math.cos(angle.toBigDecimal)
+          val sinA = spire.math.sin(angle.toBigDecimal)
+          BigPoint(
+            center.x + dx * cosA - dy * sinA,
+            center.y + dx * sinA + dy * cosA
+          )
+
+        def translatedCopy(base: TilingDCEL, rotation: BigRadian, center: BigPoint): TilingDCEL =
+          val vertexIds   = tiling.vertices.map(_.id)
+          val maxVertexId =
+            base.vertices.map(_.id.value).maxOption.getOrElse(0)
+          val vertexIdTranslation: VertexId => VertexId =
+            vertexIds.indices
+              .map: index =>
+                val oldId = vertexIds(index)
+                oldId -> VertexId(maxVertexId + index + 1)
+              .toMap
+
+          val faceIds   = tiling.faces.map(_.id)
+          val maxFaceId =
+            base.faces.map(_.id.value).maxOption.getOrElse(0)
+          val faceIdTranslation: FaceId => FaceId =
+            faceIds.indices
+              .map: index =>
+                faceIds(index) match
+                  case faceId if faceId == FaceId.outerId => faceId -> faceId // outer face
+                  case faceId                             => faceId -> FaceId(maxFaceId + index)
+              .toMap
+
+          val coordsTransformer: BigPoint => BigPoint =
+            rotateAround(center, rotation)
+
+          tiling.translatedDouble(coordsTransformer, vertexIdTranslation, faceIdTranslation)
+
         // 5. for the times of the multiplication factor, repeat this process:
-        //   - calculate the two perimeter edges adjacent to the origin vertex, and call B the first
-        //   - try growing the tiling by adding the whole original tiling attaching Z to B
-        //   - if the incremental growth fails, stop and return the partial result, otherwise continue
+        @tailrec
+        def loop(current: TilingDCEL, remaining: Int): Either[TilingError, TilingDCEL] =
+          if remaining <= 0 then Right(current)
+          else
+            boundaryEdgesAtOrigin(current) match
+              case Left(_) =>
+                Right(current)
+              case Right((bEdge, _)) =>
+                current.vertices.find(_.id == originId) match
+                  case None =>
+                    Right(current)
+                  case Some(currentOrigin) =>
+                    val zAngle = currentOrigin.coords.angleTo(zEdge.destinationUnsafe.coords)
+                    val bAngle = currentOrigin.coords.angleTo(bEdge.origin.coords)
+                    val delta  = bAngle - zAngle
+                    val copied = translatedCopy(current, delta, currentOrigin.coords)
+                    val grown  = mergeTilings(current, copied)
+                    loop(grown, remaining - 1)
+
         // 6. return the grown tiling (or the original one if even the first growth attempt fails)
-        ???
+        loop(tiling, factor)
 
   // Helper case classes for better structure
   private case class BoundaryAngles(
