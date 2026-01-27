@@ -884,6 +884,26 @@ object TilingAddition:
       //          )
       TilingDCEL(newVertices, allNewEdges, newInnerFaces, newOuterFace)
 
+    /** Multiply the tiling as a fan centered at the given vertex.
+     *
+     * @param origin
+     * @return
+     */
+    private[dcel] def rawFan(origin: Vertex): Either[TilingError, TilingDCEL] =
+      if tiling.isEmpty then
+        Right(tiling)
+      else
+        // 1. check if origin is the id of an existing boundary vertex, otherwise return a validation error
+        // 2. calculate max multiplication factor, is the integer part of 360° divided by the sum interior angles, minus 1
+        // 3. if it is 0 (the interior angles more than 180°) return the tiling itself
+        // 4. calculate the two perimeter edges adjacent to the origin vertex, and call A the first and Z the second
+        // 5. for the times of the multiplication factor, repeat this process:
+        //   - calculate the two perimeter edges adjacent to the origin vertex, and call B the first
+        //   - try growing the tiling by adding the whole original tiling attaching Z to B
+        //   - if the incremental growth fails, stop and return the partial result, otherwise continue
+        // 6. return the grown tiling (or the original one if even the first growth attempt fails)
+        ???
+
   // Helper case classes for better structure
   private case class BoundaryAngles(
       start: AngleDegree,
