@@ -323,6 +323,12 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
         )
       )
 
+  behavior of "TilingDCEL.fanAt"
+
+  it should "fan one triangle into six" in:
+    val fan = triangle.fanAt(V1).value
+    fan.innerFaces.size shouldBe 6
+
   behavior of "TilingDCEL.doubleArea"
 
   it should "keep an empty tiling" in:
