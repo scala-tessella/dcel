@@ -880,10 +880,10 @@ object TilingAddition:
       mergeTilings(tiling, translated)
 
     /** Multiply the tiling as a fan centered at the given vertex.
-     *
-     * @param origin
-     * @return
-     */
+      *
+      * @param origin
+      * @return
+      */
     private[dcel] def rawFan(origin: Vertex): Either[TilingError, TilingDCEL] =
       if tiling.isEmpty then
         Right(tiling)
@@ -896,7 +896,7 @@ object TilingAddition:
         // 2. calculate max multiplication factor, is the integer part of 360° divided by the sum interior angles, minus 1
         val anglesSum = origin.currentInteriorAngleSumUnsafe(tiling.outerFace)
         val factor    =
-          (math.floor(AngleDegree(360).toRational.toDouble / anglesSum.toRational.toDouble).toInt - 1)
+          math.floor(AngleDegree(360).toRational.toDouble / anglesSum.toRational.toDouble).toInt - 1
 
         // 3. if it is 0 (the interior angles more than 180°) return the tiling itself
         if factor <= 0 then
@@ -935,8 +935,8 @@ object TilingAddition:
           )
 
         def translatedCopy(base: TilingDCEL, rotation: BigRadian, center: BigPoint): TilingDCEL =
-          val vertexIds   = tiling.vertices.map(_.id)
-          val maxVertexId =
+          val vertexIds                                 = tiling.vertices.map(_.id)
+          val maxVertexId                               =
             base.vertices.map(_.id.value).maxOption.getOrElse(0)
           val vertexIdTranslation: VertexId => VertexId =
             vertexIds.indices
@@ -945,8 +945,8 @@ object TilingAddition:
                 oldId -> VertexId(maxVertexId + index + 1)
               .toMap
 
-          val faceIds   = tiling.faces.map(_.id)
-          val maxFaceId =
+          val faceIds                             = tiling.faces.map(_.id)
+          val maxFaceId                           =
             base.faces.map(_.id.value).maxOption.getOrElse(0)
           val faceIdTranslation: FaceId => FaceId =
             faceIds.indices
@@ -967,11 +967,11 @@ object TilingAddition:
           if remaining <= 0 then Right(current)
           else
             boundaryEdgesAtOrigin(current) match
-              case Left(_) =>
+              case Left(_)           =>
                 Right(current)
               case Right((bEdge, _)) =>
                 current.vertices.find(_.id == originId) match
-                  case None =>
+                  case None                =>
                     Right(current)
                   case Some(currentOrigin) =>
                     val zAngle = currentOrigin.coords.angleTo(zEdge.destinationUnsafe.coords)

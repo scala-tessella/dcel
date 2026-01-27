@@ -320,8 +320,7 @@ final case class TilingDCEL private (
     for
       vertex <- findVertex(vertexId)
       result <- this.rawFan(vertex)
-    yield
-      result
+    yield result
 
   def maybeDeleteVertex(vertexId: VertexId): Either[TilingError, TilingDCEL] =
     this.deepCopy.deleteVertex(vertexId)

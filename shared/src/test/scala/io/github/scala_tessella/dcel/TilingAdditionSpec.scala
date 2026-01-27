@@ -1079,15 +1079,17 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val originVertex = triangle.vertices.find(_.id == V1).get
     val angleSum     = originVertex.currentInteriorAngleSumUnsafe(triangle.outerFace)
     val factor       =
-      (math.floor(AngleDegree(360).toRational.toDouble / angleSum.toRational.toDouble).toInt - 1)
+      math.floor(AngleDegree(360).toRational.toDouble / angleSum.toRational.toDouble).toInt - 1
 
     val result = triangle.rawFan(originVertex)
 
     allAssert(
       result.isRight shouldBe true, {
         val grown = result.value
-        grown.innerFaces.size shouldBe (factor + 1)
-        verifyValidTiling(grown)
+        allAssert(
+          grown.innerFaces.size shouldBe (factor + 1),
+          verifyValidTiling(grown)
+        )
       }
     )
 
@@ -1095,15 +1097,17 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val originVertex = square.vertices.find(_.id == V1).get
     val angleSum     = originVertex.currentInteriorAngleSumUnsafe(square.outerFace)
     val factor       =
-      (math.floor(AngleDegree(360).toRational.toDouble / angleSum.toRational.toDouble).toInt - 1)
+      math.floor(AngleDegree(360).toRational.toDouble / angleSum.toRational.toDouble).toInt - 1
 
     val result = square.rawFan(originVertex)
 
     allAssert(
       result.isRight shouldBe true, {
         val grown = result.value
-        grown.innerFaces.size shouldBe (factor + 1)
-        verifyValidTiling(grown)
+        allAssert(
+          grown.innerFaces.size shouldBe (factor + 1),
+          verifyValidTiling(grown)
+        )
       }
     )
 
