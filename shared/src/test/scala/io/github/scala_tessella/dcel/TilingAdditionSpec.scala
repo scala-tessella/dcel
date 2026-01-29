@@ -1113,7 +1113,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       }
     )
 
-  it should "expand a rhombus fan around a boundary vertex" in :
+  it should "expand a rhombus fan around a boundary vertex" in:
     val originVertex = rhombus.vertices.find(_.id == V1).get
     val angleSum = originVertex.currentInteriorAngleSumUnsafe(square.outerFace)
     val factor =
@@ -1132,7 +1132,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       }
     )
 
-  it should "expand a rhombus fan around another boundary vertex" in :
+  it should "expand a rhombus fan around another boundary vertex" in:
     val originVertex = rhombus.vertices.find(_.id == V2).get
     val angleSum = originVertex.currentInteriorAngleSumUnsafe(square.outerFace)
     val factor =
@@ -1150,6 +1150,19 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
         )
       }
     )
+
+  /** Tiling that can be fanned around V3 <img src="file:../../../../../resources/fanTouch.svg"/>
+   */
+  def fanTouch: TilingDCEL =
+    triangle
+      .addRegularPolygonToBoundary(V2, RegularPolygon(4)).value
+      .addRegularPolygonToBoundary(V2, RegularPolygon(3)).value
+
+  it should "expand a fan around another boundary vertex" in:
+    val bench = fanTouch
+    val originVertex = bench.vertices.find(_.id == V3).get
+    val result = bench.rawFan(originVertex).value
+    result.innerFaces.size shouldBe 18
 
   it should "reject non-boundary vertices" in:
     val net         = TilingBuilder.createTriangleNet(2, 2).value
