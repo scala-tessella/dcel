@@ -1158,11 +1158,24 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       .addRegularPolygonToBoundary(V2, RegularPolygon(4)).value
       .addRegularPolygonToBoundary(V2, RegularPolygon(3)).value
 
-  it should "expand a fan around another boundary vertex" in:
+  it should "fan a tiling around another boundary vertex" in:
     val bench = fanTouch
     val originVertex = bench.vertices.find(_.id == V3).get
     val result = bench.rawFan(originVertex).value
     result.innerFaces.size shouldBe 18
+
+  /** Tiling that can NOT be fanned around V3 <img src="file:../../../../../resources/fanInside.svg"/>
+   */
+  def fanInside: TilingDCEL =
+    triangle
+      .addRegularPolygonToBoundary(V2, RegularPolygon(4)).value
+      .addRegularPolygonToBoundary(V2, RegularPolygon(4)).value
+
+  it should "fail to fan another tiling around another boundary vertex" in :
+    val bench = fanInside
+    val originVertex = bench.vertices.find(_.id == V3).get
+    val result = bench.rawFan(originVertex).value
+    result.innerFaces.size shouldBe 3
 
   it should "reject non-boundary vertices" in:
     val net         = TilingBuilder.createTriangleNet(2, 2).value
