@@ -1,0 +1,74 @@
+<svg width="141" height="170" viewBox="-20 -149.903811 141 170" xmlns="http://www.w3.org/2000/svg"><g><!-- Edges -->
+<g stroke="black" stroke-width="1.0"><line x1="0" y1="0" x2="50" y2="0"/>
+<line x1="0" y1="0" x2="25" y2="-43.30127"/>
+<line x1="50" y1="0" x2="75" y2="-43.30127"/>
+<line x1="75" y1="-43.30127" x2="100" y2="-86.60254"/>
+<line x1="100" y1="-86.60254" x2="75" y2="-129.903811"/>
+<line x1="75" y1="-129.903811" x2="25" y2="-129.903811"/>
+<line x1="25" y1="-129.903811" x2="0" y2="-86.60254"/>
+<line x1="0" y1="-86.60254" x2="50" y2="-86.60254"/>
+<line x1="50" y1="-86.60254" x2="25" y2="-43.30127"/></g>
+<!-- Boundary Highlight -->
+<g stroke="red" stroke-width="3.0" fill="none"><polygon points="0,0 25,-43.30127 50,-86.60254 0,-86.60254 25,-129.903811 75,-129.903811 100,-86.60254 75,-43.30127 50,0"/></g>
+<!-- Inner Face Half-Edge Direction Arrows -->
+<g fill="blue" stroke="blue" stroke-width="0.5"><polygon points="28,0 25,-1.2 25,1.2"/>
+<polygon points="64,-24.248711 61.46077,-22.250635 63.53923,-21.050635"/>
+<polygon points="89,-67.549981 86.46077,-65.551905 88.53923,-64.351905"/>
+<polygon points="86,-110.851252 86.46077,-107.653175 88.53923,-108.853175"/>
+<polygon points="47,-129.903811 50,-128.703811 50,-131.103811"/>
+<polygon points="11,-105.655099 13.53923,-107.653175 11.46077,-108.853175"/>
+<polygon points="28,-86.60254 25,-87.80254 25,-85.40254"/>
+<polygon points="36,-62.353829 38.53923,-64.351905 36.46077,-65.551905"/>
+<polygon points="11,-19.052559 13.53923,-21.050635 11.46077,-22.250635"/></g>
+<!-- Outer Face Half-Edge Direction Arrows -->
+<g fill="black" stroke="black" stroke-width="0.5"><polygon points="14,-24.248711 11.46077,-22.250635 13.53923,-21.050635"/>
+<polygon points="22,-0 25,1.2 25,-1.2"/>
+<polygon points="61,-19.052559 63.53923,-21.050635 61.46077,-22.250635"/>
+<polygon points="86,-62.353829 88.53923,-64.351905 86.46077,-65.551905"/>
+<polygon points="89,-105.655099 88.53923,-108.853175 86.46077,-107.653175"/>
+<polygon points="53,-129.903811 50,-131.103811 50,-128.703811"/>
+<polygon points="14,-110.851252 11.46077,-108.853175 13.53923,-107.653175"/>
+<polygon points="22,-86.60254 25,-85.40254 25,-87.80254"/>
+<polygon points="39,-67.549981 36.46077,-65.551905 38.53923,-64.351905"/></g>
+<!-- Vertices -->
+<g fill="red"><circle cx="0" cy="0" r="2.0"/>
+<circle cx="50" cy="0" r="2.0"/>
+<circle cx="75" cy="-43.30127" r="2.0"/>
+<circle cx="100" cy="-86.60254" r="2.0"/>
+<circle cx="75" cy="-129.903811" r="2.0"/>
+<circle cx="25" cy="-129.903811" r="2.0"/>
+<circle cx="0" cy="-86.60254" r="2.0"/>
+<circle cx="50" cy="-86.60254" r="2.0"/>
+<circle cx="25" cy="-43.30127" r="2.0"/></g>
+<!-- Vertex Labels -->
+<g font-size="8" fill="darkblue"><text x="2.5" y="-2.5">1</text>
+<text x="52.5" y="-2.5">2</text>
+<text x="77.5" y="-45.80127">3</text>
+<text x="102.5" y="-89.10254">4</text>
+<text x="77.5" y="-132.403811">5</text>
+<text x="27.5" y="-132.403811">6</text>
+<text x="2.5" y="-89.10254">7</text>
+<text x="52.5" y="-89.10254">8</text>
+<text x="27.5" y="-45.80127">9</text></g>
+<!-- Face Labels -->
+<g font-size="6" fill="green" text-anchor="middle" dominant-baseline="middle"><text x="44.444444" y="-67.357531">1</text></g>
+<!-- Inner Angle Labels -->
+<g font-size="5" fill="purple" text-anchor="middle" dominant-baseline="middle"><text x="4.405942" y="-6.677401">60°</text>
+<text x="49.342404" y="-7.972927">120°</text>
+<text x="68.714286" y="-48.249987">180°</text>
+<text x="92.440711" y="-83.983926">120°</text>
+<text x="71.488418" y="-122.71571">120°</text>
+<text x="27.374929" y="-122.264458">120°</text>
+<text x="7.341303" y="-83.423663">60°</text>
+<text x="47.781199" y="-78.916389">300°</text>
+<text x="30.028948" y="-49.52298">180°</text></g>
+<!-- Outer Angle Labels -->
+<g font-size="5" fill="orange" text-anchor="middle" dominant-baseline="middle"><text x="-4.405942" y="6.677401">300°</text>
+<text x="50.657596" y="7.972927">240°</text>
+<text x="81.285714" y="-38.352554">180°</text>
+<text x="107.559289" y="-89.221155">240°</text>
+<text x="78.511582" y="-137.091911">240°</text>
+<text x="22.625071" y="-137.543163">240°</text>
+<text x="-7.341303" y="-89.781418">300°</text>
+<text x="52.218801" y="-94.288692">60°</text>
+<text x="19.971052" y="-37.07956">180°</text></g></g></svg>
