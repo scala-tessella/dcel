@@ -405,6 +405,181 @@ object TilingAddition:
 
     TilingDCEL(newVertices, allNewEdges, newInnerFaces, newOuterFace)
 
+  private def boundaryPathPointsFromEdges(
+      edges: Vector[HalfEdge],
+      startEdge: HalfEdge,
+      forward: Boolean
+  ): List[BigPoint] =
+    if edges.isEmpty then Nil
+    else
+      val size       = edges.length
+      val startIndex = edges.indexOf(startEdge)
+      if startIndex < 0 then Nil
+      else
+        val points = scala.collection.mutable.ListBuffer.empty[BigPoint]
+        if forward then
+          points += startEdge.origin.coords
+          var i = 0
+          while i < size do
+            val edge = edges((startIndex + i) % size)
+            points += edge.destinationUnsafe.coords
+            i += 1
+        else
+          points += startEdge.destinationUnsafe.coords
+          var i = 0
+          while i < size do
+            val edge = edges((startIndex - i + size) % size)
+            points += edge.origin.coords
+            i += 1
+        points.toList
+
+  private def sharedBoundaryEdgeCount(
+      currentEdges: Vector[HalfEdge],
+      copiedEdges: Vector[HalfEdge],
+      currentStartEdge: HalfEdge,
+      currentForward: Boolean,
+      copiedStartEdge: HalfEdge,
+      copiedForward: Boolean,
+      accuracy: Double
+  ): Int =
+    val curStart = currentEdges.indexOf(currentStartEdge)
+    val copStart = copiedEdges.indexOf(copiedStartEdge)
+    if curStart < 0 || copStart < 0 then return 0
+
+    def edgePoints(edge: HalfEdge, forward: Boolean): (BigPoint, BigPoint) =
+      if forward then (edge.origin.coords, edge.destinationUnsafe.coords)
+      else (edge.destinationUnsafe.coords, edge.origin.coords)
+
+    val max = math.min(currentEdges.length, copiedEdges.length)
+    var i   = 0
+    while i < max do
+      val curIndex     =
+        if currentForward then (curStart + i)     % currentEdges.length
+        else (curStart - i + currentEdges.length) % currentEdges.length
+      val copIndex     =
+        if copiedForward then (copStart + i)     % copiedEdges.length
+        else (copStart - i + copiedEdges.length) % copiedEdges.length
+      val (curA, curB) = edgePoints(currentEdges(curIndex), currentForward)
+      val (copA, copB) = edgePoints(copiedEdges(copIndex), copiedForward)
+      val matches      =
+        curA.almostEquals(copA, accuracy) && curB.almostEquals(copB, accuracy)
+      if matches then i += 1 else return i
+    i
+
+  private def intersectsBeyondSharedStart(
+      segA: BigLineSegment,
+      segB: BigLineSegment,
+      sharedStart: Option[BigPoint],
+      accuracy: Double = io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.ACCURACY
+  ): Boolean =
+    if !segA.intersects(segB) then false
+    else
+      sharedStart match
+        case None        => true
+        case Some(start) =>
+          val aHas = segA.p1.almostEquals(start, accuracy) || segA.p2.almostEquals(start, accuracy)
+          val bHas = segB.p1.almostEquals(start, accuracy) || segB.p2.almostEquals(start, accuracy)
+          if aHas && bHas then
+            val otherA  = if segA.p1.almostEquals(start, accuracy) then segA.p2 else segA.p1
+            val otherB  = if segB.p1.almostEquals(start, accuracy) then segB.p2 else segB.p1
+            val vA      = otherA - start
+            val vB      = otherB - start
+            val collin  = vA.cross(vB).abs < BigDecimal(accuracy)
+            val sameDir = collin && vA.dot(vB) > 0
+            sameDir
+          else true
+
+  private def boundariesDivergeWithoutCrossing(
+      current: TilingDCEL,
+      copied: TilingDCEL,
+      originId: VertexId
+  ): Boolean =
+    import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.ACCURACY
+    val guardAccuracy = ACCURACY * 1000
+    val currentEdges  = current.boundaryEdges.toVector
+    val copiedEdges   = copied.boundaryEdges.toVector
+    if currentEdges.isEmpty || copiedEdges.isEmpty then return false
+
+    val currentEdgeOutOpt =
+      currentEdges.find: edge =>
+        edge.origin.id == originId
+    val currentEdgeInOpt  =
+      currentEdges.find: edge =>
+        edge.destination.exists(_.id == originId)
+    if currentEdgeOutOpt.isEmpty || currentEdgeInOpt.isEmpty then return false
+
+    val originCoords     = currentEdgeOutOpt.get.origin.coords
+    val copiedEdgeOutOpt =
+      copiedEdges.find: edge =>
+        edge.origin.coords.almostEquals(originCoords, ACCURACY)
+    if copiedEdgeOutOpt.isEmpty then return false
+
+    val copiedEdgeInOpt =
+      copiedEdges.find: edge =>
+        edge.destination.exists(_.coords.almostEquals(originCoords, ACCURACY))
+    if copiedEdgeInOpt.isEmpty then return false
+
+    def checkPair(
+        currentStart: HalfEdge,
+        currentForward: Boolean,
+        copiedStart: HalfEdge,
+        copiedForward: Boolean
+    ): Boolean =
+      val sharedEdges = sharedBoundaryEdgeCount(
+        currentEdges,
+        copiedEdges,
+        currentStart,
+        currentForward,
+        copiedStart,
+        copiedForward,
+        guardAccuracy
+      )
+      if sharedEdges == 0 then return false
+      if sharedEdges >= currentEdges.length || sharedEdges >= copiedEdges.length then return true
+
+      val currentStartIndex =
+        if currentForward then
+          (currentEdges.indexOf(currentStart) + sharedEdges)                       % currentEdges.length
+        else
+          (currentEdges.indexOf(currentStart) - sharedEdges + currentEdges.length) % currentEdges.length
+      val copiedStartIndex  =
+        if copiedForward then
+          (copiedEdges.indexOf(copiedStart) + sharedEdges)                      % copiedEdges.length
+        else
+          (copiedEdges.indexOf(copiedStart) - sharedEdges + copiedEdges.length) % copiedEdges.length
+
+      val trimmedCurrent =
+        boundaryPathPointsFromEdges(currentEdges, currentEdges(currentStartIndex), forward = currentForward)
+      val trimmedCopied  =
+        boundaryPathPointsFromEdges(copiedEdges, copiedEdges(copiedStartIndex), forward = copiedForward)
+      val sharedStart    = trimmedCurrent.headOption
+
+      val currentSegments =
+        trimmedCurrent
+          .sliding(2)
+          .collect:
+            case a :: b :: Nil => BigLineSegment(a, b)
+          .toList
+      val copiedSegments  =
+        trimmedCopied
+          .sliding(2)
+          .collect:
+            case a :: b :: Nil => BigLineSegment(a, b)
+          .toList
+
+      !currentSegments.exists: segA =>
+        copiedSegments.exists: segB =>
+          intersectsBeyondSharedStart(segA, segB, sharedStart, guardAccuracy)
+
+    val currentEdgeIn  = currentEdgeInOpt.get
+    val currentEdgeOut = currentEdgeOutOpt.get
+    val copiedEdgeIn   = copiedEdgeInOpt.get
+    val copiedEdgeOut  = copiedEdgeOutOpt.get
+
+    val firstPair  = checkPair(currentEdgeIn, currentForward = false, copiedEdgeOut, copiedForward = true)
+    val secondPair = checkPair(currentEdgeOut, currentForward = true, copiedEdgeIn, copiedForward = false)
+    firstPair || secondPair
+
   extension (tiling: TilingDCEL)
 
     private def nextFaceId: FaceId =
@@ -961,28 +1136,38 @@ object TilingAddition:
 
           tiling.translatedDouble(coordsTransformer, vertexIdTranslation, faceIdTranslation)
 
+        def firstCopy(current: TilingDCEL): Option[TilingDCEL] =
+          boundaryEdgesAtOrigin(current) match
+            case Left(_)           =>
+              None
+            case Right((bEdge, _)) =>
+              current.vertices.find(_.id == originId).map: currentOrigin =>
+                val zAngle = currentOrigin.coords.angleTo(zEdge.destinationUnsafe.coords)
+                val bAngle = currentOrigin.coords.angleTo(bEdge.origin.coords)
+                val delta  = bAngle - zAngle
+                translatedCopy(current, delta, currentOrigin.coords)
+
+        // Validate a single merged copy before applying all symmetric copies.
+        val seedCopy   = firstCopy(tiling)
+        if seedCopy.isEmpty then return Right(tiling)
+        val seedMerged = mergeTilings(tiling, seedCopy.get)
+        if TilingValidation.validate(seedMerged).isLeft then
+          return Right(tiling)
+
         // 5. for the times of the multiplication factor, repeat this process:
         @tailrec
         def loop(current: TilingDCEL, remaining: Int): Either[TilingError, TilingDCEL] =
           if remaining <= 0 then Right(current)
           else
-            boundaryEdgesAtOrigin(current) match
-              case Left(_)           =>
+            firstCopy(current) match
+              case None         =>
                 Right(current)
-              case Right((bEdge, _)) =>
-                current.vertices.find(_.id == originId) match
-                  case None                =>
-                    Right(current)
-                  case Some(currentOrigin) =>
-                    val zAngle = currentOrigin.coords.angleTo(zEdge.destinationUnsafe.coords)
-                    val bAngle = currentOrigin.coords.angleTo(bEdge.origin.coords)
-                    val delta  = bAngle - zAngle
-                    val copied = translatedCopy(current, delta, currentOrigin.coords)
-                    val grown  = mergeTilings(current, copied)
-                    loop(grown, remaining - 1)
+              case Some(copied) =>
+                val grown = mergeTilings(current, copied)
+                loop(grown, remaining - 1)
 
         // 6. return the grown tiling (or the original one if even the first growth attempt fails)
-        loop(tiling, factor)
+        loop(seedMerged, factor - 1)
 
   // Helper case classes for better structure
   private case class BoundaryAngles(
