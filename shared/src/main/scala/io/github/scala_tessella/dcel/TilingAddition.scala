@@ -887,8 +887,10 @@ object TilingAddition:
       if tiling.isEmpty then
         Right(tiling)
       else
+        
         // 1. check if origin is the id of an existing boundary vertex, otherwise return a validation error
         val originId = origin.id
+        
         if !tiling.boundaryVertices.exists(_.id == originId) then
           return Left(ValidationError(s"Vertex ${origin.id.toPrefixedString} is not on the boundary."))
 
@@ -897,9 +899,13 @@ object TilingAddition:
         val factor    =
           math.floor(AngleDegree(360).toRational.toDouble / anglesSum.toRational.toDouble).toInt - 1
 
+        // Validate a single merged copy before applying all symmetric copies.
+        def cannotExpand: Left[ValidationError, TilingDCEL] =
+          Left(ValidationError(s"Cannot be expanded around boundary Vertex ${originId.toPrefixedString}."))
+
         // 3. if it is 0 (the interior angles more than 180°) return the tiling itself
         if factor <= 0 then
-          return Left(ValidationError(s"Cannot be expanded around boundary Vertex ${origin.id.toPrefixedString}."))
+          return cannotExpand
 
         def boundaryEdgesAtOrigin(target: TilingDCEL): Either[TilingError, (HalfEdge, HalfEdge)] =
           val boundaryEdges = target.boundaryEdges
@@ -951,10 +957,6 @@ object TilingAddition:
                 val bAngle = currentOrigin.coords.angleTo(bEdge.origin.coords)
                 val delta  = bAngle - zAngle
                 translatedCopy(current, delta, currentOrigin.coords)
-
-        // Validate a single merged copy before applying all symmetric copies.
-        def cannotExpand: Left[ValidationError, TilingDCEL] =
-          Left(ValidationError(s"Cannot be expanded around boundary Vertex ${originId.toPrefixedString}."))
 
         val seedCopy   = firstCopy(tiling)
         if seedCopy.isEmpty then return cannotExpand
