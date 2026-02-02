@@ -1075,7 +1075,7 @@ object TilingAddition:
 
         // 3. if it is 0 (the interior angles more than 180°) return the tiling itself
         if factor <= 0 then
-          return Right(tiling)
+          return Left(ValidationError(s"Cannot be expanded around boundary Vertex ${origin.id.toPrefixedString}."))
 
         def boundaryEdgesAtOrigin(target: TilingDCEL): Either[TilingError, (HalfEdge, HalfEdge)] =
           val boundaryEdges = target.boundaryEdges
@@ -1152,7 +1152,7 @@ object TilingAddition:
         if seedCopy.isEmpty then return Right(tiling)
         val seedMerged = mergeTilings(tiling, seedCopy.get)
         if TilingValidation.validate(seedMerged).isLeft then
-          return Right(tiling)
+          return Left(ValidationError(s"Cannot be expanded around boundary Vertex ${originId.toPrefixedString}."))
 
         // 5. for the times of the multiplication factor, repeat this process:
         @tailrec

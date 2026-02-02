@@ -1174,8 +1174,8 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   it should "fail to fan another tiling around another boundary vertex" in:
     val bench        = fanInside
     val originVertex = bench.vertices.find(_.id == V3).get
-    val result       = bench.rawFan(originVertex).value
-    result.innerFaces.size shouldBe 3
+    val result       = bench.rawFan(originVertex)
+    result.isLeft shouldBe true
 
   /** Tiling that can NOT be fanned around V1 <img src="file:../../../../../resources/fanHoles.svg"/>
     */
@@ -1185,9 +1185,8 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   it should "fail to fan another tiling around another boundary vertex because of emerging holes" in:
     val bench        = fanHoles
     val originVertex = bench.vertices.find(_.id == V1).get
-    val result       = bench.rawFan(originVertex).value
-    println(result.toSVG())
-    result.innerFaces.size shouldBe 1
+    val result       = bench.rawFan(originVertex)
+    result.isLeft shouldBe true
 
   it should "reject non-boundary vertices" in:
     val net         = TilingBuilder.createTriangleNet(2, 2).value
