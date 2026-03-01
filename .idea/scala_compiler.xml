@@ -7,7 +7,7 @@
       <parameters>
         <parameter value="-Xsemanticdb" />
         <parameter value="-semanticdb-target" />
-        <parameter value="$PROJECT_DIR$/target/scala-3.8.1/test-meta" />
+        <parameter value="$PROJECT_DIR$/target/scala-3.8.2/test-meta" />
       </parameters>
     </profile>
     <profile name="sbt 3" modules="dcel-root.dcel.dcelJVM.main">
@@ -20,7 +20,7 @@
         <parameter value="-Wunused:imports" />
         <parameter value="-Xsemanticdb" />
         <parameter value="-semanticdb-target" />
-        <parameter value="$PROJECT_DIR$/jvm/target/scala-3.8.1/meta" />
+        <parameter value="$PROJECT_DIR$/jvm/target/scala-3.8.2/meta" />
         <parameter value="-Werror" />
       </parameters>
     </profile>
@@ -28,7 +28,7 @@
       <parameters>
         <parameter value="-Xsemanticdb" />
         <parameter value="-semanticdb-target" />
-        <parameter value="$PROJECT_DIR$/target/scala-3.8.1/meta" />
+        <parameter value="$PROJECT_DIR$/target/scala-3.8.2/meta" />
       </parameters>
     </profile>
     <profile name="sbt 5" modules="dcel-root.dcel.dcelJS.main">
@@ -42,7 +42,7 @@
         <parameter value="-Wunused:imports" />
         <parameter value="-Xsemanticdb" />
         <parameter value="-semanticdb-target" />
-        <parameter value="$PROJECT_DIR$/js/target/scala-3.8.1/meta" />
+        <parameter value="$PROJECT_DIR$/js/target/scala-3.8.2/meta" />
         <parameter value="-Werror" />
       </parameters>
     </profile>
@@ -57,7 +57,7 @@
         <parameter value="-Wunused:imports" />
         <parameter value="-Xsemanticdb" />
         <parameter value="-semanticdb-target" />
-        <parameter value="$PROJECT_DIR$/js/target/scala-3.8.1/test-meta" />
+        <parameter value="$PROJECT_DIR$/js/target/scala-3.8.2/test-meta" />
       </parameters>
     </profile>
     <profile name="sbt 7" modules="dcel-root.dcel.dcelJVM.test">
@@ -70,7 +70,7 @@
         <parameter value="-Wunused:imports" />
         <parameter value="-Xsemanticdb" />
         <parameter value="-semanticdb-target" />
-        <parameter value="$PROJECT_DIR$/jvm/target/scala-3.8.1/test-meta" />
+        <parameter value="$PROJECT_DIR$/jvm/target/scala-3.8.2/test-meta" />
       </parameters>
     </profile>
   </component>
