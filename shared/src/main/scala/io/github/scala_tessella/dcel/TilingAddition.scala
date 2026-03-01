@@ -863,10 +863,10 @@ object TilingAddition:
 
     private[dcel] def rawDouble(origin: Vertex, repeat: Vertex, withInversion: Boolean = false): TilingDCEL =
       // Compute the translation vector from origin to repeat
-      val modifier: BigPoint => BigPoint            = if withInversion then _.scaled(-1.0) else identity
-      val delta                                     = repeat.coords - modifier(origin.coords)
-      val coordsTranslation: BigPoint => BigPoint   = modifier(_) + delta
-      val (vertexIdTranslation, faceIdTranslation)  = freshIdTranslations(tiling)
+      val modifier: BigPoint => BigPoint           = if withInversion then _.scaled(-1.0) else identity
+      val delta                                    = repeat.coords - modifier(origin.coords)
+      val coordsTranslation: BigPoint => BigPoint  = modifier(_) + delta
+      val (vertexIdTranslation, faceIdTranslation) = freshIdTranslations(tiling)
 
       // Second copy, translated in space and with fresh ids
       val translated: TilingDCEL =
@@ -887,10 +887,10 @@ object TilingAddition:
       if tiling.isEmpty then
         Right(tiling)
       else
-        
+
         // 1. check if origin is the id of an existing boundary vertex, otherwise return a validation error
         val originId = origin.id
-        
+
         if !tiling.boundaryVertices.exists(_.id == originId) then
           return Left(ValidationError(s"Vertex ${origin.id.toPrefixedString} is not on the boundary."))
 
