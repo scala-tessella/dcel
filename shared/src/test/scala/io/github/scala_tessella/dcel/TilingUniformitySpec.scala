@@ -16,7 +16,7 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
   it should "find an uniform 1 tiling" in:
 
     /** Uniform 1 <img src="file:../../../../../resources/uniform1.svg"/> */
-    val result = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => (i + 3 * j) % 7 == 0)
+    val result = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => (i + 3 * j) % 7 == 0).value
     allAssert(
       result.uniformityTree.sizeLeaves shouldBe 1,
       result.innerFaces.size shouldBe 101
@@ -25,7 +25,7 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
   it should "find the same tiling with opposite chirality by inverting the axes" in:
 
     /** Uniform 1 specular <img src="file:../../../../../resources/uniform1_specular.svg"/> */
-    val result = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => (j + 3 * i) % 7 == 0)
+    val result = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => (j + 3 * i) % 7 == 0).value
     allAssert(
       result.uniformityTree.sizeLeaves shouldBe 1,
       result.innerFaces.size shouldBe 101
@@ -34,7 +34,7 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
   it should "find an uniform 2 tiling" in:
 
     /** Uniform 2 <img src="file:../../../../../resources/uniform2.svg"/> */
-    val result = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => i % 3 == 0 && j % 3 == 0)
+    val result = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => i % 3 == 0 && j % 3 == 0).value
     allAssert(
       result.uniformityTree.sizeLeaves shouldBe 2,
       result.innerFaces.size shouldBe 112
@@ -43,7 +43,7 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
   it should "find an uniform 3 tiling" in:
 
     /** Uniform 3 <img src="file:../../../../../resources/uniform3.svg"/> */
-    val result = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => (i + 4 * j) % 7 == 0)
+    val result = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => (i + 4 * j) % 7 == 0).value
     allAssert(
       result.uniformityTree.sizeLeaves shouldBe 3,
       result.innerFaces.size shouldBe 104
@@ -52,7 +52,7 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
   it should "find an uniform 4 tiling" in:
 
     /** Uniform 4 <img src="file:../../../../../resources/uniform4.svg"/> */
-    val result = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => (i + 7 * j) % 9 == 0)
+    val result = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => (i + 7 * j) % 9 == 0).value
     allAssert(
       result.uniformityTree.sizeLeaves shouldBe 4,
       result.innerFaces.size shouldBe 116
@@ -61,14 +61,15 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
   it should "find an uniform 5 tiling" in:
 
     /** Uniform 5 <img src="file:../../../../../resources/uniform5.svg"/> */
-    val result = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => i % 10 == (j * 8) % 10)
+    val result = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => i % 10 == (j * 8) % 10).value
     allAssert(
       result.uniformityTree.sizeLeaves shouldBe 5,
       result.innerFaces.size shouldBe 120
     )
 
   /** Uniform 6 <img src="file:../../../../../resources/uniform6.svg"/> */
-  val uniformity6: TilingDCEL = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => (i + 3 * j) % 13 == 0)
+  val uniformity6: TilingDCEL =
+    TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => (i + 3 * j) % 13 == 0).value
 
   it should "find an uniform 6 tiling" in:
     val tree = uniformity6.uniformityTree
@@ -126,6 +127,7 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
     /** Uniform 5 3.3.6.6.i <img src="file:../../../../../resources/uniform5_3.3.6.6.i.svg"/> */
     val result =
       TilingBuilder.createHoledTriangleNet(9, 11)((i, j) => (i - j) % 3 == 0)
+        .value
         .maybeAddRegularPolygon(VertexId(24), VertexId(25), RegularPolygon(3)).value
         .maybeAddRegularPolygon(VertexId(25), VertexId(35), RegularPolygon(3)).value
         .maybeAddRegularPolygon(VertexId(27), VertexId(28), RegularPolygon(3)).value

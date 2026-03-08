@@ -302,7 +302,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     )
 
   it should "calculate another" in:
-    val result = TilingBuilder.createHoledTriangleNet(12, 12)((i, j) => i % 10 == (j * 8) % 10)
+    val result = TilingBuilder.createHoledTriangleNet(12, 12)((i, j) => i % 10 == (j * 8) % 10).value
     result.uniformityTree.orderedForComparison shouldBe
       Branch(
         List(),

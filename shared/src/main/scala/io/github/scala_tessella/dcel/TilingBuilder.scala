@@ -633,9 +633,14 @@ object TilingBuilder:
     * @param polygon
     *   the regular polygon that serves as the basis for the ring structure creation
     */
-  def createRing(polygon: RegularPolygon): TilingDCEL =
+  def createRing(polygon: RegularPolygon): Either[TilingError, TilingDCEL] =
+    val sides: Int = polygon.toSides
+    if sides < 3 then
+      return Left(
+        ValidationError(s"Invalid number of sides: $sides. A regular polygon must have at least 3 sides.")
+      )
+
     val first                     = createRegularPolygon(polygon)
-    val sides: Int                = polygon.toSides
     val areEven: Boolean          = sides % 2 == 0
     val start                     = (sides - (if areEven then 0 else 1)) / 2 + 2
     val step                      = sides - 2
@@ -645,10 +650,14 @@ object TilingBuilder:
         .map: i =>
           VertexId(i)
         .toList
-    vertexIds.foldLeft(first): (ring, vertexId) =>
-      ring.addRegularPolygonToBoundary(vertexId, polygon).toOption.get
+    vertexIds.foldLeft(Right(first): Either[TilingError, TilingDCEL]): (either, vertexId) =>
+      either.flatMap: ring =>
+        ring.addRegularPolygonToBoundary(vertexId, polygon)
 
-  def createHoledTriangleNet(width: Int, height: Int)(f: (Int, Int) => Boolean): TilingDCEL =
+  def createHoledTriangleNet(
+      width: Int,
+      height: Int
+  )(f: (Int, Int) => Boolean): Either[TilingError, TilingDCEL] =
     val transform: (Int, Int) => VertexId = (x, y) => VertexId(x + 1 + y * (width + 1))
     val holes: IndexedSeq[VertexId]       =
       for
@@ -656,11 +665,13 @@ object TilingBuilder:
         x <- 0 to width
         if f(x, y)
       yield transform(x, y)
-    holes
-      .foldLeft(createTriangleNet(width, height)): (either, vertexId) =>
-        either.flatMap: tilingDCEL =>
-          tilingDCEL.maybeDeleteVertex(vertexId)
-      .toOption.getOrElse(TilingDCEL.empty)
+    for
+      base   <- createTriangleNet(width, height)
+      tiling <- holes
+                  .foldLeft(Right(base): Either[TilingError, TilingDCEL]): (either, vertexId) =>
+                    either.flatMap: tilingDCEL =>
+                      tilingDCEL.maybeDeleteVertex(vertexId)
+    yield tiling
 
   extension (halfEdges: List[HalfEdge])
 

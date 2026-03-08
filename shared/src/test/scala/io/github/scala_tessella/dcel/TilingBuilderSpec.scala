@@ -193,57 +193,65 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
 
     /** <img src="file:../../../../../resources/ring3.svg"/> */
     val triangleRing: TilingDCEL =
-      TilingBuilder.createRing(RegularPolygon(3))
+      TilingBuilder.createRing(RegularPolygon(3)).value
     triangleRing.innerFaces.length shouldBe 6
 
   it should "create a valid TilingDCEL with a ring of squares" in:
 
     /** <img src="file:../../../../../resources/ring4.svg"/> */
     val squareRing: TilingDCEL =
-      TilingBuilder.createRing(RegularPolygon(4))
+      TilingBuilder.createRing(RegularPolygon(4)).value
     squareRing.innerFaces.length shouldBe 4
 
   it should "create a valid TilingDCEL with a ring of regular pentagons" in:
 
     /** <img src="file:../../../../../resources/ring5.svg"/> */
     val pentagonRing: TilingDCEL =
-      TilingBuilder.createRing(RegularPolygon(5))
+      TilingBuilder.createRing(RegularPolygon(5)).value
     pentagonRing.innerFaces.length shouldBe 11
 
   it should "create a valid TilingDCEL with a ring of regular hexagons" in:
 
     /** <img src="file:../../../../../resources/ring6.svg"/> */
     val hexagonRing: TilingDCEL =
-      TilingBuilder.createRing(RegularPolygon(6))
+      TilingBuilder.createRing(RegularPolygon(6)).value
     hexagonRing.innerFaces.length shouldBe 7
 
   it should "create a valid TilingDCEL with a ring of regular eptagons" in:
 
     /** <img src="file:../../../../../resources/ring7.svg"/> */
     val eptagonRing: TilingDCEL =
-      TilingBuilder.createRing(RegularPolygon(7))
+      TilingBuilder.createRing(RegularPolygon(7)).value
     eptagonRing.innerFaces.length shouldBe 15
 
   it should "create a valid TilingDCEL with a ring of regular octagons" in:
 
     /** <img src="file:../../../../../resources/ring8.svg"/> */
     val octagonRing: TilingDCEL =
-      TilingBuilder.createRing(RegularPolygon(8))
+      TilingBuilder.createRing(RegularPolygon(8)).value
     octagonRing.innerFaces.length shouldBe 9
 
   it should "create a valid TilingDCEL with a ring of regular ennagons" in:
 
     /** <img src="file:../../../../../resources/ring9.svg"/> */
     val ennagonRing: TilingDCEL =
-      TilingBuilder.createRing(RegularPolygon(9))
+      TilingBuilder.createRing(RegularPolygon(9)).value
     ennagonRing.innerFaces.length shouldBe 19
 
   it should "create a valid TilingDCEL with a ring of regular decagons" in:
 
     /** <img src="file:../../../../../resources/ring10.svg"/> */
     val decagonRing: TilingDCEL =
-      TilingBuilder.createRing(RegularPolygon(10))
+      TilingBuilder.createRing(RegularPolygon(10)).value
     decagonRing.innerFaces.length shouldBe 11
+
+  it should "return an error for polygons with fewer than 3 sides" in:
+    val invalidPolygon = 2.asInstanceOf[RegularPolygon]
+    val result         = TilingBuilder.createRing(invalidPolygon)
+    allAssert(
+      result.isLeft shouldBe true,
+      result.left.value.message should include("Invalid number of sides")
+    )
 
 //  /** @note
 //    *   from 46 sides onwards this is failing, if ACCURACY at 1.0e-12; from 92 sides onwards, if at 1.0e-11
@@ -262,8 +270,16 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
   it should "create an hexagon net" in:
 
     /** <img src="file:../../../../../resources/uniform1_all_hex.svg"/> */
-    val result = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => (i - j) % 3 == 0)
+    val result = TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => (i - j) % 3 == 0).value
     allAssert(
       result.uniformityTree.sizeLeaves shouldBe 1,
       result.innerFaces.size shouldBe 22
     )
+
+  it should "return an error for non-positive width" in:
+    val result = TilingBuilder.createHoledTriangleNet(0, 3)((_, _) => true)
+    result.isLeft shouldBe true
+
+  it should "return an error for non-positive height" in:
+    val result = TilingBuilder.createHoledTriangleNet(3, 0)((_, _) => true)
+    result.isLeft shouldBe true
