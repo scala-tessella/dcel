@@ -117,6 +117,20 @@ val reconstructed = fromMetadata(metadata)
 - Lint/refactoring: `scalafix` with SemanticDB enabled.
 - Compiler strictness: warnings are elevated in `Compile` scope (`-Werror`), relaxed in tests.
 
+### Uniformity benchmark
+
+Run the JVM benchmark runner for uniformity-related operations:
+
+```bash
+# default settings (warmup=3, runs=8)
+sbt "dcelJVM/Test/runMain io.github.scala_tessella.dcel.benchmark.UniformityBenchmark"
+
+# custom settings
+sbt "dcelJVM/Test/runMain io.github.scala_tessella.dcel.benchmark.UniformityBenchmark --warmup=5 --runs=15"
+```
+
+The output is CSV-style rows with per-case timing stats (`min`, `median`, `p95`, `mean` in milliseconds).
+
 See [ContributingGuidelines.md](./ContributingGuidelines.md) for project-specific conventions.
 
 ## License
