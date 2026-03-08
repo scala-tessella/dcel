@@ -122,11 +122,25 @@ val reconstructed = fromMetadata(metadata)
 Run the JVM benchmark runner for uniformity-related operations:
 
 ```bash
-# default settings (warmup=3, runs=8)
+# quick mode (default: warmup=3, runs=8)
 sbt "dcelJVM/Test/runMain io.github.scala_tessella.dcel.benchmark.UniformityBenchmark"
 
-# custom settings
+# quick mode with custom sample counts
 sbt "dcelJVM/Test/runMain io.github.scala_tessella.dcel.benchmark.UniformityBenchmark --warmup=5 --runs=15"
+
+# stable mode (larger sample counts for commit-to-commit comparison)
+sbt "dcelJVM/Test/runMain io.github.scala_tessella.dcel.benchmark.UniformityBenchmark --mode=stable"
+```
+
+For reproducible cross-commit comparisons, run stable mode with fixed JVM flags:
+
+```bash
+# convenience wrapper
+./scripts/run-uniformity-benchmark-stable.sh
+
+# equivalent explicit command
+sbt -J-Xms2g -J-Xmx2g -J-XX:+AlwaysPreTouch -J-XX:+UseParallelGC \
+  "dcelJVM/Test/runMain io.github.scala_tessella.dcel.benchmark.UniformityBenchmark --mode=stable"
 ```
 
 The output is CSV-style rows with per-case timing stats (`min`, `median`, `p95`, `mean` in milliseconds).

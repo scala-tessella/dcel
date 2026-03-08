@@ -4,13 +4,18 @@ import io.github.scala_tessella.dcel.*
 import io.github.scala_tessella.dcel.geometry.RegularPolygon
 import io.github.scala_tessella.dcel.TilingUniformity.{scanUniformityTree, uniformityTreeUncompressed}
 
+import java.lang.management.ManagementFactory
 import scala.util.Try
 
 object UniformityBenchmark:
 
   @volatile private var sink: Long = 0L
 
+  private enum Mode:
+    case Quick, Stable
+
   final private case class Config(
+      mode: Mode = Mode.Quick,
       warmupIterations: Int = 3,
       measuredIterations: Int = 8
   )
@@ -19,15 +24,32 @@ object UniformityBenchmark:
 
   final private case class Op(name: String, run: TilingDCEL => Long)
 
+  private val stableJvmFlags: List[String] =
+    List(
+      "-Xms2g",
+      "-Xmx2g",
+      "-XX:+AlwaysPreTouch",
+      "-XX:+UseParallelGC"
+    )
+
   private def unsafe[A](either: Either[TilingError, A], label: String): A =
     either match
       case Right(value) => value
       case Left(error)  =>
         throw new IllegalArgumentException(s"Could not build benchmark case '$label': ${error.message}")
 
+  private def defaultsFor(mode: Mode): Config =
+    mode match
+      case Mode.Quick  => Config(mode = Mode.Quick, warmupIterations = 3, measuredIterations = 8)
+      case Mode.Stable => Config(mode = Mode.Stable, warmupIterations = 10, measuredIterations = 30)
+
   private def parseConfig(args: Array[String]): Config =
-    args.foldLeft(Config()): (config, arg) =>
-      if arg.startsWith("--warmup=") then
+    args.foldLeft(defaultsFor(Mode.Quick)): (config, arg) =>
+      if arg == "--mode=stable" then
+        defaultsFor(Mode.Stable)
+      else if arg == "--mode=quick" then
+        defaultsFor(Mode.Quick)
+      else if arg.startsWith("--warmup=") then
         val value = arg.stripPrefix("--warmup=")
         Try(value.toInt).toOption.filter(_ >= 0).map(v => config.copy(warmupIterations = v)).getOrElse(config)
       else if arg.startsWith("--runs=") then
@@ -37,6 +59,18 @@ object UniformityBenchmark:
         ).toOption.filter(_ > 0).map(v => config.copy(measuredIterations = v)).getOrElse(config)
       else
         config
+
+  private def isRunningWithStableJvmFlags: Boolean =
+    val inputArgs = ManagementFactory.getRuntimeMXBean.getInputArguments
+    stableJvmFlags.forall(inputArgs.contains)
+
+  private def formatMode(mode: Mode): String =
+    mode match
+      case Mode.Quick  => "quick"
+      case Mode.Stable => "stable"
+
+  private def stableJvmFlagsAsCommandArgs: String =
+    stableJvmFlags.map(flag => s"-J$flag").mkString(" ")
 
   private def benchmarkCases: List[BenchCase] =
     List(
@@ -103,8 +137,15 @@ object UniformityBenchmark:
   def main(args: Array[String]): Unit =
     val config = parseConfig(args)
     println(
-      s"Uniformity benchmark (warmup=${config.warmupIterations}, runs=${config.measuredIterations})"
+      s"Uniformity benchmark (mode=${formatMode(config.mode)}, warmup=${config.warmupIterations}, runs=${config.measuredIterations})"
     )
+    if config.mode == Mode.Stable then
+      val status = if isRunningWithStableJvmFlags then "OK" else "MISSING"
+      println(s"stable-jvm-flags=$status")
+      if status == "MISSING" then
+        println(
+          s"hint: sbt $stableJvmFlagsAsCommandArgs \"dcelJVM/Test/runMain io.github.scala_tessella.dcel.benchmark.UniformityBenchmark --mode=stable\""
+        )
     println("case,operation,min_ms,median_ms,p95_ms,mean_ms")
 
     benchmarkCases.foreach: benchCase =>
