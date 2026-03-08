@@ -15,6 +15,16 @@ object TilingUniformity:
 
   extension (tiling: TilingDCEL)
 
+    @inline
+    private def getDcelAtVertexKnown(vertexId: VertexId, distance: Int): TilingDCEL =
+      tiling.getDcelAtVertex(vertexId, distance) match
+        case Right(localTiling) => localTiling
+        case Left(error)        =>
+          // In this path vertex ids are sourced from this tiling, so missing vertices indicate corruption.
+          throw new IllegalStateException(
+            s"Could not build local DCEL for ${vertexId.toPrefixedString} at distance $distance: ${error.message}"
+          )
+
     /** Retrieves a reduced TilingDCEL structure around a vertex containing only the polygons reached within
       * the given vertex-distance. Distance is clamped to >= 0.
       *
@@ -61,67 +71,75 @@ object TilingUniformity:
           val nf = Face(face.id, outerComponent = None, innerComponents = Nil)
           fMap.put(face.id, nf): Unit
 
-          val cycle = face.outerComponent.get.faceTraversalUnsafe[HalfEdge]()
-          cycle.foreach: halfEdge =>
-            val key = halfEdge.idUnsafe
-            if !heMap.contains(key) then
-              val o  = cloneVertex(halfEdge.origin)
-              val nh = HalfEdge(
-                origin = o,
-                twin = None,
-                next = None,
-                prev = None,
-                incidentFace = None,
-                angle = halfEdge.angle
-              )
-              heMap.put(key, nh): Unit
-              if o.leaving.isEmpty then o.leaving = Some(nh)
+          face.outerComponent.foreach: faceStart =>
+            val cycle = faceStart.faceTraversalUnsafe[HalfEdge]()
+            cycle.foreach: halfEdge =>
+              val key = halfEdge.idUnsafe
+              if !heMap.contains(key) then
+                val o  = cloneVertex(halfEdge.origin)
+                val nh = HalfEdge(
+                  origin = o,
+                  twin = None,
+                  next = None,
+                  prev = None,
+                  incidentFace = None,
+                  angle = halfEdge.angle
+                )
+                heMap.put(key, nh): Unit
+                if o.leaving.isEmpty then o.leaving = Some(nh)
 
         // Second pass: set next/prev/incidentFace for the inner faces
         selectedInnerFaces.foreach: face =>
           val nf                         = fMap(face.id)
-          val cycle                      = face.outerComponent.get.faceTraversalUnsafe[HalfEdge]()
           var firstNew: Option[HalfEdge] = None
           var prevNew: Option[HalfEdge]  = None
-          cycle.foreach: halfEdge =>
-            val nh = heMap(halfEdge.idUnsafe)
-            nh.incidentFace = Some(nf)
-            if firstNew.isEmpty then firstNew = Option(nh)
-            if prevNew.isDefined then
-              prevNew.get.next = Some(nh)
-              nh.prev = Some(prevNew.get)
-            prevNew = Some(nh)
-          prevNew.get.next = firstNew
-          firstNew.get.prev = prevNew
-          nf.outerComponent = firstNew
+          face.outerComponent.foreach: faceStart =>
+            val cycle = faceStart.faceTraversalUnsafe[HalfEdge]()
+            cycle.foreach: halfEdge =>
+              val nh = heMap(halfEdge.idUnsafe)
+              nh.incidentFace = Some(nf)
+              if firstNew.isEmpty then firstNew = Some(nh)
+              prevNew.foreach: previous =>
+                previous.next = Some(nh)
+                nh.prev = Some(previous)
+              prevNew = Some(nh)
+          for
+            first <- firstNew
+            prev  <- prevNew
+          do
+            prev.next = Some(first)
+            first.prev = Some(prev)
+            nf.outerComponent = Some(first)
 
         // Third pass: wire twins for inner-inner edges
         selectedInnerFaces.foreach: face =>
-          val cycle = face.outerComponent.get.faceTraversalUnsafe[HalfEdge]()
-          cycle.foreach: halfEdge =>
-            val nh = heMap(halfEdge.idUnsafe)
-            halfEdge.twin.foreach: twin =>
-              val tk = twin.idUnsafe
-              if heMap.contains(tk) then
-                val nt = heMap(tk)
-                nh.twin = Some(nt)
-                nt.twin = Some(nh)
+          face.outerComponent.foreach: faceStart =>
+            val cycle = faceStart.faceTraversalUnsafe[HalfEdge]()
+            cycle.foreach: halfEdge =>
+              val nh = heMap(halfEdge.idUnsafe)
+              halfEdge.twin.foreach: twin =>
+                val tk = twin.idUnsafe
+                if heMap.contains(tk) then
+                  val nt = heMap(tk)
+                  nh.twin = Some(nt)
+                  nt.twin = Some(nh)
 
         // 4) Build boundary half-edges where twins are missing (outer boundary of the local DCEL)
         val localOuter    = Face.outer
         val boundaryStubs = scala.collection.mutable.ArrayBuffer[HalfEdge]()
         heMap.values.foreach: halfEdge =>
           if halfEdge.twin.isEmpty then
-            val b = HalfEdge(
-              origin = halfEdge.next.get.origin,
-              twin = Some(halfEdge),
-              next = None,
-              prev = None,
-              incidentFace = Some(localOuter),
-              angle = halfEdge.angle.map(_.conjugate)
-            )
-            halfEdge.twin = Some(b)
-            boundaryStubs += b
+            halfEdge.next.foreach: nextHalfEdge =>
+              val b = HalfEdge(
+                origin = nextHalfEdge.origin,
+                twin = Some(halfEdge),
+                next = None,
+                prev = None,
+                incidentFace = Some(localOuter),
+                angle = halfEdge.angle.map(_.conjugate)
+              )
+              halfEdge.twin = Some(b)
+              boundaryStubs += b
 
         val stubByKey =
           boundaryStubs
@@ -130,9 +148,11 @@ object TilingUniformity:
             .toMap
 
         def nextBoundaryOf(b: HalfEdge): Option[HalfEdge] =
-          val innerPrev = b.twin.get.prev.get
-          val wantedKey = (innerPrev.destinationUnsafe.id, innerPrev.origin.id)
-          stubByKey.get(wantedKey)
+          for
+            twin      <- b.twin
+            innerPrev <- twin.prev
+            nextEdge  <- stubByKey.get((innerPrev.destinationUnsafe.id, innerPrev.origin.id))
+          yield nextEdge
 
         val visitedPairs   = scala.collection.mutable.HashSet[HalfEdgeId]()
         val boundaryCycles = scala.collection.mutable.ArrayBuffer[HalfEdge]()
@@ -205,7 +225,7 @@ object TilingUniformity:
         val centeredTilingsMap =
           vertexIds
             .associate: vertexId =>
-              tiling.getDcelAtVertex(vertexId, distance).toOption.get
+              getDcelAtVertexKnown(vertexId, distance)
 
         val classes = groupByBoundaryEquivalency(centeredTilingsMap.toList)
 
@@ -264,9 +284,14 @@ object TilingUniformity:
           vertexIds.head
 
     private[dcel] def regularPolygonsUnsafeFrom(vertexId: VertexId): List[RegularPolygon] =
-      tiling
-        .getAnglesAtVertex(vertexId).toOption.get
-        .rotationsAndReflections.min
+      val angles =
+        tiling.getAnglesAtVertex(vertexId) match
+          case Right(values) => values
+          case Left(error)   =>
+            throw new IllegalStateException(
+              s"Could not compute angles at ${vertexId.toPrefixedString}: ${error.message}"
+            )
+      angles.rotationsAndReflections.min
         .map: angleDegree =>
           RegularPolygon.fromInteriorAngle(angleDegree)
 
