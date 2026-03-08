@@ -32,30 +32,40 @@ object TilingValidation:
 
     // Check vertex consistency
     tiling.vertices.foreach: vertex =>
-      val edge = vertex.leaving.get
-      if edge.origin ne vertex then
-        errors += s"Vertex ${vertex.id} leaving edge doesn't originate from it"
-      if !edgeSet.contains(edge) then
-        errors += s"Vertex ${vertex.id} leaving edge is not part of this tiling"
+      vertex.leaving match
+        case None       =>
+          errors += s"Vertex ${vertex.id} has no leaving edge"
+        case Some(edge) =>
+          if edge.origin ne vertex then
+            errors += s"Vertex ${vertex.id} leaving edge doesn't originate from it"
+          if !edgeSet.contains(edge) then
+            errors += s"Vertex ${vertex.id} leaving edge is not part of this tiling"
 
     // Check half-edge consistency
     tiling.halfEdges.foreach: edge =>
       if !vertexSet.contains(edge.origin) then
         errors += s"Edge has origin not part of this tiling: ${edge.origin.id}"
-      val twin = edge.twin.get
-      if !edgeSet.contains(twin) then
-        errors += s"Edge from ${edge.origin.id} twin is not part of this tiling"
-      else
-        if twin eq edge then
-          errors += s"Edge from ${edge.origin.id} has itself as twin"
-        if !twin.twin.contains(edge) then
-          errors += s"Edge from ${edge.origin.id} twin relationship is not symmetric"
 
-      val next = edge.next.get
-      if !edgeSet.contains(next) then
-        errors += s"Edge from ${edge.origin.id} next edge is not part of this tiling"
-      if !next.prev.contains(edge) then
-        errors += s"Next/prev relationship broken: $edge has next edge $next which has prev edge ${next.prev}"
+      edge.twin match
+        case None       =>
+          errors += s"Edge from ${edge.origin.id} has no twin edge"
+        case Some(twin) =>
+          if !edgeSet.contains(twin) then
+            errors += s"Edge from ${edge.origin.id} twin is not part of this tiling"
+          else
+            if twin eq edge then
+              errors += s"Edge from ${edge.origin.id} has itself as twin"
+            if !twin.twin.contains(edge) then
+              errors += s"Edge from ${edge.origin.id} twin relationship is not symmetric"
+
+      edge.next match
+        case None       =>
+          errors += s"Edge from ${edge.origin.id} has no next edge"
+        case Some(next) =>
+          if !edgeSet.contains(next) then
+            errors += s"Edge from ${edge.origin.id} next edge is not part of this tiling"
+          if !next.prev.contains(edge) then
+            errors += s"Next/prev relationship broken: $edge has next edge $next which has prev edge ${next.prev}"
 
       edge.prev.foreach: prev =>
         if !edgeSet.contains(prev) then
@@ -69,8 +79,9 @@ object TilingValidation:
         else
           // Ensure the face actually "owns" this edge
           val isReachable =
-            face.halfEdges.toOption.exists: halfEdge =>
-              halfEdge.contains(edge)
+            face.halfEdges match
+              case Left(_)          => false
+              case Right(halfEdges) => halfEdges.contains(edge)
           if !isReachable then
             errors += s"Edge from ${edge.origin.id} claims to be in face ${face.id}, but is not reachable from face components"
 
@@ -98,10 +109,10 @@ object TilingValidation:
       case None if outerEdgesClaimed.nonEmpty =>
         errors += "Outer face traversal failed: no traversal found"
       case None                               => ()
-      case Some(outerTraversalEdges)          =>
-        if outerTraversalEdges.isLeft then
-          errors += "Outer face traversal failed: " + outerTraversalEdges.swap.getOrElse("")
-        else if outerEdgesClaimed.diff(outerTraversalEdges.toOption.get.toSet).nonEmpty then
+      case Some(Left(outerTraversalError))    =>
+        errors += "Outer face traversal failed: " + outerTraversalError
+      case Some(Right(outerTraversalEdges))   =>
+        if outerEdgesClaimed.diff(outerTraversalEdges.toSet).nonEmpty then
           errors += "Outer face has edges not reachable from its outer component"
 
     // This is specific to the tessellation we want, without holes, because holes are just other inner polygons
@@ -137,23 +148,17 @@ object TilingValidation:
     // Check angles' sum for the tiling boundary (interior view)
     tiling.boundaryVerticesSafer match
       case Right(boundaryVertices) if boundaryVertices.length >= 3 =>
-        val boundaryAngles =
+        val boundaryAngles             =
           boundaryVertices
             .map: vertex =>
               vertex.currentInteriorAngleSum(tiling.outerFace)
             .toList
-        if boundaryAngles.exists: either =>
-            either.isLeft
-        then
-          boundaryAngles
-            .filter: either =>
-              either.isLeft
-            .map: either =>
-              either.swap.toOption.get
-            .foreach: error =>
-              errors += s"Boundary angles calculation failed: $error"
+        val (angleErrors, angleValues) = boundaryAngles.partitionMap(identity)
+        if angleErrors.nonEmpty then
+          angleErrors.foreach: error =>
+            errors += s"Boundary angles calculation failed: $error"
         else
-          SimplePolygon.fromUntrusted(boundaryAngles.map(_.toOption.get).toVector) match
+          SimplePolygon.fromUntrusted(angleValues.toVector) match
             case Left(error) => errors += s"Boundary angles sum is incorrect: ${error.message}"
             case Right(_)    => ()
       case Left(_)                                                 => // NOTE: topological error
