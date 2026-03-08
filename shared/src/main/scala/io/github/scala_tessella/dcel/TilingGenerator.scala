@@ -1,6 +1,10 @@
 package io.github.scala_tessella.dcel
 
-import io.github.scala_tessella.dcel.TilingEquivalency.{hasSameSizesOf, isBoundaryEquivalentTo}
+import io.github.scala_tessella.dcel.TilingEquivalency.{
+  boundarySignature,
+  hasSameSizesOf,
+  isBoundaryEquivalentTo
+}
 import io.github.scala_tessella.dcel.TilingUniformity.{
   gonalitySampleInnerVertexIds,
   regularPolygonsUnsafeFrom
@@ -46,6 +50,27 @@ object TilingGenerator:
   private def normalizeSignature(sig: VertexSignature): VertexSignature =
     sig.rotationsAndReflections.min
 
+  /** Canonical key for search-state deduplication.
+    *
+    * `boundarySignature` is already canonicalized w.r.t. rotations/reflections, and known signatures are
+    * normalized before hashing.
+    */
+  final private case class SearchStateKey(
+      boundary: List[List[AngleDegree]],
+      knownSignatures: Set[VertexSignature],
+      innerFacesCount: Int
+  )
+
+  private def canonicalStateKey(
+      tiling: TilingDCEL,
+      knownSigs: Set[VertexSignature]
+  ): SearchStateKey =
+    SearchStateKey(
+      boundary = tiling.boundarySignature,
+      knownSignatures = knownSigs.map(normalizeSignature),
+      innerFacesCount = tiling.innerFaces.size
+    )
+
   extension (d: AngleDegree)
     def isZero: Boolean = d == AngleDegree(0)
 
@@ -62,19 +87,25 @@ object TilingGenerator:
     *   A list of representative tilings.
     */
   def findTilings(n: Int, maxVertices: Int = 50): List[TilingDCEL] =
-    val found             = mutable.ListBuffer[TilingDCEL]()
-    val visitedSignatures = mutable.HashSet[Set[VertexSignature]]()
+    val found = mutable.ListBuffer[TilingDCEL]()
 
     // Priority Queue for search: (Tiling, Distinct Signatures Found)
     // Ordered by number of vertices (DFS-like) or size of boundary (BFS-like)
     // Here we use a stack for DFS to find one complete example faster, or Queue for BFS.
-    val queue = mutable.Queue[(TilingDCEL, Set[VertexSignature])]()
+    val queue         = mutable.Queue[(TilingDCEL, Set[VertexSignature])]()
+    val visitedStates = mutable.HashSet[SearchStateKey]()
+
+    def enqueueIfNew(tiling: TilingDCEL, knownSigs: Set[VertexSignature]): Unit =
+      val stateKey = canonicalStateKey(tiling, knownSigs)
+      if visitedStates.add(stateKey) then
+        queue.enqueue((tiling, knownSigs))
 
     // Initialize with single-vertex patches (Vertex Atlases)
     // To ensure we start with valid n-archimedean candidates, we could seed with combinations of n signatures.
     // However, growing from a single triangle/square is simpler.
     val seeds = List(3, 4, 6, 12).map(sides => TilingDCEL.createRegularPolygon(RegularPolygon(sides)))
-    seeds.foreach(t => queue.enqueue((t, Set.empty)))
+    seeds.foreach: tiling =>
+      enqueueIfNew(tiling, Set.empty)
 //    println(s"Found ${seeds.size} seeds")
 
     while queue.nonEmpty do
@@ -96,12 +127,10 @@ object TilingGenerator:
 //            println(s"Found candidate with $n classes: ${knownSigs.map(_.mkString("."))}")
       else
         // 3. Expansion Step
-        expand(tiling, knownSigs) match
-          case nextStates =>
-//            println(s"Expanding ${nextStates.size} states")
-            // Sort next states to prioritize "forced moves" (filling small gaps)
-            // This is a crucial heuristic for performance
-            queue.enqueueAll(nextStates)
+        expand(tiling, knownSigs).foreach: (nextTiling, nextKnownSigs) =>
+          // Sort next states to prioritize "forced moves" (filling small gaps)
+          // This is a crucial heuristic for performance
+          enqueueIfNew(nextTiling, nextKnownSigs)
 
     found.toList
 
