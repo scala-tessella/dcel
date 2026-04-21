@@ -106,10 +106,8 @@ object TilingGenerator:
     val seeds = List(3, 4, 6, 12).map(sides => TilingDCEL.createRegularPolygon(RegularPolygon(sides)))
     seeds.foreach: tiling =>
       enqueueIfNew(tiling, Set.empty)
-//    println(s"Found ${seeds.size} seeds")
 
     while queue.nonEmpty do
-//      println(s"Queue size: ${queue.size}")
       val (tiling, knownSigs) = queue.dequeue()
 
       // 1. Check Pruning Conditions
@@ -124,7 +122,6 @@ object TilingGenerator:
           // Deduplicate
           if !found.exists(_.isBoundaryEquivalentTo(tiling)) then
             found += tiling
-//            println(s"Found candidate with $n classes: ${knownSigs.map(_.mkString("."))}")
       else
         // 3. Expansion Step
         expand(tiling, knownSigs).foreach: (nextTiling, nextKnownSigs) =>
@@ -154,7 +151,6 @@ object TilingGenerator:
       .map: face =>
         face.id.value
       .max
-//    println(s"maxFaceId: $maxFaceId, targetVertex: $targetVertex, gap: $gap")
 
     // Try adding polygons
     val possibleMoves = List(3, 4, 6, 12).flatMap { sides =>
@@ -223,24 +219,6 @@ object TilingGenerator:
             tiling :: acc
         .reverse
 
-  extension (tilingsCollections: List[List[TilingDCEL]])
-
-    /** Iterates through the groups and adds only the tilings that are not already present in the accumulator.
-      * Since each group is already distinct, we skip checking for duplicates within the same group.
-      *
-      * @return
-      *   Sequence of distinct tilings
-      */
-    def distinctByBoundaryEquivalency2: List[TilingDCEL] =
-      tilingsCollections
-        .foldLeft(List.empty[TilingDCEL]): (acc, group) =>
-          val newUnique = group.filterNot: tiling =>
-            acc.exists: existing =>
-              existing.hasSameSizesOf(tiling) && existing.isBoundaryEquivalentTo(tiling)
-          newUnique.foldLeft(acc): (list, tiling) =>
-            tiling :: list
-        .reverse
-
   extension (tilingsCollections: List[List[GuardedTiling]])
 
     /** Iterates through the groups and adds only the tilings that are not already present in the accumulator.
@@ -265,10 +243,6 @@ object TilingGenerator:
       RegularPolygon.apply
 
   extension (tiling: TilingDCEL)
-
-//    private def gonality: Int =
-//      tiling.uniformityTreeUncompressed(Option(0)).sizeLeaves
-//
 
     /** Expands the given tiling rotationally by attempting to add regular polygons to its boundary, ensuring
       * symmetry based on the specified rotational order.
@@ -301,10 +275,6 @@ object TilingGenerator:
         (0 until segmentSize).minBy: index =>
           boundaryVertexIds(index)
 
-//      // find in the segment the vertex with the smallest interior angle sum
-//      val angles = tiling.boundarySimplePolygon.toAngles
-//      val edgeStartAlt = (0 until segmentSize).maxBy(i => angles(i).toRational)
-
       val initialVertexId = boundaryVertexIds(edgeStartIndex)
 
       /** Attempt initial addition, then propagate to other segments if successful */
@@ -325,49 +295,6 @@ object TilingGenerator:
   type GuardedTiling = (TilingDCEL, Option[Set[RegularPolygon]])
 
   extension (tilings: List[TilingDCEL])
-
-    def expandRotationallyMoreOld(
-        order: Int,
-        steps: Int = 1,
-        uniformity: Option[Int] = None,
-        gonality: Option[Int] = None
-    ): List[TilingDCEL] =
-      if uniformity.exists: u =>
-          gonality.exists: g =>
-            u < g
-      then
-        throw new IllegalArgumentException("Uniformity cannot be lower than gonality")
-      val startingSize =
-        tilings.head.innerFaces.size
-      (0 until steps).foldLeft(tilings): (grownTilings, step) =>
-        val (growable, alreadyGrownWithHoleFilling) =
-          grownTilings.partition: tiling =>
-            tiling.innerFaces.size == startingSize + order * step
-        val nowGrown                                =
-          growable
-            .map: tiling =>
-              tiling.expandRotationally(order)
-                .filter: expandedTiling =>
-                  expandedTiling.boundarySimplePolygon.toAngles.forall: angle =>
-                    angle.toRational <= Rational(300)
-                .filter: expandedTiling =>
-                  (uniformity, gonality) match
-                    case (None, None)       => true
-                    case (Some(u), None)    => expandedTiling.uniformityTree.sizeLeaves <= u
-                    case (None, Some(g))    => expandedTiling.gonalitySampleInnerVertexIds.size <= g
-                    case (Some(u), Some(g)) =>
-                      val trees           = expandedTiling.gonalityTreesUnsafe
-                      val gonalityOrder   = trees.size
-                      def uniformityOrder =
-                        trees
-                          .map: (_, tree) =>
-                            tree.sizeLeaves
-                          .sum
-
-                      gonalityOrder <= g && uniformityOrder <= u
-
-        (alreadyGrownWithHoleFilling :: nowGrown)
-          .distinctByBoundaryEquivalency2
 
     def expandRotationallyMore(
         order: Int,

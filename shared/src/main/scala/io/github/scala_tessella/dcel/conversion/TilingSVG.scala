@@ -382,24 +382,6 @@ object TilingSVG:
         vertexToSvg(vertex, vertex.id.toString, config, radiusMultiplier, meta)
       .unzip
 
-//  private def createSimpleVertexElements(
-//      vertices: List[Vertex],
-//      config: SvgConfig
-//  ): (Seq[String], Seq[String]) =
-//    vertices
-//      .map: vertex =>
-//        vertexToSvg(vertex, vertex.id.toString, config)
-//      .unzip
-//
-//  private def createIndexVertexElements(
-//      vertices: List[(Vertex, Int)],
-//      config: SvgConfig
-//  ): (Seq[String], Seq[String]) =
-//    vertices
-//      .map: (vertex, index) =>
-//        vertexToSvg(vertex, s"${vertex.id.value} - $index", config)
-//      .unzip
-
   private def createFaceLabels(tilingDCEL: TilingDCEL, config: SvgConfig): Seq[String] =
     sortedInnerFaces(tilingDCEL).map: face =>
       val (x, y) = calculateCentroid(face.getVerticesUnsafe).toSvgCoords(config.scale)
@@ -606,11 +588,8 @@ object TilingSVG:
           val repeat            = vertices(r1).scaled(scale)
           val repeatOnOtherAxis = vertices(r2).scaled(scale)
 
-//          println(s"origin: $origin, repeat: $repeat, repeatOnOtherAxis: $repeatOnOtherAxis")
           val diffTwo   = (repeat - origin).scaled(1.1)
-//          println(s"diffTwo: $diffTwo")
           val diffThree = (repeatOnOtherAxis - origin).scaled(1.1)
-//          println(s"diffThree: $diffThree")
 
           val diffFour = diffTwo + diffThree
           val one      = section(vertices)

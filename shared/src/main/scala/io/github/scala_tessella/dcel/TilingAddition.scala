@@ -558,9 +558,6 @@ object TilingAddition:
     ): (List[AngleDegree], VertexId, VertexId) =
       val boundaryEdges = containerFace.halfEdgesUnsafe
 
-//      println(s"v_match.id = ${v_match.id}, v_new.id = ${v_new.id}")
-//      println(s"boundaryEdges.map(_.origin.id) = ${boundaryEdges.map(_.origin.id)}")
-
       // 1. Determine the shorter path (the "hole") on the boundary between the two vertices.
       val pathFwd  = boundaryEdges.getPathUnsafe(from = v_match, to = v_new)
       val pathBack = boundaryEdges.getPathUnsafe(from = v_new, to = v_match)
@@ -570,10 +567,6 @@ object TilingAddition:
 
       // 2. Calculate the internal angles for a new polygon that would fill this hole.
       val polygonAngles = calculateHolePolygonAngles(holePath)
-
-//      if polygonAngles.head.isFullCircle then
-//        println(s"polygonAngles = $polygonAngles")
-//        throw new Error("First angle is full circle")
 
       // 3. Determine the starting vertex and adjust angle order based on the path direction.
       if isForward then
@@ -1149,9 +1142,6 @@ object TilingAddition:
     val sharedEdgesFirstAngle = newBoundaryEdges.head.angle
     sharedEdges.zipWithIndex.foreach: (edge, index) =>
       edge.angle = Some(polyAngles(index))
-
-    // Update last boundary edge angle
-//    newBoundaryEdges.lastOption.foreach(_.angle = Some(boundaryAngles.newVertices.head.conjugate))
 
     // Update the existing boundary edge from end vertex
     val endVertexId =
