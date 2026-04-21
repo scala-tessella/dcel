@@ -112,7 +112,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val point2 = BigPoint(BigDecimal(1), BigDecimal(0))
 
     // Test various polygon sizes
-    for (sides <- 3 to 12)
+    for sides <- 3 to 12 do
       val result = calculateNewVertices(sides, point1, point2)
       // We already have 2 vertices (point1, point2), need (sides - 2) more
       result should have length (sides - 2)
@@ -152,7 +152,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val point1 = BigPoint(BigDecimal(0), BigDecimal(0))
     val point2 = BigPoint(BigDecimal(1), BigDecimal(0))
 
-    for (sides <- 3 to 8)
+    for sides <- 3 to 8 do
       val newVertices = calculateNewVertices(sides, point1, point2)
       val allVertices = point1 :: point2 :: newVertices
 
@@ -543,7 +543,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     var currentTiling = hexagon
 
     // Add triangles to create a flower pattern
-    for (i <- 1 to 6)
+    for i <- 1 to 6 do
       val result = currentTiling.addRegularPolygonToBoundary(VertexId(i), RegularPolygon(3))
       allAssert(
         result.isRight shouldBe true, {

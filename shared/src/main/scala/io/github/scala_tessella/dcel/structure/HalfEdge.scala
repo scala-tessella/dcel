@@ -332,7 +332,7 @@ object HalfEdge:
           val holeEdgesList = mutable.ListBuffer[HalfEdge]()
           var currentEdge   = startEdge
 
-          while (currentEdge.destinationUnsafe != to && !holeEdgesList.contains(currentEdge))
+          while currentEdge.destinationUnsafe != to && !holeEdgesList.contains(currentEdge) do
             holeEdgesList += currentEdge
             currentEdge = currentEdge.next.get
 
@@ -386,10 +386,10 @@ object HalfEdge:
         val path          = mutable.ListBuffer.empty[HalfEdge]
 
         def findPath(u: Vertex): Unit =
-          while (
+          while
             edgesByOrigin.get(u).exists: edges =>
               edges.nonEmpty
-          )
+          do
             val edge = edgesByOrigin(u).dequeue()
             findPath(edge.destinationUnsafe)
             path.prepend(edge)

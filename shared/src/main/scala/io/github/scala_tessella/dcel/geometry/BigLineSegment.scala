@@ -87,7 +87,7 @@ object BigLineSegment:
       var currentPoint = p2
       var heading      = p1.angleTo(p2)
       // Calculate the positions of V2 through V(n-1)
-      for (i <- 1 until n - 1)
+      for i <- 1 until n - 1 do
         val interiorAngle = angles(i)
         val turnAngle     = interiorAngle.supplement
         heading += turnAngle.toBigRadian

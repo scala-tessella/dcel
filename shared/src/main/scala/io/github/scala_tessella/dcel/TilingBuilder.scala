@@ -141,7 +141,7 @@ object TilingBuilder:
         HalfEdge.apply(vertex)
 
     // Link all components together
-    for (i <- vertices.indices)
+    for i <- vertices.indices do
       val nextIndex = (i + 1)     % n
       val prevIndex = (i + n - 1) % n
 
@@ -266,16 +266,16 @@ object TilingBuilder:
   ): List[HalfEdge] =
     val innerBoundaryEdgesCCW = new mutable.ListBuffer[HalfEdge]()
     // Bottom boundary
-    for (i <- 0 until width)
+    for i <- 0 until width do
       innerBoundaryEdgesCCW += horizontal(0)(i)._1
     // Right boundary
-    for (j <- 0 until height)
+    for j <- 0 until height do
       innerBoundaryEdgesCCW += vSlope(j)(width)._1
     // Top boundary
-    for (i <- (0 until width).reverse)
+    for i <- (0 until width).reverse do
       innerBoundaryEdgesCCW += horizontal(height)(i)._2
     // Left boundary
-    for (j <- (0 until height).reverse)
+    for j <- (0 until height).reverse do
       innerBoundaryEdgesCCW += vSlope(j)(0)._2
 
     val outerBoundaryCW =

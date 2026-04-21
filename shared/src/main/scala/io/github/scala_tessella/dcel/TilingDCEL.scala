@@ -179,7 +179,7 @@ final case class TilingDCEL private (
     val adjusted = uniformityTree match
       case Leaf(Nil)         => Leaf(Nil)
       case Leaf(value)       => Branch(value, List(Leaf(value)))
-      case branch: Branch[_] => branch
+      case branch: Branch[?] => branch
     adjusted.ensureDepthOneBranchesHaveValidValues(_.isEmpty, _.head.firstLeaf.get)
       .children
       .map: child =>

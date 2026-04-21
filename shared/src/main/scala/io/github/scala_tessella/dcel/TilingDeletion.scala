@@ -346,11 +346,11 @@ object TilingDeletion:
 
               val angleAtStartSurvived = edges.head.angle
               val angleAtStartRemoved  = twinOfEdgeToPathAtStart.angle
-              val newAngleAtStart      = for (a1 <- angleAtStartSurvived; a2 <- angleAtStartRemoved) yield a1 + a2
+              val newAngleAtStart      = for a1 <- angleAtStartSurvived; a2 <- angleAtStartRemoved yield a1 + a2
 
               val angleAtEndSurvived = edgeFromPathAtEnd.angle
               val angleAtEndRemoved  = twinsToDelete.last.angle
-              val newAngleAtEnd      = for (a1 <- angleAtEndSurvived; a2 <- angleAtEndRemoved) yield a1 + a2
+              val newAngleAtEnd      = for a1 <- angleAtEndSurvived; a2 <- angleAtEndRemoved yield a1 + a2
 
               // 1. Relink edges
               val pathEndNext     = edgeFromPathAtEnd
