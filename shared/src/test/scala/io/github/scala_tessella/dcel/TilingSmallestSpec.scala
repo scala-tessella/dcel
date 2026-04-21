@@ -37,23 +37,14 @@ class TilingSmallestSpec extends AnyFlatSpec with Matchers with TilingTestHelper
         .map:
           _.angle.get.toString
         .mkString(", ") shouldBe "240, 300, 240, 300",
-      tiling.outerFace.halfEdgesUnsafe.map:
-        _.incidentFace.get.id
-      shouldBe List.fill(4)(F0),
+      tiling.outerFace.halfEdgesUnsafe.map(_.incidentFace.get.id) shouldBe List.fill(4)(F0),
 
       // Check inner face angles
-      tiling.innerFaces.map:
-        _.halfEdgesUnsafe.map:
-          _.angle.get.toString
-        .mkString(", ")
-      shouldBe List(
+      tiling.innerFaces.map(_.halfEdgesUnsafe.map(_.angle.get.toString).mkString(", ")) shouldBe List(
         "60, 60, 60",
         "60, 60, 60"
       ),
-      tiling.innerFaces.map:
-        _.halfEdgesUnsafe.map:
-          _.incidentFace.get.id
-      shouldBe List(
+      tiling.innerFaces.map(_.halfEdgesUnsafe.map(_.incidentFace.get.id)) shouldBe List(
         List(F1, F1, F1),
         List(F2, F2, F2)
       ), {
