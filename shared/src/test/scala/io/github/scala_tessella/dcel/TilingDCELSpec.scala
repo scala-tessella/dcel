@@ -74,24 +74,24 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   behavior of "TilingDCEL.boundary"
 
   it should "return empty vector for empty tiling" in:
-    emptyTiling.boundaryVertices shouldBe Vector.empty[Vertex]
+    emptyTiling.boundaryVerticesUnsafe shouldBe Vector.empty[Vertex]
 
   it should "return correct boundary vertices for triangle in clockwise order" in:
-    val boundary = triangle.boundaryVertices
+    val boundary = triangle.boundaryVerticesUnsafe
     allAssert(
       boundary should have length 3,
       boundary.map(_.id) should contain theSameElementsInOrderAs Vector(V1, V3, V2)
     )
 
   it should "return correct boundary vertices for square in clockwise order" in:
-    val boundary = square.boundaryVertices
+    val boundary = square.boundaryVerticesUnsafe
     allAssert(
       boundary should have length 4,
       boundary.map(_.id) should contain theSameElementsInOrderAs Vector(V1, V4, V3, V2)
     )
 
   it should "return correct boundary vertices for hexagon" in:
-    val boundary = hexagon.boundaryVertices
+    val boundary = hexagon.boundaryVerticesUnsafe
     allAssert(
       boundary should have length 6,
       boundary.map(_.id) should contain theSameElementsInOrderAs Vector(V1, V6, V5, V4, V3, V2)
@@ -101,16 +101,16 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "return same result as boundary for well-formed tilings" in
     allAssert(
-      triangle.boundaryVerticesSafer.value shouldEqual triangle.boundaryVertices,
-      square.boundaryVerticesSafer.value shouldEqual square.boundaryVertices
+      triangle.boundaryVertices.value shouldEqual triangle.boundaryVerticesUnsafe,
+      square.boundaryVertices.value shouldEqual square.boundaryVerticesUnsafe
     )
 
   it should "return empty vector for empty tiling" in:
-    emptyTiling.boundaryVerticesSafer shouldBe Right(Vector.empty)
+    emptyTiling.boundaryVertices shouldBe Right(Vector.empty)
 
   it should "fail for malformed boundary loop" in:
     val tiling        = triangle
-    val boundaryEdges = tiling.boundaryEdgesSafer.value
+    val boundaryEdges = tiling.boundaryEdges.value
     val firstEdge     = boundaryEdges.head // This is the startEdge
     val secondEdge    = boundaryEdges(1)
 
@@ -118,24 +118,24 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     firstEdge.next = Some(secondEdge)
     secondEdge.next = Some(secondEdge) // Make second edge point to itself
 
-    tiling.boundaryVerticesSafer.isLeft shouldBe true
+    tiling.boundaryVertices.isLeft shouldBe true
 
   it should "fail for open chain in boundary" in:
     val tiling        = triangle
-    val boundaryEdges = tiling.boundaryEdgesSafer.value
+    val boundaryEdges = tiling.boundaryEdges.value
     val firstEdge     = boundaryEdges.head
     // Break the chain by setting next to None
     firstEdge.next = None
 
-    tiling.boundaryVerticesSafer.isLeft shouldBe true
+    tiling.boundaryVertices.isLeft shouldBe true
 
   behavior of "TilingDCEL.getBoundaryEdges"
 
   it should "return empty list for empty tiling" in:
-    emptyTiling.boundaryEdgesSafer shouldBe Right(List.empty)
+    emptyTiling.boundaryEdges shouldBe Right(List.empty)
 
   it should "return boundary edges in correct order" in:
-    val boundaryEdges = triangle.boundaryEdgesSafer.value
+    val boundaryEdges = triangle.boundaryEdges.value
     allAssert(
       boundaryEdges should have length 3, {
         // Check that edges form a closed loop
@@ -146,7 +146,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "fail for malformed boundary with visited edge" in:
     val tiling        = triangle
-    val boundaryEdges = tiling.boundaryEdgesSafer.value
+    val boundaryEdges = tiling.boundaryEdges.value
     val firstEdge     = boundaryEdges.head // e0 (start)
     val secondEdge    = boundaryEdges(1)   // e1
     val thirdEdge     = boundaryEdges(2)   // e2
@@ -156,14 +156,14 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     secondEdge.next = Some(thirdEdge)
     thirdEdge.next = Some(secondEdge) // This creates the problematic cycle
 
-    tiling.boundaryEdgesSafer.isLeft shouldBe true
+    tiling.boundaryEdges.isLeft shouldBe true
 
   it should "fail for unclosed boundary loop" in:
     val tiling        = triangle
-    val boundaryEdges = tiling.boundaryEdgesSafer.value
+    val boundaryEdges = tiling.boundaryEdges.value
     // Break the loop by making the last edge not point back to the first
     boundaryEdges.last.next = None
-    tiling.boundaryEdgesSafer.isLeft shouldBe true
+    tiling.boundaryEdges.isLeft shouldBe true
 
   behavior of "TilingDCEL.getAnglesAtVertex"
 

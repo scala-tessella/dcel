@@ -223,7 +223,7 @@ class TilingValidationComprehensiveSpec extends AnyFlatSpec with Matchers with T
 
   it should "fail when boundary exterior angles contain full circle" in:
     val tiling = square
-    tiling.boundaryEdgesSafer.value.head.angle = Some(AngleDegree(360))
+    tiling.boundaryEdges.value.head.angle = Some(AngleDegree(360))
     val res    = validateGeometrically(tiling)
     allAssert(
       res.isLeft shouldBe true,

@@ -147,7 +147,7 @@ object TilingValidation:
         case Left(_)      => // NOTE: topological error, handled in validateTopologically
 
     // Check angles' sum for the tiling boundary (interior view)
-    tiling.boundaryVerticesSafer match
+    tiling.boundaryVertices match
       case Right(boundaryVertices) if boundaryVertices.length >= 3 =>
         val boundaryAngles             =
           boundaryVertices
@@ -166,7 +166,7 @@ object TilingValidation:
       case _                                                       => // Not enough vertices to form a polygon
 
     // Check angles' sum for the tiling boundary (exterior view)
-    tiling.boundaryEdgesSafer match
+    tiling.boundaryEdges match
       case Right(boundaryEdges) if boundaryEdges.length >= 3 =>
         val boundaryAngles =
           boundaryEdges.flatMap: halfEdge =>
@@ -183,7 +183,7 @@ object TilingValidation:
       case _                                                 => // Not enough edges
 
     // Check angles' sum for each interior vertex
-    val boundaryVertices = tiling.boundaryVertices.toSet
+    val boundaryVertices = tiling.boundaryVerticesUnsafe.toSet
     val interiorVertices = tiling.vertices.filterNot(boundaryVertices.contains)
     interiorVertices.foreach: vertex =>
       tiling.getAnglesAtVertex(vertex.id) match

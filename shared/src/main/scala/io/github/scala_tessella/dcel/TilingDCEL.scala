@@ -207,20 +207,10 @@ final case class TilingDCEL private (
     * perimeter.
     *
     * @return
-    *   A Vector of Vertices forming the perimeter, in clockwise order. Returns an empty Vector if the outer
-    *   face has no boundary component.
+    *   Either a Vector of Vertices forming the perimeter in clockwise order, or a [[TopologyError]] if the
+    *   outer-face traversal fails. An empty Vector is returned when the outer face has no boundary component.
     */
-  def boundaryVertices: Vector[Vertex] =
-    outerFace.outerComponent match
-      case None            => Vector.empty
-      case Some(startEdge) =>
-        startEdge
-          .faceTraversalUnsafe: halfEdge =>
-            halfEdge.origin
-          .toVector
-
-  /** For validation purposes only. */
-  private[dcel] def boundaryVerticesSafer: Either[TopologyError, Vector[Vertex]] =
+  def boundaryVertices: Either[TopologyError, Vector[Vertex]] =
     outerFace.outerComponent match
       case None            => Right(Vector.empty)
       case Some(startEdge) =>
@@ -230,25 +220,44 @@ final case class TilingDCEL private (
           .map: vertices =>
             vertices.toVector
 
+  /** Unsafe counterpart of [[boundaryVertices]]: assumes the tiling's outer face is well-formed and skips
+    * topology validation. Throws if the outer-face traversal is broken.
+    */
+  private[dcel] def boundaryVerticesUnsafe: Vector[Vertex] =
+    outerFace.outerComponent match
+      case None            => Vector.empty
+      case Some(startEdge) =>
+        startEdge
+          .faceTraversalUnsafe: halfEdge =>
+            halfEdge.origin
+          .toVector
+
   /** All vertices in the tiling, except those on the outer boundary. */
   def innerVertices: List[Vertex] =
-    vertices.diff(boundaryVertices)
+    vertices.diff(boundaryVerticesUnsafe)
 
-  /** Finds the ordered half-edges forming the outer boundary of the tiling. */
-  def boundaryEdges: List[HalfEdge] =
-    outerFace.outerComponent match
-      case Some(startEdge) => startEdge.faceTraversalUnsafe()
-      case None            => List.empty
-
-  /** For validation purposes only. */
-  private[dcel] def boundaryEdgesSafer: Either[TopologyError, List[HalfEdge]] =
+  /** Finds the ordered half-edges forming the outer boundary of the tiling.
+    *
+    * @return
+    *   Either the ordered boundary half-edges, or a [[TopologyError]] if the outer-face traversal fails. An
+    *   empty list is returned when the outer face has no boundary component.
+    */
+  def boundaryEdges: Either[TopologyError, List[HalfEdge]] =
     outerFace.outerComponent match
       case Some(startEdge) => startEdge.faceTraversal()
       case None            => Right(List.empty)
 
+  /** Unsafe counterpart of [[boundaryEdges]]: assumes the tiling's outer face is well-formed and skips
+    * topology validation. Throws if the outer-face traversal is broken.
+    */
+  private[dcel] def boundaryEdgesUnsafe: List[HalfEdge] =
+    outerFace.outerComponent match
+      case Some(startEdge) => startEdge.faceTraversalUnsafe()
+      case None            => List.empty
+
   lazy val boundarySimplePolygon: SimplePolygon =
     SimplePolygon(
-      boundaryEdges
+      boundaryEdgesUnsafe
         .map: halfEdge =>
           halfEdge.angle.get.conjugate
         .toVector
@@ -310,10 +319,14 @@ final case class TilingDCEL private (
             angles.indexWhere: angleDegree =>
               angleDegree == AngleDegree(60)
           val repeat = (angles.size / 3) + origin
-          Right(this.rawDouble(boundaryVertices(origin), boundaryVertices(repeat), withInversion = true))
+          Right(this.rawDouble(
+            boundaryVerticesUnsafe(origin),
+            boundaryVerticesUnsafe(repeat),
+            withInversion = true
+          ))
         case None                                                => Left(ValidationError("Tiling is not a parallelogon, cannot fill the whole plane."))
         case Some((origin, repeat))                              =>
-          Right(this.rawDouble(boundaryVertices(origin), boundaryVertices(repeat)))
+          Right(this.rawDouble(boundaryVerticesUnsafe(origin), boundaryVerticesUnsafe(repeat)))
 
   def fanAt(vertexId: VertexId): Either[TilingError, TilingDCEL] =
     for

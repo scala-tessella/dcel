@@ -20,7 +20,7 @@ object TilingSymmetry:
       * boundary are also preserved by the internal structure.
       */
     def rotationalSymmetryOrder: Int =
-      val edges = tiling.boundaryEdges
+      val edges = tiling.boundaryEdgesUnsafe
       if edges.isEmpty then return 1
 
       // 1. Get upper bound from the boundary polygon
@@ -39,7 +39,7 @@ object TilingSymmetry:
 
     def rotationalVertexIds: List[BoundaryLocation] =
       val symmetryOrder    = rotationalSymmetryOrder
-      val boundaryVertices = tiling.boundaryVertices
+      val boundaryVertices = tiling.boundaryVerticesUnsafe
 
       def coordsOf(axisLocation: AxisLocation): BigPoint =
         axisLocation match
@@ -76,10 +76,10 @@ object TilingSymmetry:
           fromAxisToBoundary(boundaryVertexIds)
 
     def reflectionalVertexIds: List[(BoundaryLocation, BoundaryLocation)] =
-      val edges             = tiling.boundaryEdges.toVector
+      val edges             = tiling.boundaryEdgesUnsafe.toVector
       if edges.isEmpty then return Nil
       val boundaryVertexIds =
-        tiling.boundaryVertices.map: vertex =>
+        tiling.boundaryVerticesUnsafe.map: vertex =>
           vertex.id
       val axes              = tiling.boundarySimplePolygon.reflectionalIndexPairs
       axes

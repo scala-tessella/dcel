@@ -44,7 +44,7 @@ class PropertyBasedDCELSpec
     validateTopologically(tiling).isRight shouldBe true
 
   private def interiorVertices(tiling: TilingDCEL): List[Vertex] =
-    val boundary = tiling.boundaryVertices.toSet
+    val boundary = tiling.boundaryVerticesUnsafe.toSet
     tiling.vertices.filterNot(boundary.contains)
 
   private def angleSumIsFullCircle(angles: List[AngleDegree]): Boolean =
@@ -53,7 +53,7 @@ class PropertyBasedDCELSpec
   private def random: Random = new Random(0xc0ffee) // deterministic seed for reproducibility
 
   private def randomBoundaryEdgeStart(tiling: TilingDCEL): Option[VertexId] =
-    val edges = tiling.boundaryEdges
+    val edges = tiling.boundaryEdgesUnsafe
     if edges.isEmpty then None
     else Some(edges(random.nextInt(edges.length)).origin.id)
 

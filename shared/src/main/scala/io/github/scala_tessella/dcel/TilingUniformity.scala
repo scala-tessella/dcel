@@ -214,7 +214,7 @@ object TilingUniformity:
       */
     def uniformityTreeUncompressed(maxDistance: Option[Int] = None): Tree[List[VertexId]] =
       val boundaryVertexIds =
-        tiling.boundaryVertices
+        tiling.boundaryVerticesUnsafe
           .map:
             _.id
           .toSet
@@ -234,7 +234,7 @@ object TilingUniformity:
             classIds.partition: vertexId =>
               val localTiling      = centeredTilingsMap(vertexId)
               val localBoundaryIds =
-                localTiling.boundaryVertices
+                localTiling.boundaryVerticesUnsafe
                   .map:
                     _.id
                   .toSet

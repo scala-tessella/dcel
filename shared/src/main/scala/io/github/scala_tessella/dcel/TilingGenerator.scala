@@ -136,7 +136,7 @@ object TilingGenerator:
       currentSigs: Set[VertexSignature]
   ): List[(TilingDCEL, Set[VertexSignature])] =
     // Find boundary vertex with smallest non-zero gap
-    val candidates = tiling.boundaryVertices.flatMap { v =>
+    val candidates = tiling.boundaryVerticesUnsafe.flatMap { v =>
       val currentAngle = v.currentInteriorAngleSumUnsafe(tiling.outerFace)
       val gap          = AngleDegree(360) - currentAngle
       if gap.isZero then None // Already full (should be internal, or on straight line boundary)
@@ -163,7 +163,7 @@ object TilingGenerator:
         // Usually, we want the edge where targetVertex is the *origin* (next polygon starts here)
         // or *destination*. TilingAddition.addRegularPolygonToBoundary takes "edge starting with vertex".
 
-        val edgeOpt = tiling.boundaryEdges.find(_.origin == targetVertex)
+        val edgeOpt = tiling.boundaryEdgesUnsafe.find(_.origin == targetVertex)
         edgeOpt.map { edge =>
           tiling.maybeAddRegularPolygonToBoundary(edge.origin.id, RegularPolygon(sides))
         }
@@ -177,7 +177,7 @@ object TilingGenerator:
 
     possibleMoves.collect { case Right(newTiling) =>
       // Check for dead angles (< 60 degrees) on the boundary
-      val hasDeadAngles = newTiling.boundaryVertices.exists { v =>
+      val hasDeadAngles = newTiling.boundaryVerticesUnsafe.exists { v =>
         val currentAngle = v.currentInteriorAngleSumUnsafe(newTiling.outerFace)
         val gap          = AngleDegree(360) - currentAngle
         gap.toRational > Rational(0) && gap.toRational < Rational(60)
@@ -264,7 +264,7 @@ object TilingGenerator:
 
       // take the first segment of boundary vertices
       val boundaryVertexIds =
-        tiling.boundaryVertices.map:
+        tiling.boundaryVerticesUnsafe.map:
           _.id
       if boundaryVertexIds.size % order != 0 then
         throw new IllegalArgumentException("Boundary not a multiple of order")

@@ -32,7 +32,7 @@ object TilingDOT:
 
       // Boundary (outer-face) edges: directed edges along the boundary half-edges
       val boundaryEdges =
-        tiling.boundaryEdges.sortBy:
+        tiling.boundaryEdgesUnsafe.sortBy:
           _.idUnsafe
       boundaryEdges.foreach: halfEdge =>
         val (origId, destId) = halfEdge.idUnsafe

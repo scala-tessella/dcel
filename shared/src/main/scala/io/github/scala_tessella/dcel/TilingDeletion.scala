@@ -96,7 +96,7 @@ object TilingDeletion:
           )
         case Some(path) =>
           val innerVertices = path.map(_.origin).drop(1)
-          if tiling.boundaryVertices.intersect(innerVertices).isEmpty then Right(())
+          if tiling.boundaryVerticesUnsafe.intersect(innerVertices).isEmpty then Right(())
           else
             Left(TopologyError(
               s"Removing face ${face.id} would partition the tiling in two or more parts connected by just a vertex."
@@ -407,9 +407,9 @@ object TilingDeletion:
         vertex       <- tiling.findVertex(vertexId)
         adjacentEdges = tiling.halfEdges.filter(_.origin == vertex)
         result       <-
-          val boundaryVertices = tiling.boundaryVertices
+          val boundaryVertices = tiling.boundaryVerticesUnsafe
           if boundaryVertices.contains(vertex) then
-            val boundaryHalfEdges = tiling.boundaryEdges
+            val boundaryHalfEdges = tiling.boundaryEdgesUnsafe
             for
               start                         <- boundaryHalfEdges
                                                  .find(_.origin == vertex)

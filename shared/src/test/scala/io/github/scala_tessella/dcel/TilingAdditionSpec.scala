@@ -377,11 +377,11 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       //    println(withPentagon.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
       {
         // Check that the boundary is still traversable
-        val boundary = withPentagon.boundaryVertices
+        val boundary = withPentagon.boundaryVerticesUnsafe
         boundary should not be empty
       }, {
         // Verify boundary forms a closed loop
-        val boundaryEdges = withPentagon.boundaryEdgesSafer.value
+        val boundaryEdges = withPentagon.boundaryEdges.value
         val assertions    =
           boundaryEdges.map: edge =>
             allAssert(
@@ -416,7 +416,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
         val tiling         = result.value
         // V0 is shared between two squares, so the boundary angle should be 360 - 90 - 90 = 180
         val v0BoundaryEdge =
-          tiling.boundaryEdgesSafer.value
+          tiling.boundaryEdges.value
             .find: halfEdge =>
               halfEdge.origin.id == V1
             .get
@@ -432,7 +432,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       verifyValidTiling(withTriangle3), {
         // V0 now has 3 triangles, so the boundary angle should be 360 - 3*60 = 180
         val v0BoundaryEdge =
-          withTriangle3.boundaryEdgesSafer.value
+          withTriangle3.boundaryEdges.value
             .find: halfEdge =>
               halfEdge.origin.id == V1
             .get
@@ -463,7 +463,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       result.isRight shouldBe true, {
         val tiling        = result.value
         // Check that boundary is still a single connected component
-        val boundaryEdges = tiling.boundaryEdgesSafer.value
+        val boundaryEdges = tiling.boundaryEdges.value
         allAssert(
           boundaryEdges should not be empty, {
             val assertions =

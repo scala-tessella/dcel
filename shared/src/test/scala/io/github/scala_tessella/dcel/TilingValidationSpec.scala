@@ -100,7 +100,7 @@ class TilingValidationSpec extends AnyFlatSpec with Matchers with TilingTestHelp
 
   it should "fail if a boundary angle is undefined" in:
     val tiling = square
-    tiling.boundaryEdgesSafer.value.head.angle = None
+    tiling.boundaryEdges.value.head.angle = None
     val result = validate(tiling)
     allAssert(
       result.isLeft shouldBe true,
@@ -111,7 +111,7 @@ class TilingValidationSpec extends AnyFlatSpec with Matchers with TilingTestHelp
 
   it should "fail if a boundary angle is a full circle (360 degrees)" in:
     val tiling = square
-    tiling.boundaryEdgesSafer.value.head.angle = Some(AngleDegree(360))
+    tiling.boundaryEdges.value.head.angle = Some(AngleDegree(360))
     val result = validate(tiling)
     allAssert(
       result.isLeft shouldBe true,
@@ -120,7 +120,7 @@ class TilingValidationSpec extends AnyFlatSpec with Matchers with TilingTestHelp
 
   it should "fail if a boundary angle is a full circle (0 degrees)" in:
     val tiling = square
-    tiling.boundaryEdgesSafer.value.head.angle = Some(AngleDegree(0))
+    tiling.boundaryEdges.value.head.angle = Some(AngleDegree(0))
     val result = validate(tiling)
     allAssert(
       result.isLeft shouldBe true,

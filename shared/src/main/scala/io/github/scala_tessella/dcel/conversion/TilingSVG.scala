@@ -70,7 +70,7 @@ object TilingSVG:
       _.idUnsafe
 
   private def sortedBoundaryEdges(tiling: TilingDCEL): List[HalfEdge] =
-    tiling.boundaryEdges.sortBy:
+    tiling.boundaryEdgesUnsafe.sortBy:
       _.idUnsafe
 
   private def toConfig(opts: SvgOptions): SvgConfig =
@@ -206,7 +206,7 @@ object TilingSVG:
     (circle, text)
 
   private def createBoundaryElements(tilingDCEL: TilingDCEL, config: SvgConfig): Option[String] =
-    tilingDCEL.boundaryVertices match
+    tilingDCEL.boundaryVerticesUnsafe match
       case vertices if vertices.nonEmpty =>
         val points =
           vertices
@@ -553,7 +553,7 @@ object TilingSVG:
         // Generate all elements
         val edgeLines                            = createEdgeLines(tiling, scale)
         val innerFaceArrows                      = createHalfEdgeArrows(tiling.innerFaces.flatMap(_.halfEdgesUnsafe), config)
-        val outerFaceArrows                      = createHalfEdgeArrows(tiling.boundaryEdges, config)
+        val outerFaceArrows                      = createHalfEdgeArrows(tiling.boundaryEdgesUnsafe, config)
         val (innerAngleLabels, outerAngleLabels) = createAngleLabels(tiling, config)
         val boundaryPolygon                      = createBoundaryElements(tiling, config)
         val (vertexCircles, vertexLabels)        = createVertexElements(tiling, config)

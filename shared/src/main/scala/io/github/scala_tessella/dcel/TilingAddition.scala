@@ -236,7 +236,7 @@ object TilingAddition:
 
     private def validateBoundaryEdge(startingWithVertexId: VertexId)
         : Either[TilingError, (HalfEdge, Vertex, Vertex, List[HalfEdge])] =
-      val boundaryEdges = tiling.boundaryEdges
+      val boundaryEdges = tiling.boundaryEdgesUnsafe
       for
         edgeToBuildOn            <- boundaryEdges
                                       .find: halfEdge =>
@@ -542,7 +542,7 @@ object TilingAddition:
         // 1. check if origin is the id of an existing boundary vertex, otherwise return a validation error
         val originId = origin.id
 
-        if !tiling.boundaryVertices.exists(_.id == originId) then
+        if !tiling.boundaryVerticesUnsafe.exists(_.id == originId) then
           return Left(ValidationError(s"Vertex ${origin.id.toPrefixedString} is not on the boundary."))
 
         // 2. calculate max multiplication factor, is the integer part of 360° divided by the sum interior angles, minus 1
@@ -559,7 +559,7 @@ object TilingAddition:
           return cannotExpand
 
         def boundaryEdgesAtOrigin(target: TilingDCEL): Either[TilingError, (HalfEdge, HalfEdge)] =
-          val boundaryEdges = target.boundaryEdges
+          val boundaryEdges = target.boundaryEdgesUnsafe
           val edgeOutOpt    =
             boundaryEdges.find: halfEdge =>
               halfEdge.origin.id == originId

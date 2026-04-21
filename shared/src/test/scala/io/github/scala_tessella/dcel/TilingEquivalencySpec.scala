@@ -128,8 +128,8 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
     val copy     = original.deepCopy
 
     // Get the original boundary before modification
-    val originalBoundaryBefore = original.boundaryVertices
-    val copyBoundaryBefore     = copy.boundaryVertices
+    val originalBoundaryBefore = original.boundaryVerticesUnsafe
+    val copyBoundaryBefore     = copy.boundaryVerticesUnsafe
 
     allAssert(
       originalBoundaryBefore shouldEqual copyBoundaryBefore, {
@@ -138,7 +138,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
         modifiedCopy shouldBe a[Right[?, ?]]
       }, {
         // Original should remain unchanged
-        val originalBoundaryAfter = original.boundaryVertices
+        val originalBoundaryAfter = original.boundaryVerticesUnsafe
         originalBoundaryBefore shouldEqual originalBoundaryAfter
       },
       // The original structure should still be valid
@@ -153,14 +153,14 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
     val copy     = original.deepCopy
 
     // Get copy boundary before modification
-    val copyBoundaryBefore = copy.boundaryVertices
+    val copyBoundaryBefore = copy.boundaryVerticesUnsafe
 
     // Modify the original by adding a polygon
     val modifiedOriginal = original.maybeAddRegularPolygonToBoundary(V1, RegularPolygon(4))
     allAssert(
       modifiedOriginal shouldBe a[Right[?, ?]], {
         // Copy should remain unchanged
-        val copyBoundaryAfter = copy.boundaryVertices
+        val copyBoundaryAfter = copy.boundaryVerticesUnsafe
         copyBoundaryBefore shouldEqual copyBoundaryAfter
       },
       // Copy structure should still be valid
@@ -189,12 +189,12 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
 
     // Boundary traversal should work the same way
     allAssert(
+      original.boundaryVerticesUnsafe shouldEqual copy.boundaryVerticesUnsafe,
       original.boundaryVertices shouldEqual copy.boundaryVertices,
-      original.boundaryVerticesSafer shouldEqual copy.boundaryVerticesSafer,
 
       // The actual vertex instances should be different but have the same properties
       allAssert(
-        original.boundaryVertices.zip(copy.boundaryVertices).map { case (origV, copyV) =>
+        original.boundaryVerticesUnsafe.zip(copy.boundaryVerticesUnsafe).map { case (origV, copyV) =>
           allAssert(
             origV should not be theSameInstanceAs(copyV),
             origV.id shouldEqual copyV.id,
@@ -401,7 +401,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
   it should "create a valid reflected copy" in:
     val reflected = shapeL.verticallyReflectedCopy
     allAssert(
-      shapeL.boundaryVertices.map(_.id) shouldBe Vector(V1, V4, 7, 9, 10, 8, V3, V5, V6, V2),
+      shapeL.boundaryVerticesUnsafe.map(_.id) shouldBe Vector(V1, V4, 7, 9, 10, 8, V3, V5, V6, V2),
       validate(reflected).isRight shouldBe true,
-      reflected.boundaryVertices.map(_.id) shouldBe shapeL.boundaryVertices.map(_.id).reflectAt(1)
+      reflected.boundaryVerticesUnsafe.map(_.id) shouldBe shapeL.boundaryVerticesUnsafe.map(_.id).reflectAt(1)
     )

@@ -34,7 +34,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
           newTiling.innerFaces shouldBe empty,
           newTiling.vertices.length shouldBe 0,
           newTiling.halfEdges.length shouldBe 0, // After deleting the inner face, only outer edges remain
-          newTiling.boundaryVertices.map(_.id).length shouldBe 0
+          newTiling.boundaryVerticesUnsafe.map(_.id).length shouldBe 0
         )
       }
     )
@@ -118,7 +118,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
               newTiling.innerFaces.length shouldBe 1,
               newTiling.innerFaces.head.id shouldBe F1,
               newTiling.vertices.length shouldBe 4,
-              newTiling.boundaryVertices.length shouldBe 4
+              newTiling.boundaryVerticesUnsafe.length shouldBe 4
             )
           }
         )
@@ -139,7 +139,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
               newTiling.innerFaces.length shouldBe 1,
               newTiling.innerFaces.head.id shouldBe F2,
               newTiling.vertices.length shouldBe 4,
-              newTiling.boundaryVertices.length shouldBe 4
+              newTiling.boundaryVerticesUnsafe.length shouldBe 4
             )
           }
         )
@@ -211,7 +211,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
               newTiling.innerFaces.length shouldBe 1,
               newTiling.innerFaces.head.id shouldBe F2, // F1 is deleted
               newTiling.vertices.length shouldBe 4,
-              newTiling.boundaryVertices.length shouldBe 4
+              newTiling.boundaryVerticesUnsafe.length shouldBe 4
             )
           }
         )
@@ -233,7 +233,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
               newTiling.innerFaces.length shouldBe 1,
               newTiling.innerFaces.head.id shouldBe F2, // F1 is deleted
               newTiling.vertices.length shouldBe 4,
-              newTiling.boundaryVertices.length shouldBe 4
+              newTiling.boundaryVerticesUnsafe.length shouldBe 4
             )
           }
         )
@@ -258,7 +258,7 @@ class TilingDeletionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
               newTiling.innerFaces.length shouldBe 1,
               newTiling.vertices.length shouldBe 6,
               newTiling.halfEdges.length shouldBe 12, // A hexagon has 6*2=12 half-edges
-              newTiling.boundaryVertices.length shouldBe 6
+              newTiling.boundaryVerticesUnsafe.length shouldBe 6
             )
           }
         )

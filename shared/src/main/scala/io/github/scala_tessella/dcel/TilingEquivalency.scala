@@ -53,7 +53,7 @@ object TilingEquivalency:
 
     /** Computes a canonical key representing the boundary of the tiling. */
     private[dcel] def boundarySignature: List[List[AngleDegree]] =
-      tiling.boundaryVertices.toList
+      tiling.boundaryVerticesUnsafe.toList
         .map: vertex =>
           vertex.signature
         .rotationsAndReflections.min
@@ -293,5 +293,5 @@ object TilingEquivalency:
       */
     def isBoundaryEquivalentTo(other: TilingDCEL): Boolean =
       // Quick size checks first
-      tiling.boundaryVertices.sizeCompare(other.boundaryVertices) == 0
+      tiling.boundaryVerticesUnsafe.sizeCompare(other.boundaryVerticesUnsafe) == 0
         && tiling.boundarySignature == other.boundarySignature

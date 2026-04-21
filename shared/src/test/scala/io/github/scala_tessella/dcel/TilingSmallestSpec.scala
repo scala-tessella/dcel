@@ -49,7 +49,7 @@ class TilingSmallestSpec extends AnyFlatSpec with Matchers with TilingTestHelper
         List(F2, F2, F2)
       ), {
         // Check boundary
-        val boundary = tiling.boundaryVertices
+        val boundary = tiling.boundaryVerticesUnsafe
         allAssert(
           boundary should have length 4,
           boundary.map(_.id) should contain theSameElementsInOrderAs Vector(V1, V3, V2, V4)
