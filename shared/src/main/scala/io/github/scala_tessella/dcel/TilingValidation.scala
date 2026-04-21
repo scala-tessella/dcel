@@ -20,7 +20,7 @@ object TilingValidation:
       if face.validate().isLeft then
         errors += face.toString
     if errors.isEmpty then Right(())
-    else Left(TilingError.combineErrors(errors.toList, TilingError.incomplete))
+    else Left(TilingError.combineErrors(errors.toList, ErrorCategory.Incomplete))
 
   private[dcel] def validateTopologically(tiling: TilingDCEL): Either[TilingError, Unit] =
     val errors = mutable.ListBuffer[String]()
@@ -121,7 +121,8 @@ object TilingValidation:
     then
       errors += "Face with inner holes"
 
-    if errors.isEmpty then Right(()) else Left(TilingError.combineErrors(errors.toList, TilingError.topology))
+    if errors.isEmpty then Right(())
+    else Left(TilingError.combineErrors(errors.toList, ErrorCategory.Topology))
 
   private[dcel] def validateGeometrically(tiling: TilingDCEL): Either[TilingError, Unit] =
     val errors = mutable.ListBuffer[String]()
@@ -193,7 +194,8 @@ object TilingValidation:
         case Left(error)   =>
           errors += s"Could not validate angles for interior vertex ${vertex.id} due to: $error"
 
-    if errors.isEmpty then Right(()) else Left(TilingError.combineErrors(errors.toList, TilingError.geometry))
+    if errors.isEmpty then Right(())
+    else Left(TilingError.combineErrors(errors.toList, ErrorCategory.Geometry))
 
   private[dcel] def validateSpatially(tiling: TilingDCEL): Either[TilingError, Unit] =
     val errors = mutable.ListBuffer[String]()
@@ -235,7 +237,8 @@ object TilingValidation:
     if IntersectionDetection.hasSelfIntersection(segments) then
       errors += "Spatial intersection: some edges properly intersect, suggesting overlapping faces"
 
-    if errors.isEmpty then Right(()) else Left(TilingError.combineErrors(errors.toList, TilingError.spatial))
+    if errors.isEmpty then Right(())
+    else Left(TilingError.combineErrors(errors.toList, ErrorCategory.Spatial))
 
   def validate(tiling: TilingDCEL): Either[TilingError, Unit] =
     validateCompleteness(tiling) match
@@ -246,4 +249,4 @@ object TilingValidation:
         val spaceErrors = validateSpatially(tiling).left.toOption.map(_.message)
         val allErrors   = topoErrors.toList ::: geoErrors.toList ::: spaceErrors.toList
         if allErrors.isEmpty then Right(())
-        else Left(TilingError.combineErrors(allErrors, TilingError.validation))
+        else Left(TilingError.combineErrors(allErrors, ErrorCategory.Validation))

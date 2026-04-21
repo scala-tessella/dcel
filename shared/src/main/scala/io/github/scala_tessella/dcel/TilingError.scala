@@ -11,29 +11,26 @@ case class SpatialError(message: String)             extends TilingError
 case class NotFoundError(entity: String, id: String) extends TilingError:
   def message: String = s"$entity with ID '$id' not found."
 
+/** The error category carries its own user-facing label and the factory that builds the corresponding
+  * [[TilingError]] from a message string. `NotFoundError` is intentionally excluded: it carries two fields
+  * and does not fit the single-string factory shape used by [[TilingError.combineErrors]].
+  */
+enum ErrorCategory(val label: String, val build: String => TilingError):
+  case Validation extends ErrorCategory("validation", ValidationError(_))
+  case Incomplete extends ErrorCategory("completeness", IncompleteError(_))
+  case Topology   extends ErrorCategory("topology", TopologyError(_))
+  case Geometry   extends ErrorCategory("geometry", GeometryError(_))
+  case Spatial    extends ErrorCategory("spatial", SpatialError(_))
+
 object TilingError:
 
-  // Helper methods for common error creation patterns
-  def validation(msg: String): TilingError              = ValidationError(msg)
-  def incomplete(msg: String): TilingError              = IncompleteError(msg)
-  def topology(msg: String): TilingError                = TopologyError(msg)
-  def geometry(msg: String): TilingError                = GeometryError(msg)
-  def spatial(msg: String): TilingError                 = SpatialError(msg)
-  def notFound(entity: String, id: String): TilingError = NotFoundError(entity, id)
-
-  // Helper to combine multiple errors
-  def combineErrors(errors: List[String], f: String => TilingError): TilingError =
-    if errors.length == 1 then f(errors.head)
-    else
-      val errorType =
-        f.apply("whatever") match
-          case ValidationError(message)  => "validation"
-          case IncompleteError(message)  => "completeness"
-          case TopologyError(message)    => "topology"
-          case GeometryError(message)    => "geometry"
-          case SpatialError(message)     => "spatial"
-          case NotFoundError(entity, id) => ""
-      f(s"Multiple $errorType errors: ${errors.mkString("; ")}")
+  /** Combine one or more error messages into a single [[TilingError]] of the given category. A single message
+    * is wrapped as-is; multiple messages are joined under a "Multiple ${label} errors: ..." prefix.
+    */
+  def combineErrors(errors: List[String], category: ErrorCategory): TilingError =
+    errors match
+      case single :: Nil => category.build(single)
+      case many          => category.build(s"Multiple ${category.label} errors: ${many.mkString("; ")}")
 
   extension (either: Either[TilingError, Unit])
     def toErrorSuffix: String =
