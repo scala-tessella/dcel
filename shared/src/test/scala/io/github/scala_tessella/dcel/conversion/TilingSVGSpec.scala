@@ -14,11 +14,11 @@ class TilingSVGSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   private def extractAttrs(metadata: String, tagName: String): List[Map[String, String]] =
     def parseAttrs(attrStr: String): Map[String, String] =
       val m = Map.newBuilder[String, String]
-      AttrRe.findAllMatchIn(attrStr).foreach: mat =>
+      SvgMetadata.AttrRe.findAllMatchIn(attrStr).foreach: mat =>
         m += (mat.group(1) -> mat.group(2))
       m.result()
 
-    TagRe
+    SvgMetadata.TagRe
       .findAllMatchIn(metadata)
       .collect:
         case m if m.group(1) == tagName => parseAttrs(m.group(2))

@@ -2,27 +2,20 @@ package io.github.scala_tessella.dcel.conversion
 
 import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.*
 import io.github.scala_tessella.dcel.geometry.*
-import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
-import io.github.scala_tessella.dcel.{TilingDCEL, TilingError, ValidationError, NotFoundError}
+import io.github.scala_tessella.dcel.structure.{Face, HalfEdge, Vertex, VertexId}
+import io.github.scala_tessella.dcel.{TilingDCEL, TilingError}
 import io.github.scala_tessella.dcel.TilingUniformity.scanUniformityTree
-import io.github.scala_tessella.dcel.Utils.{associateValues, sequence, traverse}
+import io.github.scala_tessella.dcel.conversion.SvgDsl.*
 import io.github.scala_tessella.ring_seq.SymmetryOps.{
   AxisLocation,
   Edge as SymmetryEdge,
   Vertex as SymmetryVertex
 }
 import spire.implicits.*
-import spire.math.Rational
 
 import scala.collection.mutable
-import scala.util.Try
-import scala.math.BigDecimal.RoundingMode
 
 object TilingSVG:
-
-  // Pre-compile Regexes outside the method to avoid re-compilation
-  private[conversion] val TagRe  = """<\s*([\w\-]+)\b([^>]*?)(/?)>""".r
-  private[conversion] val AttrRe = """([A-Za-z_][\w\-]*)\s*=\s*"([^"]*)"""".r
 
   extension (bigPoint: BigPoint)
     private def toSvgCoords(scale: Double): (String, String) =
@@ -42,13 +35,6 @@ object TilingSVG:
       baseY2: String
   ):
     val formatted: String = s"$tipX,$tipY $baseX1,$baseY1 $baseX2,$baseY2"
-
-  private case class ViewBox(minX: BigDecimal, minY: BigDecimal, width: BigDecimal, height: BigDecimal):
-    private def rounded(value: BigDecimal): BigDecimal =
-      value.setScale(0, RoundingMode.CEILING)
-    val formatted: String                              =
-      s"${minX.format} ${minY.format} ${rounded(width).format} ${rounded(height).format}"
-    val dimensions: (Int, Int)                         = (rounded(width).toInt, rounded(height).toInt)
 
   // Public options for callers (ergonomic API)
   case class SvgOptions(
@@ -141,71 +127,6 @@ object TilingSVG:
       createArrow(origin, destination, config.scale, arrowSize).map: arrow =>
         polygonElem(arrow.formatted)
 
-  private type Attrs = Seq[(String, String)]
-
-  private def attrs(tuples: (String, Any)*): Attrs =
-    tuples.map: (key, value) =>
-      key -> value.toString
-
-  private def renderAttrs(attributes: Attrs): String =
-    if attributes.isEmpty then ""
-    else
-      attributes
-        .map: (key, value) =>
-          s""" $key="$value""""
-        .mkString
-
-  private def escapeText(content: String): String =
-    content
-      .replace("&", "&amp;")
-      .replace("<", "&lt;")
-      .replace(">", "&gt;")
-
-  private def tag(
-      label: String,
-      attributes: Attrs = Nil,
-      children: Seq[String] = Nil,
-      selfClosing: Boolean = false
-  ): String =
-    if children.isEmpty && selfClosing then s"<$label${renderAttrs(attributes)}/>"
-    else
-      val body = children.mkString("\n")
-      s"<$label${renderAttrs(attributes)}>$body</$label>"
-
-  private def comment(text: String): String =
-    s"<!-- $text -->"
-
-  // ---------- String XML helpers ----------
-
-  private def textAt(x: String, y: String, content: String, more: Attrs = Nil): String =
-    val attributes = attrs("x" -> x, "y" -> y) ++ more
-    tag("text", attributes, Seq(escapeText(content)))
-
-  private def polygonElem(points: String, more: Attrs = Nil): String =
-    tag("polygon", attrs("points" -> points) ++ more, selfClosing = true)
-
-  private def lineElem(x1: String, y1: String, x2: String, y2: String, more: Attrs = Nil): String =
-    tag("line", attrs("x1" -> x1, "y1" -> y1, "x2" -> x2, "y2" -> y2) ++ more, selfClosing = true)
-
-  private def circleElem(cx: String, cy: String, r: String, more: Attrs = Nil): String =
-    tag("circle", attrs("cx" -> cx, "cy" -> cy, "r" -> r) ++ more, selfClosing = true)
-
-  private def gElem(children: Seq[String], attributes: Attrs = Nil): String =
-    tag("g", attributes, children)
-
-  private def svgElem(width: String, height: String, viewBox: String, children: Seq[String]): String =
-    tag(
-      "svg",
-      attrs(
-        "width"   -> width,
-        "height"  -> height,
-        "viewBox" -> viewBox,
-        "xmlns"   -> "http://www.w3.org/2000/svg"
-      ),
-      children
-    )
-  // ---------- end helpers ----------
-
   private def createAngleLabel(halfEdge: HalfEdge, direction: BigPoint, config: SvgConfig): String =
     val origin           = halfEdge.origin.coords
     val angleText        = f"${halfEdge.angle.get.toRational.toDouble}%.0f°"
@@ -223,19 +144,6 @@ object TilingSVG:
 
   private def assembleSections(sections: Option[String]*): Seq[String] =
     sections.flatten.toSeq
-
-  private def calculateViewBox(vertices: List[BigPoint], scale: Double, padding: Double): ViewBox =
-    if vertices.isEmpty then ViewBox(BigDecimal(0), BigDecimal(0), BigDecimal(0), BigDecimal(0))
-    else
-      val scaledVertices           = vertices.map(_.scaled(scale).flippedY)
-      val xs                       = scaledVertices.map(_.x)
-      val ys                       = scaledVertices.map(_.y)
-      val (minX, maxX, minY, maxY) = (xs.min, xs.max, ys.min, ys.max)
-      ViewBox(minX - padding, minY - padding, (maxX - minX) + 2 * padding, (maxY - minY) + 2 * padding)
-
-  private def svgWithViewBox(viewBox: ViewBox, children: Seq[String]): String =
-    val (width, height) = viewBox.dimensions
-    svgElem(width.toString, height.toString, viewBox.formatted, children)
 
   private def createHalfEdgeArrows(halfEdges: List[HalfEdge], config: SvgConfig): Seq[String] =
     val segments =
@@ -961,259 +869,13 @@ object TilingSVG:
       sb.append("</svg>")
       sb.toString
 
-    /** Serializes the complete structure of a [[TilingDCEL]] into XML metadata, which can be embedded within
-      * an SVG. This metadata includes all vertices, half-edges, and faces, along with their properties and
-      * relationships, ensuring that the [[TilingDCEL]] can be fully reconstructed later.
-      */
+    /** @see [[SvgMetadata.toMetadataXml]] */
     def toMetadataXml: String =
-
-      val halfEdgeIds: Map[HalfEdge, Int] = tiling.halfEdges.zipWithIndex.toMap
-
-      val vertexNodes  = tiling.vertices.map: vertex =>
-        val attrsList = List(
-          Some("id" -> vertex.id.toPrefixedString),
-          Some("x"  -> vertex.coords.x.toString),
-          Some("y"  -> vertex.coords.y.toString),
-          vertex.leaving
-            .flatMap: halfEdge =>
-              halfEdgeIds.get(halfEdge)
-            .map: id =>
-              "leaving" -> id
-        ).flatten
-        tag("vertex", attrs(attrsList*), selfClosing = true)
-      val verticesElem = tag("vertices", children = vertexNodes)
-
-      val halfEdgeNodes =
-        tiling.halfEdges.zipWithIndex
-          .map: (halfEdge, id) =>
-            val attrsList = List(
-              Some("id"     -> id),
-              Some("origin" -> halfEdge.origin.id.toPrefixedString),
-              halfEdge.twin
-                .flatMap: twinHalfEdge =>
-                  halfEdgeIds.get(twinHalfEdge)
-                .map: twinId =>
-                  "twin" -> twinId,
-              halfEdge.next
-                .flatMap: nextHalfEdge =>
-                  halfEdgeIds.get(nextHalfEdge)
-                .map: nextId =>
-                  "next" -> nextId,
-              halfEdge.prev
-                .flatMap: prevHalfEdge =>
-                  halfEdgeIds.get(prevHalfEdge)
-                .map: prevId =>
-                  "prev" -> prevId,
-              halfEdge.incidentFace.map: face =>
-                "face" -> face.id.toPrefixedString,
-              halfEdge.angle.map: angleDegree =>
-                "angle" -> angleDegree.toRational
-            ).flatten
-            tag("half-edge", attrs(attrsList*), selfClosing = true)
-      val halfEdgesElem = tag("half-edges", children = halfEdgeNodes)
-
-      val faceNodes = tiling.faces.map: f =>
-        val attrsList =
-          List(
-            Some("id" -> f.id.toPrefixedString),
-            f.outerComponent
-              .flatMap: halfEdge =>
-                halfEdgeIds.get(halfEdge)
-              .map: id =>
-                "outer-component" -> id
-          ).flatten
-        val innerIds  =
-          f.innerComponents
-            .flatMap: maybeHalfEdge =>
-              maybeHalfEdge.flatMap: halfEdge =>
-                halfEdgeIds.get(halfEdge)
-        val allAttrs  = if innerIds.nonEmpty then
-          attrsList :+ ("inner-components" -> innerIds.mkString(","))
-        else
-          attrsList
-        tag("face", attrs(allAttrs*), selfClosing = true)
-      val facesElem = tag("faces", children = faceNodes)
-
-      tag(
-        "tessella:tessella-dcel",
-        attrs("xmlns:tessella" -> "https://github.com/scala-tessella/tessella"),
-        children = Seq(verticesElem, halfEdgesElem, facesElem)
-      )
+      SvgMetadata.toMetadataXml(tiling)
 
     def toMetadata: String =
-      toMetadataXml
+      SvgMetadata.toMetadataXml(tiling)
 
-  /** Deserializes the XML metadata that includes all vertices, half-edges, and faces, along with their
-    * properties and relationships, and fully reconstructs the complete structure of a [[TilingDCEL]].
-    */
+  /** @see [[SvgMetadata.fromMetadata]] */
   def fromMetadata(metadata: String): Either[TilingError, TilingDCEL] =
-    // Optimized attribute parsing: single pass into a mutable Map
-    def parseAttrs(attrStr: String): Map[String, String] =
-      val m = Map.newBuilder[String, String]
-      AttrRe.findAllMatchIn(attrStr).foreach: mat =>
-        m += (mat.group(1) -> mat.group(2))
-      m.result()
-
-    // Check presence once
-    if !metadata.contains("<vertices") || !metadata.contains("<half-edges") || !metadata.contains("<faces")
-    then
-      return Left(ValidationError("Required metadata tags (<vertices>, <half-edges>, <faces>) not found"))
-
-    // Single pass to extract all attributes by tag type
-    val emptyMap  = Map.empty[String, List[Map[String, String]]].withDefaultValue(Nil)
-    val extracted =
-      TagRe
-        .findAllMatchIn(metadata)
-        .foldLeft(emptyMap): (acc, m) =>
-          val tagName = m.group(1)
-          if tagName == "vertex" || tagName == "half-edge" || tagName == "face" then
-            acc.updated(tagName, parseAttrs(m.group(2)) :: acc(tagName))
-          else acc
-
-    val vertexAttrs   = extracted("vertex").reverse
-    val halfEdgeAttrs = extracted("half-edge").reverse
-    val faceAttrs     = extracted("face").reverse
-
-    TilingSVG.reconstructDCEL(vertexAttrs, halfEdgeAttrs, faceAttrs)
-
-  private[conversion] def reconstructDCEL(
-      vertexAttrs: List[Map[String, String]],
-      halfEdgeAttrs: List[Map[String, String]],
-      faceAttrs: List[Map[String, String]]
-  ): Either[TilingError, TilingDCEL] =
-    def getAttr(attrs: Map[String, String], owner: String, name: String): Either[ValidationError, String] =
-      attrs.get(name)
-        .filter:
-          _.nonEmpty
-        .toRight(ValidationError(s"$owner missing '$name'"))
-
-    def attrAs[T](
-        attrs: Map[String, String],
-        owner: String,
-        name: String,
-        f: String => T,
-        typeName: String
-    ): Either[ValidationError, T] =
-      for
-        s <- getAttr(attrs, owner, name)
-        r <- Try(f(s)).toEither.left.map: e =>
-               ValidationError(s"Invalid $typeName in $owner attribute '$name': ${e.getMessage}")
-      yield r
-
-    for
-      vertices <- vertexAttrs
-                    .map: attrs =>
-                      for
-                        id <- attrAs(attrs, "vertex", "id", VertexId.fromStringUnsafe, "VertexId")
-                        x  <- attrAs(attrs, "vertex", "x", BigDecimal.apply, "BigDecimal")
-                        y  <- attrAs(attrs, "vertex", "y", BigDecimal.apply, "BigDecimal")
-                      yield Vertex(id, BigPoint(x, y))
-                    .sequence
-      vertexMap = vertices.associateValues:
-                    _.id
-
-      heIdAndAttrs <- halfEdgeAttrs
-                        .map: attrs =>
-                          for id <- attrAs(attrs, "half-edge", "id", _.toInt, "Int")
-                          yield id -> attrs
-                        .sequence
-      heAllocated  <- heIdAndAttrs
-                        .map: (id, attrs) =>
-                          for
-                            originId <-
-                              attrAs(attrs, "half-edge", "origin", VertexId.fromStringUnsafe, "VertexId")
-                            origin   <- vertexMap.get(originId).toRight(
-                                          NotFoundError("Vertex for half-edge origin", originId.toString)
-                                        )
-                          yield id -> HalfEdge(origin)
-                        .sequence
-      halfEdgeMap   = heAllocated.toMap
-      halfEdges     = heAllocated
-                        .sortBy((id, _) => id)
-                        .map((_, halfEdge) => halfEdge)
-
-      faces  <- faceAttrs.map(attrs =>
-                  for id <- attrAs(attrs, "face", "id", FaceId.fromStringUnsafe, "FaceId")
-                  yield Face(id)
-                ).sequence
-      faceMap = faces.associateValues:
-                  _.id
-
-      _ <- vertexAttrs
-             .zip(vertices)
-             .map: (attrs, vertex) =>
-               attrs.get("leaving").traverse: leavingIdStr =>
-                 for
-                   leavingId   <- Try(leavingIdStr.toInt).toEither.left.map: _ =>
-                                    ValidationError(s"Invalid leaving ID: $leavingIdStr")
-                   leavingEdge <- halfEdgeMap.get(leavingId).toRight(
-                                    NotFoundError("Leaving edge", leavingId.toString)
-                                  )
-                 yield vertex.leaving = Some(leavingEdge)
-             .sequence
-
-      _ <- heIdAndAttrs.map((id, attrs) =>
-             val he = halfEdgeMap(id)
-             for
-               twinId       <- attrAs(attrs, "half-edge", "twin", _.toInt, "Int")
-               twinEdge     <- halfEdgeMap.get(twinId).toRight(NotFoundError("Twin edge", twinId.toString))
-               _             = he.twin = Some(twinEdge)
-               nextId       <- attrAs(attrs, "half-edge", "next", _.toInt, "Int")
-               nextEdge     <- halfEdgeMap.get(nextId).toRight(NotFoundError("Next edge", nextId.toString))
-               _             = he.next = Some(nextEdge)
-               prevId       <- attrAs(attrs, "half-edge", "prev", _.toInt, "Int")
-               prevEdge     <- halfEdgeMap.get(prevId).toRight(NotFoundError("Prev edge", prevId.toString))
-               _             = he.prev = Some(prevEdge)
-               faceId       <- attrAs(attrs, "half-edge", "face", FaceId.fromStringUnsafe, "FaceId")
-               incidentFace <- faceMap.get(faceId).toRight(
-                                 NotFoundError("Incident face", faceId.toString)
-                               )
-               _             = he.incidentFace = Some(incidentFace)
-               angleStr     <- getAttr(attrs, "half-edge", "angle")
-               _             = he.angle = Some(AngleDegree(Rational(angleStr)))
-             yield ()
-           ).sequence
-
-      _ <- faceAttrs.zip(faces)
-             .map: (attrs, f) =>
-               for
-                 _ <- attrs.get("outer-component").traverse(ocIdStr =>
-                        for
-                          ocId   <- Try(ocIdStr.toInt).toEither.left.map: _ =>
-                                      ValidationError(s"Invalid outer-component ID: $ocIdStr")
-                          ocEdge <- halfEdgeMap.get(ocId).toRight(
-                                      NotFoundError("Outer component edge", ocId.toString)
-                                    )
-                        yield f.outerComponent = Some(ocEdge)
-                      )
-                 _ <- attrs.get("inner-components")
-                        .filter:
-                          _.nonEmpty
-                        .traverse: icIdsStr =>
-                          for
-                            ids     <- icIdsStr.split(',').toList
-                                         .map: idStr =>
-                                           Try(idStr.trim.toInt).toEither.left.map: _ =>
-                                             ValidationError(s"Invalid inner-component ID: $idStr")
-                                         .sequence
-                            icEdges <- ids
-                                         .map: id =>
-                                           halfEdgeMap.get(id).toRight(
-                                             NotFoundError("Inner component edge", id.toString)
-                                           )
-                                         .sequence
-                          yield f.innerComponents = icEdges.map:
-                            Some(_)
-               yield ()
-             .sequence
-
-      outerFace <- faceMap.get(FaceId.outerId).toRight(
-                     ValidationError("Outer face (ID 0) not found in metadata")
-                   )
-      innerFaces = faces.filterNot:
-                     _.id == FaceId.outerId
-      tiling     = TilingDCEL.fromUntrusted(vertices, halfEdges, innerFaces, outerFace)
-      validated <- if vertices.isEmpty && halfEdges.isEmpty && innerFaces.isEmpty then
-        Right(TilingDCEL.empty)
-      else tiling
-    yield validated
+    SvgMetadata.fromMetadata(metadata)
