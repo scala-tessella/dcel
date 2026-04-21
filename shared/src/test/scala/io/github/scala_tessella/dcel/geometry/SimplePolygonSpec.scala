@@ -237,20 +237,23 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
 
     /** <img src="file:../../../../../../resources/simple/symmetry/twoJoinedHexs.svg"/> */
     val simplePolygon = twoJoinedHexs
-    val size = twoJoinedHexs.toAngles.size
+    val size          = twoJoinedHexs.toAngles.size
 //    println(twoJoinedHexs.toScalableVectorG(showReflection = true, showRotation = true))
     allAssert(
       simplePolygon.rotationalSymmetryOrder shouldBe 2,
       simplePolygon.rotationalIndices shouldBe List(2, 7),
       simplePolygon.reflectionalSymmetryOrder shouldBe 2,
-      simplePolygon.reflectionalIndexPairs shouldBe List((Edge(4, size), Edge(9, size)), (Vertex(2), Vertex(7)))
+      simplePolygon.reflectionalIndexPairs shouldBe List(
+        (Edge(4, size), Edge(9, size)),
+        (Vertex(2), Vertex(7))
+      )
     )
 
   it must "be found in a bulb" in:
 
     /** <img src="file:../../../../../../resources/simple/symmetry/bulb.svg"/> */
     val simplePolygon = bulb
-    val size = bulb.toAngles.size
+    val size          = bulb.toAngles.size
     //    println(bulb.toScalableVectorG(showReflection = true, showRotation = true))
     allAssert(
       simplePolygon.rotationalSymmetryOrder shouldBe 1,
