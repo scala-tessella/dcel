@@ -139,8 +139,6 @@ sbt -J-Xms2g -J-Xmx2g -J-XX:+AlwaysPreTouch -J-XX:+UseParallelGC \
 
 The output is CSV-style rows with per-case timing stats (`min`, `median`, `p95`, `mean` in milliseconds).
 
-See [ContributingGuidelines.md](./ContributingGuidelines.md) for project-specific conventions.
-
 ## License
 
 No license file is currently present in this repository.
