@@ -431,7 +431,7 @@ class HalfEdgeSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     // Verify the cycle
     edges.zipWithIndex.foreach { case (edge, i) =>
       val nextIndex = (i + 1) % edges.length
-      val prevIndex = if (i == 0) edges.length - 1 else i - 1
+      val prevIndex = if i == 0 then edges.length - 1 else i - 1
 
       allAssert(
         edge.next shouldBe Some(edges(nextIndex)),
