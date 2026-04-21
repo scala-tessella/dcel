@@ -246,7 +246,7 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
     decagonRing.innerFaces.length shouldBe 11
 
   it should "return an error for polygons with fewer than 3 sides" in:
-    val invalidPolygon = 2.asInstanceOf[RegularPolygon]
+    val invalidPolygon = 2.asInstanceOf[RegularPolygon] // scalafix:ok DisableSyntax.asInstanceOf
     val result         = TilingBuilder.createRing(invalidPolygon)
     allAssert(
       result.isLeft shouldBe true,

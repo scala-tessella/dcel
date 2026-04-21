@@ -24,7 +24,7 @@ trait Prefixable:
     *   either a `ValidationError` if the string is invalid, or the parsed integer if the string is valid.
     */
   private[structure] def fromStringUntrusted(s: String): Either[ValidationError, Int] =
-    if s != null && s.startsWith(prefix) then
+    if s != null && s.startsWith(prefix) then // scalafix:ok DisableSyntax.null
       val startPos = prefix.length
       if startPos == s.length then
         Left(ValidationError(s"Missing numeric part in id: `$s`"))
