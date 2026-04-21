@@ -82,7 +82,7 @@ lazy val jsSettings = Seq(
 )
 
 // Cross-platform project definition
-lazy val dcel = crossProject(JVMPlatform, JSPlatform)
+lazy val dcel = crossProject(JVMPlatform, JSPlatform/*, NativePlatform*/)
   .crossType(CrossType.Full)
   .in(file("."))
   .settings(
@@ -91,6 +91,9 @@ lazy val dcel = crossProject(JVMPlatform, JSPlatform)
   .settings(commonSettings)
   .jvmSettings(jvmSettings)
   .jsSettings(jsSettings)
+//  .nativeSettings(
+//    // Add native-specific settings here
+//  )
 
 // Individual platform projects
 lazy val dcelJVM = dcel.jvm
