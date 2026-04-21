@@ -108,7 +108,7 @@ object TilingBuilder:
   /** Creates a TilingDCEL for a single regular polygon with unit-length sides.
     *
     * @param polygon
-    *   The [[RegularPolygon]] to create.
+    *   The [[geometry.RegularPolygon]] to create.
     */
   def createRegularPolygon(polygon: RegularPolygon): TilingDCEL =
     val angles = polygon.angles
