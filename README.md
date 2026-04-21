@@ -4,13 +4,6 @@ DCEL utilities for representing and editing edge-to-edge tessellations of unit-s
 
 This project models tessellations with a **Doubly Connected Edge List (DCEL)** and provides builders, validation, topology/geometry operations, and export utilities.
 
-## Scope
-
-This README documents the core project **excluding** the `torus` package:
-
-- `shared/src/main/scala/io/github/scala_tessella/dcel/torus`
-- `shared/src/test/scala/io/github/scala_tessella/dcel/torus`
-
 ## Features
 
 - Build tilings from regular and simple polygons.
@@ -23,9 +16,10 @@ This README documents the core project **excluding** the `torus` package:
 
 ## Tech Stack
 
-- Scala `3.8.2`
-- SBT `1.11.7`
+- Scala `3.8.3`
+- SBT `1.12.9`
 - Scala.js cross-project support (tests use Node.js for JS target)
+- Scala Native support blocked by the Spire dependency
 
 ## Project Layout
 
@@ -41,7 +35,7 @@ This README documents the core project **excluding** the `torus` package:
 ### Prerequisites
 
 - A recent JDK compatible with SBT (`JDK 17+` recommended)
-- `sbt` installed (`1.11.7` used by this project)
+- `sbt` installed (`1.12.9` used by this project)
 - `node` available in `PATH` for Scala.js tests
 
 ### Build and Test
