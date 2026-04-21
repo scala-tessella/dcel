@@ -1,5 +1,5 @@
 ThisBuild / version := "0.1.0-SNAPSHOT"
-ThisBuild / scalaVersion := "3.8.2"
+ThisBuild / scalaVersion := "3.8.3"
 ThisBuild / organization := "io.github.scala-tessella"
 
 // Enable semanticdb for Scalafix (Scala 3)
@@ -16,7 +16,7 @@ addCommandAlias("qa", ";scalafmtAll;test:scalafmtAll;scalafixAll;test")
 lazy val commonSettings = Seq(
 //  idePackagePrefix := Some("io.github.scala_tessella"),
   libraryDependencies ++= Seq(
-    "io.github.scala-tessella" %%% "ring-seq" % "0.6.2+52-9bf40159",
+    "io.github.scala-tessella" %%% "ring-seq" % "0.8.0",
     "io.github.iltotore" %%% "iron" % "3.2.3",
     "org.typelevel" %%% "spire" % "0.18.0",
     "org.scalatest" %%% "scalatest" % "3.2.19" % Test,
