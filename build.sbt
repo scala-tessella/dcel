@@ -99,6 +99,23 @@ lazy val dcel = crossProject(JVMPlatform, JSPlatform/*, NativePlatform*/)
 lazy val dcelJVM = dcel.jvm
 lazy val dcelJS = dcel.js
 
+// JMH benchmarks (opt-in: not aggregated by root, run via `benchmarks/Jmh/run ...`)
+lazy val benchmarks = project
+  .in(file("benchmarks"))
+  .enablePlugins(JmhPlugin)
+  .dependsOn(dcelJVM)
+  .settings(
+    name             := "dcel-benchmarks",
+    publish / skip   := true,
+    Jmh / bspEnabled := false,
+    // Keep benchmark compilation permissive; JMH-generated code can trip stricter flags.
+    scalacOptions := Seq(
+      "-deprecation",
+      "-feature",
+      "-unchecked"
+    )
+  )
+
 // Aggregate root project for IDE compatibility
 lazy val root = project
   .in(file("."))
