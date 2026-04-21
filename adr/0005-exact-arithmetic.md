@@ -94,9 +94,18 @@ behave differently on the JS runtime.
   rational coordinates, but the same polygons translated to different
   origins would produce non-canonical integer forms unless we commit
   to a global grid. Rejected as extra discipline for little gain.
-- **`spire.math.Real`.** Computable reals; neat but opaque for equality
-  decisions (you never *know* two reals are equal, only that they're
-  within ε).
+- **`spire.math.Real`.** Computable reals — neat in principle, but
+  rejected on performance grounds as well as semantics. `Real` operates
+  lazily to arbitrary precision, and `π` (which surfaces frequently in
+  this codebase: regular-polygon vertex positions, trig-based boundary
+  angles, SVG rendering) is the canonical worst case — every arithmetic
+  operation that touches `π` forces a fresh precision-bump evaluation.
+  The Spire guide explicitly flags this as a known cost of the
+  representation
+  ([spire-math.org/guide.html#real](https://spire-math.org/guide.html#real)).
+  On top of that, equality is only ever "equal within ε", not decidable,
+  which defeats the exact-equality guarantee that motivated the whole
+  decision.
 
 ## Revisit if
 

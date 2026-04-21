@@ -8,14 +8,20 @@
 The library's output (SVG tilings, DOT graphs, uniformity analysis) is
 useful in three deployment contexts:
 
-1. **JVM.** Backend tooling, data pipelines, the existing benchmark harness.
-2. **Browser / Node.** Interactive visualisations, in-page tessellation
-   editors, static site generators that need SVG rendering in the browser.
+1. **Browser / Node.** Interactive visualisations and, most importantly,
+   the **tessellation editor** that is the first real downstream
+   application of this library. The editor runs entirely in the browser
+   and needs the full DCEL API — construction, growth, deletion, SVG
+   export — available as Scala.js. This is the load-bearing target:
+   breaking JS support breaks the flagship user-facing product.
+2. **JVM.** Backend tooling, data pipelines, the benchmark harness
+   (ADR-0008). Easier to instrument and profile, so a lot of the
+   library's correctness and performance work is validated here first.
 3. **Native.** Command-line tools, embedded use, lightweight distribution
-   without a JVM.
+   without a JVM. Nice-to-have, not blocking anyone today.
 
-Supporting (1) and (2) pays off immediately; (3) is attractive but not
-yet unblocked.
+Supporting (1) and (2) is non-negotiable; (3) is attractive but not yet
+unblocked.
 
 ## Decision
 
@@ -85,12 +91,15 @@ When (1) lands, the change is mechanical:
 
 ## Alternatives considered
 
-- **JVM-only.** Cheapest to maintain, but excludes the browser use
-  case, which is load-bearing for tessellation visualisation.
+- **JVM-only.** Rejected: the tessellation editor downstream depends on
+  this library running as Scala.js in the browser, so dropping JS would
+  break the flagship consumer.
 - **JS-only.** Rejected — the benchmark harness needs the JVM for any
-  kind of stable measurement.
+  kind of stable measurement, and JVM tooling is where correctness
+  regressions are easiest to diagnose.
 - **Publish JVM today, add JS later.** No concrete reason to delay; the
-  cost of `%%%` is minimal when set up from the start.
+  cost of `%%%` is minimal when set up from the start, and the editor
+  would have been stuck waiting.
 - **Ship JVM + JS now, drop Native scaffolding entirely.** Leaves us
   re-bootstrapping the Native build from scratch when Spire unblocks.
   Keeping the scaffold (and this ADR) costs very little and documents
