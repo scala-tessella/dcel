@@ -1,0 +1,52 @@
+# Architecture Decision Records
+
+This directory captures the non-obvious architectural decisions behind this
+codebase. Each ADR explains *why* a particular choice was made, its tradeoffs,
+and what would have to change for it to be revisited.
+
+## Format
+
+Short [MADR](https://adr.github.io/madr/)-style markdown, one file per
+decision. Each file has:
+
+- **Status** — `Proposed`, `Accepted`, `Deprecated`, or `Superseded by ADR-NNNN`.
+- **Date** — ISO-8601.
+- **Context and problem statement** — what forced the decision.
+- **Decision** — the one-liner.
+- **Consequences** — positive and negative, as concretely as possible.
+- **Alternatives considered** — what was rejected and why.
+
+## Index
+
+| #    | Title                                                              | Status   |
+|------|--------------------------------------------------------------------|----------|
+| 0001 | [DCEL as the core representation](0001-dcel-core-representation.md)                          | Accepted |
+| 0002 | [Mutation via deep-copy on the public boundary](0002-deep-copy-on-mutation.md)               | Accepted |
+| 0003 | [Paired safe and `Unsafe` methods](0003-safe-unsafe-method-pairs.md)                         | Accepted |
+| 0004 | [`Either[TilingError, A]` with a sealed error ADT](0004-either-based-error-handling.md)      | Accepted |
+| 0005 | [Exact arithmetic via `BigDecimal` and Spire `Rational`](0005-exact-arithmetic.md)           | Accepted |
+| 0006 | [Opaque `VertexId` / `FaceId` with `Prefixable`](0006-opaque-ids-and-prefixable.md)          | Accepted |
+| 0007 | [Cross-platform: JVM + Scala.js shipped, Native blocked](0007-cross-platform-targets.md)     | Accepted |
+| 0008 | [JMH benchmarks in an opt-in subproject](0008-jmh-benchmarks-subproject.md)                  | Accepted |
+
+## When to add an ADR
+
+Open an ADR when you're about to make a decision that future contributors
+cannot re-derive from reading the code:
+
+- A choice between comparable technical options (library, representation, protocol).
+- A discipline the code depends on but doesn't enforce (naming conventions,
+  mutation contracts, validation boundaries).
+- A constraint imposed from outside (dependency that blocks a target, upstream
+  breaking change, performance envelope).
+
+Don't open an ADR to document what `git blame` already shows: a bug fix, a
+rename, a one-line refactor.
+
+## Lifecycle
+
+- New ADRs start as `Proposed`. Flip to `Accepted` once the decision is in main.
+- A decision that gets replaced stays in the repo as `Superseded by ADR-NNNN`
+  — don't delete it. The trail is the point.
+- If you change your mind about a detail, add a new ADR that references the
+  older one. ADRs are append-only.
