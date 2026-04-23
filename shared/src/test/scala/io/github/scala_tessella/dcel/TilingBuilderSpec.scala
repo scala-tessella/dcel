@@ -259,7 +259,7 @@ class TilingBuilderSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
 //  it should "create a valid TilingDCEL with a ring of regular centagons" in:
 //
 //    val centagonRing: TilingDCEL =
-//      TilingBuilder.createRing(RegularPolygon(100))
+//      TilingBuilder.createRing(RegularPolygon(100)).value
 //    allAssert(
 //      centagonRing.innerFaces.length shouldBe 101,
 //      centagonRing.vertices.length shouldBe 9800
