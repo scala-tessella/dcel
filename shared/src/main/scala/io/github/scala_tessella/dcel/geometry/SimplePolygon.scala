@@ -5,7 +5,6 @@ import io.github.scala_tessella.dcel.conversion.TilingSVG.toScalableVectorG
 import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.ACCURACY
 import io.github.scala_tessella.ring_seq.RingSeq.*
 import io.github.scala_tessella.ring_seq.SymmetryOps.AxisLocation
-import spire.implicits.*
 
 /** Simple unit-side-length polygon with the given ordered interior angles */
 opaque type SimplePolygon = Vector[AngleDegree]
@@ -62,12 +61,17 @@ object SimplePolygon:
           f"The sum of interior angles is incorrect for a polygon with $n unit sides. Expected ${expectedAngleSum.toRational.toDouble}%.2f, but got ${angleSum.toRational.toDouble}%.2f."
         ))
       else
-        val vertices = BigLineSegment(BigPoint.origin, BigPoint(1, 0)).unitPath(angles)
-        if !vertices.isSimplePolygon then
+        // Validation-only fast path — ADR-0009 candidate B. The `BigDecimal`
+        // reconstruction via `BigLineSegment.unitPath` is faithful but pays
+        // the Spire-trig tax (finding 1: exactness is already lost at
+        // `AngleDegree.toBigRadian`). The two predicates below are both
+        // epsilon-tolerance checks, so `Double` reconstruction is sufficient.
+        val vertices = DoubleGeometry.unitPath(angles)
+        if !DoubleGeometry.isSimplePolygon(vertices) then
           Left(SpatialError("The polygon is self-intersecting."))
         else
-          val lastEdgeLength = vertices.head.distanceTo(vertices.last)
-          if spire.math.abs(lastEdgeLength - 1.0) > ACCURACY then
+          val lastEdgeLength = DoubleGeometry.closingEdgeLength(vertices)
+          if Math.abs(lastEdgeLength - 1.0) > ACCURACY then
             Left(SpatialError(
               f"The polygon does not close. The final edge has length $lastEdgeLength%.4f instead of 1.0."
             ))

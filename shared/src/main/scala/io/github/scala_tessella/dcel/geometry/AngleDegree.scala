@@ -35,6 +35,13 @@ object AngleDegree:
     def toBigRadian: BigRadian =
       BigRadian(BigDecimal(spire.math.pi) * (d / 180).toDouble)
 
+    /** Validation-path fast conversion. `toBigRadian` already caps precision at `Double` via
+      * `(d / 180).toDouble`, so the `BigDecimal` hop is pure overhead for callers that will only feed the
+      * value to trig primitives. See ADR-0009 finding 1 and candidate B.
+      */
+    private[dcel] def toDoubleRadian: Double =
+      (d / 180).toDouble * Math.PI
+
     /** Returns the angle (in degrees) >= 0 and < 360 */
     def normalised: AngleDegree =
       d.toRational.fmod(R360)
