@@ -53,3 +53,17 @@ class BigLineSegmentSpec extends AnyFlatSpec with Matchers with TilingTestHelper
         BigPoint(-1, 0)
       )
     start.unitPath(angles).zip(result).forall(_.almostEquals(_)) shouldBe true
+
+  /** Pins the numerical contract of the unit-path primitive independently of `SimplePolygon.fromUntrusted`
+    * and `TilingBuilderSpec`'s centagon ring. For a regular N-gon on unit sides, the distance from the last
+    * generated vertex back to the start must equal 1 to within `ACCURACY`. See ADR-0009.
+    */
+  behavior of "BigLineSegment.unitPath closure for regular N-gons"
+
+  for n <- Seq(3, 10, 46, 92, 100, 200, 500) do
+    it should s"close within ACCURACY for a regular $n-gon" in:
+      val start        = BigLineSegment(BigPoint.origin, BigPoint(1, 0))
+      val vertices     = start.unitPath(RegularPolygon(n).angles)
+      val closingEdge  = vertices.last.distanceTo(vertices.head)
+      val closureError = (closingEdge - BigDecimal(1.0)).abs
+      closureError.toDouble should be <= BigDecimalGeometry.ACCURACY
