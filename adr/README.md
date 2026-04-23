@@ -24,11 +24,12 @@ decision. Each file has:
 | 0002 | [Mutation via deep-copy on the public boundary](0002-deep-copy-on-mutation.md)               | Accepted |
 | 0003 | [Paired safe and `Unsafe` methods](0003-safe-unsafe-method-pairs.md)                         | Accepted |
 | 0004 | [`Either[TilingError, A]` with a sealed error ADT](0004-either-based-error-handling.md)      | Accepted |
-| 0005 | [Exact arithmetic via `BigDecimal` and Spire `Rational`](0005-exact-arithmetic.md)           | Accepted |
+| 0005 | [Exact arithmetic via `BigDecimal` and Spire `Rational`](0005-exact-arithmetic.md)           | Superseded by ADR-0010 |
 | 0006 | [Opaque `VertexId` / `FaceId` with `Prefixable`](0006-opaque-ids-and-prefixable.md)          | Accepted |
 | 0007 | [Cross-platform: JVM + Scala.js shipped, Native blocked](0007-cross-platform-targets.md)     | Accepted |
 | 0008 | [JMH benchmarks in an opt-in subproject](0008-jmh-benchmarks-subproject.md)                  | Accepted |
-| 0009 | [Validation geometry — precision vs. performance](0009-validation-geometry-precision-performance.md) | Proposed |
+| 0009 | [Validation geometry — precision vs. performance](0009-validation-geometry-precision-performance.md) | Superseded by ADR-0010 |
+| 0010 | [Validation geometry on `java.lang.Math` + `Double`](0010-validation-geometry-double.md)     | Accepted |
 
 ## When to add an ADR
 

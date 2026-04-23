@@ -1,7 +1,17 @@
 # ADR-0005: Exact arithmetic via `BigDecimal` and Spire `Rational`
 
-- **Status:** Accepted
+- **Status:** Superseded by ADR-0010
 - **Date:** 2026-04-21
+
+> **Supersession note.** ADR-0010 supersedes this ADR only in part.
+> Still in force: `BigDecimal` coordinates on `BigPoint` / `BigLineSegment`
+> / `BigBox` for accumulation and orientation tests; `Rational`-backed
+> `AngleDegree` for exact angle-sum checks. No longer in force: Spire
+> `BigDecimal` trig (`spire.math.{cos,sin,atan2,sqrt}`) — replaced by
+> `java.lang.Math.*` on `Double`; `BigRadian` backed by `BigDecimal` —
+> now `opaque type BigRadian = Double`. Read this ADR for the
+> coord/angle rationale that still holds; read ADR-0010 for what was
+> measured and changed about the trig pipeline.
 
 ## Context
 

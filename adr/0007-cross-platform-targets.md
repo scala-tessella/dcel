@@ -3,6 +3,11 @@
 - **Status:** Accepted
 - **Date:** 2026-04-21
 
+> **Parity note (ADR-0010).** The positive bullet below claiming
+> "identical output across platforms" is weakened by ADR-0010: JVM and
+> Scala.js now agree on validation outputs to within `ACCURACY = 1.0e-10`,
+> not bitwise. The cross-platform target decision itself is unchanged.
+
 ## Context
 
 The library's output (SVG tilings, DOT graphs, uniformity analysis) is

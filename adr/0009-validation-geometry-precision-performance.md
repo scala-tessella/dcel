@@ -1,6 +1,6 @@
 # ADR-0009: Validation geometry — precision vs. performance
 
-- **Status:** Proposed
+- **Status:** Superseded by ADR-0010
 - **Date:** 2026-04-23
 
 ## Context
