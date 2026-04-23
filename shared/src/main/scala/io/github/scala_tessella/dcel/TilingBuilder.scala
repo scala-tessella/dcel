@@ -202,9 +202,10 @@ object TilingBuilder:
       width: Int,
       angle: AngleDegree
   ): (Array[Array[BigPoint]], Array[Array[Vertex]]) =
-    val rad     = angle.toBigRadian.toBigDecimal
-    val v_vec_x = spire.math.cos(rad)
-    val v_vec_y = spire.math.sin(rad)
+    // ADR-0009 candidate A: Math trig on Double.
+    val rad     = angle.toBigRadian.toDouble
+    val v_vec_x = BigDecimal(Math.cos(rad))
+    val v_vec_y = BigDecimal(Math.sin(rad))
 
     val points =
       Array.tabulate(height + 1, width + 1): (j, i) =>
@@ -508,12 +509,13 @@ object TilingBuilder:
     val h2 = h1 + exteriorAngles(2).toBigRadian
 
     // Three global unit directions g0, g1, g2 (others are their opposites)
-    val g0x = spire.math.cos(h0.toBigDecimal)
-    val g0y = spire.math.sin(h0.toBigDecimal)
-    val g1x = spire.math.cos(h1.toBigDecimal)
-    val g1y = spire.math.sin(h1.toBigDecimal)
-    val g2x = spire.math.cos(h2.toBigDecimal)
-    val g2y = spire.math.sin(h2.toBigDecimal)
+    // ADR-0009 candidate A: Math trig on Double.
+    val g0x = BigDecimal(Math.cos(h0.toDouble))
+    val g0y = BigDecimal(Math.sin(h0.toDouble))
+    val g1x = BigDecimal(Math.cos(h1.toDouble))
+    val g1y = BigDecimal(Math.sin(h1.toDouble))
+    val g2x = BigDecimal(Math.cos(h2.toDouble))
+    val g2y = BigDecimal(Math.sin(h2.toDouble))
 
     // Corner offsets as integer triples in the (g0,g1,g2) basis:
     // v0=0, v1=g0, v2=g0+g1, v3=g0+g1+g2, v4=g1+g2, v5=g2

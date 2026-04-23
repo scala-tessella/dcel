@@ -1,7 +1,6 @@
 package io.github.scala_tessella.dcel.geometry
 
 import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.{IntersectionDetection, Orientation}
-import spire.implicits.*
 
 import scala.collection.mutable
 
@@ -20,16 +19,27 @@ object BigLineSegment:
     inline def p2: BigPoint =
       segment.p2
 
-    /** The length of the line segment. */
+    /** The length of the line segment.
+      *
+      * ADR-0009 candidate A: `java.lang.Math.sqrt` on `Double` rather than `spire.math.sqrt` on `BigDecimal`.
+      * Precision is bounded by the `BigDecimal` coordinate delta already (finding 1 generalises).
+      */
     def length: BigDecimal =
-      spire.math.sqrt((segment.p2.x - segment.p1.x).pow(2) + (segment.p2.y - segment.p1.y).pow(2))
+      val dx = (segment.p2.x - segment.p1.x).toDouble
+      val dy = (segment.p2.y - segment.p1.y).toDouble
+      BigDecimal(Math.sqrt(dx * dx + dy * dy))
 
     def midPoint: BigPoint =
       BigPoint((segment.p1.x + segment.p2.x) / 2, (segment.p1.y + segment.p2.y) / 2)
 
-    /** The horizontal angle of the line segment. */
+    /** The horizontal angle of the line segment.
+      *
+      * ADR-0009 candidate A: `java.lang.Math.atan2` on `Double`.
+      */
     def horizontalAngle: BigRadian =
-      BigRadian(spire.math.atan2(segment.p2.y - segment.p1.y, segment.p2.x - segment.p1.x))
+      val dx = (segment.p2.x - segment.p1.x).toDouble
+      val dy = (segment.p2.y - segment.p1.y).toDouble
+      BigRadian(Math.atan2(dy, dx))
 
     private def orientations(that: BigLineSegment): (Orientation, Orientation, Orientation, Orientation) =
       val o1 = BigPoint.orientation(segment.p1, segment.p2, that.p1)

@@ -17,9 +17,18 @@ object BigPoint:
   inline def apply(x: BigDecimal, y: BigDecimal): BigPoint =
     (x, y)
 
-  /** Creates a point from polar coordinates */
+  /** Creates a point from polar coordinates.
+    *
+    * ADR-0009 candidate A: uses `java.lang.Math.{cos,sin}` on `Double` rather than `spire.math.*` on
+    * `BigDecimal`. The `BigDecimal` trig pipeline was ~1000× slower and offered no precision benefit —
+    * `AngleDegree.toBigRadian` already capped the input at `Double` (ADR finding 1). The returned coordinates
+    * are still `BigDecimal`-typed so downstream arithmetic (accumulation in `unitPath`, orientation /
+    * distance tests) is unchanged.
+    */
   def fromPolar(rho: BigDecimal, theta: BigRadian): BigPoint =
-    (rho * spire.math.cos(theta.toBigDecimal), rho * spire.math.sin(theta.toBigDecimal))
+    val t = theta.toDouble
+    val r = rho.toDouble
+    (BigDecimal(r * Math.cos(t)), BigDecimal(r * Math.sin(t)))
 
   /** Finds the orientation of the ordered triplet (p, q, r).
     *

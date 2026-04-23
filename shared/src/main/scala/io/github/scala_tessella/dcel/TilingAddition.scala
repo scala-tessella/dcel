@@ -20,7 +20,6 @@ import io.github.scala_tessella.dcel.geometry.{
 }
 import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
 import io.github.scala_tessella.ring_seq.RingSeq.rotateRight
-import spire.implicits.BigDecimalIsTrig
 
 import scala.annotation.tailrec
 
@@ -583,8 +582,9 @@ object TilingAddition:
         def rotateAround(center: BigPoint, angle: BigRadian)(point: BigPoint): BigPoint =
           val dx   = point.x - center.x
           val dy   = point.y - center.y
-          val cosA = spire.math.cos(angle.toBigDecimal)
-          val sinA = spire.math.sin(angle.toBigDecimal)
+          // ADR-0009 candidate A: Math trig on Double.
+          val cosA = BigDecimal(Math.cos(angle.toDouble))
+          val sinA = BigDecimal(Math.sin(angle.toDouble))
           BigPoint(
             center.x + dx * cosA - dy * sinA,
             center.y + dx * sinA + dy * cosA

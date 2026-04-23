@@ -32,8 +32,12 @@ object AngleDegree:
     inline def toRational: Rational =
       d
 
+    /** ADR-0009 candidate A+C: direct `Double` construction. The pre-change pipeline did
+      * `BigDecimal(spire.math.pi) * (d / 180).toDouble` only to narrow back to `Double` downstream in the
+      * trig call — pure overhead.
+      */
     def toBigRadian: BigRadian =
-      BigRadian(BigDecimal(spire.math.pi) * (d / 180).toDouble)
+      BigRadian((d / 180).toDouble * Math.PI)
 
     /** Returns the angle (in degrees) >= 0 and < 360 */
     def normalised: AngleDegree =

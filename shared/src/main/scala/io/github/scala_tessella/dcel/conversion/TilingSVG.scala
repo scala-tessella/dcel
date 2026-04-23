@@ -11,8 +11,6 @@ import io.github.scala_tessella.ring_seq.SymmetryOps.{
   Edge as SymmetryEdge,
   Vertex as SymmetryVertex
 }
-import spire.implicits.*
-
 import scala.collection.mutable
 
 object TilingSVG:
@@ -347,7 +345,11 @@ object TilingSVG:
 
           // Calculate perpendicular offset in SVG space (to the left of the direction)
           val offsetDistance = config.strokeWidth * 4
-          val length         = spire.math.sqrt(dx.pow(2) + dy.pow(2))
+          // ADR-0009 candidate A: Math.sqrt on Double.
+          val length         =
+            val dxD = dx.toDouble
+            val dyD = dy.toDouble
+            BigDecimal(Math.sqrt(dxD * dxD + dyD * dyD))
 
           val perpX = if length > BigDecimal(BigDecimalGeometry.ACCURACY) then -dy * offsetDistance / length
           else BigDecimal(0)
