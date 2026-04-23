@@ -28,6 +28,7 @@ decision. Each file has:
 | 0006 | [Opaque `VertexId` / `FaceId` with `Prefixable`](0006-opaque-ids-and-prefixable.md)          | Accepted |
 | 0007 | [Cross-platform: JVM + Scala.js shipped, Native blocked](0007-cross-platform-targets.md)     | Accepted |
 | 0008 | [JMH benchmarks in an opt-in subproject](0008-jmh-benchmarks-subproject.md)                  | Accepted |
+| 0009 | [Validation geometry — precision vs. performance](0009-validation-geometry-precision-performance.md) | Proposed |
 
 ## When to add an ADR
 

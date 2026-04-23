@@ -27,3 +27,30 @@ sbt "benchmarks/Jmh/run -i 30 -wi 10 -f 1 -t 1 -rf json -rff bench-results.json 
 # restrict to a single case or operation
 sbt "benchmarks/Jmh/run -p caseName=ring-12 .*UniformityBenchmark.uniformityTree"
 ```
+
+### Validation (ADR-0009 baseline)
+
+Five SVG template fixtures (`aperiodic/domino`, `regular/regular_6-6-6`,
+`semiregular/semiregular_3-6-3-6`, `semiregular/semiregular_3-3-4-3-4`,
+`semiregular/semiregular_4-6-12`) are cross-multiplied with two operations
+(`fromMetadataImport`, `validateOnly`) — 10 benchmark rows per run. Fixtures
+are read from `shared/src/test/resources/templates/` at trial setup; the
+benchmark walks up from the fork's working directory to locate them, so it
+works regardless of how sbt launches the fork.
+
+`fromMetadataImport` mirrors the editor's `SvgImporter.parseTiling` hot path
+(parse + validate). `validateOnly` isolates the geometry/spatial checks on a
+pre-parsed tiling — this is the figure the ADR-0009 acceptance criterion
+("JVM JMH for `validate` on the domino fixture improves by at least 5×")
+compares against.
+
+```bash
+# full matrix (5 fixtures × 2 operations) with default JMH settings
+sbt "benchmarks/Jmh/run -i 10 -wi 5 -f 1 -t 1 .*ValidationBenchmark.*"
+
+# machine-readable output for before/after comparison across branches
+sbt "benchmarks/Jmh/run -i 30 -wi 10 -f 1 -t 1 -rf json -rff validation-baseline.json .*ValidationBenchmark.*"
+
+# single fixture, single operation (e.g. validate-only on domino)
+sbt "benchmarks/Jmh/run -p fixture=aperiodic/domino .*ValidationBenchmark.validateOnly"
+```
