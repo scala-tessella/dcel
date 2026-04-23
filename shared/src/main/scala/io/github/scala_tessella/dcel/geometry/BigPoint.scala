@@ -1,6 +1,11 @@
 package io.github.scala_tessella.dcel.geometry
 
-import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.{ACCURACY, Orientation, almostEqual}
+import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.{
+  ACCURACY,
+  IntersectionDetection,
+  Orientation,
+  almostEqual
+}
 import io.github.scala_tessella.dcel.geometry.BigLineSegment
 import io.github.scala_tessella.ring_seq.RingSeq.slidingO
 import spire.implicits.*
@@ -166,6 +171,13 @@ object BigPoint:
           true
 
     /** Checks if a polygon defined by a list of points is simple (does not self-intersect).
+      *
+      * ADR-0009 candidate G: delegates to `IntersectionDetection.hasSelfIntersection`, the spatial-grid sweep
+      * `validateSpatially` already uses on the whole-tiling edge set. `hasSelfIntersection` invokes
+      * `properlyIntersects`, which dedups shared endpoints by `almostEquals` — so consecutive polygon
+      * segments (the only pairs that legitimately share a vertex once `hasNoAlmostEqualPoints` passes) are
+      * naturally skipped. This replaces the previous O(n²) `BigDecimal` pair loop, dominant on the
+      * 1023-vertex domino boundary per ADR finding 3.
       */
     def isSimplePolygon: Boolean =
       val n = points.length
@@ -173,22 +185,10 @@ object BigPoint:
       if !hasNoAlmostEqualPoints() then return false
 
       val segments =
-        (0 until n)
-          .iterator.map: i =>
-            BigLineSegment(points(i), points((i + 1) % n))
-          .toArray
+        (0 until n).map: i =>
+          BigLineSegment(points(i), points((i + 1) % n))
 
-      boundary:
-        var i = 0
-        while i < n do
-          var j = i + 1
-          while j < n do
-            // Non-adjacent segments; also exclude first and last which share a vertex
-            if i != (j + 1) % n && j != (i + 1) % n && !(i == 0 && j == n - 1) then
-              if segments(i).interiorIntersects(segments(j)) then boundary.break(false)
-            j += 1
-          i += 1
-        true
+      !IntersectionDetection.hasSelfIntersection(segments)
 
     // Shoelace formula
     def area: BigDecimal =
