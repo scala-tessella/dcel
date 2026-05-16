@@ -2,9 +2,14 @@ package io.github.scala_tessella.dcel.structure
 
 import io.github.scala_tessella.dcel.ValidationError
 
-/** A trait for types that can be used as IDs for DCEL entities. */
+/** Mixin for ID companion objects that produces a short string form combining a fixed prefix with the
+  * underlying numeric value. Used by [[VertexId]] (`V`) and [[FaceId]] (`F`); see their `toPrefixedString`
+  * extensions. The reverse direction is offered as a validated parse ([[fromStringUntrusted]]) plus a
+  * fast trusted variant for internal call sites.
+  */
 trait Prefixable:
 
+  /** The leading string that every id of this type starts with (e.g. `"V"` for `VertexId`). */
   val prefix: String
 
   private[structure] def prefixedString(i: Int): String = s"$prefix$i"

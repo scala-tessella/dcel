@@ -7,11 +7,21 @@ import io.github.scala_tessella.ring_seq.RingSeq.*
 import io.github.scala_tessella.ring_seq.SymmetryOps.AxisLocation
 import spire.implicits.*
 
-/** Simple unit-side-length polygon with the given ordered interior angles */
+/** A simple (non-self-intersecting) polygon with unit-length sides, opaque-typed over its ordered vector of
+  * interior angles. "Simple" here is the standard geometric meaning — edges meet only at vertices.
+  *
+  * Construct from untrusted input via [[SimplePolygon.fromUntrusted]]; the smart constructor runs the full
+  * closure / simplicity / angle-sum validation. The extensions on `SimplePolygon` expose readback,
+  * coordinate generation, symmetry analysis and parallelogon detection (for torus tiling).
+  */
 opaque type SimplePolygon = Vector[AngleDegree]
 
+/** Companion object for [[SimplePolygon]]. Holds the smart constructor [[fromUntrusted]] and the static
+  * helper [[alphaSum]] used both internally and by callers building their own polygons.
+  */
 object SimplePolygon:
 
+  /** Sum of interior angles for an `n`-sided simple polygon: `(n - 2) * 180°`. */
   def alphaSum(sides: Int): AngleDegree =
     AngleDegree(180) * (sides - 2)
 
@@ -84,21 +94,30 @@ object SimplePolygon:
 
   extension (angles: SimplePolygon)
 
-    /** @return the underlying number of sides */
+    /** Unwraps the underlying interior-angle vector. */
     def toAngles: Vector[AngleDegree] =
       angles
 
-    /** Exterior turn at each vertex along the boundary */
+    /** Exterior turn at each vertex along the boundary. */
     def toTurns: Vector[AngleDegree] =
       angles.map:
         _.normalised.supplement
 
+    /** Cartesian coordinates of the polygon's vertices, starting at the origin with the first edge along the
+      * positive x-axis.
+      */
     def toBigPoints: List[BigPoint] =
       SimplePolygon.bigPointsFrom(angles.toAngles)
 
+    /** SVG `<polygon points="…"/>` rendering of the polygon at unit scale. */
     def toSVG: String =
       angles.toScalableVectorG()
 
+    /** Subdivides every side into `n` unit segments by inserting `n - 1` straight (180°) angles between each
+      * original pair. The result is geometrically the same shape, just with finer vertex granularity.
+      *
+      * @throws IllegalArgumentException if `n < 1`.
+      */
     def multiplySidesBy(n: Int = 1): SimplePolygon =
       if n < 1 then
         throw new IllegalArgumentException("A simple polygon must have sides of at least unit length.")
@@ -109,9 +128,15 @@ object SimplePolygon:
             _ +: straightAngles
         )
 
+    /** Order of the polygon's cyclic (rotational) symmetry group: the largest `k` such that rotating the
+      * angle vector by `n / k` positions yields the same polygon. Always between 1 and `n`.
+      */
     def rotationalSymmetryOrder: Int =
       angles.rotationalSymmetry
 
+    /** For each rotational-symmetry copy, the index of the representative vertex chosen as the "first" one
+      * (picked by largest interior angle within the first segment, then offset by the segment size).
+      */
     def rotationalIndices: List[Int] =
       val symmetryOrder = angles.rotationalSymmetryOrder
       val segmentSize   = angles.size / symmetryOrder
@@ -121,9 +146,15 @@ object SimplePolygon:
       (0 until symmetryOrder).toList.map: index =>
         first + index * segmentSize
 
+    /** Number of reflection axes the polygon has. Together with [[rotationalSymmetryOrder]] characterises
+      * the dihedral subgroup.
+      */
     def reflectionalSymmetryOrder: Int =
       angles.symmetry
 
+    /** For each reflection axis, the two ring-seq `AxisLocation`s (vertex or edge midpoint) it passes
+      * through.
+      */
     def reflectionalIndexPairs: List[(AxisLocation, AxisLocation)] =
       angles.reflectionalSymmetryAxes
 

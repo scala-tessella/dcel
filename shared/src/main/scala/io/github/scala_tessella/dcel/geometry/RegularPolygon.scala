@@ -1,9 +1,15 @@
 package io.github.scala_tessella.dcel.geometry
 
-/** Unit regular polygon with the given number of sides */
+/** A unit-side regular polygon, opaque-typed over its number of sides. Two regular polygons are equal iff
+  * they have the same side count; an ordering by side count is provided in the companion.
+  *
+  * Construct via [[RegularPolygon.apply]] (`RegularPolygon(6)`) or via [[RegularPolygon.fromInteriorAngle]]
+  * when only the interior angle is known. Use [[toSides]], [[alpha]], [[angles]] to read back the
+  * geometric attributes.
+  */
 opaque type RegularPolygon = Int
 
-/** Companion object for [[RegularPolygon]] */
+/** Companion object for [[RegularPolygon]]. */
 object RegularPolygon:
 
   given Ordering[RegularPolygon] with
@@ -45,8 +51,12 @@ object RegularPolygon:
     def toSides: Int =
       sides
 
+    /** The interior angle at any vertex (uniform across vertices because the polygon is regular). */
     def alpha: AngleDegree =
       SimplePolygon.alphaSum(sides) / sides
 
+    /** The vector of all interior angles. By construction every entry equals [[alpha]] and there are
+      * [[toSides]] entries.
+      */
     def angles: Vector[AngleDegree] =
       Vector.fill(sides)(sides.alpha)

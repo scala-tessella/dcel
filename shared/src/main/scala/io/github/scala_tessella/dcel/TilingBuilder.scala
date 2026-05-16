@@ -17,6 +17,18 @@ import spire.implicits.*
 
 import scala.collection.mutable
 
+/** Constructors for [[TilingDCEL]] instances. Two families:
+  *
+  *   - **Single polygons.** [[createRegularPolygon]] and [[createSimplePolygon]] produce a tiling whose only
+  *     inner face is the given polygon.
+  *   - **Lattices and rings.** [[createTriangleNet]], [[createRhombusNet]], [[createHexagonNet]],
+  *     [[createHoledTriangleNet]] and [[createRing]] build edge-to-edge tilings of arbitrary size from
+  *     unit-side regular pieces.
+  *
+  * All constructors validate their inputs and return `Either[TilingError, TilingDCEL]` (regular polygon is
+  * the one exception: its construction cannot fail). The constructed tilings are guaranteed to satisfy the
+  * full DCEL invariants and pass [[TilingValidation.validate]].
+  */
 object TilingBuilder:
 
   private type PositiveInt = Int :| Positive
@@ -67,6 +79,10 @@ object TilingBuilder:
     val outerBoundaryCW = linkOuterFace(height, width, horizontal, vSlope, outerFace)
     allHalfEdges.setOuterEdgeAngles(outerBoundaryCW, outerFace)
 
+  /** Closure check for a candidate polygon's vertex coordinates: the final edge (from the last back to the
+    * first point) must have unit length. Used internally by the polygon constructors; exposed for callers
+    * that build their own point lists. Returns [[TopologyError]] on failure.
+    */
   def validatePoints(points: List[BigPoint]): Either[TilingError, Unit] =
     // Check if the final edge, from V(n-1) back to V0, has the correct length and angles
     val lastEdgeLength = points.head.distanceTo(points.last)
@@ -100,6 +116,9 @@ object TilingBuilder:
       validatedSimplePolygon <- SimplePolygon.fromUntrusted(degrees*)
     yield createSimplePolygonUnsafe(validatedSimplePolygon)
 
+  /** Variant of [[createSimplePolygon(degrees:Int*)*]] taking a vector of [[geometry.AngleDegree]] values,
+    * which allows rational angles. Same validation semantics.
+    */
   def createSimplePolygon(angles: Vector[AngleDegree]): Either[TilingError, TilingDCEL] =
     for
       validatedSimplePolygon <- SimplePolygon.fromUntrusted(angles)
@@ -656,6 +675,20 @@ object TilingBuilder:
       either.flatMap: ring =>
         ring.addRegularPolygonToBoundary(vertexId, polygon)
 
+  /** Creates a triangle net of the given dimensions and then deletes the faces around every vertex selected
+    * by the predicate `f`, producing a tiling with intentional holes.
+    *
+    * @param width
+    *   number of triangle pairs (rhombi) on each row, same as [[createTriangleNet]]
+    * @param height
+    *   number of triangle pairs (rhombi) on each column, same as [[createTriangleNet]]
+    * @param f
+    *   `(x, y) => true` to mark the vertex at grid position `(x, y)` as a hole centre. The triangles around
+    *   each marked vertex are removed; the resulting boundary may have inner holes.
+    * @return
+    *   The holed tiling, or a [[TilingError]] if the underlying net construction or any of the deletions
+    *   violates an invariant.
+    */
   def createHoledTriangleNet(
       width: Int,
       height: Int
