@@ -45,3 +45,6 @@ build/
 
 ### Scala ###
 .bsp/
+
+### Test-run scratch ###
+shared/src/test/resources/generator/

@@ -13,7 +13,8 @@ vertex, its incident face, its twin, its predecessor, and its successor. On top
 of this base representation the library provides builders, validation,
 topology/geometry operations, symmetry and uniformity analysis, and import/export.
 
-> **Status:** early development (`0.1.0-SNAPSHOT`). The API may still change.
+> **Status:** early development (pre-1.0). The API may still change between
+> minor versions.
 
 ## Features
 
@@ -91,7 +92,7 @@ everything, `structure` depends on `geometry`, `geometry` has no internal deps.
 
 ### Prerequisites
 
-- JDK 17 or later (the CI matrix is not yet defined; 17 is a safe baseline).
+- JDK 17 or later (CI runs on Temurin 17).
 - sbt (`1.12.9` used by this project; launcher will pick up the version).
 - Node.js on `PATH` for the Scala.js test runner.
 
@@ -205,30 +206,13 @@ Pure unit tests plus ScalaCheck property-based tests (see
 `PropertyBasedDCELSpec.scala`). SVG fixtures under `shared/src/test/resources/`
 are used as reference snapshots for the builders and the SVG exporter.
 
-## Maintainability notes
-
-See the companion discussion in the issue tracker / PR description for the
-rationale. The main suggestions are:
-
-1. **Add a `LICENSE` file.** The README currently states "No license file is
-   currently present"; without one the code is by default "all rights reserved",
-   which prevents downstream reuse.
-2. **Add GitHub Actions CI** for `sbt qa`, JVM + JS test matrix, and a gated
-   benchmark smoke-run on `main`.
-3. **Add a `CONTRIBUTING.md`** summarising the `Unsafe` naming convention, the
-   `Either[TilingError, …]` discipline, and the deep-copy-on-mutation contract.
-4. **Introduce MiMa** (Migration Manager) once a first release ships, to track
-   binary compatibility across `0.x`.
-5. **Scaladoc site + `mdoc`** for compile-checked README snippets (the code
-   blocks above are currently only human-checked).
-6. **Organise test resources** — the project already groups fixtures under
-   `simple/`, `torus/`, `generator/`; consider finishing this migration for the
-   remaining top-level `*.svg` files so that tests and resources stay aligned.
-7. **Publish setup** (`sbt-ci-release` or `sbt-sonatype` + `sbt-pgp`) when the
-   API stabilises.
-
 ## License
 
-No license file is currently present in this repository. Add a `LICENSE` (MIT,
-Apache-2.0, …) before any public release — this is a blocker for downstream
-adoption, not just a formality.
+Dual-licensed under either of
+
+- Apache License, Version 2.0 ([`LICENSE-APACHE`](LICENSE-APACHE) or
+  <https://www.apache.org/licenses/LICENSE-2.0>)
+- MIT license ([`LICENSE-MIT`](LICENSE-MIT) or
+  <https://opensource.org/licenses/MIT>)
+
+at your option.

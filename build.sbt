@@ -1,10 +1,27 @@
-ThisBuild / version := "0.1.0-SNAPSHOT"
 ThisBuild / scalaVersion := "3.8.3"
 ThisBuild / organization := "io.github.scala-tessella"
+ThisBuild / versionScheme := Some("early-semver")
 
 // Enable semanticdb for Scalafix (Scala 3)
 ThisBuild / semanticdbEnabled := true
 ThisBuild / semanticdbVersion := scalafixSemanticdb.revision
+
+// Publishing metadata (sbt-ci-release derives the version from git tags via sbt-dynver)
+ThisBuild / licenses := Seq(
+  "Apache-2.0" -> url("https://www.apache.org/licenses/LICENSE-2.0.txt"),
+  "MIT"        -> url("https://opensource.org/licenses/MIT")
+)
+ThisBuild / developers := List(Developer(
+  "scala-tessella",
+  "scala-tessella",
+  "mario.callisto@gmail.com",
+  url("https://github.com/scala-tessella")
+))
+ThisBuild / homepage := Some(url("https://github.com/scala-tessella/dcel"))
+ThisBuild / scmInfo := Some(ScmInfo(
+  url("https://github.com/scala-tessella/dcel"),
+  "scm:git:git@github.com:scala-tessella/dcel.git"
+))
 
 // Optional: format when compiling (can be noisy in PRs; turn off if you prefer manual runs)
 ThisBuild / scalafmtOnCompile := true
@@ -86,7 +103,8 @@ lazy val dcel = crossProject(JVMPlatform, JSPlatform/*, NativePlatform*/)
   .crossType(CrossType.Full)
   .in(file("."))
   .settings(
-    name := "dcel"
+    name := "dcel",
+    description := "DCEL utilities for representing, building, editing and analysing edge-to-edge tessellations of unit-side polygons in Scala 3"
   )
   .settings(commonSettings)
   .jvmSettings(jvmSettings)

@@ -8,7 +8,7 @@
 A downstream consumer (the Tessella editor, Scala.js target — see the
 memory pinning JS as first-class) reported multi-second import times on
 the largest SVG templates it ships. Investigation
-(`dcel-validation-perf-investigation.md`) profiled the hot path and
+(`perf-investigation.md`) profiled the hot path and
 identified that `TilingSVG.fromMetadata` is dominated by
 `TilingValidation.validateGeometrically`, which is in turn dominated by
 `BigPoint.fromPolar` — specifically by Spire's

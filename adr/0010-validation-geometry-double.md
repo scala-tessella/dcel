@@ -171,5 +171,5 @@ ADR-0009 finding 3 predicted.
 - ADR-0009 (investigation) — superseded by this decision.
 - ADR-0008 (JMH benchmarks) — the infrastructure this ADR's numbers
   were measured on.
-- `dcel-validation-perf-investigation.md` — the upstream investigation
-  note that seeded ADR-0009.
+- `perf-investigation.md` — the upstream investigation note that seeded
+  ADR-0009.
