@@ -11,8 +11,8 @@ import spire.implicits.*
   * interior angles. "Simple" here is the standard geometric meaning — edges meet only at vertices.
   *
   * Construct from untrusted input via [[SimplePolygon.fromUntrusted]]; the smart constructor runs the full
-  * closure / simplicity / angle-sum validation. The extensions on `SimplePolygon` expose readback,
-  * coordinate generation, symmetry analysis and parallelogon detection (for torus tiling).
+  * closure / simplicity / angle-sum validation. The extensions on `SimplePolygon` expose readback, coordinate
+  * generation, symmetry analysis and parallelogon detection (for torus tiling).
   */
 opaque type SimplePolygon = Vector[AngleDegree]
 
@@ -116,7 +116,8 @@ object SimplePolygon:
     /** Subdivides every side into `n` unit segments by inserting `n - 1` straight (180°) angles between each
       * original pair. The result is geometrically the same shape, just with finer vertex granularity.
       *
-      * @throws IllegalArgumentException if `n < 1`.
+      * @throws IllegalArgumentException
+      *   if `n < 1`.
       */
     def multiplySidesBy(n: Int = 1): SimplePolygon =
       if n < 1 then
@@ -146,8 +147,8 @@ object SimplePolygon:
       (0 until symmetryOrder).toList.map: index =>
         first + index * segmentSize
 
-    /** Number of reflection axes the polygon has. Together with [[rotationalSymmetryOrder]] characterises
-      * the dihedral subgroup.
+    /** Number of reflection axes the polygon has. Together with [[rotationalSymmetryOrder]] characterises the
+      * dihedral subgroup.
       */
     def reflectionalSymmetryOrder: Int =
       angles.symmetry

@@ -16,12 +16,12 @@ import scala.util.control.TailCalls.{TailRec, done, tailcall}
   * The headline operation is the **uniformity tree** ([[TilingDCEL.uniformityTree]] /
   * `uniformityTreeUncompressed` here): a hierarchical grouping of the tiling's inner vertices into
   * equivalence classes based on the local DCEL structure around each vertex, refined at increasing
-  * vertex-distance. Two vertices end up in the same leaf iff their neighbourhoods are
-  * boundary-equivalent at every distance examined.
+  * vertex-distance. Two vertices end up in the same leaf iff their neighbourhoods are boundary-equivalent at
+  * every distance examined.
   *
   * Related views:
-  *   - [[scanUniformityTree]] — a sequence of trees showing the progressive refinement at each depth
-  *     (only depths that actually split a class are kept), useful for animation.
+  *   - [[scanUniformityTree]] — a sequence of trees showing the progressive refinement at each depth (only
+  *     depths that actually split a class are kept), useful for animation.
   *   - [[gonalitySampleInnerVertexIds]] — one representative vertex per gonality class.
   *   - [[TilingDCEL.gonalityTrees]] — the gonality slice of the uniformity tree.
   */
@@ -289,8 +289,8 @@ object TilingUniformity:
       // Start from all inner vertices at the root
       deepMap(Nil, tiling.innerVertices.map(_.id)).result
 
-    /** One representative inner-vertex id per gonality class (i.e. per equivalence class at distance 0).
-      * The list size equals the gonality of the tiling.
+    /** One representative inner-vertex id per gonality class (i.e. per equivalence class at distance 0). The
+      * list size equals the gonality of the tiling.
       */
     def gonalitySampleInnerVertexIds: List[VertexId] =
       uniformityTreeUncompressed(Option(0))

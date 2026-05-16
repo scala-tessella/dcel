@@ -6,13 +6,14 @@ import spire.math.Rational
 
 import scala.annotation.targetName
 
-/** An angle in degrees, opaque-typed over `spire.math.Rational` for exact arithmetic. Backed by `Rational`
-  * so that values like `60`, `120`, `60/7` and their sums round-trip exactly — critical for the angle-sum
-  * closure checks performed by [[SimplePolygon.fromUntrusted]] and [[TilingValidation.validateGeometrically]].
+/** An angle in degrees, opaque-typed over `spire.math.Rational` for exact arithmetic. Backed by `Rational` so
+  * that values like `60`, `120`, `60/7` and their sums round-trip exactly — critical for the angle-sum
+  * closure checks performed by [[SimplePolygon.fromUntrusted]] and
+  * [[TilingValidation.validateGeometrically]].
   *
   * Construct from an `Int`, a `Rational`, or a [[BigRadian]] via [[AngleDegree.apply]]. The companion's
   * extensions cover arithmetic (`+`, `-`, `*`, `/`), normalisation, and the three usual transforms:
-  * [[inverted]] (`-d`), [[supplement]] (`180 - d`), [[conjugate]] (`360 - d`).
+  * `inverted` (`-d`), `supplement` (`180 - d`), `conjugate` (`360 - d`).
   */
 opaque type AngleDegree = Rational
 

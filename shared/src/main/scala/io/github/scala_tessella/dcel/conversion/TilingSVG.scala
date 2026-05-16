@@ -13,16 +13,16 @@ import io.github.scala_tessella.ring_seq.SymmetryOps.{
 }
 import scala.collection.mutable
 
-/** SVG export for [[TilingDCEL]] and for individual [[SimplePolygon]] shapes. The headline entry points
-  * surface as extension methods on `TilingDCEL` (`toSVG` on the type itself; `toScalableVectorGraphics`
-  * here) and on `SimplePolygon` (`toSVG`, `toParallelogonTiling`).
+/** SVG export for [[TilingDCEL]] and for individual `SimplePolygon` shapes. The headline entry points surface
+  * as extension methods on `TilingDCEL` (`toSVG` on the type itself; `toScalableVectorGraphics` here) and on
+  * `SimplePolygon` (`toSVG`, `toParallelogonTiling`).
   *
   * Render styling — stroke width, padding, scale, plus toggles for half-edge traversal arrows, leaving-edge
   * markers, per-face id labels and uniformity colouring — is bundled in [[SvgOptions]] for the ergonomic
   * overload. The plain overload exposes the same knobs as positional parameters.
   *
-  * Round-trip serialisation is provided through the SVG `<metadata>` element: see [[fromMetadata]] (here)
-  * and the `toMetadata` extension; both delegate to [[SvgMetadata]].
+  * Round-trip serialisation is provided through the SVG `<metadata>` element: see [[fromMetadata]] (here) and
+  * the `toMetadata` extension; both delegate to [[SvgMetadata]].
   */
 object TilingSVG:
 
@@ -46,8 +46,8 @@ object TilingSVG:
     val formatted: String = s"$tipX,$tipY $baseX1,$baseY1 $baseX2,$baseY2"
 
   /** Bundle of rendering options for the SVG output. Pass to the
-    * `toScalableVectorGraphics(options: SvgOptions)` overload to control all knobs in one record instead
-    * of a long positional argument list.
+    * `toScalableVectorGraphics(options: SvgOptions)` overload to control all knobs in one record instead of a
+    * long positional argument list.
     *
     * @param strokeWidth
     *   Width of the edge lines in SVG user units. Defaults to `1.0`.
@@ -487,8 +487,8 @@ object TilingSVG:
       )
       gElem(sections)
 
-    /** Renders the polygon as an SVG string at unit scale (subject to `scale`). Used by
-      * [[SimplePolygon.toSVG]] and available directly when you want to control rendering knobs.
+    /** Renders the polygon as an SVG string at unit scale (subject to `scale`). Used by `SimplePolygon.toSVG`
+      * and available directly when you want to control rendering knobs.
       *
       * @param strokeWidth
       *   Edge stroke width in SVG user units.
@@ -717,8 +717,8 @@ object TilingSVG:
         showUniformity
       )
 
-    /** Ergonomic overload of [[toScalableVectorGraphics]] that takes a single [[SvgOptions]] bundle in
-      * place of the positional argument list. Identical output.
+    /** Ergonomic overload of [[toScalableVectorGraphics]] that takes a single [[SvgOptions]] bundle in place
+      * of the positional argument list. Identical output.
       */
     def toScalableVectorGraphics(options: SvgOptions): String =
       val config = toConfig(options)
@@ -733,9 +733,9 @@ object TilingSVG:
         showUniformity = config.showUniformity
       )
 
-    /** Renders the tiling as an animated SVG that walks through the steps of
-      * [[TilingDCEL.uniformityTree]] (via `scanUniformityTree`). Each step highlights the next layer of
-      * vertex-class refinement, pausing between steps so the viewer can follow the grouping.
+    /** Renders the tiling as an animated SVG that walks through the steps of [[TilingDCEL.uniformityTree]]
+      * (via `scanUniformityTree`). Each step highlights the next layer of vertex-class refinement, pausing
+      * between steps so the viewer can follow the grouping.
       *
       * @param vertexRadius
       *   Radius of the highlight circle drawn around each vertex being grouped.

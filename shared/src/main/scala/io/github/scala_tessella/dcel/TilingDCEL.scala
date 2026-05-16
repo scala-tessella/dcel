@@ -13,15 +13,15 @@ import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint, RegularPol
 import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
 import io.github.scala_tessella.ring_seq.RingSeq.startAt
 
-/** An edge-to-edge tessellation of unit-side polygons, modelled as a Doubly Connected Edge List (DCEL):
-  * each edge is represented by two oppositely oriented half-edges, and each half-edge knows its origin
-  * vertex, incident face, twin, predecessor and successor. The tiling has exactly one unbounded `outerFace`;
-  * all other faces are inner.
+/** An edge-to-edge tessellation of unit-side polygons, modelled as a Doubly Connected Edge List (DCEL): each
+  * edge is represented by two oppositely oriented half-edges, and each half-edge knows its origin vertex,
+  * incident face, twin, predecessor and successor. The tiling has exactly one unbounded `outerFace`; all
+  * other faces are inner.
   *
   * Construct via the companion's smart constructors ([[TilingDCEL.empty]],
-  * [[TilingDCEL.createRegularPolygon]], [[TilingDCEL.createSimplePolygon]], [[TilingDCEL.fromUntrusted]])
-  * or via [[TilingBuilder]] for lattices and rings. The primary constructor is private to enforce
-  * validation on untrusted input.
+  * [[TilingDCEL.createRegularPolygon]], [[TilingDCEL.createSimplePolygon]], [[TilingDCEL.fromUntrusted]]) or
+  * via [[TilingBuilder]] for lattices and rings. The primary constructor is private to enforce validation on
+  * untrusted input.
   *
   * Mutating operations ([[maybeAddRegularPolygonToBoundary]], [[maybeDeleteFace]], …) return a fresh
   * `Either[TilingError, TilingDCEL]` and operate on an internal deep copy — the original is never modified.
@@ -155,8 +155,8 @@ final case class TilingDCEL private (
     filteredEdges.map: halfEdge =>
       halfEdge.angle.get
 
-  /** Returns the ordered inner angles at the given vertex. For a boundary vertex this excludes the
-    * outer-face angle; for an interior vertex it equals [[getAnglesAtVertex]].
+  /** Returns the ordered inner angles at the given vertex. For a boundary vertex this excludes the outer-face
+    * angle; for an interior vertex it equals [[getAnglesAtVertex]].
     *
     * @param vertexId
     *   id of the vertex
@@ -288,8 +288,8 @@ final case class TilingDCEL private (
       case Some(startEdge) => startEdge.faceTraversalUnsafe()
       case None            => List.empty
 
-  /** The outer boundary expressed as a [[SimplePolygon]] (angles are the conjugates of the boundary
-    * half-edge angles, since the polygon is traversed externally). Cached.
+  /** The outer boundary expressed as a `SimplePolygon` (angles are the conjugates of the boundary half-edge
+    * angles, since the polygon is traversed externally). Cached.
     */
   lazy val boundarySimplePolygon: SimplePolygon =
     SimplePolygon(
@@ -363,8 +363,8 @@ final case class TilingDCEL private (
     * tilings without computing per-vertex additions.
     *
     * @return
-    *   The doubled tiling, or [[ValidationError]] when the tiling's boundary is not a parallelogon (and
-    *   not an equilateral triangle).
+    *   The doubled tiling, or [[ValidationError]] when the tiling's boundary is not a parallelogon (and not
+    *   an equilateral triangle).
     */
   def doubleArea: Either[TilingError, TilingDCEL] =
     if isEmpty then
@@ -483,7 +483,8 @@ object TilingDCEL:
   ): TilingDCEL =
     new TilingDCEL(vertices, halfEdges, innerFaces, outerFace)
 
-  /** Builds a tiling from a hand-assembled set of components and validates it via [[TilingValidation.validate]].
+  /** Builds a tiling from a hand-assembled set of components and validates it via
+    * [[TilingValidation.validate]].
     *
     * @return
     *   The validated tiling, or a [[TilingError]] describing why the candidate is rejected.

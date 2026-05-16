@@ -37,7 +37,7 @@ object VertexId extends Prefixable:
     /** Prefixed string form of the id, e.g. `"V42"`. */
     def toPrefixedString: String = prefixedString(id)
 
-/** Pair of [[VertexId]]s identifying a half-edge by its origin and destination vertex ids. Used as a
-  * compact key in lookup tables that need to address half-edges without holding object references.
+/** Pair of [[VertexId]]s identifying a half-edge by its origin and destination vertex ids. Used as a compact
+  * key in lookup tables that need to address half-edges without holding object references.
   */
 type HalfEdgeId = (VertexId, VertexId)

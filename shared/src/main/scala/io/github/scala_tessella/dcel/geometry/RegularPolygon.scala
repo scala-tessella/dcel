@@ -4,8 +4,8 @@ package io.github.scala_tessella.dcel.geometry
   * they have the same side count; an ordering by side count is provided in the companion.
   *
   * Construct via [[RegularPolygon.apply]] (`RegularPolygon(6)`) or via [[RegularPolygon.fromInteriorAngle]]
-  * when only the interior angle is known. Use [[toSides]], [[alpha]], [[angles]] to read back the
-  * geometric attributes.
+  * when only the interior angle is known. Use `toSides`, `alpha`, `angles` to read back the geometric
+  * attributes.
   */
 opaque type RegularPolygon = Int
 
@@ -56,7 +56,7 @@ object RegularPolygon:
       SimplePolygon.alphaSum(sides) / sides
 
     /** The vector of all interior angles. By construction every entry equals [[alpha]] and there are
-      * [[toSides]] entries.
+      * `toSides` entries.
       */
     def angles: Vector[AngleDegree] =
       Vector.fill(sides)(sides.alpha)

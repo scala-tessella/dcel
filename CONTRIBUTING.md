@@ -16,6 +16,9 @@ sbt qa
 # Scaladoc — CI runs this; it catches malformed @link references
 sbt dcelJVM/doc dcelJS/doc
 
+# Build the docs site locally (output: target/site/, includes Scaladoc)
+sbt makeSite
+
 # experimental n-uniform generator (not published; opt-in)
 sbt generator/test
 
@@ -25,10 +28,12 @@ sbt "benchmarks/Jmh/run -prof gc -- UniformityBenchmark"
 
 CI (`.github/workflows/ci.yml`) runs the test matrix plus
 `scalafmtCheckAll`, `scalafixAll --check`, `dcelJVM/doc`, `dcelJS/doc`, and
-the generator test on every push and PR. Releases publish to Maven Central on
-push of a `v*` git tag via `sbt-ci-release` (see
+the generator test on every push and PR. Releases publish to Maven Central
+*and* the docs site to GitHub Pages on push of a `v*` git tag, via
+`sbt-ci-release` (`.github/workflows/release.yml`) and `sbt makeSite`
+(`.github/workflows/site.yml`) respectively. See
 [`adr/0007-cross-platform-targets.md`](adr/0007-cross-platform-targets.md)
-for the current platform matrix).
+for the current platform matrix.
 
 ## Code conventions
 

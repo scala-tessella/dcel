@@ -4,8 +4,8 @@ import io.github.scala_tessella.dcel.ValidationError
 
 /** Mixin for ID companion objects that produces a short string form combining a fixed prefix with the
   * underlying numeric value. Used by [[VertexId]] (`V`) and [[FaceId]] (`F`); see their `toPrefixedString`
-  * extensions. The reverse direction is offered as a validated parse ([[fromStringUntrusted]]) plus a
-  * fast trusted variant for internal call sites.
+  * extensions. The reverse direction is offered as a validated parse ([[fromStringUntrusted]]) plus a fast
+  * trusted variant for internal call sites.
   */
 trait Prefixable:
 

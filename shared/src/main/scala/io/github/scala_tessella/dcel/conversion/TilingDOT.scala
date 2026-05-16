@@ -5,8 +5,8 @@ import io.github.scala_tessella.dcel.structure.*
 
 /** Graphviz DOT export for [[TilingDCEL]]. Two flavours:
   *
-  *   - [[toSimplifiedDOT]] — vertices and edges only; boundary edges directed, inner edges undirected.
-  *     Best for a clean overview.
+  *   - [[toSimplifiedDOT]] — vertices and edges only; boundary edges directed, inner edges undirected. Best
+  *     for a clean overview.
   *   - [[toCompleteDOT]] — vertices, faces, half-edges, and every DCEL relation (origin, twin, next, prev,
   *     incident-face, outer-component, leaving). Best for debugging topology.
   *

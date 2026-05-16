@@ -157,12 +157,26 @@ lazy val generator = project
     )
   )
 
-// Aggregate root project for IDE compatibility
+// Aggregate root project for IDE compatibility + Scaladoc site publication.
+// `sbt makeSite` packages the dcelJVM Scaladoc into target/site; the site.yml
+// workflow deploys it to GitHub Pages on every `v*` tag push.
 lazy val root = project
   .in(file("."))
+  .enablePlugins(SiteScaladocPlugin, GhpagesPlugin)
   .aggregate(dcelJVM, dcelJS)
   .settings(
-    name := "dcel-root",
-    publish := {},
-    publishLocal := {}
+    name           := "dcel-root",
+    publish        := {},
+    publishLocal   := {},
+    git.remoteRepo := "git@github.com:scala-tessella/dcel.git",
+    // Required so GitHub Pages doesn't run Jekyll, which would otherwise strip
+    // out Scaladoc's underscore-prefixed asset directories.
+    ghpagesNoJekyll := true,
+    // Publish the Scaladoc at the site root rather than under a subfolder.
+    SiteScaladoc / siteSubdirName := "",
+    // Use the JVM build's Scaladoc as canonical (JS produces the same docs).
+    addMappingsToSiteDir(
+      dcelJVM / Compile / packageDoc / mappings,
+      SiteScaladoc / siteSubdirName
+    )
   )
