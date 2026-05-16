@@ -29,8 +29,6 @@ topology/geometry operations, symmetry and uniformity analysis, and import/expor
 - **Analyse** topology, symmetry and uniformity: boundary, inner vertices,
   vertex angles, `uniformityTree`, `scanUniformityTree`, `gonalityTrees`,
   boundary-equivalence grouping.
-- **Discover** tilings programmatically with `TilingGenerator.findTilings`
-  (n-uniform n-archimedean search).
 - **Validate** completeness, topology, geometry, and spatial consistency
   (`TilingValidation.validate` and the narrower `validate*` variants).
 - **Export** to SVG (with optional uniformity colouring, arrows, labels) and
@@ -63,7 +61,6 @@ dcel/
 │   ├── TilingEquivalency.scala  # Boundary signature & equivalence grouping
 │   ├── TilingUniformity.scala   # Uniformity/gonality trees
 │   ├── TilingSymmetry.scala     # BoundaryLocation, BoundaryVertex, BoundaryEdge
-│   ├── TilingGenerator.scala    # Enumeration of n-uniform n-archimedean tilings
 │   ├── TilingError.scala        # Sealed error ADT + helpers
 │   ├── Tree.scala               # Algebraic Leaf/Branch tree used for uniformity
 │   ├── Utils.scala              # Small shared helpers (traverse, sequence, associate)
@@ -72,9 +69,24 @@ dcel/
 │   └── conversion/              # SVG and DOT exporters + SVG-metadata reader
 ├── shared/src/test/scala/…      # Unit + ScalaCheck property tests
 ├── shared/src/test/resources/   # SVG fixtures used by tests
-├── benchmarks/src/main/scala/…/benchmark/UniformityBenchmark.scala  # JMH (opt-in)
+├── benchmarks/src/main/scala/…/benchmark/UniformityBenchmark.scala  # JMH (opt-in, unpublished)
+├── generator/src/main/scala/…/TilingGenerator.scala  # Experimental n-uniform/n-archimedean search (opt-in, unpublished)
 └── README.md
 ```
+
+### Non-published subprojects
+
+Two opt-in sbt subprojects live in this repo but are not part of the published
+`dcel_3` artifact:
+
+- **`benchmarks/`** — JMH micro-benchmarks for the validation/uniformity hot
+  paths. Run with `sbt 'benchmarks/Jmh/run …'`.
+- **`generator/`** — research-grade enumerator of n-uniform n-archimedean
+  tilings (`TilingGenerator.findTilings`, `expandRotationally`,
+  `expandRotationallyMore`). API and search heuristics are still in flux;
+  several exploratory tests are disabled. Run with `sbt generator/test`.
+  When the surface stabilises, this may be promoted to its own published
+  artifact.
 
 ### Packages
 

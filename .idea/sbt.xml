@@ -9,6 +9,7 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/benchmarks" />
+            <option value="$PROJECT_DIR$/generator" />
             <option value="$PROJECT_DIR$/js" />
             <option value="$PROJECT_DIR$/jvm" />
             <option value="$PROJECT_DIR$/project" />

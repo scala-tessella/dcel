@@ -21,6 +21,8 @@ jobs:
         run: sbt dcelJVM/test
       - name: Build and Test Scala JS
         run: sbt dcelJS/test
+      - name: Build and Test generator subproject
+        run: sbt generator/test
       - name: Scalafmt check
         run: sbt scalafmtCheckAll
       - name: Scalafix check

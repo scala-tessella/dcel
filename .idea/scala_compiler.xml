@@ -2,7 +2,21 @@
 <project version="4">
   <component name="ScalaCompilerConfiguration">
     <option name="separateProdTestSources" value="true" />
-    <profile name="sbt 1" modules="dcel,dcel-root,dcel-root.dcel-benchmarks,dcel-root.dcel.dcelJS,dcel-root.dcel.dcelJVM,dcel.main,dcel.test" />
+    <profile name="sbt 1" modules="dcel,dcel-root,dcel-root.dcel-benchmarks,dcel-root.dcel-generator,dcel-root.dcel.dcelJS,dcel-root.dcel.dcelJVM,dcel.main,dcel.test" />
+    <profile name="sbt 10" modules="dcel-root.dcel-generator.test">
+      <parameters>
+        <parameter value="-Xsemanticdb" />
+        <parameter value="-semanticdb-target" />
+        <parameter value="$PROJECT_DIR$/generator/target/scala-3.8.3/test-meta" />
+      </parameters>
+    </profile>
+    <profile name="sbt 11" modules="dcel-root.dcel-generator.main">
+      <parameters>
+        <parameter value="-Xsemanticdb" />
+        <parameter value="-semanticdb-target" />
+        <parameter value="$PROJECT_DIR$/generator/target/scala-3.8.3/meta" />
+      </parameters>
+    </profile>
     <profile name="sbt 2" modules="dcel-root.test">
       <parameters>
         <parameter value="-Xsemanticdb" />
