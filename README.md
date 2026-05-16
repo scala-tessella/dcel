@@ -1,7 +1,9 @@
 # dcel
 
+[![CI](https://github.com/scala-tessella/dcel/actions/workflows/ci.yml/badge.svg)](https://github.com/scala-tessella/dcel/actions/workflows/ci.yml)
 [![Scala 3](https://img.shields.io/badge/scala-3.8.3-red.svg)](https://scala-lang.org)
 [![SBT](https://img.shields.io/badge/sbt-1.12.9-blue.svg)](https://scala-sbt.org)
+[![License](https://img.shields.io/badge/license-Apache--2.0%20OR%20MIT-green.svg)](#license)
 
 DCEL utilities for representing, building, editing and analysing **edge-to-edge
 tessellations of unit-side polygons** in Scala 3.
