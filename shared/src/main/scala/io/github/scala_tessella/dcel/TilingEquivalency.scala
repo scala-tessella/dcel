@@ -3,7 +3,7 @@ package io.github.scala_tessella.dcel
 import io.github.scala_tessella.dcel.Utils.associate
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint}
 import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
-import io.github.scala_tessella.ring_seq.RingSeq.rotationsAndReflections
+import io.github.scala_tessella.ring_seq.RingSeq.bracelet
 
 import scala.Ordering.Implicits.*
 
@@ -38,7 +38,7 @@ object TilingEquivalency:
   extension (angles: List[AngleDegree])
 
     private def canonicalSequence: List[AngleDegree] =
-      angles.rotationsAndReflections.min
+      angles.bracelet
 
   extension (vertex: Vertex)
 
@@ -56,7 +56,7 @@ object TilingEquivalency:
       tiling.boundaryVerticesUnsafe.toList
         .map: vertex =>
           vertex.signature
-        .rotationsAndReflections.min
+        .bracelet
 
     private def createMaps(
         coordsTransformer: BigPoint => BigPoint,

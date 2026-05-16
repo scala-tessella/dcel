@@ -11,11 +11,10 @@ import io.github.scala_tessella.dcel.TilingUniformity.{
 }
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, RegularPolygon}
 import io.github.scala_tessella.dcel.structure.{Vertex, VertexId}
-import io.github.scala_tessella.ring_seq.RingSeq.rotationsAndReflections
+import io.github.scala_tessella.ring_seq.RingSeq.bracelet
 import spire.math.Rational
 
 import scala.collection.mutable
-import scala.Ordering.Implicits.seqOrdering
 
 object TilingGenerator:
 
@@ -48,7 +47,7 @@ object TilingGenerator:
       .toSet
 
   private def normalizeSignature(sig: VertexSignature): VertexSignature =
-    sig.rotationsAndReflections.min
+    sig.bracelet
 
   /** Canonical key for search-state deduplication.
     *

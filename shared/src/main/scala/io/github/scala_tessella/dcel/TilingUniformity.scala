@@ -6,7 +6,7 @@ import io.github.scala_tessella.dcel.Tree.*
 import io.github.scala_tessella.dcel.Utils.associate
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, RegularPolygon}
 import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, HalfEdgeId, Vertex, VertexId}
-import io.github.scala_tessella.ring_seq.RingSeq.rotationsAndReflections
+import io.github.scala_tessella.ring_seq.RingSeq.bracelet
 
 import scala.Ordering.Implicits.*
 import scala.util.control.TailCalls.{TailRec, done, tailcall}
@@ -291,7 +291,7 @@ object TilingUniformity:
             throw new IllegalStateException(
               s"Could not compute angles at ${vertexId.toPrefixedString}: ${error.message}"
             )
-      angles.rotationsAndReflections.min
+      angles.bracelet
         .map: angleDegree =>
           RegularPolygon.fromInteriorAngle(angleDegree)
 
