@@ -13,6 +13,17 @@ import io.github.scala_tessella.ring_seq.SymmetryOps.{
 }
 import scala.collection.mutable
 
+/** SVG export for [[TilingDCEL]] and for individual [[SimplePolygon]] shapes. The headline entry points
+  * surface as extension methods on `TilingDCEL` (`toSVG` on the type itself; `toScalableVectorGraphics`
+  * here) and on `SimplePolygon` (`toSVG`, `toParallelogonTiling`).
+  *
+  * Render styling — stroke width, padding, scale, plus toggles for half-edge traversal arrows, leaving-edge
+  * markers, per-face id labels and uniformity colouring — is bundled in [[SvgOptions]] for the ergonomic
+  * overload. The plain overload exposes the same knobs as positional parameters.
+  *
+  * Round-trip serialisation is provided through the SVG `<metadata>` element: see [[fromMetadata]] (here)
+  * and the `toMetadata` extension; both delegate to [[SvgMetadata]].
+  */
 object TilingSVG:
 
   extension (bigPoint: BigPoint)
@@ -34,7 +45,27 @@ object TilingSVG:
   ):
     val formatted: String = s"$tipX,$tipY $baseX1,$baseY1 $baseX2,$baseY2"
 
-  // Public options for callers (ergonomic API)
+  /** Bundle of rendering options for the SVG output. Pass to the
+    * `toScalableVectorGraphics(options: SvgOptions)` overload to control all knobs in one record instead
+    * of a long positional argument list.
+    *
+    * @param strokeWidth
+    *   Width of the edge lines in SVG user units. Defaults to `1.0`.
+    * @param padding
+    *   Whitespace around the tiling inside the SVG viewBox, in SVG user units. Defaults to `20.0`.
+    * @param scale
+    *   Factor applied to model-space coordinates when emitting them as SVG. Defaults to `50.0`.
+    * @param showHalfEdgeTraversal
+    *   When true, draws arrows on each half-edge indicating the traversal direction (useful for debugging
+    *   topology).
+    * @param leavingEdgeMarkers
+    *   When true, marks each vertex's `leaving` half-edge — i.e. the half-edge picked as the canonical
+    *   representative for that vertex.
+    * @param faceIdsOnEdges
+    *   When true, labels each face's id on its half-edges.
+    * @param showUniformity
+    *   When true, colours faces by their uniformity-tree group (see [[TilingDCEL.uniformityTree]]).
+    */
   case class SvgOptions(
       strokeWidth: Double = 1.0,
       padding: Double = 20.0,
@@ -456,6 +487,20 @@ object TilingSVG:
       )
       gElem(sections)
 
+    /** Renders the polygon as an SVG string at unit scale (subject to `scale`). Used by
+      * [[SimplePolygon.toSVG]] and available directly when you want to control rendering knobs.
+      *
+      * @param strokeWidth
+      *   Edge stroke width in SVG user units.
+      * @param padding
+      *   Padding around the polygon inside the viewBox.
+      * @param scale
+      *   Coordinate scale factor.
+      * @param showReflection
+      *   When true, overlays the polygon's reflection-symmetry axes.
+      * @param showRotation
+      *   When true, overlays the polygon's rotational-symmetry centre and representative vertices.
+      */
     def toScalableVectorG(
         strokeWidth: Double = 1.0,
         padding: Double = 30.0,
@@ -482,6 +527,10 @@ object TilingSVG:
         case a :: _ :: c :: _ :: e :: _ => Option((a, c, e))
         case _                          => None
 
+    /** For a parallelogon (see `SimplePolygon.canTileTorus`), renders the polygon together with three
+      * translated copies showing how it tiles the plane periodically. For non-parallelogons, falls back to
+      * [[toScalableVectorG]].
+      */
     def toParallelogonTiling(
         strokeWidth: Double = 1.0,
         padding: Double = 30.0,
@@ -668,7 +717,9 @@ object TilingSVG:
         showUniformity
       )
 
-    // New ergonomic overload using options
+    /** Ergonomic overload of [[toScalableVectorGraphics]] that takes a single [[SvgOptions]] bundle in
+      * place of the positional argument list. Identical output.
+      */
     def toScalableVectorGraphics(options: SvgOptions): String =
       val config = toConfig(options)
       // Delegate to the existing implementation for consistency
@@ -682,6 +733,17 @@ object TilingSVG:
         showUniformity = config.showUniformity
       )
 
+    /** Renders the tiling as an animated SVG that walks through the steps of
+      * [[TilingDCEL.uniformityTree]] (via `scanUniformityTree`). Each step highlights the next layer of
+      * vertex-class refinement, pausing between steps so the viewer can follow the grouping.
+      *
+      * @param vertexRadius
+      *   Radius of the highlight circle drawn around each vertex being grouped.
+      * @param animationDuration
+      *   Seconds spent on each step's transition.
+      * @param pauseBetweenSteps
+      *   Seconds of dwell between steps.
+      */
     def toUniformityAnimation(
         strokeWidth: Double = 1.0,
         padding: Double = 20.0,
@@ -875,6 +937,9 @@ object TilingSVG:
     def toMetadataXml: String =
       SvgMetadata.toMetadataXml(tiling)
 
+    /** Same as [[toMetadataXml]]: emits the `<tessella:tessella-dcel>` metadata element capturing the
+      * tiling's full DCEL state for round-trip via [[fromMetadata]].
+      */
     def toMetadata: String =
       SvgMetadata.toMetadataXml(tiling)
 
