@@ -98,8 +98,12 @@ lazy val jsSettings = Seq(
   }
 )
 
-// Cross-platform project definition
-lazy val dcel = crossProject(JVMPlatform, JSPlatform/*, NativePlatform*/)
+// Cross-platform project definition.
+// Scala Native is intentionally NOT wired in — see ADR-0007 ("Cross-platform targets"):
+// Spire (a core dep) does not yet publish a Scala Native artifact, which is the blocker.
+// The native/ directory and the commented-out NativePlatform / .nativeSettings / Native
+// plugin lines are scaffolding that should stay until Spire unblocks.
+lazy val dcel = crossProject(JVMPlatform, JSPlatform/*, NativePlatform — see ADR-0007*/)
   .crossType(CrossType.Full)
   .in(file("."))
   .settings(
@@ -109,13 +113,14 @@ lazy val dcel = crossProject(JVMPlatform, JSPlatform/*, NativePlatform*/)
   .settings(commonSettings)
   .jvmSettings(jvmSettings)
   .jsSettings(jsSettings)
-//  .nativeSettings(
+//  .nativeSettings(  // blocked by Spire — see ADR-0007
 //    // Add native-specific settings here
 //  )
 
 // Individual platform projects
 lazy val dcelJVM = dcel.jvm
 lazy val dcelJS = dcel.js
+// lazy val dcelNative = dcel.native  // re-enable together with the NativePlatform line above (ADR-0007)
 
 // JMH benchmarks (opt-in: not aggregated by root, run via `benchmarks/Jmh/run ...`)
 lazy val benchmarks = project
