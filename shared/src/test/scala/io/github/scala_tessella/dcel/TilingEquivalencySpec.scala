@@ -296,105 +296,11 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
         List(F0, F2)
     )
 
-//  behavior of "TilingDCEL.isTopologicallyEquivalentTo"
-//
-//  it should "return true for the same instance" in:
-//    triangle.isTopologicallyEquivalentTo(triangle) shouldBe true
-//
-//  it should "return true for a deep copy of a tiling" in:
-//    val squareCopy = square.deepCopy
-//    square.isTopologicallyEquivalentTo(squareCopy) shouldBe true
-//
-//  it should "return true for two identical but separate tilings" in:
-//    val triangle1 = triangle
-//    val triangle2 = triangle
-//    triangle1.isTopologicallyEquivalentTo(triangle2) shouldBe true
-//
-//  it should "return false for tilings with different numbers of components" in:
-//    triangle.isTopologicallyEquivalentTo(square) shouldBe false
-//
-//  it should "return false for tilings with different face signatures" in:
-//    // Both have 2 faces, 7 vertices, 16 half-edges
-//    val tiling1 = square.maybeAddRegularPolygonToBoundary(V1, RegularPolygon(3)).value
-//    // Both have 2 faces, 8 vertices, 18 half-edges
-//    val tiling2 = square.maybeAddRegularPolygonToBoundary(V1, RegularPolygon(4)).value
-//    tiling1.isTopologicallyEquivalentTo(tiling2) shouldBe false
-//
-//  it should "return true for two complex tilings built differently but structurally identical" in:
-//    // Tiling A: Add a triangle to V1, then another to V4
-//    val tilingA = triangle
-//      .maybeAddRegularPolygonToBoundary(V1, RegularPolygon(3)).value
-//      .maybeAddRegularPolygonToBoundary(V4, RegularPolygon(3)).value
-//    // Tiling B: Add a triangle to V2, then another to V4
-//    val tilingB = triangle
-//      .maybeAddRegularPolygonToBoundary(V2, RegularPolygon(3)).value
-//      .maybeAddRegularPolygonToBoundary(V4, RegularPolygon(3)).value
-//
-//    tilingA.isTopologicallyEquivalentTo(tilingB) shouldBe true
-//
-//  it should "return false for tilings with the same face signatures but different vertex signatures" in:
-//    // Tiling 1: Four squares in a 2x2 grid
-//    val gridTiling = TilingBuilder.createRhombusNet(2, 2) // V7 is on the new edge
-//
-//    // Tiling 2: Four squares in a line
-//    val lineTiling = TilingBuilder.createRhombusNet(4, 1)
-//
-//    // Both have 4 square faces, but the arrangement of vertices is different.
-//    // Grid has a central vertex of degree 4, line does not.
-//    allAssert(
-//      gridTiling.innerFaces.map(
-//        _.halfEdgesUnsafe.size
-//      ) should contain theSameElementsAs lineTiling.innerFaces.map(_.halfEdgesUnsafe.size),
-//      gridTiling.isTopologicallyEquivalentTo(lineTiling) shouldBe false
-//    )
-//
-//  it should "return false for an empty tiling vs a non-empty one" in:
-//    emptyTiling.isTopologicallyEquivalentTo(triangle) shouldBe false
-//
-//  it should "return false for two different rhombuses" in
-//    allAssert(
-//      square.isTopologicallyEquivalentTo(rhombus) shouldBe true,
-//      square.isEquivalentTo(rhombus) shouldBe false
-//    )
-
   /** <img src="file:../../../../../resources/shapeL.svg"/> */
   def shapeL: TilingDCEL = square
     .maybeAddRegularPolygonToBoundary(V3, RegularPolygon(4)).value
     .maybeAddRegularPolygonToBoundary(V4, RegularPolygon(4)).value
     .maybeAddRegularPolygonToBoundary(VertexId(7), RegularPolygon(4)).value
-
-//  /** <img src="file:../../../../../resources/shapeΓ.svg"/> */
-//  def shapeΓ: TilingDCEL =
-//    shapeL.verticallyReflectedCopy
-//
-//  /** <img src="file:../../../../../resources/shapeL2.svg"/> */
-//  def shapeL2: TilingDCEL = square
-//    .maybeAddRegularPolygonToBoundary(V2, RegularPolygon(4)).value
-//    .maybeAddRegularPolygonToBoundary(V2, RegularPolygon(3)).value
-//
-//  /** <img src="file:../../../../../resources/shapeΓ2.svg"/> */
-//  def shapeΓ2: TilingDCEL =
-//    shapeL2.verticallyReflectedCopy
-//
-//  it should "return true for two reflected shapes" in
-//    allAssert(
-//      shapeL.isTopologicallyEquivalentTo(shapeΓ) shouldBe true,
-//      shapeL.isEquivalentTo(shapeΓ) shouldBe true,
-//      shapeL2.isTopologicallyEquivalentTo(shapeΓ2) shouldBe true,
-//      shapeL2.isEquivalentTo(shapeΓ2) shouldBe true
-//    )
-//
-//  def net: TilingDCEL = TilingBuilder.createRhombusNet(3, 6)
-//
-//  /** <img src="file:../../../../../resources/holeInNet1.svg"/> */
-//  def holeInNet1: TilingDCEL = net.deleteEdge(VertexId("V18"), VertexId("V19")).value
-//
-//  /** <img src="file:../../../../../resources/holeInNet2.svg"/> */
-//  def holeInNet2: TilingDCEL = net.deleteEdge(VertexId("V14"), VertexId("V15")).value
-//
-//  it should "fail for two similar but different tiling" in:
-//    holeInNet1.isTopologicallyEquivalentTo(holeInNet2) shouldBe false
-////    shape1.isEquivalentTo(shape2) shouldBe false
 
   behavior of "TilingDCEL.reflectedCopy"
 

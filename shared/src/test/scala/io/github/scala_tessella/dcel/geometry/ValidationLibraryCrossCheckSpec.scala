@@ -21,8 +21,12 @@ import scala.util.Random
   * `Math.{cos,sin,sqrt,atan2}` + sweep-line simplicity on `BigDecimal` coordinates — against the pure
   * Spire-`BigDecimal` pipeline.
   *
-  * Cases: ≥ 10 000 random angle vectors (ADR bar) + polygons harvested from `PropertyBasedDCELSpec`-style
-  * random-growth tilings. The seeded `Random` makes the cross-check deterministic across runs and platforms.
+  * Cases: 2 000 random angle vectors + polygons harvested from `PropertyBasedDCELSpec`-style random-growth
+  * tilings. The seeded `Random` makes the cross-check deterministic across runs and platforms.
+  *
+  * The ADR-0009 acceptance bar was ≥ 10 000 random angle vectors and ≥ 1 000 harvested polygons; that bar
+  * protected the Spire→Double migration moment and is now history (see ADR-0010). The values here are a
+  * regression smoke — enough seeded coverage to catch systematic divergence on the first failing run.
   */
 class ValidationLibraryCrossCheckSpec
     extends AnyFlatSpec
@@ -93,9 +97,9 @@ class ValidationLibraryCrossCheckSpec
     else
       Vector.fill(n)(AngleDegree(rng.nextInt(359) + 1))
 
-  it should "agree on outcome class for 10 000 random integer-degree angle vectors" in:
+  it should "agree on outcome class for 2 000 random integer-degree angle vectors" in:
     val rng = new Random(0xa5a5a5a5L)
-    val N   = 10_000
+    val N   = 2_000
     var i   = 0
     while i < N do
       agreeOn(randomAngles(rng))
@@ -138,7 +142,7 @@ class ValidationLibraryCrossCheckSpec
     val rng       = new Random(0xdeadbeefL)
     val initial   = Array(3, 4, 6)
     val attempts  = 24
-    val tilings   = 400
+    val tilings   = 100
     val steps     = 10
     var harvested = 0
     var i         = 0
@@ -168,4 +172,4 @@ class ValidationLibraryCrossCheckSpec
       i += 1
     info(s"cross-checked $harvested polygon candidates from $tilings random-growth tilings")
     withClue(s"harvested = $harvested"):
-      harvested should be >= 1_000
+      harvested should be >= 250

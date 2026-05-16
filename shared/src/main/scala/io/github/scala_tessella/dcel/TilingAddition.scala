@@ -696,12 +696,12 @@ object TilingAddition:
     val endOfFirstBlock        = sharedVertices(forwardContiguousCount)
 
     // Find the first vertex from the final contiguous block of shared vertices
-    val backwardContiguousCount2 =
+    val backwardContiguousCount =
       oldVertexIndices.reverse.zip(oldVertexIndices.reverse.tail)
         .takeWhile: (a, b) =>
           a - 1 == b
         .length
-    val startOfLastBlock         = sharedVertices(sharedVertices.length - 1 - backwardContiguousCount2)
+    val startOfLastBlock        = sharedVertices(sharedVertices.length - 1 - backwardContiguousCount)
 
     // Determine which closure point results in a smaller path on the boundary
     def shortestBoundaryPathLength(to: Vertex): Int =
