@@ -13,16 +13,27 @@ import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint, RegularPol
 import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
 import io.github.scala_tessella.ring_seq.RingSeq.startAt
 
-/** Represents the entire tiling structure as a container for its components.
+/** An edge-to-edge tessellation of unit-side polygons, modelled as a Doubly Connected Edge List (DCEL):
+  * each edge is represented by two oppositely oriented half-edges, and each half-edge knows its origin
+  * vertex, incident face, twin, predecessor and successor. The tiling has exactly one unbounded `outerFace`;
+  * all other faces are inner.
+  *
+  * Construct via the companion's smart constructors ([[TilingDCEL.empty]],
+  * [[TilingDCEL.createRegularPolygon]], [[TilingDCEL.createSimplePolygon]], [[TilingDCEL.fromUntrusted]])
+  * or via [[TilingBuilder]] for lattices and rings. The primary constructor is private to enforce
+  * validation on untrusted input.
+  *
+  * Mutating operations ([[maybeAddRegularPolygonToBoundary]], [[maybeDeleteFace]], …) return a fresh
+  * `Either[TilingError, TilingDCEL]` and operate on an internal deep copy — the original is never modified.
   *
   * @param vertices
-  *   List of all vertices in the tiling.
+  *   All vertices in the tiling.
   * @param halfEdges
-  *   List of all half-edges in the tiling.
+  *   All half-edges in the tiling (each edge appears twice, once per direction).
   * @param innerFaces
-  *   List of the tiling's interior faces.
+  *   The tiling's bounded interior faces.
   * @param outerFace
-  *   The single, unbounded outer face of the tiling.
+  *   The single unbounded outer face.
   */
 final case class TilingDCEL private (
     vertices: List[Vertex],
@@ -31,19 +42,22 @@ final case class TilingDCEL private (
     outerFace: Face
 ):
 
+  /** True when the tiling has no vertices (i.e. [[TilingDCEL.empty]]). */
   def isEmpty: Boolean =
     vertices.isEmpty
 
+  /** All vertex coordinates indexed by `VertexId`. Computed on each call. */
   def coordinates: Map[VertexId, BigPoint] =
     vertices
       .map: vertex =>
         vertex.id -> vertex.coords
       .toMap
 
-  /** @return a list of all faces, both inner and outer */
+  /** All faces of the tiling, both inner and outer (the outer face is the head). */
   def faces: List[Face] =
     outerFace :: innerFaces
 
+  /** True when every inner face is a unit regular polygon (all interior angles equal). */
   def hasUnitRegularPolygonsOnly: Boolean =
     innerFaces.forall: face =>
       face.hasEqualAnglesUnsafe
@@ -52,15 +66,18 @@ final case class TilingDCEL private (
     vertices.find: vertex =>
       vertex.id == vertexId
 
+  /** Look up a vertex by id. */
   def findVertex(vertexId: VertexId): Either[NotFoundError, Vertex] =
     findVertexUnsafe(vertexId).toRight(NotFoundError("Vertex", vertexId.toPrefixedString))
 
+  /** Look up any face (inner or outer) by id. */
   def findFace(faceId: FaceId): Either[NotFoundError, Face] =
     faces
       .find: face =>
         face.id == faceId
       .toRight(NotFoundError("Face", faceId.toPrefixedString))
 
+  /** Look up an inner (bounded) face by id. Returns [[NotFoundError]] if `faceId` matches the outer face. */
   def findInnerFace(faceId: FaceId): Either[NotFoundError, Face] =
     innerFaces
       .find: face =>
@@ -74,12 +91,15 @@ final case class TilingDCEL private (
   def isBoundaryEdge(halfEdge: HalfEdge): Boolean =
     halfEdge.hasIncidentFace(outerFace)
 
-  /** Finds the edge between the two given vertices.
+  /** Finds the two vertices and the half-edge starting at the first and ending at the second.
     *
     * @param vertexId1
-    *   id of the first vertex
+    *   id of the origin vertex
     * @param vertexId2
-    *   id the second vertex
+    *   id of the destination vertex
+    * @return
+    *   `Right((v1, v2, edge))` on success, or [[NotFoundError]] if either vertex is missing or no edge
+    *   connects them.
     */
   def findVerticesAndEdgeBetween(
       vertexId1: VertexId,
@@ -96,10 +116,12 @@ final case class TilingDCEL private (
           ))
     yield (v1, v2, edge)
 
+  /** Pairs each inner face id with the vertices on its boundary, in face-traversal order. */
   def innerFacesVertices: List[(FaceId, List[Vertex])] =
     innerFaces.map: face =>
       (face.id, face.getVerticesUnsafe)
 
+  /** Vertices of the inner face with the given id, in face-traversal order. */
   def findInnerFaceVertices(faceId: FaceId): Either[NotFoundError, List[Vertex]] =
     for
       face <- findInnerFace(faceId)
@@ -110,7 +132,8 @@ final case class TilingDCEL private (
     edges.map: halfEdge =>
       halfEdge.angle.get
 
-  /** Returns the ordered angles at the given vertex.
+  /** Returns the ordered angles at the given vertex (full surround for interior vertices, partial for
+    * boundary vertices).
     *
     * @param vertexId
     *   id of the vertex
@@ -132,7 +155,8 @@ final case class TilingDCEL private (
     filteredEdges.map: halfEdge =>
       halfEdge.angle.get
 
-  /** Returns the ordered inner angles at the given vertex.
+  /** Returns the ordered inner angles at the given vertex. For a boundary vertex this excludes the
+    * outer-face angle; for an interior vertex it equals [[getAnglesAtVertex]].
     *
     * @param vertexId
     *   id of the vertex
@@ -164,6 +188,9 @@ final case class TilingDCEL private (
           outerFace = localOuter
         )
 
+  /** Compressed uniformity tree of the tiling: leaves are groups of vertex ids that share the same local
+    * surround signature, branches reflect the equivalence-class hierarchy.
+    */
   def uniformityTree: Tree[List[VertexId]] =
     this.uniformityTreeUncompressed().compress:
       _ ::: _
@@ -194,10 +221,16 @@ final case class TilingDCEL private (
               Leaf(vertexId)
           )
 
+  /** Pairs each gonality tree with the list of regular polygons incident to its representative vertex.
+    * Unsafe: skips validation and throws if the representative vertex's surround is broken.
+    */
   def gonalityTreesUnsafe: List[(List[RegularPolygon], Tree[VertexId])] =
     gonalityTrees.map: tree =>
       (this.regularPolygonsUnsafeFrom(tree.value), tree)
 
+  /** True when every inner face is reachable from any other via face-adjacency steps (no disconnected
+    * components). Empty tilings are considered connected.
+    */
   def hasConnectedFaces: Boolean =
     innerFaces.isConnected
 
@@ -255,6 +288,9 @@ final case class TilingDCEL private (
       case Some(startEdge) => startEdge.faceTraversalUnsafe()
       case None            => List.empty
 
+  /** The outer boundary expressed as a [[SimplePolygon]] (angles are the conjugates of the boundary
+    * half-edge angles, since the polygon is traversed externally). Cached.
+    */
   lazy val boundarySimplePolygon: SimplePolygon =
     SimplePolygon(
       boundaryEdgesUnsafe
@@ -288,12 +324,23 @@ final case class TilingDCEL private (
   ): Either[TilingError, TilingDCEL] =
     this.deepCopy.addRegularPolygonToBoundary(onEdgeStartingWith, polygon)
 
+  /** Adds an arbitrary simple polygon (described by its interior angles, in degrees) to the outer boundary,
+    * starting at the given vertex. The polygon's first edge sits on the boundary edge starting at
+    * `onEdgeStartingWith`.
+    *
+    * @return
+    *   A fresh tiling with the polygon appended, or a `TilingError` if the angles do not close, the polygon
+    *   would self-intersect, or the precondition checks fail.
+    */
   def maybeAddSimplePolygonToBoundary(
       onEdgeStartingWith: VertexId,
       angles: Vector[AngleDegree]
   ): Either[TilingError, TilingDCEL] =
     this.deepCopy.addUntrustedSimplePolygonToBoundary(onEdgeStartingWith, angles)
 
+  /** Adds a regular polygon to the outer boundary along the path between two boundary vertices, growing
+    * outward. Use this overload when you want to specify both endpoints rather than only the starting edge.
+    */
   def maybeAddRegularPolygon(
       start: VertexId,
       end: VertexId,
@@ -301,6 +348,9 @@ final case class TilingDCEL private (
   ): Either[TilingError, TilingDCEL] =
     this.deepCopy.addRegularPolygon(start, end, polygon)
 
+  /** Two-endpoint variant of [[maybeAddSimplePolygonToBoundary]]: adds a simple polygon (described by its
+    * interior angles) to the boundary along the path from `start` to `end`.
+    */
   def maybeAddSimplePolygon(
       start: VertexId,
       end: VertexId,
@@ -308,6 +358,14 @@ final case class TilingDCEL private (
   ): Either[TilingError, TilingDCEL] =
     this.deepCopy.addUntrustedSimplePolygon(start, end, angles)
 
+  /** Doubles the tiling area by translating it across one of its parallelogon period directions (or by
+    * reflecting it across the centroid for an equilateral-triangle boundary). Useful for growing periodic
+    * tilings without computing per-vertex additions.
+    *
+    * @return
+    *   The doubled tiling, or [[ValidationError]] when the tiling's boundary is not a parallelogon (and
+    *   not an equilateral triangle).
+    */
   def doubleArea: Either[TilingError, TilingDCEL] =
     if isEmpty then
       Right(this)
@@ -328,15 +386,24 @@ final case class TilingDCEL private (
         case Some((origin, repeat))                              =>
           Right(this.rawDouble(boundaryVerticesUnsafe(origin), boundaryVerticesUnsafe(repeat)))
 
+  /** Fills the gap around `vertexId` with as many triangles as fit, producing a fan whose apex is the named
+    * vertex. Useful for closing small angular gaps on the boundary.
+    */
   def fanAt(vertexId: VertexId): Either[TilingError, TilingDCEL] =
     for
       vertex <- findVertex(vertexId)
       result <- this.rawFan(vertex)
     yield result
 
+  /** Removes the vertex and the edges/faces incident to it. Fails with a [[TopologyError]] if the deletion
+    * would disconnect the tiling or break a topological invariant.
+    */
   def maybeDeleteVertex(vertexId: VertexId): Either[TilingError, TilingDCEL] =
     this.deepCopy.deleteVertex(vertexId)
 
+  /** Removes the edge connecting `startVertexId` to `endVertexId` (and its twin), merging the two incident
+    * faces. Fails with a [[TopologyError]] if the edge is missing or the merge would violate an invariant.
+    */
   def maybeDeleteEdge(startVertexId: VertexId, endVertexId: VertexId): Either[TilingError, TilingDCEL] =
     this.deepCopy.deleteEdge(startVertexId, endVertexId)
 
@@ -393,15 +460,21 @@ final case class TilingDCEL private (
       showUniformity
     )
 
+  /** [[toSVG]] taking a bundled [[conversion.TilingSVG.SvgOptions]] instead of individual parameters. */
   def toSVG(options: SvgOptions): String =
     this.toScalableVectorGraphics(options)
 
+  /** Renders the tiling as a Graphviz DOT graph: vertices become nodes, edges become labelled connections.
+    * Useful for visualising the half-edge topology.
+    */
   def toDOT: String =
     this.toSimplifiedDOT
 
 object TilingDCEL:
 
-  // Private internal constructor that bypasses validation
+  /** Private internal constructor that bypasses validation. Use [[fromUntrusted]] for input from untrusted
+    * sources (parsed files, hand-built fixtures) — it validates before returning.
+    */
   private[dcel] def apply(
       vertices: List[Vertex],
       halfEdges: List[HalfEdge],
@@ -410,7 +483,11 @@ object TilingDCEL:
   ): TilingDCEL =
     new TilingDCEL(vertices, halfEdges, innerFaces, outerFace)
 
-  // Smart constructor for untrusted sources
+  /** Builds a tiling from a hand-assembled set of components and validates it via [[TilingValidation.validate]].
+    *
+    * @return
+    *   The validated tiling, or a [[TilingError]] describing why the candidate is rejected.
+    */
   def fromUntrusted(
       vertices: List[Vertex],
       halfEdges: List[HalfEdge],
@@ -421,6 +498,7 @@ object TilingDCEL:
     validate(candidateTiling).map: _ =>
       candidateTiling
 
+  /** The empty tiling: no vertices, no edges, no inner faces, just the bare outer face. */
   def empty: TilingDCEL =
     TilingDCEL(
       vertices = List.empty,
@@ -429,11 +507,20 @@ object TilingDCEL:
       outerFace = Face.outer
     )
 
+  /** Creates a tiling consisting of a single simple polygon described by its interior angles in integer
+    * degrees. Delegates to [[TilingBuilder.createSimplePolygon]].
+    */
   def createSimplePolygon(degrees: Int*): Either[TilingError, TilingDCEL] =
     TilingBuilder.createSimplePolygon(degrees*)
 
+  /** Variant of [[createSimplePolygon(degrees:Int*)*]] taking a vector of [[geometry.AngleDegree]] values
+    * (allowing rational angles).
+    */
   def createSimplePolygon(angles: Vector[AngleDegree]): Either[TilingError, TilingDCEL] =
     TilingBuilder.createSimplePolygon(angles)
 
+  /** Creates a tiling consisting of a single regular polygon. Total: delegates to
+    * [[TilingBuilder.createRegularPolygon]].
+    */
   def createRegularPolygon(polygon: RegularPolygon): TilingDCEL =
     TilingBuilder.createRegularPolygon(polygon)
