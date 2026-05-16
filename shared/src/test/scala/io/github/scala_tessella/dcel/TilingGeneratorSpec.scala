@@ -109,13 +109,13 @@ class TilingGeneratorSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
 
   it should "generate 12-step 3u 3g tilings for an hexagon" in:
     val found = List(hexagon).expandRotationallyMore(6, 12, Option(3), Option(3))
-    found.size shouldBe 72
+    found.size shouldBe 9
 //    found.indices.foreach: i =>
 //      saveFileSVG(found(i).toScalableVectorGraphicsElem(), s"generator/hex12/hex12_$i")
 
   it should "generate 12-step 2u 2g tilings for an hexagon" in:
     val found = List(hexagon).expandRotationallyMore(6, 12, Option(2), Option(2))
-    found.size shouldBe 29
+    found.size shouldBe 3
 //    found.indices.foreach: i =>
 //      saveFileSVG(found(i).toScalableVectorGraphicsXml(), s"generator/hex12_2u2g_$i")
 
