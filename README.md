@@ -29,8 +29,10 @@ topology/geometry operations, symmetry and uniformity analysis, and import/expor
 - **Analyse** topology, symmetry and uniformity: boundary, inner vertices,
   vertex angles, `uniformityTree`, `scanUniformityTree`, `gonalityTrees`,
   boundary-equivalence grouping.
-- **Validate** completeness, topology, geometry, and spatial consistency
-  (`TilingValidation.validate` and the narrower `validate*` variants).
+- **Validate** completeness, topology, geometry, and spatial consistency in
+  one call (`TilingValidation.validate`). Failures are surfaced as a sealed
+  `TilingError` ADT (`IncompleteError`, `TopologyError`, `GeometryError`,
+  `SpatialError`, `ValidationError`, `NotFoundError`).
 - **Export** to SVG (with optional uniformity colouring, arrows, labels) and
   DOT, plus round-trip serialisation through SVG metadata
   (`toMetadata` / `TilingSVG.fromMetadata`).

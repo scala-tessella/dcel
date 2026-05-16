@@ -27,3 +27,5 @@ jobs:
         run: sbt scalafmtCheckAll
       - name: Scalafix check
         run: sbt "scalafixAll --check"
+      - name: Scaladoc generation
+        run: sbt dcelJVM/doc dcelJS/doc

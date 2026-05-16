@@ -6,8 +6,17 @@ import io.github.scala_tessella.dcel.structure.HalfEdge
 
 import scala.collection.mutable
 
+/** Validation entry point for [[TilingDCEL]] instances. The public [[validate]] method runs the full
+  * pipeline; the per-stage helpers ([[validateCompleteness]], [[validateTopologically]],
+  * [[validateGeometrically]], [[validateSpatially]]) are internal and called in sequence by
+  * [[validate]] but exposed here for library-internal reuse.
+  */
 object TilingValidation:
 
+  /** Per-entity structural integrity: every vertex, half-edge and face must self-validate. A failure
+    * here indicates internal state was never fully populated (e.g. a vertex without a leaving edge);
+    * [[validate]] returns immediately with an [[IncompleteError]] and skips the later stages.
+    */
   private[dcel] def validateCompleteness(tiling: TilingDCEL): Either[TilingError, Unit] =
     val errors = mutable.ListBuffer[String]()
     tiling.vertices.foreach: vertex =>
@@ -22,6 +31,11 @@ object TilingValidation:
     if errors.isEmpty then Right(())
     else Left(TilingError.combineErrors(errors.toList, ErrorCategory.Incomplete))
 
+  /** Half-edge linkage and face cycle consistency: twin / next / prev relationships are symmetric and
+    * point into the tiling, every edge's incident face owns it back, the outer face is reachable
+    * from its outer component, and no inner face contains holes (since holes are themselves
+    * represented as inner polygons in this model). Returns a [[TopologyError]] on failure.
+    */
   private[dcel] def validateTopologically(tiling: TilingDCEL): Either[TilingError, Unit] =
     val errors = mutable.ListBuffer[String]()
 
@@ -124,6 +138,14 @@ object TilingValidation:
     if errors.isEmpty then Right(())
     else Left(TilingError.combineErrors(errors.toList, ErrorCategory.Topology))
 
+  /** Angle constraints: no half-edge carries a full-circle interior angle; every inner face's
+    * angle vector closes to a simple polygon; the tiling boundary closes in both the interior and
+    * exterior angle views; every interior vertex's incident angles sum to a full circle. Returns a
+    * [[GeometryError]] on failure.
+    *
+    * Topology errors on inner-face / boundary cycles are ignored here — they are surfaced by
+    * [[validateTopologically]] and are the caller's responsibility to resolve first.
+    */
   private[dcel] def validateGeometrically(tiling: TilingDCEL): Either[TilingError, Unit] =
     val errors = mutable.ListBuffer[String]()
 
@@ -197,6 +219,10 @@ object TilingValidation:
     if errors.isEmpty then Right(())
     else Left(TilingError.combineErrors(errors.toList, ErrorCategory.Geometry))
 
+  /** Coordinate-level checks: the boundary forms a simple polygon (sweep-line simplicity test); no
+    * two vertices share a position (within `ACCURACY`); every edge has unit length (within `1e-9`);
+    * no two edges properly intersect. Returns a [[SpatialError]] on failure.
+    */
   private[dcel] def validateSpatially(tiling: TilingDCEL): Either[TilingError, Unit] =
     val errors = mutable.ListBuffer[String]()
 
@@ -240,6 +266,20 @@ object TilingValidation:
     if errors.isEmpty then Right(())
     else Left(TilingError.combineErrors(errors.toList, ErrorCategory.Spatial))
 
+  /** Run the full validation pipeline against `tiling`.
+    *
+    *   1. [[validateCompleteness]] runs first; on failure, returns immediately.
+    *   2. [[validateTopologically]], [[validateGeometrically]] and [[validateSpatially]] then run
+    *      in sequence; their failures are collected.
+    *
+    * @return
+    *   `Right(())` if all stages pass; otherwise `Left`:
+    *   - [[IncompleteError]] if step 1 fails (later steps are skipped)
+    *   - The category-specific error ([[TopologyError]] / [[GeometryError]] / [[SpatialError]])
+    *     when exactly one later stage fails
+    *   - [[ValidationError]] wrapping a "Multiple validation errors: …" message that lists every
+    *     underlying failure when more than one later stage fails
+    */
   def validate(tiling: TilingDCEL): Either[TilingError, Unit] =
     validateCompleteness(tiling) match
       case Left(value) => Left(value)
