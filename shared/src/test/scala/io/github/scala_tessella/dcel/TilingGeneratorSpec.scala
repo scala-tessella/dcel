@@ -9,7 +9,7 @@ class TilingGeneratorSpec extends AnyFlatSpec with Matchers with TilingTestHelpe
 
   behavior of "TilingGenerator.validSignatures"
 
-  it should "calculate the pippo" in:
+  it should "return the valid signatures" in:
     TilingGenerator.validSignatures shouldBe
       Set(
         List(4, 4, 4, 4),
