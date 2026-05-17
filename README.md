@@ -1,8 +1,9 @@
 # dcel
 
-[![CI](https://github.com/scala-tessella/dcel/actions/workflows/ci.yml/badge.svg)](https://github.com/scala-tessella/dcel/actions/workflows/ci.yml)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.scala-tessella/dcel_3.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.scala-tessella/dcel)
 [![Scala 3](https://img.shields.io/badge/scala-3.8.3-red.svg)](https://scala-lang.org)
-[![SBT](https://img.shields.io/badge/sbt-1.12.9-blue.svg)](https://scala-sbt.org)
+[![Scala.js](https://www.scala-js.org/assets/badges/scalajs-1.16.0.svg)](https://www.scala-js.org)
+[![CI](https://github.com/scala-tessella/dcel/actions/workflows/ci.yml/badge.svg)](https://github.com/scala-tessella/dcel/actions/workflows/ci.yml)
 [![Scaladoc](https://img.shields.io/badge/docs-scaladoc-blue.svg)](https://scala-tessella.github.io/dcel/)
 [![License](https://img.shields.io/badge/license-Apache--2.0%20OR%20MIT-green.svg)](#license)
 
@@ -20,6 +21,18 @@ topology/geometry operations, symmetry and uniformity analysis, and import/expor
 
 > **Status:** early development (pre-1.0). The API may still change between
 > minor versions.
+
+## Setup
+
+Add the dependency to your `build.sbt`:
+
+```scala
+libraryDependencies += "io.github.scala-tessella" %% "dcel" % "0.1.0"
+// Use %%% instead of %% for Scala.js
+```
+
+Published for **Scala 3** on the **JVM** and **Scala.js**. Scala Native is
+scaffolded but blocked by Spire's Native support (see Tech Stack below).
 
 ## Features
 
@@ -47,6 +60,7 @@ topology/geometry operations, symmetry and uniformity analysis, and import/expor
 | Item                                | Version / Status                              |
 |-------------------------------------|-----------------------------------------------|
 | Scala                               | 3.8.3                                         |
+| Published artifact                  | `"io.github.scala-tessella" %% "dcel" % "0.1.0"` (Maven Central) |
 | SBT                                 | 1.12.9                                        |
 | Platforms                           | JVM, Scala.js (CommonJS on Node.js)           |
 | Scala Native                        | scaffolded; blocked by Spire Native support   |
@@ -107,7 +121,7 @@ Two opt-in sbt subprojects live in this repo but are not part of the published
 Only the root package depends on the other three; `conversion` depends on
 everything, `structure` depends on `geometry`, `geometry` has no internal deps.
 
-## Getting Started
+## Building from Source
 
 ### Prerequisites
 
