@@ -1,5 +1,5 @@
 addSbtPlugin("org.jetbrains.scala" % "sbt-ide-settings" % "1.1.2")
-addSbtPlugin("org.scala-js" % "sbt-scalajs" % "1.20.2")
+addSbtPlugin("org.scala-js" % "sbt-scalajs" % "1.21.0")
 // Scala Native plugins are intentionally commented out — see ADR-0007.
 // Spire does not yet publish a Native artifact; uncomment both Native lines
 // (here and the NativePlatform / dcelNative lines in build.sbt) once that unblocks.
