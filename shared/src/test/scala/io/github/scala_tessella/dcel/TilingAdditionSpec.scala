@@ -240,22 +240,23 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       }
     )
 
-  it should "add the same irregular pentagon with a different orientation to a triangle, producing a valid DCEL" in:
-    val result =
-      triangle.addSimplePolygonToBoundary(V1, SimplePolygon(irregularPentagonAngles.rotateRight(1)))
+  it should
+    "add the same irregular pentagon with a different orientation to a triangle, producing a valid DCEL" in:
+      val result =
+        triangle.addSimplePolygonToBoundary(V1, SimplePolygon(irregularPentagonAngles.rotateRight(1)))
 
-    allAssert(
-      result.isRight shouldBe true, {
-        val tiling = result.value
-        //    println(TilingDCEL.validate(tiling))
-        //    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
-        allAssert(
-          verifyValidTiling(tiling),
-          tiling.vertices should have size 6,
-          tiling.innerFaces should have size 2
-        )
-      }
-    )
+      allAssert(
+        result.isRight shouldBe true, {
+          val tiling = result.value
+          //    println(TilingDCEL.validate(tiling))
+          //    println(tiling.toSVG(leavingEdgeMarkers = true, faceIdsOnEdges = true))
+          allAssert(
+            verifyValidTiling(tiling),
+            tiling.vertices should have size 6,
+            tiling.innerFaces should have size 2
+          )
+        }
+      )
 
   /** Common bench  <img src="file:../../../../../resources/commonBench.svg"/> */
   def commonBench: TilingDCEL =
@@ -581,41 +582,44 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       .maybeAddRegularPolygonToBoundary(V1, RegularPolygon(6)).value
       .maybeAddRegularPolygonToBoundary(VertexId(7), RegularPolygon(6)).value
 
-  it should "successfully add an hexagon with more than one edge shared on both sides of the edge to build on" in:
-    val result = threeHexagons
-      .maybeAddRegularPolygonToBoundary(V1, RegularPolygon(6))
-    allAssert(
-      result.isRight shouldBe true, {
-        val newTiling = result.value
-        //    println(newTiling.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
-        //    println(TilingDCEL.validate(newTiling))
-        verifyValidTiling(newTiling)
-      }
-    )
+  it should
+    "successfully add an hexagon with more than one edge shared on both sides of the edge to build on" in:
+      val result = threeHexagons
+        .maybeAddRegularPolygonToBoundary(V1, RegularPolygon(6))
+      allAssert(
+        result.isRight shouldBe true, {
+          val newTiling = result.value
+          //    println(newTiling.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
+          //    println(TilingDCEL.validate(newTiling))
+          verifyValidTiling(newTiling)
+        }
+      )
 
-  it should "successfully add an hexagon with more than one edge shared on one side of the edge to build on" in:
-    val result = threeHexagons
-      .maybeAddRegularPolygonToBoundary(V2, RegularPolygon(6))
-    allAssert(
-      result.isRight shouldBe true, {
-        val newTiling = result.value
-        //    println(newTiling.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
-        //    println(TilingDCEL.validate(newTiling))
-        verifyValidTiling(newTiling)
-      }
-    )
+  it should
+    "successfully add an hexagon with more than one edge shared on one side of the edge to build on" in:
+      val result = threeHexagons
+        .maybeAddRegularPolygonToBoundary(V2, RegularPolygon(6))
+      allAssert(
+        result.isRight shouldBe true, {
+          val newTiling = result.value
+          //    println(newTiling.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
+          //    println(TilingDCEL.validate(newTiling))
+          verifyValidTiling(newTiling)
+        }
+      )
 
-  it should "successfully add an hexagon with more than one edge shared on the other side of the edge to build on" in:
-    val result = threeHexagons
-      .maybeAddRegularPolygonToBoundary(VertexId(7), RegularPolygon(6))
-    allAssert(
-      result.isRight shouldBe true, {
-        val newTiling = result.value
-        //    println(newTiling.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
-        //    println(TilingDCEL.validate(newTiling))
-        verifyValidTiling(newTiling)
-      }
-    )
+  it should
+    "successfully add an hexagon with more than one edge shared on the other side of the edge to build on" in:
+      val result = threeHexagons
+        .maybeAddRegularPolygonToBoundary(VertexId(7), RegularPolygon(6))
+      allAssert(
+        result.isRight shouldBe true, {
+          val newTiling = result.value
+          //    println(newTiling.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
+          //    println(TilingDCEL.validate(newTiling))
+          verifyValidTiling(newTiling)
+        }
+      )
 
   /** Three squares <img src="file:../../../../../resources/threeSquares.svg"/> */
   def threeSquares: TilingDCEL =
@@ -636,17 +640,18 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       }
     )
 
-  it should "successfully add a square with more than one edge shared on the other side of the edge to build on" in:
-    val result = threeSquares
-      .maybeAddRegularPolygonToBoundary(V2, RegularPolygon(4))
-    allAssert(
-      result.isRight shouldBe true, {
-        val newTiling = result.value
-        //    println(newTiling.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
-        //    println(TilingDCEL.validate(newTiling))
-        verifyValidTiling(newTiling)
-      }
-    )
+  it should
+    "successfully add a square with more than one edge shared on the other side of the edge to build on" in:
+      val result = threeSquares
+        .maybeAddRegularPolygonToBoundary(V2, RegularPolygon(4))
+      allAssert(
+        result.isRight shouldBe true, {
+          val newTiling = result.value
+          //    println(newTiling.toSVG(showHalfEdgeTraversal = true, leavingEdgeMarkers = true, faceIdsOnEdges = true))
+          //    println(TilingDCEL.validate(newTiling))
+          verifyValidTiling(newTiling)
+        }
+      )
 
   it should "successfully fill a hole created by a shared vertex" in:
     val result = commonBench

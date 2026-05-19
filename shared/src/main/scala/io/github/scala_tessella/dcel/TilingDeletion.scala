@@ -223,8 +223,7 @@ object TilingDeletion:
       val fromInner             =
         innerTwins.flatMap: halfEdge =>
           List(halfEdge.origin, halfEdge.destinationUnsafe)
-      val verticesOnNewBoundary =
-        (fromBoundary ::: fromInner).distinct
+      val verticesOnNewBoundary = (fromBoundary ::: fromInner).distinct
       val boundaryEdges         =
         verticesOnNewBoundary.flatMap: vertex =>
           vertex.incidentEdgesUnsafe.find: halfEdge =>

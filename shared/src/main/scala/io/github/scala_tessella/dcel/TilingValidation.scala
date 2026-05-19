@@ -88,17 +88,20 @@ object TilingValidation:
             if !edgeSet.contains(next) then
               errors += s"Edge from ${edge.origin.id} next edge is not part of this tiling"
             if !next.prev.contains(edge) then
-              errors += s"Next/prev relationship broken: $edge has next edge $next which has prev edge ${next.prev}"
+              errors +=
+                s"Next/prev relationship broken: $edge has next edge $next which has prev edge ${next.prev}"
 
         edge.prev.foreach: prev =>
           if !edgeSet.contains(prev) then
             errors += s"Edge from ${edge.origin.id} prev edge is not part of this tiling"
           else if !prev.next.contains(edge) then
-            errors += s"Next/prev relationship broken: $edge has prev edge $prev which has next edge ${prev.next}"
+            errors +=
+              s"Next/prev relationship broken: $edge has prev edge $prev which has next edge ${prev.next}"
 
         edge.incidentFace.foreach: face =>
           if !((face eq tiling.outerFace) || innerFaceSet.contains(face)) then
-            errors += s"Edge from ${edge.origin.id} references incident face not part of this tiling: ${face.id}"
+            errors +=
+              s"Edge from ${edge.origin.id} references incident face not part of this tiling: ${face.id}"
           else
             // Ensure the face actually "owns" this edge
             val isReachable =
@@ -106,7 +109,8 @@ object TilingValidation:
                 case Left(_)          => false
                 case Right(halfEdges) => halfEdges.contains(edge)
             if !isReachable then
-              errors += s"Edge from ${edge.origin.id} claims to be in face ${face.id}, but is not reachable from face components"
+              errors +=
+                s"Edge from ${edge.origin.id} claims to be in face ${face.id}, but is not reachable from face components"
 
       // Check face consistency
       tiling.faces.foreach: face =>
@@ -115,7 +119,8 @@ object TilingValidation:
           case Right(edges) =>
             edges.foreach: edge =>
               if !edge.incidentFace.contains(face) then
-                errors += s"Face consistency error: $face contains $edge which references back to another incident ${edge.incidentFace}"
+                errors +=
+                  s"Face consistency error: $face contains $edge which references back to another incident ${edge.incidentFace}"
               if !edgeSet.contains(edge) then
                 errors += s"Face ${face.id} cycle includes an edge not part of this tiling"
 
@@ -157,7 +162,8 @@ object TilingValidation:
       tiling.halfEdges.foreach: halfEdge =>
         halfEdge.angle.foreach: angleDegree =>
           if angleDegree.isFullCircle then
-            errors += s"Edge from ${halfEdge.origin.id} cannot have full circles as interior angles: $angleDegree"
+            errors +=
+              s"Edge from ${halfEdge.origin.id} cannot have full circles as interior angles: $angleDegree"
 
       // Check angles' sum for each inner face
       tiling.innerFaces.foreach: face =>

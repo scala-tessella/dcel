@@ -270,9 +270,8 @@ object TilingGenerator:
       val segmentSize = boundaryVertexIds.size / order
 
       // find in the segment the vertex with the lowest vertex id
-      val edgeStartIndex: Int =
-        (0 until segmentSize).minBy: index =>
-          boundaryVertexIds(index)
+      val edgeStartIndex: Int = (0 until segmentSize).minBy: index =>
+        boundaryVertexIds(index)
 
       val initialVertexId = boundaryVertexIds(edgeStartIndex)
 

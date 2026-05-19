@@ -54,11 +54,10 @@ object SpireBigDecimalReference:
     if n < 4 then return true
     if !points.hasNoAlmostEqualPoints() then return false
 
-    val segments =
-      (0 until n).iterator
-        .map: i =>
-          BigLineSegment(points(i), points((i + 1) % n))
-        .toArray
+    val segments = (0 until n).iterator
+      .map: i =>
+        BigLineSegment(points(i), points((i + 1) % n))
+      .toArray
 
     boundary:
       var i = 0

@@ -184,9 +184,8 @@ object BigPoint:
       if n < 4 then return true // Triangles cannot self-intersect
       if !hasNoAlmostEqualPoints() then return false
 
-      val segments =
-        (0 until n).map: i =>
-          BigLineSegment(points(i), points((i + 1) % n))
+      val segments = (0 until n).map: i =>
+        BigLineSegment(points(i), points((i + 1) % n))
 
       !IntersectionDetection.hasSelfIntersection(segments)
 

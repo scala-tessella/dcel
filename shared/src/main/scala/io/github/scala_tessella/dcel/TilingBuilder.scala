@@ -595,22 +595,20 @@ object TilingBuilder:
     do
       val face       = faces(j)(i)
       val b          = baseTriple(i, j)
-      val cornerKeys =
-        (0 until 6)
-          .map: k =>
-            addTriples(b, cornerTriples(k))
-          .toList
+      val cornerKeys = (0 until 6)
+        .map: k =>
+          addTriples(b, cornerTriples(k))
+        .toList
       val corners    = cornerKeys.map: (i, j, k) =>
         getOrCreateVertexByTriple(i, j, k)
 
       val cornerAngles: Array[AngleDegree] =
         Array(alpha, beta, beta, alpha, beta, beta)
 
-      val edgesCCW =
-        (0 until 6).toList.map: k =>
-          val v1 = corners(k)
-          val v2 = corners((k + 1) % 6)
-          getOrCreateHalfEdge(v1, v2)
+      val edgesCCW = (0 until 6).toList.map: k =>
+        val v1 = corners(k)
+        val v2 = corners((k + 1) % 6)
+        getOrCreateHalfEdge(v1, v2)
 
       edgesCCW.linkInCycle()
       edgesCCW.zipWithIndex.foreach: (e, k) =>
