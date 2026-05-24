@@ -16,11 +16,15 @@ Tessellations are modelled as a **Doubly Connected Edge List (DCEL)**: a
 classical planar-subdivision representation in which every edge is split into
 two oppositely oriented *half-edges*, and each half-edge knows its origin
 vertex, its incident face, its twin, its predecessor, and its successor. On top
-of this base representation the library provides builders, validation,
+of this base representation, the library provides builders, validation,
 topology/geometry operations, symmetry and uniformity analysis, and import/export.
 
 > **Status:** early development (pre-1.0). The API may still change between
 > minor versions.
+
+## Tessella editor
+
+The Tessella web and desktop editor, see https://tessell.art/editor (open here the [web editor](https://editor.tessell.art)), is built on the **dcel** library.
 
 ## Setup
 
