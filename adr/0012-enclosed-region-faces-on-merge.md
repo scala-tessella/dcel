@@ -1,6 +1,6 @@
 # ADR-0012: Materialise enclosed regions as faces during merge
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-05-31
 
 ## Context and problem statement

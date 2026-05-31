@@ -1,6 +1,6 @@
 # ADR-0013: Pinch vertices and merge determinism
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-05-31
 
 ## Context and problem statement
