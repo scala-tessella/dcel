@@ -192,12 +192,28 @@ object TilingEquivalency:
       val maxY            = yCoords.max
       val reflectionAxisY = (minY + maxY) / 2
 
+      reflectedDouble(
+        coordsTransformer = point => BigPoint(point.x, y = reflectionAxisY * 2 - point.y),
+        vertexIdTransformer = identity,
+        faceIdTransformer = identity
+      )
+
+    /** Orientation-reversing counterpart of [[translatedDouble]]: builds a copy whose coordinates are mapped
+      * by `coordsTransformer` (a reflection) and whose half-edge/face wiring is rebuilt with reversed
+      * orientation, so the "face-on-the-left" invariant is preserved across the reflection. Used by
+      * [[verticallyReflectedCopy]] and by the mirror copy operation in [[TilingAddition]].
+      */
+    private[dcel] def reflectedDouble(
+        coordsTransformer: BigPoint => BigPoint,
+        vertexIdTransformer: VertexId => VertexId,
+        faceIdTransformer: FaceId => FaceId
+    ): TilingDCEL =
       // Create mapping from old to new components
       val (vertexMap, halfEdgeMap, faceMap) =
         createMaps(
-          coordsTransformer = point => BigPoint(point.x, y = reflectionAxisY * 2 - point.y),
-          vertexIdTransformer = identity,
-          faceIdTransformer = identity
+          coordsTransformer = coordsTransformer,
+          vertexIdTransformer = vertexIdTransformer,
+          faceIdTransformer = faceIdTransformer
         )
 
       // Wire HalfEdges with reversed orientation

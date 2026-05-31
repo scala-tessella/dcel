@@ -30,6 +30,7 @@ decision. Each file has:
 | 0008 | [JMH benchmarks in an opt-in subproject](0008-jmh-benchmarks-subproject.md)                  | Accepted |
 | 0009 | [Validation geometry — precision vs. performance](0009-validation-geometry-precision-performance.md) | Superseded by ADR-0010 |
 | 0010 | [Validation geometry on `java.lang.Math` + `Double`](0010-validation-geometry-double.md)     | Accepted |
+| 0011 | [Isometric copy operations (mirror / translate / rotate / glide reflect)](0011-isometric-copy-operations.md) | Proposed |
 
 ## When to add an ADR
 

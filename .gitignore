@@ -48,3 +48,6 @@ build/
 
 ### Test-run scratch ###
 shared/src/test/resources/generator/
+
+### scalex code-intelligence cache ###
+.scalex/

@@ -76,11 +76,24 @@ private[dcel] object TilingMerge:
       ne.angle = halfEdge.angle
       edgeMap(halfEdge) = ne
 
-    // 2.b – create inner faces only (discard old outers, we will recompute boundary)
-    val faceMap = mutable.HashMap.empty[Face, Face]
+    // 2.b – create inner faces only (discard old outers, we will recompute boundary).
+    //       Inner faces from the two tilings that occupy the same set of merged vertices are unified into a
+    //       single Face object. Without this, a fully-overlapping copy face is doubled: its edges survive
+    //       seam-collapse but reference a distinct, duplicate Face, so the polygon's boundary ends up split
+    //       across two face objects and topology validation rejects it. The merged-vertex-id set is an exact
+    //       key (it reuses `repOf`, the same coincidence relation used to unify vertices) — no rounding.
+    val faceMap              = mutable.HashMap.empty[Face, Face]
+    val faceByMergedVertices = mutable.HashMap.empty[Set[VertexId], Face]
     allOldFaces.foreach: face =>
       if face.id != FaceId.outerId then
-        faceMap.getOrElseUpdate(face, Face(face.id)): Unit
+        val mergedVertexKey: Set[VertexId] =
+          face.getVerticesUnsafe
+            .map: vertex =>
+              repOf(vertex.id)
+            .toSet
+        val canonical                      =
+          faceByMergedVertices.getOrElseUpdate(mergedVertexKey, Face(face.id))
+        faceMap(face) = canonical
 
     // 2.c – wire next / prev / incidentFace from old to new via maps
     allOldEdges.foreach:
@@ -229,7 +242,26 @@ private[dcel] object TilingMerge:
     // -----------------------------------------------------------------------
     // 6. Build merged faces lists and validate
     // -----------------------------------------------------------------------
+    // Keep only faces still referenced by a surviving inner edge: a unified, fully-overlapping face whose
+    // duplicate edges were collapsed away drops out here, leaving exactly one face per occupied region.
     val newInnerFaces: List[Face] =
-      faceMap.values.toList
+      allNewEdges
+        .flatMap: edge =>
+          edge.incidentFace
+        .filterNot: face =>
+          face.isOuter
+        .distinct
+
+    // Seam-collapse may have removed the very edge a surviving face pointed to as its outer component
+    // (the kept representative can come from either tiling). Re-anchor it to a surviving incident edge.
+    val survivingEdges: Set[HalfEdge] =
+      allNewEdges.toSet
+    newInnerFaces.foreach: face =>
+      if !face.outerComponent.exists(survivingEdges.contains) then
+        allNewEdges
+          .find: edge =>
+            edge.incidentFace.contains(face)
+          .foreach: edge =>
+            face.outerComponent = Some(edge)
 
     TilingDCEL(newVertices, allNewEdges, newInnerFaces, newOuterFace)

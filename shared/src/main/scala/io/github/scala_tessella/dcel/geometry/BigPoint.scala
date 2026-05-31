@@ -114,6 +114,35 @@ object BigPoint:
     def flippedY: BigPoint =
       (point.x, -point.y)
 
+    /** Rotates this point around `center` by `angle`.
+      *
+      * Standard rotation matrix, counterclockwise-positive in the internal (y-up) coordinate frame — which is
+      * clockwise-positive once exported via `flippedY` to the y-down SVG view (see ADR-0011).
+      *
+      * ADR-0009 candidate A: trig on `Double` via `java.lang.Math`, results re-cast to `BigDecimal`.
+      */
+    def rotatedAround(center: BigPoint, angle: BigRadian): BigPoint =
+      val dx   = point.x - center.x
+      val dy   = point.y - center.y
+      val cosA = BigDecimal(Math.cos(angle.toDouble))
+      val sinA = BigDecimal(Math.sin(angle.toDouble))
+      BigPoint(
+        center.x + dx * cosA - dy * sinA,
+        center.y + dx * sinA + dy * cosA
+      )
+
+    /** Reflects this point across the line through `axisStart` and `axisEnd`.
+      *
+      * Reflects `w = point - axisStart` across the axis direction `d` via `2·proj_d(w) - w`. This is exact in
+      * `BigDecimal` (only +, -, ·, / — no trig or square root), unlike [[rotatedAround]]. Caller must pass
+      * two distinct points; equal points give `d·d == 0` and divide by zero.
+      */
+    def reflectedAcross(axisStart: BigPoint, axisEnd: BigPoint): BigPoint =
+      val d     = axisEnd - axisStart
+      val w     = point - axisStart
+      val coeff = (w.dot(d) * 2) / d.dot(d)
+      axisStart + d.scaled(coeff) - w
+
   extension (points: List[BigPoint])
 
     def centroid: BigPoint =

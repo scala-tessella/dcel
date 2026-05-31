@@ -528,6 +528,113 @@ object TilingAddition:
 
       mergeTilings(tiling, translated)
 
+    /** Builds a fresh-id copy of the tiling (via `buildCopy`, given fresh vertex/face id maps), merges it
+      * back via [[TilingMerge.mergeTilings]] — which unifies coincident vertices, collapses shared edges and
+      * deduplicates fully-overlapping faces — and validates the result in full. The shared engine behind the
+      * three isometric copy operations (mirror / translate / rotate).
+      *
+      * @return
+      *   The grown tiling, or a [[TilingError]] if the copy conflicts with the existing composition (partial
+      *   overlap, crossing edges, over-full vertex angles, ...) and the merge fails validation.
+      */
+    private def addMergedCopy(
+        buildCopy: (VertexId => VertexId, FaceId => FaceId) => TilingDCEL
+    ): Either[TilingError, TilingDCEL] =
+      if tiling.isEmpty then
+        Right(tiling)
+      else
+        val (vertexIdTranslation, faceIdTranslation) = freshIdTranslations(tiling)
+        val copied: TilingDCEL                       =
+          buildCopy(vertexIdTranslation, faceIdTranslation)
+        val merged: TilingDCEL                       =
+          mergeTilings(tiling, copied)
+        TilingValidation.validate(merged).map: _ =>
+          merged
+
+    /** Adds an orientation-preserving isometric copy (a translation or rotation, det +1, so the DCEL wiring
+      * is reused verbatim) under `coordsTransformer`.
+      */
+    private[dcel] def addIsometricCopy(
+        coordsTransformer: BigPoint => BigPoint
+    ): Either[TilingError, TilingDCEL] =
+      addMergedCopy: (vertexIdTransformer, faceIdTransformer) =>
+        tiling.translatedDouble(coordsTransformer, vertexIdTransformer, faceIdTransformer)
+
+    /** Adds an orientation-reversing reflected copy (det -1) under `coordsTransformer`: the copy's half-edge
+      * wiring is rebuilt with reversed orientation via [[TilingEquivalency.reflectedDouble]] so the
+      * face-on-the-left invariant survives the mirror.
+      */
+    private[dcel] def addReflectedCopy(
+        coordsTransformer: BigPoint => BigPoint
+    ): Either[TilingError, TilingDCEL] =
+      addMergedCopy: (vertexIdTransformer, faceIdTransformer) =>
+        tiling.reflectedDouble(coordsTransformer, vertexIdTransformer, faceIdTransformer)
+
+    /** Accumulates `count - 1` orientation-preserving copies of the *original* onto it: for `k = 1 until
+      * count` the original is transformed by `coordsTransformerForK(k)` (a fresh transform of the original,
+      * so trig error never accumulates) and merged via [[TilingMerge.mergeTilings]]. Shared engine of
+      * [[rawFanAround]] (rotational) and [[rawRepeatAlong]] (translational).
+      *
+      * Validation runs once, on the final patch, rather than after every merge — for a clean fan/repeat the
+      * intermediate sectors are themselves valid, so per-step validation only re-paid the expensive
+      * geometry/spatial pipeline on every prefix (quadratic over a large fan). A conflicting copy is still
+      * rejected: it surfaces as a self-intersection or over-full vertex in the final `validate`. The merge
+      * keeps the inner faces of both inputs structurally intact (it only ever recomputes the boundary), so an
+      * intermediate that is geometrically invalid is still safe to merge again.
+      */
+    private def accumulateCopies(
+        count: Int
+    )(coordsTransformerForK: Int => BigPoint => BigPoint): Either[TilingError, TilingDCEL] =
+      @tailrec
+      def loop(acc: TilingDCEL, k: Int): TilingDCEL =
+        if k >= count then
+          acc
+        else
+          val (vertexIdTranslation, faceIdTranslation) = freshIdTranslations(acc)
+          val copied: TilingDCEL                       =
+            tiling.translatedDouble(coordsTransformerForK(k), vertexIdTranslation, faceIdTranslation)
+          loop(mergeTilings(acc, copied), k + 1)
+
+      val merged: TilingDCEL = loop(tiling, 1)
+      TilingValidation.validate(merged).map: _ =>
+        merged
+
+    /** Fans `order` rotated copies of the tiling around an arbitrary `center` point, each rotated by a full
+      * `360 / order` slice, merging them into one rotationally-symmetric patch (strict full ring).
+      *
+      * Unlike [[rawFan]] — which fills the angular gap at a boundary *vertex* with as many wedges as fit —
+      * the centre here is any point (a face centroid, an edge midpoint, ...) and the ring always spans the
+      * full 360°. The merge deduplicates a centre face that maps onto itself (e.g. a regular polygon rotated
+      * about its own centroid). Strict: a wedge that conflicts makes the completed ring fail validation.
+      *
+      * @return
+      *   The fanned tiling, or a [[TilingError]] if `order < 2` or any wedge conflicts with the composition.
+      */
+    private[dcel] def rawFanAround(center: BigPoint, order: Int): Either[TilingError, TilingDCEL] =
+      if tiling.isEmpty then
+        Right(tiling)
+      else if order < 2 then
+        Left(ValidationError(s"A fan order must be at least 2, was $order."))
+      else
+        accumulateCopies(order): k =>
+          _.rotatedAround(center, BigRadian(2 * Math.PI * k / order))
+
+    /** Repeats the tiling in a strip: `count` copies translated by successive multiples of `step`. Merged and
+      * validated once when complete; exactly-overlapping copies are deduplicated. `count == 1` is the
+      * identity.
+      *
+      * @return
+      *   The strip, or a [[TilingError]] if `count < 1` or a copy conflicts with the composition.
+      */
+    private[dcel] def rawRepeatAlong(step: BigPoint, count: Int): Either[TilingError, TilingDCEL] =
+      if tiling.isEmpty then
+        Right(tiling)
+      else if count < 1 then
+        Left(ValidationError(s"A repeat count must be at least 1, was $count."))
+      else
+        accumulateCopies(count): k =>
+          _ + step.scaled(k)
+
     /** Multiply the tiling as a fan centered at the given vertex.
       *
       * @param origin
@@ -579,22 +686,11 @@ object TilingAddition:
               ))
             case Right((_, edgeOut)) => edgeOut
 
-        def rotateAround(center: BigPoint, angle: BigRadian)(point: BigPoint): BigPoint =
-          val dx   = point.x - center.x
-          val dy   = point.y - center.y
-          // ADR-0009 candidate A: Math trig on Double.
-          val cosA = BigDecimal(Math.cos(angle.toDouble))
-          val sinA = BigDecimal(Math.sin(angle.toDouble))
-          BigPoint(
-            center.x + dx * cosA - dy * sinA,
-            center.y + dx * sinA + dy * cosA
-          )
-
         def translatedCopy(base: TilingDCEL, rotation: BigRadian, center: BigPoint): TilingDCEL =
           val (vertexIdTranslation, faceIdTranslation) = freshIdTranslations(base)
 
           val coordsTransformer: BigPoint => BigPoint =
-            rotateAround(center, rotation)
+            _.rotatedAround(center, rotation)
 
           tiling.translatedDouble(coordsTransformer, vertexIdTranslation, faceIdTranslation)
 
