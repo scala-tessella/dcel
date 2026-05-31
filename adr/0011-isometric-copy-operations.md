@@ -1,6 +1,6 @@
 # ADR-0011: Isometric copy operations (mirror / translate / rotate / glide reflect)
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-05-30
 
 ## Context and problem statement
