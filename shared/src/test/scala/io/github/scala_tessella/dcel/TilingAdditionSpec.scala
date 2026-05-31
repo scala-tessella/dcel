@@ -1177,16 +1177,23 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     val result       = bench.rawFan(originVertex)
     result.isLeft shouldBe true
 
-  /** Tiling that can NOT be fanned around V1 <img src="file:../../../../../resources/fanHoles.svg"/>
+  /** Tiling whose fan around V1 leaves triangular gaps <img
+    * src="file:../../../../../resources/fanHoles.svg"/>
     */
   def fanHoles: TilingDCEL =
     TilingBuilder.createSimplePolygonUnsafe(SimplePolygon(60, 120, 180, 120, 120, 120, 60, 300, 180))
 
-  it should "fail to fan another tiling around another boundary vertex because of emerging holes" in:
+  it should "fan another tiling around another boundary vertex, filling the emerging holes" in:
+    // The fan leaves six unit equilateral-triangle gaps between consecutive copies; each meets its neighbours at
+    // pinch vertices. Per ADR-0012/0013 these are now materialised as valid inner faces, so the fan succeeds
+    // rather than failing on the holes.
     val bench        = fanHoles
     val originVertex = bench.vertices.find(_.id == V1).get
-    val result       = bench.rawFan(originVertex)
-    result.isLeft shouldBe true
+    val result       = bench.rawFan(originVertex).value
+    allAssert(
+      validate(result).isRight shouldBe true,
+      result.innerFaces.size shouldBe 12 // 6 fanned copies + 6 filled triangular holes
+    )
 
   it should "reject non-boundary vertices" in:
     val net         = TilingBuilder.createTriangleNet(2, 2).value

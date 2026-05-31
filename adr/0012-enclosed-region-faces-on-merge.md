@@ -90,7 +90,16 @@ The decomposition will instead follow the **rotational next-boundary-edge
 rule**: from a faceless half-edge, the next edge of the *same* cycle is found by
 rotating around the destination vertex to the adjacent faceless half-edge
 (the standard DCEL `next` along a face boundary). This keeps each cycle on a
-single region and separates cycles correctly even when they pinch.
+single region for every **fully-surrounded** enclosure (one faceless edge per
+boundary vertex).
+
+> **Note (added after implementation):** this `prev.twin` rule is correct only at
+> **fully-surrounded** vertices. At a genuine **pinch** vertex — several faceless
+> edges leaving one vertex — it can cross onto the wrong rim, and it depends on a
+> deterministic merge. Both were handled in a follow-up:
+> [ADR-0013](0013-pinch-vertices-and-merge-determinism.md) makes the merge
+> order-independent and switches `nextBoundary` to a geometric clockwise rule, so
+> pinch enclosures (a T-pentomino rotated onto itself) are now valid too.
 
 ## Consequences
 
@@ -140,29 +149,49 @@ not.
   subsequent sides, reflected across the closing axis → `Right`; exactly one new
   inner face; that face is a 4-gon with two 36° and two 144° corners; the former
   gap vertices are now interior with 360° angle sums.
-- **Square oracle:** a U-shaped tromino of unit squares whose translate closes
-  the unit-square hole → exactly one new square face, `Right`.
-- **Pinch case:** a configuration enclosing two regions that meet at a single
-  vertex → both materialised, validation `Right`; asserts the rotational tracer
-  separates the cycles.
+- **Multi-enclosure (square "E"-comb):** a spine of `rows` unit squares with
+  arms on the even rows, closed by a copy translated two units right, caps every
+  notch into an enclosed unit square in a *single merge* — so the decomposition
+  splits the faceless edges into three cycles (one outer, two holes) for a 5-row
+  comb, and it scales: 5/7/9 rows → 2/3/4 enclosures, each validating. This is
+  the multi-cycle coverage.
+- **Non-square tile (3.12.12):** two dodecagons sharing an edge, plus a copy
+  rotated 60° about one centre, encloses a unit equilateral triangle among three
+  dodecagons (3 + 12 + 12 = 360) — four polygons in all. Confirms enclosed tiles
+  need not be squares or rhombi.
+- **Pinch (handled in [ADR-0013](0013-pinch-vertices-and-merge-determinism.md)).**
+  All the enclosures above have every vertex fully surrounded. A true **pinch**
+  (two rims meeting at a single vertex, e.g. a T-pentomino rotated 90°/270° onto
+  its base cell) needed three further fixes — an order-independent merge, a
+  geometric clockwise rim trace, and a rational pinch corner angle — delivered in
+  ADR-0013. With those, the T-pentomino case returns `Right` (10 faces, one
+  enclosed square) deterministically.
 - **Negative (still rejects):** a merge that leaves a *partial* (open) gap, a
   proper edge crossing, or a non-unit sliver → `Left` with the relevant
   `TilingError`.
-- **No-regression:** every existing merge that encloses nothing must produce a
-  byte-for-byte identical result — the clockwise-cycle path is the old
-  behaviour. Re-run the full suite (JVM) and the cross-built specs (JS).
+- **No-regression:** every existing merge that encloses nothing stays valid and
+  equivalent (the clockwise-cycle path subsumes the old behaviour; the traced
+  outer cycle may differ in starting edge, but the tiling is equivalent). The
+  full JVM suite (736 green) and the cross-built copy specs on JS stay green.
 - **Symmetry oracle reuse:** the ADR-0011 idempotence tests (mirror/rotate a
   symmetric tiling onto itself) already exercise the outer-cycle path and must
   stay green.
 
 ## Build order
 
-1. Extract the faceless-edge **cycle decomposition** (rotational tracer) as a
-   tested helper alongside `orderBoundary`, with the pinch-vertex cases.
-2. Add **orientation classification** (signed area sign) over the cycles.
-3. Wire enclosed cycles into `mergeTilings` as new inner faces with per-corner
-   angles; keep the single clockwise cycle as the outer face.
-4. Land the headline + oracle + pinch + negative tests; confirm no regression.
+As implemented, in `mergeTilings` step 4:
+
+1. Replace `orderBoundary`'s single-cycle bag with a **rotational cycle
+   decomposition**: `nextBoundary` rotates around a faceless edge's destination
+   via `prev.twin` through the inner fan until the next faceless edge, tracing
+   every rim into a separate cycle.
+2. **Orientation classification** by signed shoelace area: CW (negative) is the
+   outer face, CCW (positive) is an enclosed region.
+3. Materialise each enclosed cycle as a new inner face with per-corner angles
+   (`(surrounding tile angles at the vertex).conjugate`, the rule the outer
+   boundary already uses); keep the CW cycle(s) as the outer face.
+4. Land the headline + multi-enclosure + no-spurious + negative tests; confirm
+   no regression on JVM and JS.
 
 ## Alternatives considered
 

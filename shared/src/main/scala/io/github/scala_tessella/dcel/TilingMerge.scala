@@ -3,8 +3,10 @@ package io.github.scala_tessella.dcel
 import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
 
 /** Vertex-level merge of two [[TilingDCEL]] instances: identifies coincident vertices, unifies them, rewires
-  * half-edges and faces, and recomputes the outer boundary. The result is a single tiling containing the
-  * union of both inputs' inner faces.
+  * half-edges and faces, and recomputes the boundary. The result is a single tiling containing the union of
+  * both inputs' inner faces, plus any region the weld newly **encloses** — such a region is materialised as a
+  * new inner face rather than left as a hole, per the model's "holes are just inner polygons" invariant
+  * (ADR-0012).
   *
   * Called by the "grow by translation" paths in [[TilingAddition]] (`rawDouble`, `maybeFilled`).
   */
@@ -55,8 +57,9 @@ private[dcel] object TilingMerge:
           vertex.id -> repToVertex(repOf(vertex.id))
         .toMap
 
+    // Stable order (by id) so the merged tiling is a pure function of its inputs, not of hash iteration order.
     val newVertices: List[Vertex] =
-      repToVertex.values.toList
+      repToVertex.values.toList.sortBy(_.id.value)
 
     // -----------------------------------------------------------------------
     // 2. Clone half-edges and faces for the union of the two tilings
@@ -121,11 +124,14 @@ private[dcel] object TilingMerge:
             maybeHalfEdge.map: halfEdge =>
               edgeMap(halfEdge)
 
-    // 2.e – (re)wire twins purely by endpoints in the merged graph
+    // 2.e – (re)wire twins purely by endpoints in the merged graph. Buckets are filled in `allOldEdges` order
+    //        (base edges before copy edges) so the index-pairing below is deterministic: coincident edges from
+    //        the same operand pair with each other, and seam-collapse (step 3) then merges across operands.
     val dirBuckets =
       mutable.HashMap.empty[(VertexId, VertexId), mutable.ArrayBuffer[HalfEdge]]
 
-    edgeMap.values.foreach: e =>
+    allOldEdges.foreach: oldEdge =>
+      val e = edgeMap(oldEdge)
       e.next.foreach: n =>
         val key = (e.origin.id, n.origin.id)
         val buf = dirBuckets.getOrElseUpdate(key, mutable.ArrayBuffer.empty[HalfEdge])
@@ -147,8 +153,10 @@ private[dcel] object TilingMerge:
     // -----------------------------------------------------------------------
     // 3. Collapse duplicated seam edges (same origin/destination)
     // -----------------------------------------------------------------------
+    // Stable order (base edges before copy edges); everything downstream — seam-collapse grouping, faceless-edge
+    // ordering, boundary tracing — inherits it, so the merge result no longer depends on hash iteration order.
     val allNewEdgesInitial: List[HalfEdge] =
-      edgeMap.values.toList
+      allOldEdges.map(edgeMap)
 
     val toRemove = mutable.Set.empty[HalfEdge]
 
@@ -202,24 +210,155 @@ private[dcel] object TilingMerge:
       allNewEdgesInitial.filterNot(toRemove.contains)
 
     // -----------------------------------------------------------------------
-    // 4. Rebuild outer face and assign boundary edges
+    // 4. Decompose the faceless edges into boundary cycles and classify them
     // -----------------------------------------------------------------------
-    // Boundary edges are those not incident to any inner face
-    val boundaryEdges =
+    // After seam-collapse, every half-edge with no incident inner face lies on *some* rim: either the tiling's
+    // outer silhouette, or a region the merge has just enclosed (e.g. the rhombus gap a reflected pentagon
+    // cluster closes). Those faceless edges form one cycle per rim. We trace each cycle (the next-rim edge is
+    // chosen geometrically at pinch vertices, see `nextBoundary`) and classify it by signed area: the clockwise
+    // cycle(s) are the true outer boundary; every counterclockwise
+    // cycle bounds an enclosed empty region that must become a new inner face (ADR-0012).
+    import io.github.scala_tessella.dcel.geometry.BigPoint.*
+    import io.github.scala_tessella.ring_seq.RingSeq.slidingO
+    import scala.annotation.tailrec
+
+    val facelessEdges: List[HalfEdge] =
       allNewEdgesNoDuplicates.filter:
         _.incidentFace.isEmpty
 
-    val newOuterFace = Face(FaceId.outerId)
+    val facelessByOrigin: Map[Vertex, List[HalfEdge]] =
+      facelessEdges.groupBy:
+        _.origin
 
-    if boundaryEdges.nonEmpty then
-      val ordered = boundaryEdges.orderBoundary
-      // Link boundary cycle and assign outer face
-      ordered.linkInCycle()
-      ordered.foreach: e =>
-        e.incidentFace = Some(newOuterFace)
-      newOuterFace.outerComponent = ordered.headOption
+    // Next faceless edge along the same rim. `edge` arrives at `vertex`; its rim continues along a faceless edge
+    // *leaving* `vertex`. Almost every boundary vertex has exactly one such edge. The exception is a **pinch**,
+    // where two rims (e.g. the outer silhouette and an enclosed region) meet at a single vertex and several
+    // faceless edges leave it — there the rim that keeps the region on `edge`'s left is the first one
+    // *clockwise* from `edge.twin`. A topological "rotate through the inner fan" rule cannot do this: the
+    // region's own (empty) wedge has no inner edges to rotate across, so it would jump onto the wrong rim
+    // (ADR-0013).
+    val twoPi                                          = 2 * Math.PI
+    def nextBoundary(edge: HalfEdge): Option[HalfEdge] =
+      edge.twin.flatMap: twin =>
+        val vertex = twin.origin // = edge.destination
+        facelessByOrigin.getOrElse(vertex, Nil) match
+          case Nil           => None
+          case single :: Nil => Some(single)
+          case candidates    =>
+            // Direction of `edge.twin` (from `vertex` back along `edge`), and the smallest clockwise turn from
+            // it to each candidate's direction.
+            val reverseHeading = vertex.coords.angleTo(edge.origin.coords).toDouble
+            Some(candidates.minBy: candidate =>
+              val heading       = vertex.coords.angleTo(candidate.destinationUnsafe.coords).toDouble
+              val clockwiseTurn = ((reverseHeading - heading) % twoPi + twoPi) % twoPi
+              if clockwiseTurn <= 1e-9 then twoPi else clockwiseTurn)
+
+    val visitedBoundary = mutable.Set.empty[HalfEdge]
+    val boundaryCycles  = mutable.ListBuffer.empty[List[HalfEdge]]
+    facelessEdges.foreach: start =>
+      if !visitedBoundary.contains(start) then
+        val cycle                       = mutable.ListBuffer.empty[HalfEdge]
+        @tailrec
+        def trace(edge: HalfEdge): Unit =
+          if !visitedBoundary.contains(edge) then
+            visitedBoundary += edge
+            cycle += edge
+            nextBoundary(edge) match
+              case Some(next) => trace(next)
+              case None       => ()
+        trace(start)
+        boundaryCycles += cycle.toList
+
+    // Signed double area (shoelace, no abs): positive is counterclockwise (an enclosed region in this y-up
+    // frame), negative is clockwise (the outer silhouette).
+    def signedDoubleArea(cycle: List[HalfEdge]): BigDecimal =
+      if cycle.sizeIs < 3 then BigDecimal(0)
+      else
+        cycle
+          .map:
+            _.origin.coords
+          .slidingO(2)
+          .map:
+            (_: @unchecked) match
+              case p1 :: p2 :: Nil => p1.cross(p2)
+          .sum
+
+    val (holeCycles, outerCycles) =
+      boundaryCycles.toList.partition: cycle =>
+        signedDoubleArea(cycle) > 0
+
+    // -----------------------------------------------------------------------
+    // 5. Materialise each enclosed region as a new inner face
+    // -----------------------------------------------------------------------
+    // An ordinary corner's interior angle is the conjugate of the angles the surrounding tiles already
+    // contribute at that vertex (exact, the same per-vertex rule the outer boundary uses below). At a **pinch**
+    // vertex the region also shares the vertex with the outer face (or another region), so "360 − tiles"
+    // overshoots. We avoid an inexact `atan2` there: a simple polygon's interior angles sum to `(n − 2)·180`, so
+    // a *single* pinch corner is exactly that total minus the (exact) other corners — keeping the boundary
+    // angles rational, which the angle-based simplicity check in `TilingValidation` needs (ADR-0013). The rare
+    // multi-pinch hole falls back to reading each pinch angle off the geometry. Fresh ids sit above every id the
+    // merged inner faces already use.
+    import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigRadian}
+
+    def conjugateInteriorAngle(edge: HalfEdge, face: Face): AngleDegree =
+      allNewEdgesNoDuplicates
+        .filter:
+          _.origin eq edge.origin
+        .interiorAnglesSum(face)
+        .conjugate
+
+    def geometricInteriorAngle(edge: HalfEdge): AngleDegree =
+      val vertex      = edge.origin
+      val incomingEnd = edge.prev.map(_.origin).getOrElse(vertex)
+      val incoming    = incomingEnd.coords.angleTo(vertex.coords).toDouble
+      val outgoing    = vertex.coords.angleTo(edge.destinationUnsafe.coords).toDouble
+      var turn        = outgoing - incoming
+      while turn > Math.PI do turn -= twoPi
+      while turn <= -Math.PI do turn += twoPi
+      AngleDegree(BigRadian(Math.PI - turn))
+
+    val firstFreeFaceId: Int =
+      (FaceId.outerId.value :: faceMap.values.map(_.id.value).toList).max + 1
+
+    val newHoleFaces: List[Face] =
+      holeCycles.zipWithIndex.map: (cycle, index) =>
+        val face                     = Face(FaceId(firstFreeFaceId + index))
+        cycle.linkInCycle()
+        cycle.foreach: edge =>
+          edge.incidentFace = Some(face)
+        face.outerComponent = cycle.headOption
+        val (pinchEdges, plainEdges) =
+          cycle.partition: edge =>
+            facelessByOrigin.getOrElse(edge.origin, Nil).sizeIs > 1
+        plainEdges.foreach: edge =>
+          edge.angle = Some(conjugateInteriorAngle(edge, face))
+        pinchEdges match
+          case single :: Nil =>
+            // Exact: close the polygon's angle sum rather than read an inexact atan2.
+            val interiorSum = AngleDegree(180 * (cycle.size - 2))
+            val others      = plainEdges.flatMap(_.angle).sumExact
+            single.angle = Some(interiorSum - others)
+          case _             =>
+            pinchEdges.foreach: edge =>
+              edge.angle = Some(geometricInteriorAngle(edge))
+        face
+
+    // -----------------------------------------------------------------------
+    // 6. Rebuild the outer face from the clockwise boundary cycle(s)
+    // -----------------------------------------------------------------------
+    val newOuterFace               = Face(FaceId.outerId)
+    val outerEdges: List[HalfEdge] =
+      outerCycles.flatten
+
+    if outerEdges.nonEmpty then
+      outerCycles.foreach:
+        _.linkInCycle()
+      outerEdges.foreach: edge =>
+        edge.incidentFace = Some(newOuterFace)
+      newOuterFace.outerComponent = outerCycles.headOption.flatMap:
+        _.headOption
       // Recompute boundary angles from incident inner angles, as in TilingBuilder.setOuterAngles
-      ordered.foreach: outerEdge =>
+      outerEdges.foreach: outerEdge =>
         val vertex         = outerEdge.origin
         val incidentAtV    = allNewEdgesNoDuplicates.filter:
           _.origin eq vertex
@@ -227,29 +366,31 @@ private[dcel] object TilingMerge:
         outerEdge.angle = Some(innerAnglesSum.conjugate)
 
     // -----------------------------------------------------------------------
-    // 5. Ensure each merged vertex has a leaving edge
+    // 7. Ensure each merged vertex has a leaving edge
     // -----------------------------------------------------------------------
     val allNewEdges = allNewEdgesNoDuplicates
 
     newVertices.foreach: vertex =>
-      // Prefer a boundary edge as leaving if available, else any incident edge
-      val boundaryLeaving = boundaryEdges.find:
+      // Prefer an outer-boundary edge as leaving if available, else any incident edge
+      val boundaryLeaving = outerEdges.find:
         _.origin eq vertex
       val anyLeaving      = allNewEdges.find:
         _.origin eq vertex
       vertex.leaving = boundaryLeaving.orElse(anyLeaving)
 
     // -----------------------------------------------------------------------
-    // 6. Build merged faces lists and validate
+    // 8. Build merged faces lists and validate
     // -----------------------------------------------------------------------
-    // Keep only faces still referenced by a surviving inner edge: a unified, fully-overlapping face whose
-    // duplicate edges were collapsed away drops out here, leaving exactly one face per occupied region.
+    // Keep faces still referenced by a surviving inner edge (a unified, fully-overlapping face whose duplicate
+    // edges were collapsed away drops out here, leaving exactly one face per occupied region) and add the
+    // freshly-materialised enclosed faces from step 5.
     val newInnerFaces: List[Face] =
       allNewEdges
         .flatMap: edge =>
           edge.incidentFace
         .filterNot: face =>
           face.isOuter
+        .:::(newHoleFaces)
         .distinct
 
     // Seam-collapse may have removed the very edge a surviving face pointed to as its outer component
