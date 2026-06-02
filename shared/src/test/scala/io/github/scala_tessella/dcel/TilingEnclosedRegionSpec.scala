@@ -204,6 +204,51 @@ class TilingEnclosedRegionSpec extends AnyFlatSpec with Matchers with TilingTest
       enclosedSquare(closed(270)) shouldBe true
     )
 
+  /** The set of grid cells a square tiling occupies, keyed by integer lower-left corner. */
+  private def cells(tiling: TilingDCEL): Set[(Int, Int)] =
+    tiling.innerFaces.map: face =>
+      val c = face.getVerticesUnsafe.map(_.coords).centroid
+      (
+        (c.x - BigDecimal(0.5)).setScale(0, BigDecimal.RoundingMode.HALF_UP).toInt,
+        (c.y - BigDecimal(0.5)).setScale(0, BigDecimal.RoundingMode.HALF_UP).toInt
+      )
+    .toSet
+
+  /** Builds a polyomino equal to `target` (which must contain cell (0,0)) by attaching unit squares one at a
+    * time, trying every boundary vertex and keeping the attachment that lands a new cell inside `target`.
+    */
+  private def buildPolyomino(target: Set[(Int, Int)]): TilingDCEL =
+    require(target.contains((0, 0)))
+    var tiling = square
+    while cells(tiling) != target do
+      val before = cells(tiling)
+      tiling = tiling.boundaryVerticesUnsafe.iterator
+        .flatMap(v => tiling.maybeAddRegularPolygonToBoundary(v.id, RegularPolygon(4)).toOption)
+        .find(grown => cells(grown).subsetOf(target) && cells(grown).size == before.size + 1)
+        .getOrElse(throw new IllegalStateException(s"cannot extend $before towards $target"))
+    tiling
+
+  it should "enclose two squares at a double pinch when an M pentomino is reflected across its base (ADR-0014)" in:
+    // The reported multi-pinch case. Take a 3×3 unit-square net (vertices 1..16, left-to-right then
+    // bottom-to-top) and drop vertices 1, 12, 15: the five survivors form an M/W pentomino (a staircase).
+    // Its base vertices 8, 11, 14 are collinear (here, shifted down one row, on x + y = 3); reflecting across
+    // that axis welds a congruent copy on and encloses TWO separate unit squares that meet at a single pinch
+    // point — 12 faces in all. Each enclosed square has two pinch corners, so the single-pinch closure of
+    // ADR-0013 is not enough; ADR-0014 reads the extra corner exactly off the geometry.
+    val pentomino = buildPolyomino(Set((1, -1), (2, -1), (0, 0), (1, 0), (0, 1)))
+    val result    = pentomino
+      .maybeAddMirroredCopy(BigPoint(BigDecimal(3), BigDecimal(0)), BigPoint(BigDecimal(1), BigDecimal(2)))
+      .value
+    allAssert(
+      pentomino.innerFaces.size shouldBe 5,
+      validate(result).isRight shouldBe true,
+      result.innerFaces.size shouldBe 12, // 10 tiles (the two reflected pentominoes are disjoint) + 2 enclosed
+      // The reflection welds two disjoint 5-cell pentominoes, so any faces above 2 × 5 are newly enclosed.
+      result.innerFaces.size - 2 * pentomino.innerFaces.size shouldBe 2,
+      result.innerFaces.forall(_.getVerticesUnsafe.size == 4) shouldBe true,
+      result.innerFaces.forall(_.anglesUnsafe.forall(_ == AngleDegree(90))) shouldBe true
+    )
+
   it should "enclose a triangle among three dodecagons (the 3.12.12 vertex)" in:
     // Two dodecagons sharing an edge, then a copy rotated 60° about the first dodecagon's centre. 60° is a
     // symmetry of the 12-gon, so the first dodecagon maps onto itself (dedup) and the second lands as a third

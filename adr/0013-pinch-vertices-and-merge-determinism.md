@@ -96,7 +96,10 @@ Genuinely degenerate pinches (real overlaps, crossing edges) still return `Left`
 - Multi-pinch holes still use an inexact `atan2` angle and could, in principle,
   trip the angle-based boundary check on a silhouette with collinear runs; no
   such case is reachable from the current copy operations, and it is noted in the
-  code for if one ever is.
+  code for if one ever is. **Update:** such a case *is* reachable (an M-pentomino
+  reflected across its base encloses two squares that meet at a pinch), and the
+  inexact angle is replaced by an exact one in
+  [ADR-0014](0014-multi-pinch-enclosed-region-angles.md).
 
 ## Testing strategy
 

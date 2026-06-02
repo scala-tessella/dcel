@@ -294,10 +294,10 @@ private[dcel] object TilingMerge:
     // contribute at that vertex (exact, the same per-vertex rule the outer boundary uses below). At a **pinch**
     // vertex the region also shares the vertex with the outer face (or another region), so "360 − tiles"
     // overshoots. We avoid an inexact `atan2` there: a simple polygon's interior angles sum to `(n − 2)·180`, so
-    // a *single* pinch corner is exactly that total minus the (exact) other corners — keeping the boundary
-    // angles rational, which the angle-based simplicity check in `TilingValidation` needs (ADR-0013). The rare
-    // multi-pinch hole falls back to reading each pinch angle off the geometry. Fresh ids sit above every id the
-    // merged inner faces already use.
+    // with `k` pinch corners we read `k − 1` of them exactly off the geometry and close the last by that angle
+    // sum (ADR-0014) — `k = 1` is ADR-0013's single-pinch closure unchanged. Keeping every corner rational is
+    // what the angle-based simplicity check in `TilingValidation` needs. Fresh ids sit above every id the merged
+    // inner faces already use.
     import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigRadian}
 
     def conjugateInteriorAngle(edge: HalfEdge, face: Face): AngleDegree =
@@ -317,6 +317,42 @@ private[dcel] object TilingMerge:
       while turn <= -Math.PI do turn += twoPi
       AngleDegree(BigRadian(Math.PI - turn))
 
+    // ADR-0014: a pinch corner's interior wedge is one of a small set of canonical tiling angles. Recover it
+    // *exactly* from the dot-product cosine of the hole's two (unit) edges at the corner — snapped to the
+    // well-separated admissible cosines (squares/triangles/hexagons → {0, ±½, ±1}; octagons/dodecagons add
+    // ±√2⁄2, ±√3⁄2) — with the cross-product sign giving the reflex case (the hole cycle is CCW). Returns None
+    // for an unrecognised wedge, leaving the inexact `geometricInteriorAngle` fallback.
+    val canonicalCosines: List[(Double, Int)] =
+      List(
+        1.0                 -> 0,
+        Math.sqrt(3) / 2    -> 30,
+        Math.sqrt(2) / 2    -> 45,
+        0.5                 -> 60,
+        0.0                 -> 90,
+        -0.5                -> 120,
+        -(Math.sqrt(2) / 2) -> 135,
+        -(Math.sqrt(3) / 2) -> 150,
+        -1.0                -> 180
+      )
+    val snapTolerance                         = 1e-6
+
+    def exactInteriorAngle(edge: HalfEdge): Option[AngleDegree] =
+      edge.prev.flatMap: prev =>
+        val vertex = edge.origin.coords
+        val u      = prev.origin.coords - vertex
+        val w      = edge.destinationUnsafe.coords - vertex
+        val lenU   = prev.origin.coords.distanceTo(vertex)
+        val lenW   = edge.destinationUnsafe.coords.distanceTo(vertex)
+        if lenU.signum == 0 || lenW.signum == 0 then None
+        else
+          val cos    = (u.dot(w) / (lenU * lenW)).toDouble
+          val reflex = u.cross(w).signum > 0
+          canonicalCosines
+            .minByOption((c, _) => Math.abs(c - cos))
+            .collect:
+              case (c, degrees) if Math.abs(c - cos) <= snapTolerance =>
+                AngleDegree(if reflex then 360 - degrees else degrees)
+
     val firstFreeFaceId: Int =
       (FaceId.outerId.value :: faceMap.values.map(_.id.value).toList).max + 1
 
@@ -333,14 +369,17 @@ private[dcel] object TilingMerge:
         plainEdges.foreach: edge =>
           edge.angle = Some(conjugateInteriorAngle(edge, face))
         pinchEdges match
-          case single :: Nil =>
-            // Exact: close the polygon's angle sum rather than read an inexact atan2.
+          case Nil => () // fully surrounded: every corner is an exact conjugate above
+          case _   =>
+            // Read all but one pinch corner exactly off the geometry, then close the last with the polygon's
+            // angle sum (ADR-0014). For a single pinch this is `k − 1 = 0` reads and the closure alone
+            // (ADR-0013). The closure keeps the hole's angle sum exact even if a read fell back to `atan2`.
+            val readEdges   = pinchEdges.init
+            readEdges.foreach: edge =>
+              edge.angle = Some(exactInteriorAngle(edge).getOrElse(geometricInteriorAngle(edge)))
             val interiorSum = AngleDegree(180 * (cycle.size - 2))
-            val others      = plainEdges.flatMap(_.angle).sumExact
-            single.angle = Some(interiorSum - others)
-          case _             =>
-            pinchEdges.foreach: edge =>
-              edge.angle = Some(geometricInteriorAngle(edge))
+            val others      = (plainEdges ::: readEdges).flatMap(_.angle).sumExact
+            pinchEdges.last.angle = Some(interiorSum - others)
         face
 
     // -----------------------------------------------------------------------

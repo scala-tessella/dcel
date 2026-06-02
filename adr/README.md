@@ -33,6 +33,7 @@ decision. Each file has:
 | 0011 | [Isometric copy operations (mirror / translate / rotate / glide reflect)](0011-isometric-copy-operations.md) | Accepted               |
 | 0012 | [Materialise enclosed regions as faces during merge](0012-enclosed-region-faces-on-merge.md) | Accepted               |
 | 0013 | [Pinch vertices and merge determinism](0013-pinch-vertices-and-merge-determinism.md) | Accepted               |
+| 0014 | [Exact corner angles for multi-pinch enclosed regions](0014-multi-pinch-enclosed-region-angles.md) | Accepted               |
 
 ## When to add an ADR
 

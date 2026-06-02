@@ -4,6 +4,56 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.3] — 2026-06-02
+
+### Fixed
+
+- **Multi-pinch enclosures.** A merge that encloses two regions meeting at a
+  shared pinch vertex — e.g. an M/W pentomino reflected across its base, which
+  traps two unit squares that touch at one point — now returns a valid tiling
+  instead of `Left`. Each enclosed region's pinch corners get exact, rational
+  interior angles (read from the geometry and snapped to the canonical tiling
+  cosines), so the angle-based validation closes. Generalises the single-pinch
+  handling of 0.1.2; no public-API change. See
+  [ADR-0014](adr/0014-multi-pinch-enclosed-region-angles.md).
+
+## [0.1.2] — 2026-05-31
+
+### Added
+
+- **Enclosed regions become faces.** When welding a copy onto a tiling encloses
+  a region that was a face in neither operand — e.g. reflecting a three-pentagon
+  cluster traps a 36°–144° rhombus — that region is now materialised as a new
+  inner face (the model has no holes — "holes are just inner polygons") and the
+  result validates, where it previously failed. Benefits every copy operation.
+  See [ADR-0012](adr/0012-enclosed-region-faces-on-merge.md).
+- **Pinch vertices.** Enclosures that touch the rest of the tiling at a single
+  vertex — e.g. a T-pentomino rotated 90°/270° onto its base cell, trapping a
+  unit square — are traced and materialised correctly, with an exact rational
+  corner angle at the pinch. See
+  [ADR-0013](adr/0013-pinch-vertices-and-merge-determinism.md).
+
+### Changed
+
+- **`mergeTilings` is now deterministic.** The connectivity rebuild is driven
+  from the geometric input rather than `HashMap` iteration order, so the merged
+  tiling is a pure function of its operands — removing a latent source of
+  per-run flakiness from *all* copy operations, not only pinches. See
+  [ADR-0013](adr/0013-pinch-vertices-and-merge-determinism.md).
+
+## [0.1.1] — 2026-05-31
+
+### Added
+
+- **Isometric copy operations.** Grow a tiling by welding a transformed copy of
+  itself onto it, validated in full: `maybeAddTranslatedCopy`,
+  `maybeAddRotatedCopy`, `maybeAddMirroredCopy`, `maybeAddGlideReflectedCopy`,
+  and the underlying `maybeAddCopy(Isometry)`. The copy is accepted only when it
+  lands outside the existing tiling or exactly follows its composition
+  (coincident vertices unified, shared edges collapsed, overlapping faces
+  deduplicated). See
+  [ADR-0011](adr/0011-isometric-copy-operations.md).
+
 ## [0.1.0] — 2026-05-17
 
 First public release. The library has been developed under `0.1.0-SNAPSHOT`
