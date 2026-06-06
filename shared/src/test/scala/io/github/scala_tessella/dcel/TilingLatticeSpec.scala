@@ -6,14 +6,15 @@ import io.github.scala_tessella.dcel.TilingLattice.{
   translationLattice
 }
 import io.github.scala_tessella.dcel.geometry.{BigPoint, RegularPolygon}
-import org.scalatest.OptionValues
+import org.scalatest.{Inspectors, OptionValues}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 /** Largest contained parallelogon (ADR-0015): lattice detection, the maximal cell block, and the public
   * corner-vertex query with its whole-boundary fast path.
   */
-class TilingLatticeSpec extends AnyFlatSpec with Matchers with OptionValues with TilingTestHelpers:
+class TilingLatticeSpec extends AnyFlatSpec with Matchers with OptionValues with Inspectors
+    with TilingTestHelpers:
 
   behavior of "TilingLattice.translationLattice"
 
@@ -117,7 +118,7 @@ class TilingLatticeSpec extends AnyFlatSpec with Matchers with OptionValues with
       // the entire net is one rectangle of complete cells
       block.area.toDouble shouldBe net.innerFaces.size.toDouble +- 1.0e-6,
       block.cellsWide * block.cellsHigh shouldBe net.innerFaces.size,
-      block.corners.forall(c => isVertexOf(c, net)) shouldBe true
+      forEvery(block.corners)(c => isVertexOf(c, net) shouldBe true)
     )
 
   it should "ignore foreign triangles welded onto a square net" in:
@@ -198,5 +199,5 @@ class TilingLatticeSpec extends AnyFlatSpec with Matchers with OptionValues with
       perturbed.innerFaces.size should be > clean.innerFaces.size,
       grownCorners.size shouldBe 4,
       // same four corner positions (the welded triangles are incomplete cells, excluded from the block)
-      cleanCorners.forall(c => grownCorners.exists(_.almostEquals(c))) shouldBe true
+      forEvery(cleanCorners)(c => grownCorners.exists(_.almostEquals(c)) shouldBe true)
     )
