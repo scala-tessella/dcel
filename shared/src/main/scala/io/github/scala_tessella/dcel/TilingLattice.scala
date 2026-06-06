@@ -9,8 +9,8 @@ import scala.collection.mutable
 /** Largest parallelogon contained in a tiling (ADR-0015) and the translation-lattice detection it builds on.
   *
   * Public API (extensions on `TilingDCEL`): [[largestContainedParallelogon]] (ordered corner vertices, the
-  * headline query), [[largestContainedParallelogonBlock]] (the same block as cell dimensions + area), and
-  * [[translationLattice]] (the reduced primitive basis).
+  * headline query) and [[translationLattice]] (the reduced primitive basis). The block view (cell dimensions
+  * + area) behind the corners is kept package-private until a consumer needs it.
   *
   * Detects the primitive translation lattice `{v, w}` of a finite periodic patch from its interior structure.
   * Vertices are typed by an orientation-aware `signature` (the sorted directions to their neighbours), then
@@ -29,11 +29,13 @@ import scala.collection.mutable
   */
 object TilingLattice:
 
-  /** The largest parallelogon contained in a tiling, as a block of whole lattice cells.
+  /** The largest parallelogon contained in a tiling, as a block of whole lattice cells. Internal: the public
+    * query is [[TilingLattice.largestContainedParallelogon]] (corner vertices); this quantitative view is
+    * kept package-private until a consumer needs the area / cell counts.
     *
     * @param corners
-    *   the four ideal lattice-point corners, in order (dominant-orbit positions; snapping them to the actual
-    *   whole-face boundary vertices is build step 3)
+    *   the four ideal lattice-point corners, in order (dominant-orbit positions; the public query snaps these
+    *   to the actual whole-face boundary vertices)
     * @param cellsWide
     *   number of fundamental cells along the first lattice direction
     * @param cellsHigh
@@ -41,7 +43,12 @@ object TilingLattice:
     * @param area
     *   the block area (`cellsWide * cellsHigh * covolume`)
     */
-  case class ParallelogonBlock(corners: List[BigPoint], cellsWide: Int, cellsHigh: Int, area: BigDecimal)
+  private[dcel] case class ParallelogonBlock(
+      corners: List[BigPoint],
+      cellsWide: Int,
+      cellsHigh: Int,
+      area: BigDecimal
+  )
 
   /** Internal: the maximal cell block — lattice basis, origin, the winning cell rectangle `(i0, j0, width,
     * height)`, and inner faces grouped by lattice cell.
@@ -173,14 +180,16 @@ object TilingLattice:
         maximalRectangle(occupied).map(rect => Block(v, w, origin, rect, facesByCell))
       }
 
-    /** The largest contained parallelogon as a block of whole fundamental-domain cells — cell dimensions,
-      * area, and ideal lattice-point corners. Lattice-based only (no whole-boundary fast path); use
-      * [[largestContainedParallelogon]] for the ordered corner vertices.
+    /** Internal: the largest contained parallelogon as a block of whole fundamental-domain cells — cell
+      * dimensions, area, and ideal lattice-point corners. Lattice-based only (no whole-boundary fast path).
+      * The public query is [[largestContainedParallelogon]]; this is package-private pending a consumer that
+      * needs the quantitative view.
       *
       * @return
       *   the block, or `None` if no lattice is found or no cell is complete
       */
-    def largestContainedParallelogonBlock(minOverlapFraction: Double = 0.25): Option[ParallelogonBlock] =
+    private[dcel] def largestContainedParallelogonBlock(minOverlapFraction: Double =
+      0.25): Option[ParallelogonBlock] =
       maximalBlock(minOverlapFraction).map { case Block(v, w, origin, (i0, j0, width, height), _) =>
         def corner(i: Int, j: Int): BigPoint =
           origin + scaled(v, BigDecimal(i)) + scaled(w, BigDecimal(j))

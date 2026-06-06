@@ -97,7 +97,7 @@ class TilingLatticeSpec extends AnyFlatSpec with Matchers with OptionValues with
     val oneHexagon = TilingBuilder.createRegularPolygon(RegularPolygon(6))
     oneHexagon.translationLattice() shouldBe None
 
-  behavior of "TilingLattice.largestContainedParallelogonBlock"
+  behavior of "TilingLattice.largestContainedParallelogonBlock (package-private)"
 
   private def isVertexOf(p: BigPoint, tiling: TilingDCEL): Boolean =
     tiling.vertices.exists(_.coords.almostEquals(p))

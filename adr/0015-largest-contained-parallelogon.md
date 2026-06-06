@@ -53,10 +53,17 @@ Alternatives). Scope of this ADR: **periodic patches**, **whole-face
 
 ```
 // extensions on TilingDCEL (in object TilingLattice, like TilingSymmetry / TilingUniformity)
-def largestContainedParallelogon: Option[List[Vertex]]        // headline: ordered 4/6 corner vertices
-def largestContainedParallelogonBlock: Option[ParallelogonBlock] // the same block: cell dimensions + area
-def translationLattice: Option[(BigPoint, BigPoint)]          // the reduced primitive basis
+def largestContainedParallelogon: Option[List[Vertex]] // headline: ordered 4/6 corner vertices
+def translationLattice: Option[(BigPoint, BigPoint)]   // the reduced primitive basis
 ```
+
+`translationLattice` is published as an independently reusable primitive (it
+feeds ADR-0011's translate op and viewport wallpapering, and answers "is this
+patch periodic?"). The block view behind the corners — cell dimensions and area
+— is **kept package-private** (`largestContainedParallelogonBlock` /
+`ParallelogonBlock`): it is the same computation at a different granularity, with
+no demonstrated consumer yet, so publishing it now would be speculative. It can
+be promoted later without breaking callers; un-publishing later could not.
 
 `Option`, not `Either[TilingError, _]` (cf. ADR-0004): "no parallelogon found"
 is a legitimate empty result for a query, not a failure — consistent with
