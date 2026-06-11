@@ -4,7 +4,7 @@ import io.github.scala_tessella.dcel.Utils.{associateValues, sequence, traverse}
 import io.github.scala_tessella.dcel.conversion.SvgDsl.{attrs, tag}
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint}
 import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
-import io.github.scala_tessella.dcel.{NotFoundError, TilingDCEL, TilingError, ValidationError}
+import io.github.scala_tessella.dcel.{NotFoundError, Tiling, TilingDCEL, TilingError, ValidationError}
 import spire.math.Rational
 
 import scala.util.Try
@@ -100,7 +100,7 @@ private[conversion] object SvgMetadata:
   /** Deserializes the XML metadata that includes all vertices, half-edges, and faces, along with their
     * properties and relationships, and fully reconstructs the complete structure of a [[TilingDCEL]].
     */
-  def fromMetadata(metadata: String): Either[TilingError, TilingDCEL] =
+  def fromMetadata(metadata: String): Either[TilingError, Tiling] =
     // Optimized attribute parsing: single pass into a mutable Map
     def parseAttrs(attrStr: String): Map[String, String] =
       val m = Map.newBuilder[String, String]
@@ -134,7 +134,7 @@ private[conversion] object SvgMetadata:
       vertexAttrs: List[Map[String, String]],
       halfEdgeAttrs: List[Map[String, String]],
       faceAttrs: List[Map[String, String]]
-  ): Either[TilingError, TilingDCEL] =
+  ): Either[TilingError, Tiling] =
     def getAttr(attrs: Map[String, String], owner: String, name: String): Either[ValidationError, String] =
       attrs.get(name)
         .filter:
@@ -268,6 +268,6 @@ private[conversion] object SvgMetadata:
                      _.id == FaceId.outerId
       tiling     = TilingDCEL.fromUntrusted(vertices, halfEdges, innerFaces, outerFace)
       validated <- if vertices.isEmpty && halfEdges.isEmpty && innerFaces.isEmpty then
-        Right(TilingDCEL.empty)
+        Right(Tiling.empty)
       else tiling
     yield validated

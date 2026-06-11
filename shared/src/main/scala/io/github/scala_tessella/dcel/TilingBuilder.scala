@@ -83,28 +83,28 @@ object TilingBuilder:
     * @return
     *   Either a TilingError explaining the validation error, or the successfully created TilingDCEL.
     */
-  def createSimplePolygon(degrees: Int*): Either[TilingError, TilingDCEL] =
+  def createSimplePolygon(degrees: Int*): Either[TilingError, Tiling] =
     for
       validatedSimplePolygon <- SimplePolygon.fromUntrusted(degrees*)
-    yield createSimplePolygonUnsafe(validatedSimplePolygon)
+    yield Tiling.trusted(createSimplePolygonUnsafe(validatedSimplePolygon))
 
   /** Variant of [[createSimplePolygon(degrees:Int*)*]] taking a vector of [[geometry.AngleDegree]] values,
     * which allows rational angles. Same validation semantics.
     */
-  def createSimplePolygon(angles: Vector[AngleDegree]): Either[TilingError, TilingDCEL] =
+  def createSimplePolygon(angles: Vector[AngleDegree]): Either[TilingError, Tiling] =
     for
       validatedSimplePolygon <- SimplePolygon.fromUntrusted(angles)
-    yield createSimplePolygonUnsafe(validatedSimplePolygon)
+    yield Tiling.trusted(createSimplePolygonUnsafe(validatedSimplePolygon))
 
   /** Creates a TilingDCEL for a single regular polygon with unit-length sides.
     *
     * @param polygon
     *   The [[geometry.RegularPolygon]] to create.
     */
-  def createRegularPolygon(polygon: RegularPolygon): TilingDCEL =
+  def createRegularPolygon(polygon: RegularPolygon): Tiling =
     val angles = polygon.angles
     val points = calculateVertexPoints(angles)
-    buildDCELFromPointsUnsafe(points, angles.toList)
+    Tiling.trusted(buildDCELFromPointsUnsafe(points, angles.toList))
 
   /** Given validated points and angles, builds the TilingDCEL structure.
     */
@@ -186,10 +186,10 @@ object TilingBuilder:
     * @param height
     *   number of triangle pairs (rhombi) on each colum
     */
-  def createTriangleNet(width: Int, height: Int): Either[TilingError, TilingDCEL] =
+  def createTriangleNet(width: Int, height: Int): Either[TilingError, Tiling] =
     for
       (refinedWidth, refinedHeight) <- validatePositiveDimensions(width, height)
-    yield TilingNetBuilder.createTriangleNetUnsafe(refinedWidth, refinedHeight)
+    yield Tiling.trusted(TilingNetBuilder.createTriangleNetUnsafe(refinedWidth, refinedHeight))
 
   /** Create a tiling made of a net of identical rhombi
     *
@@ -204,12 +204,12 @@ object TilingBuilder:
       width: Int,
       height: Int,
       angle: AngleDegree = AngleDegree(90)
-  ): Either[TilingError, TilingDCEL] =
+  ): Either[TilingError, Tiling] =
     for
       (refinedWidth, refinedHeight) <- validatePositiveDimensions(width, height)
       refinedAngle                  <-
         refineOrError[AngleDegree, HexagonInteriorAngle](angle, "angle")
-    yield TilingNetBuilder.createRhombusNetUnsafe(refinedWidth, refinedHeight, refinedAngle)
+    yield Tiling.trusted(TilingNetBuilder.createRhombusNetUnsafe(refinedWidth, refinedHeight, refinedAngle))
 
   /** Create a tiling made of a net of identical hexagons
     *
@@ -226,12 +226,12 @@ object TilingBuilder:
       width: Int,
       height: Int,
       angle: AngleDegree = AngleDegree(120)
-  ): Either[TilingError, TilingDCEL] =
+  ): Either[TilingError, Tiling] =
     for
       (refinedWidth, refinedHeight) <- validatePositiveDimensions(width, height)
       refinedAngle                  <-
         refineOrError[AngleDegree, HexagonInteriorAngle](angle, "angle")
-    yield TilingNetBuilder.createHexagonNetUnsafe(refinedWidth, refinedHeight, refinedAngle)
+    yield Tiling.trusted(TilingNetBuilder.createHexagonNetUnsafe(refinedWidth, refinedHeight, refinedAngle))
 
   final private class HexagonInteriorAngle
   private given Constraint[AngleDegree, HexagonInteriorAngle] with
@@ -247,7 +247,7 @@ object TilingBuilder:
     * @param polygon
     *   the regular polygon that serves as the basis for the ring structure creation
     */
-  def createRing(polygon: RegularPolygon): Either[TilingError, TilingDCEL] =
+  def createRing(polygon: RegularPolygon): Either[TilingError, Tiling] =
     val sides: Int = polygon.toSides
     if sides < 3 then
       return Left(
@@ -264,9 +264,11 @@ object TilingBuilder:
         .map: i =>
           VertexId(i)
         .toList
-    vertexIds.foldLeft(Right(first): Either[TilingError, TilingDCEL]): (either, vertexId) =>
-      either.flatMap: ring =>
-        ring.addRegularPolygonToBoundary(vertexId, polygon)
+    vertexIds
+      .foldLeft(Right(first): Either[TilingError, TilingDCEL]): (either, vertexId) =>
+        either.flatMap: ring =>
+          ring.addRegularPolygonToBoundary(vertexId, polygon)
+      .map(Tiling.trusted)
 
   /** Creates a triangle net of the given dimensions and then deletes the faces around every vertex selected
     * by the predicate `f`, producing a tiling with intentional holes.
@@ -285,7 +287,7 @@ object TilingBuilder:
   def createHoledTriangleNet(
       width: Int,
       height: Int
-  )(f: (Int, Int) => Boolean): Either[TilingError, TilingDCEL] =
+  )(f: (Int, Int) => Boolean): Either[TilingError, Tiling] =
     val transform: (Int, Int) => VertexId = (x, y) => VertexId(x + 1 + y * (width + 1))
     val holes: IndexedSeq[VertexId]       =
       for
@@ -299,4 +301,4 @@ object TilingBuilder:
                   .foldLeft(Right(base): Either[TilingError, TilingDCEL]): (either, vertexId) =>
                     either.flatMap: tilingDCEL =>
                       tilingDCEL.maybeDeleteVertex(vertexId)
-    yield tiling
+    yield Tiling.trusted(tiling)

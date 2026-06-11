@@ -55,7 +55,7 @@ class TilingLatticeSpec extends AnyFlatSpec with Matchers with OptionValues with
     // the foreign triangles add only boundary vertices, so the interior lattice must survive.
     val clean     = TilingBuilder.createHexagonNet(8, 8).value
     val perturbed =
-      clean.boundaryVerticesUnsafe.map(_.id).take(12).foldLeft(clean) { (tiling, vid) =>
+      clean.boundaryVerticesUnsafe.map(_.id).take(12).foldLeft(clean: TilingDCEL) { (tiling, vid) =>
         tiling.maybeAddRegularPolygonToBoundary(vid, RegularPolygon(3)).getOrElse(tiling)
       }
     val lattice   = perturbed.translationLattice()

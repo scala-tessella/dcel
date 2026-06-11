@@ -638,10 +638,10 @@ object TilingDCEL:
       halfEdges: List[HalfEdge],
       innerFaces: List[Face],
       outerFace: Face
-  ): Either[TilingError, TilingDCEL] =
+  ): Either[TilingError, Tiling] =
     val candidateTiling = apply(vertices, halfEdges, innerFaces, outerFace)
     validate(candidateTiling).map: _ =>
-      candidateTiling
+      Tiling.trusted(candidateTiling)
 
   /** The empty tiling: no vertices, no edges, no inner faces, just the bare outer face. */
   def empty: TilingDCEL =
@@ -655,17 +655,17 @@ object TilingDCEL:
   /** Creates a tiling consisting of a single simple polygon described by its interior angles in integer
     * degrees. Delegates to [[TilingBuilder.createSimplePolygon]].
     */
-  def createSimplePolygon(degrees: Int*): Either[TilingError, TilingDCEL] =
+  def createSimplePolygon(degrees: Int*): Either[TilingError, Tiling] =
     TilingBuilder.createSimplePolygon(degrees*)
 
   /** Variant of [[createSimplePolygon(degrees:Int*)*]] taking a vector of [[geometry.AngleDegree]] values
     * (allowing rational angles).
     */
-  def createSimplePolygon(angles: Vector[AngleDegree]): Either[TilingError, TilingDCEL] =
+  def createSimplePolygon(angles: Vector[AngleDegree]): Either[TilingError, Tiling] =
     TilingBuilder.createSimplePolygon(angles)
 
   /** Creates a tiling consisting of a single regular polygon. Total: delegates to
     * [[TilingBuilder.createRegularPolygon]].
     */
-  def createRegularPolygon(polygon: RegularPolygon): TilingDCEL =
+  def createRegularPolygon(polygon: RegularPolygon): Tiling =
     TilingBuilder.createRegularPolygon(polygon)
