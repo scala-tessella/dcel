@@ -1,6 +1,6 @@
 # ADR-0016: Scala Native stays blocked on Spire — keep waiting, don't replace
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-06-11
 
 ## Context and problem statement

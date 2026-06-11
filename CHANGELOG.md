@@ -4,6 +4,30 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **Hardened growth, uniformity and traversal internals.** Broken-topology
+  states in the growth pipeline now surface as `TopologyError` instead of
+  throwing (shared-edge traversal, boundary-intersection reporting); the
+  uniformity analysis builds its local DCELs in stable id order rather than
+  hash iteration order (extending the determinism discipline of
+  [ADR-0013](adr/0013-pinch-vertices-and-merge-determinism.md)); accidental
+  quadratics removed from boundary-path collection and intersection
+  decoding. No public-API change.
+
+### Infrastructure
+
+- **Construction benchmark.** New JMH suite timing the net builders
+  end-to-end — the polygon-by-polygon growth pipeline, previously the one
+  hot path no benchmark measured — with a committed 30-iteration JSON
+  baseline for before/after comparisons (see `benchmarks/RUNBOOK.md`).
+- **ADR-0016.** Scala Native remains blocked: Spire publishes no Native 0.5
+  artifact while the rest of the dependency set is Native 0.5-only. Decision:
+  keep waiting (no demand), with the Spire-replacement contingency documented.
+  See [ADR-0016](adr/0016-native-wait-for-spire.md).
+
 ## [0.1.4] — 2026-06-11
 
 ### Added
