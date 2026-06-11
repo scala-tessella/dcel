@@ -50,10 +50,14 @@ object Tiling:
   validation fixtures).
 - **No forgery**: `TilingDCEL`'s constructor is private (hence `copy`/`apply`
   too); the only public raw→`Tiling` path is `Tiling.from`, which validates.
-- **The empty quirk**: `validate` rejects the structurally empty tiling (the
-  bare outer face fails per-entity checks), yet it is a legitimate blank
-  canvas; `Tiling.from` certifies structural emptiness directly, mirroring
-  (and now backing) the `SvgMetadata.fromMetadata` special case.
+- **The empty quirk, fixed at the root**: `validate` used to reject the
+  structurally empty tiling — the bare outer face failed per-entity checks,
+  even though the other three validation stages (and the test suite) already
+  treated empty as valid, and `SvgMetadata.fromMetadata` carried a workaround.
+  `validateCompleteness` now certifies structural emptiness (all components
+  empty *and* a bare outer face — tighter than the old workaround, which
+  ignored dangling outer wiring); `Tiling.from` and `fromMetadata` are plain
+  delegations to `validate`.
 
 ### Trust table
 

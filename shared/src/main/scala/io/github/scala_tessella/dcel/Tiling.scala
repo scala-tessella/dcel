@@ -32,20 +32,15 @@ opaque type Tiling <: TilingDCEL = TilingDCEL
 
 object Tiling:
 
-  /** Certifies an arbitrary [[TilingDCEL]] by running [[TilingValidation.validate]] on it.
-    *
-    * The structurally empty tiling (no vertices, no half-edges, no inner faces) is certified directly: it is
-    * a legitimate blank canvas even though the bare outer face fails per-entity validation.
+  /** Certifies an arbitrary [[TilingDCEL]] by running [[TilingValidation.validate]] on it. The structurally
+    * empty tiling validates as the legitimate blank canvas.
     *
     * @return
     *   The certified tiling, or the [[TilingError]] reported by validation.
     */
   def from(tilingDCEL: TilingDCEL): Either[TilingError, Tiling] =
-    if tilingDCEL.vertices.isEmpty && tilingDCEL.halfEdges.isEmpty && tilingDCEL.innerFaces.isEmpty then
-      Right(empty)
-    else
-      validate(tilingDCEL).map: _ =>
-        tilingDCEL
+    validate(tilingDCEL).map: _ =>
+      tilingDCEL
 
   /** Wraps without validating. Internal trust boundary (ADR-0017): callers assert that `tilingDCEL` is valid
     * — either by construction or because validation already ran. Every use site must be justified in the

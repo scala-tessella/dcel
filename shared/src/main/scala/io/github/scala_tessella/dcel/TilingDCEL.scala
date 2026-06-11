@@ -44,6 +44,13 @@ final case class TilingDCEL private (
   def isEmpty: Boolean =
     vertices.isEmpty
 
+  /** True when the tiling is the structurally empty one: no components at all and a bare outer face. The
+    * empty tiling is valid (a blank canvas); a tiling with empty lists but a wired outer face is not.
+    */
+  private[dcel] def isStructurallyEmpty: Boolean =
+    vertices.isEmpty && halfEdges.isEmpty && innerFaces.isEmpty &&
+      outerFace.outerComponent.isEmpty && outerFace.innerComponents.isEmpty
+
   /** All vertex coordinates indexed by `VertexId`. Computed on each call. */
   def coordinates: Map[VertexId, BigPoint] =
     vertices

@@ -266,8 +266,5 @@ private[conversion] object SvgMetadata:
                    )
       innerFaces = faces.filterNot:
                      _.id == FaceId.outerId
-      tiling     = TilingDCEL.fromUntrusted(vertices, halfEdges, innerFaces, outerFace)
-      validated <- if vertices.isEmpty && halfEdges.isEmpty && innerFaces.isEmpty then
-        Right(Tiling.empty)
-      else tiling
+      validated <- TilingDCEL.fromUntrusted(vertices, halfEdges, innerFaces, outerFace)
     yield validated
