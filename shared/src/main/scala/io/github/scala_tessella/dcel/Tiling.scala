@@ -117,9 +117,14 @@ object Tiling:
       * reflecting it across the centroid for an equilateral-triangle boundary). Useful for growing periodic
       * tilings without computing per-vertex additions.
       *
+      * Like the copy operations, the merged result is validated in full before being returned: `rawDouble`'s
+      * merge can mis-wire the boundary on some non-convex parallelogon shapes (found by the ADR-0017
+      * certification property — a boundary edge can end up without an angle), and validation turns that into
+      * an honest `Left` instead of a corrupt success.
+      *
       * @return
-      *   The doubled tiling, or [[ValidationError]] when the tiling's boundary is not a parallelogon (and not
-      *   an equilateral triangle).
+      *   The doubled tiling, or a [[TilingError]] when the tiling's boundary is not a parallelogon (and not
+      *   an equilateral triangle), or when the doubling merge fails validation.
       */
     def doubleArea: Either[TilingError, Tiling] =
       if tiling.isEmpty then
@@ -129,19 +134,19 @@ object Tiling:
         lazy val boundary = tiling.boundaryVerticesUnsafe
         polygon.parallelogonDoubleIndices match
           case None if polygon.isEquilateralTriangle =>
-            val angles = polygon.toAngles
-            val origin =
+            val angles  = polygon.toAngles
+            val origin  =
               angles.indexWhere: angleDegree =>
                 angleDegree == AngleDegree(60)
-            val repeat = (angles.size / 3) + origin
-            Right(trusted(tiling.rawDouble(
-              boundary(origin),
-              boundary(repeat),
-              withInversion = true
-            )))
+            val repeat  = (angles.size / 3) + origin
+            val doubled = tiling.rawDouble(boundary(origin), boundary(repeat), withInversion = true)
+            validate(doubled).map: _ =>
+              trusted(doubled)
           case None                                  => Left(ValidationError("Tiling is not a parallelogon, cannot fill the whole plane."))
           case Some((origin, repeat))                =>
-            Right(trusted(tiling.rawDouble(boundary(origin), boundary(repeat))))
+            val doubled = tiling.rawDouble(boundary(origin), boundary(repeat))
+            validate(doubled).map: _ =>
+              trusted(doubled)
 
     /** Adds a copy of the whole tiling to itself under the given [[Isometry]] (translation, rotation,
       * reflection or glide reflection), merging it in and validating the result in full. The single primitive

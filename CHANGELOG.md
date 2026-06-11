@@ -4,6 +4,23 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **`doubleArea` could certify an invalid tiling.** On some non-convex
+  parallelogon boundaries, `rawDouble`'s merge leaves a boundary edge without
+  an angle while still returning `Right`; the corrupt value then crashed later
+  queries (seen as the flaky Scala.js CI failure, Node exit 134). `doubleArea`
+  now validates its merged result like the copy operations and returns an
+  honest `Left` for those shapes. Found by the ADR-0017 certification
+  property on its first days of service.
+- **`validate` no longer hangs on topologically broken candidates.** The
+  geometry and spatial stages traverse vertex rings and face cycles assuming
+  sane wiring; on a broken candidate (e.g. a rejected overlapping merge) the
+  traversal never terminated and exhausted the heap. Topology now gates the
+  later stages, so such candidates fail fast with a `TopologyError`.
+
 ## [0.2.0] — 2026-06-11
 
 ### Changed (breaking)

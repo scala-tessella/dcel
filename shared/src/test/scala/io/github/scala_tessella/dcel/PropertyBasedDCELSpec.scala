@@ -235,9 +235,11 @@ class PropertyBasedDCELSpec
         val boundaryStarts                                 = t.boundaryEdgesUnsafe.map(_.origin)
         def randomBoundary: Option[Vertex]                 =
           if boundaryStarts.isEmpty then None else Some(boundaryStarts(rng.nextInt(boundaryStarts.length)))
-        // Cap the patch size: doubleArea grows geometrically, and consecutive doublings would
-        // exhaust the Node.js heap on the Scala.js run.
-        val roomToGrow                                     = t.innerFaces.sizeIs < 50
+        // Cap the patch size before EVERY multiplicative op: doubleArea doubles, a translated copy
+        // can nearly double, and fanAt merges up to five copies of the whole tiling. An unlucky
+        // random sequence of uncapped multiplications exhausts the Node.js heap on the Scala.js
+        // run (V8 aborts with exit code 134) — seen as flaky CI before this gate.
+        val roomToGrow                                     = t.innerFaces.sizeIs < 30
         val attempted: Option[Either[TilingError, Tiling]] = rng.nextInt(6) match
           case 0 => randomBoundary.map(v =>
               t.maybeAddRegularPolygonToBoundary(v.id, RegularPolygon(3 + rng.nextInt(4)))
@@ -247,12 +249,14 @@ class PropertyBasedDCELSpec
             else Some(t.maybeDeleteFace(t.innerFaces(rng.nextInt(t.innerFaces.length)).id))
           case 2 => Option.when(roomToGrow)(t.doubleArea)
           case 3 =>
-            randomBoundary.flatMap(v =>
-              v.leaving.flatMap(_.destination).map(_.coords).map(dest =>
-                t.maybeAddTranslatedCopy(v.coords, dest)
+            Option.when(roomToGrow)(()).flatMap(_ =>
+              randomBoundary.flatMap(v =>
+                v.leaving.flatMap(_.destination).map(_.coords).map(dest =>
+                  t.maybeAddTranslatedCopy(v.coords, dest)
+                )
               )
             )
-          case 4 => randomBoundary.map(v => t.fanAt(v.id))
+          case 4 => Option.when(roomToGrow)(()).flatMap(_ => randomBoundary.map(v => t.fanAt(v.id)))
           case 5 => randomBoundary.map(v => t.maybeDeleteVertex(v.id))
         attempted match
           case Some(Right(grown)) =>

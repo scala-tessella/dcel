@@ -289,9 +289,12 @@ object TilingValidation:
     */
   def validate(tiling: TilingDCEL): Either[TilingError, Unit] =
     validateCompleteness(tiling).flatMap: _ =>
-      val topoErrors  = validateTopologically(tiling).left.toOption.map(_.message)
-      val geoErrors   = validateGeometrically(tiling).left.toOption.map(_.message)
-      val spaceErrors = validateSpatially(tiling).left.toOption.map(_.message)
-      val allErrors   = topoErrors.toList ::: geoErrors.toList ::: spaceErrors.toList
-      if allErrors.isEmpty then Right(())
-      else Left(TilingError.combineErrors(allErrors, ErrorCategory.Validation))
+      // Topology gates the later stages: geometry and spatial checks traverse vertex rings and face
+      // cycles assuming sane wiring, and on a topologically broken candidate (e.g. a rejected
+      // overlapping merge) an unbounded traversal would never terminate.
+      validateTopologically(tiling).flatMap: _ =>
+        val geoErrors   = validateGeometrically(tiling).left.toOption.map(_.message)
+        val spaceErrors = validateSpatially(tiling).left.toOption.map(_.message)
+        val allErrors   = geoErrors.toList ::: spaceErrors.toList
+        if allErrors.isEmpty then Right(())
+        else Left(TilingError.combineErrors(allErrors, ErrorCategory.Validation))

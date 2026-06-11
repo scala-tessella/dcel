@@ -52,3 +52,23 @@ class TilingSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
   it should "be structurally the empty TilingDCEL" in:
     (Tiling.empty: TilingDCEL) shouldBe TilingDCEL.empty
+
+  behavior of "Tiling.doubleArea"
+
+  it should "never certify an invalid doubling (regression: triangle plus pentagon)" in:
+    // Found by the ADR-0017 certification property: on this non-convex parallelogon boundary,
+    // rawDouble's merge left a boundary edge without an angle while still returning Right.
+    // doubleArea now validates the merged result, so the outcome is either a Left or a
+    // re-certifiable tiling - never a corrupt success.
+    import io.github.scala_tessella.dcel.geometry.RegularPolygon
+    val outcomes =
+      for
+        vertexId <- List(V1, V2, V3)
+        grown    <- triangle.maybeAddRegularPolygonToBoundary(vertexId, RegularPolygon(5)).toOption
+      yield grown.doubleArea match
+        case Right(doubled) => Tiling.from(doubled).isRight
+        case Left(_)        => true
+    allAssert(
+      outcomes should not be empty,
+      outcomes.forall(identity) shouldBe true
+    )

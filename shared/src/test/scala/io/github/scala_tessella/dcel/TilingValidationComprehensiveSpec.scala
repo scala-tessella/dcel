@@ -25,7 +25,9 @@ class TilingValidationComprehensiveSpec extends AnyFlatSpec with Matchers with T
       List.fill(4)(AngleDegree(90))
     )
 
-  it should "aggregate errors coming from topology, geometry and spatial checks" in:
+  it should "report topology errors alone, gating the geometry and spatial stages" in:
+    // Topology gates the later stages (geometry/spatial traversals assume sane wiring and could
+    // loop forever on a topologically broken candidate), so its errors preempt the others.
     val tiling = incorrectUnitLengthSquare
     // break topology: twin of itself
     tiling.halfEdges.head.twin = Some(tiling.halfEdges.head)
@@ -38,6 +40,22 @@ class TilingValidationComprehensiveSpec extends AnyFlatSpec with Matchers with T
         val msg = res.left.value.message
         allAssert(
           msg should include("has itself as twin"),
+          msg should not include "cannot have full circles",
+          msg should not include "unit length"
+        )
+      }
+    )
+
+  it should "aggregate errors coming from geometry and spatial checks when topology passes" in:
+    val tiling = incorrectUnitLengthSquare
+    // break geometry only: full circle angle (topology is sound, edge lengths are not unit)
+    tiling.halfEdges.tail.head.angle = Some(AngleDegree(360))
+
+    val res = validate(tiling)
+    allAssert(
+      res.isLeft shouldBe true, {
+        val msg = res.left.value.message
+        allAssert(
           msg should include("cannot have full circles"),
           msg should include("unit length")
         )

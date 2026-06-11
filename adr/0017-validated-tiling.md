@@ -70,8 +70,8 @@ property test in `PropertyBasedDCELSpec`.
 |---|---|---|
 | Constructor guarantee | `TilingBuilder.create{SimplePolygon ×2, RegularPolygon, TriangleNet, RhombusNet, HexagonNet, Ring}` | Built valid by construction (ADR-0001/0005 geometry); documented guarantee since 0.1.0. `createHoledTriangleNet` needs no wrap: it folds certified deletions. |
 | Post-validate | `TilingDCEL.fromUntrusted`, `Tiling.empty`, `SvgMetadata.fromMetadata` | `validate` (or the empty check) runs immediately before the wrap. |
-| Internal validate | `maybeAddCopy` + 4 named variants, `fanAt`, `fanAround`, `repeatAlong` | The delegated machinery runs full `validate` before returning Right (TilingMultiplication). |
-| By construction | `maybeAdd{Regular,Simple}Polygon{,ToBoundary}`, `maybeDelete{Vertex,Edge,Face}`, `doubleArea` | Growth/deletion pipelines maintain invariants with inline checks (boundary intersection, angle bookkeeping); full re-validation would re-pay the expensive pipeline per step. Sound only on a valid receiver — which the `Tiling` receiver type now guarantees. |
+| Internal validate | `maybeAddCopy` + 4 named variants, `fanAt`, `fanAround`, `repeatAlong`, `doubleArea` | The delegated machinery (or the op itself, for `doubleArea`) runs full `validate` before returning Right. `doubleArea` was originally classed by-construction; the certification property promptly refuted that — `rawDouble`'s merge can leave a boundary edge without an angle on some non-convex parallelogon shapes — so it validates like its merge siblings. |
+| By construction | `maybeAdd{Regular,Simple}Polygon{,ToBoundary}`, `maybeDelete{Vertex,Edge,Face}` | Growth/deletion pipelines maintain invariants with inline checks (boundary intersection, angle bookkeeping); full re-validation would re-pay the expensive pipeline per step. Sound only on a valid receiver — which the `Tiling` receiver type now guarantees. |
 | Test assertions | `TilingEquivalencySpec` (deepCopy results) | A deep copy of a certified tiling is certified; tests state it explicitly. |
 
 ### The honest guarantee
