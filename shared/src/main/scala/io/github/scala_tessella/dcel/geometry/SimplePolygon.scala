@@ -252,19 +252,38 @@ object SimplePolygon:
 
           allSegmentsFitting() || allSegmentsFitting(_.reverse)
 
+        lazy val points: Vector[BigPoint] = toBigPoints.toVector
+
+        /** Geometric confirmation of a turn-based candidate: each side must be the orientation-reversed
+          * translate of its opposite (the antiparallel fit). The turn-slice check alone is vacuous when a
+          * side is a single edge (empty slice) and never constrains the heading offset between opposite sides
+          * — e.g. the pentagon-plus-triangle "house" hexagon passed it while not tiling by translation at
+          * all.
+          */
+        def isGeometricParallelogon(ijk: List[Int]): Boolean =
+          val cs = completeHalf(ijk)
+          (0 to 2).forall: m =>
+            val a   = cs(m)
+            val b3  = if m == 2 then cs(0) + n else cs(m + 4)
+            val len = cs(m + 1) - a
+            len == 0 || {
+              val delta = points(a % n) - points(b3 % n)
+              (1 to len).forall: t =>
+                (points((a + t) % n) - points((b3 - t) % n)).almostEquals(delta)
+            }
+
         def maxSegmentLength(ijk: List[Int]): Int =
           List(ijk(1) - ijk(0), ijk(2) - ijk(1), ijk(0) + half - ijk(2)).max
 
         // give precedence to square results
         sqr
-          .find:
-            isParallelogon
-//          .orElse(hex.find(isParallelogon))
+          .find: candidate =>
+            isParallelogon(candidate) && isGeometricParallelogon(candidate)
           // otherwise, find the result with the longest segment
           .orElse:
             hex
-              .filter:
-                isParallelogon
+              .filter: candidate =>
+                isParallelogon(candidate) && isGeometricParallelogon(candidate)
               .maxByOption:
                 maxSegmentLength
           .map:

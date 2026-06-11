@@ -142,6 +142,13 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
         )
     )
 
+  they should "be empty for the pentagon-plus-triangle house (not a translational prototile)" in:
+    // Regression: every side is a single edge, so the turn-slice fitting check is vacuous and the
+    // house used to pass as a fake 6-corner parallelogon — the root cause of doubleArea producing
+    // mis-wired merges. The geometric antiparallel-fit confirmation rejects it.
+    val house: SimplePolygon = SimplePolygon(60, 168, 108, 108, 108, 168)
+    house.parallelogonIndices shouldBe Nil
+
   they should "be true for a carved boundary" in:
 
     /** <img src="file:../../../../../../resources/simple/carved.svg"/> */

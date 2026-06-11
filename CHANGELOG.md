@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`parallelogonIndices` accepted false positives.** The turn-slice fitting
+  check is vacuous when every candidate side is a single edge and never
+  constrains the heading offset between opposite sides, so shapes like the
+  pentagon-plus-triangle "house" hexagon passed as parallelogons while not
+  tiling by translation at all. Candidates are now confirmed geometrically:
+  each side must be the orientation-reversed translate of its opposite. This
+  was the root cause of `doubleArea`'s mis-wired merges — it doubled along a
+  chord of a shape that was never doubleable; such shapes now correctly
+  report "not a parallelogon".
 - **`doubleArea` could certify an invalid tiling.** On some non-convex
   parallelogon boundaries, `rawDouble`'s merge leaves a boundary edge without
   an angle while still returning `Right`; the corrupt value then crashed later
