@@ -241,7 +241,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       }
     )
 
-  it should "add the same irregular pentagon with a different orientation to a triangle, producing a valid DCEL" in:
+  it should "add the same irregular pentagon, differently oriented, to a triangle, giving a valid DCEL" in:
     val result =
       triangle.addSimplePolygonToBoundary(V1, SimplePolygon(irregularPentagonAngles.rotateRight(1)))
 
@@ -582,7 +582,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       .maybeAddRegularPolygonToBoundary(V1, RegularPolygon(6)).value
       .maybeAddRegularPolygonToBoundary(VertexId(7), RegularPolygon(6)).value
 
-  it should "successfully add an hexagon with more than one edge shared on both sides of the edge to build on" in:
+  it should "add an hexagon with more than one edge shared on both sides of the edge to build on" in:
     val result = threeHexagons
       .maybeAddRegularPolygonToBoundary(V1, RegularPolygon(6))
     allAssert(
@@ -594,7 +594,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       }
     )
 
-  it should "successfully add an hexagon with more than one edge shared on one side of the edge to build on" in:
+  it should "add an hexagon with more than one edge shared on one side of the edge to build on" in:
     val result = threeHexagons
       .maybeAddRegularPolygonToBoundary(V2, RegularPolygon(6))
     allAssert(
@@ -606,7 +606,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       }
     )
 
-  it should "successfully add an hexagon with more than one edge shared on the other side of the edge to build on" in:
+  it should "add an hexagon with more than one edge shared on the other side of the edge to build on" in:
     val result = threeHexagons
       .maybeAddRegularPolygonToBoundary(VertexId(7), RegularPolygon(6))
     allAssert(
@@ -637,7 +637,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       }
     )
 
-  it should "successfully add a square with more than one edge shared on the other side of the edge to build on" in:
+  it should "add a square with more than one edge shared on the other side of the edge to build on" in:
     val result = threeSquares
       .maybeAddRegularPolygonToBoundary(V2, RegularPolygon(4))
     allAssert(

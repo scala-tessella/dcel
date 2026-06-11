@@ -63,5 +63,5 @@ class TilingSmallestSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       .addRegularPolygon(V1, V2, RegularPolygon(3)).value
       .addRegularPolygonToBoundary(V2, RegularPolygon(3))
 
-  it should "add an inner triangle to a square and then a triangle, producing the smallest DCEL with a non boundary face" in:
+  it should "add a triangle inside a square, then another: the smallest DCEL with a non-boundary face" in:
     smallestFace.isRight shouldBe true

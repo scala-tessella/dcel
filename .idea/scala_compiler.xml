@@ -7,21 +7,21 @@
       <parameters>
         <parameter value="-Xsemanticdb" />
         <parameter value="-semanticdb-target" />
-        <parameter value="$PROJECT_DIR$/generator/target/scala-3.8.3/test-meta" />
+        <parameter value="$PROJECT_DIR$/generator/target/scala-3.8.4/test-meta" />
       </parameters>
     </profile>
     <profile name="sbt 11" modules="dcel-root.dcel-generator.main">
       <parameters>
         <parameter value="-Xsemanticdb" />
         <parameter value="-semanticdb-target" />
-        <parameter value="$PROJECT_DIR$/generator/target/scala-3.8.3/meta" />
+        <parameter value="$PROJECT_DIR$/generator/target/scala-3.8.4/meta" />
       </parameters>
     </profile>
     <profile name="sbt 2" modules="dcel-root.test">
       <parameters>
         <parameter value="-Xsemanticdb" />
         <parameter value="-semanticdb-target" />
-        <parameter value="$PROJECT_DIR$/target/scala-3.8.3/test-meta" />
+        <parameter value="$PROJECT_DIR$/target/scala-3.8.4/test-meta" />
       </parameters>
     </profile>
     <profile name="sbt 3" modules="dcel-root.dcel.dcelJVM.main">
@@ -34,7 +34,7 @@
         <parameter value="-Wunused:imports" />
         <parameter value="-Xsemanticdb" />
         <parameter value="-semanticdb-target" />
-        <parameter value="$PROJECT_DIR$/jvm/target/scala-3.8.3/meta" />
+        <parameter value="$PROJECT_DIR$/jvm/target/scala-3.8.4/meta" />
         <parameter value="-Werror" />
       </parameters>
     </profile>
@@ -42,7 +42,7 @@
       <parameters>
         <parameter value="-Xsemanticdb" />
         <parameter value="-semanticdb-target" />
-        <parameter value="$PROJECT_DIR$/target/scala-3.8.3/meta" />
+        <parameter value="$PROJECT_DIR$/target/scala-3.8.4/meta" />
       </parameters>
     </profile>
     <profile name="sbt 5" modules="dcel-root.dcel.dcelJS.main">
@@ -56,7 +56,7 @@
         <parameter value="-Wunused:imports" />
         <parameter value="-Xsemanticdb" />
         <parameter value="-semanticdb-target" />
-        <parameter value="$PROJECT_DIR$/js/target/scala-3.8.3/meta" />
+        <parameter value="$PROJECT_DIR$/js/target/scala-3.8.4/meta" />
         <parameter value="-Werror" />
       </parameters>
     </profile>
@@ -71,7 +71,7 @@
         <parameter value="-Wunused:imports" />
         <parameter value="-Xsemanticdb" />
         <parameter value="-semanticdb-target" />
-        <parameter value="$PROJECT_DIR$/js/target/scala-3.8.3/test-meta" />
+        <parameter value="$PROJECT_DIR$/js/target/scala-3.8.4/test-meta" />
       </parameters>
     </profile>
     <profile name="sbt 7" modules="dcel-root.dcel.dcelJVM.test">
@@ -84,7 +84,7 @@
         <parameter value="-Wunused:imports" />
         <parameter value="-Xsemanticdb" />
         <parameter value="-semanticdb-target" />
-        <parameter value="$PROJECT_DIR$/jvm/target/scala-3.8.3/test-meta" />
+        <parameter value="$PROJECT_DIR$/jvm/target/scala-3.8.4/test-meta" />
       </parameters>
     </profile>
     <profile name="sbt 8" modules="dcel-root.dcel-benchmarks.test">
@@ -94,7 +94,7 @@
       <parameters>
         <parameter value="-Xsemanticdb" />
         <parameter value="-semanticdb-target" />
-        <parameter value="$PROJECT_DIR$/benchmarks/target/scala-3.8.3/test-meta" />
+        <parameter value="$PROJECT_DIR$/benchmarks/target/scala-3.8.4/test-meta" />
       </parameters>
     </profile>
     <profile name="sbt 9" modules="dcel-root.dcel-benchmarks.main">
@@ -104,7 +104,7 @@
       <parameters>
         <parameter value="-Xsemanticdb" />
         <parameter value="-semanticdb-target" />
-        <parameter value="$PROJECT_DIR$/benchmarks/target/scala-3.8.3/meta" />
+        <parameter value="$PROJECT_DIR$/benchmarks/target/scala-3.8.4/meta" />
       </parameters>
     </profile>
   </component>

@@ -181,7 +181,7 @@ class TilingEnclosedRegionSpec extends AnyFlatSpec with Matchers with TilingTest
     val spine                                                       = TilingBuilder.createRhombusNet(1, 3).value
     addSquareAt(addSquareAt(spine, 1, 3), 0, 2) // right arm at (1,2), left arm at (-1,2)
 
-  it should "enclose a unit square when a T-pentomino is rotated 90°/270° onto its base cell (a pinch vertex)" in:
+  it should "enclose a unit square when a T-pentomino rotates 90°/270° onto its base (a pinch vertex)" in:
     // A copy rotated 90° or 270° about the base cell traps a unit square between three tiles that meet at a
     // single **pinch** vertex (two tiles touch only at that corner). The square is filled, so its four edges
     // become internal and the outer boundary stays simple — a valid tiling. The merge must trace the rims
@@ -228,7 +228,7 @@ class TilingEnclosedRegionSpec extends AnyFlatSpec with Matchers with TilingTest
         .getOrElse(throw new IllegalStateException(s"cannot extend $before towards $target"))
     tiling
 
-  it should "enclose two squares at a double pinch when an M pentomino is reflected across its base (ADR-0014)" in:
+  it should "enclose two squares at a double pinch: M pentomino reflected across its base (ADR-0014)" in:
     // The reported multi-pinch case. Take a 3×3 unit-square net (vertices 1..16, left-to-right then
     // bottom-to-top) and drop vertices 1, 12, 15: the five survivors form an M/W pentomino (a staircase).
     // Its base vertices 8, 11, 14 are collinear (here, shifted down one row, on x + y = 3); reflecting across
