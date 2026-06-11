@@ -1,6 +1,6 @@
 package io.github.scala_tessella.dcel.geometry
 
-//import io.github.scala_tessella.dcel.conversion.TilingSVG.toParallelogonTiling
+//import io.github.scala_tessella.dcel.conversion.SimplePolygonSVG.toParallelogonTiling
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, SimplePolygon}
 import io.github.scala_tessella.dcel.{TilingBuilder, TilingTestHelpers}
 import io.github.scala_tessella.ring_seq.SymmetryOps.{Edge, Vertex}
@@ -103,40 +103,42 @@ class SimplePolygonSpec extends AnyFlatSpec with Matchers with TilingTestHelpers
     val sixtyFourJoinedHexs: SimplePolygon =
       TilingBuilder.createHexagonNet(8, 8).value.boundarySimplePolygon
 //    println(sixtyFourJoinedHexs.toParallelogonTiling())
+    // Expected indices reflect the deterministic (insertion-ordered) hexagon-net build: the boundary
+    // cycle is a rotation of the previous hash-ordered one, with the same class structure.
     allAssert(
-      sixtyFourJoinedHexs.parallelogonIndices shouldBe List(0, 3, 18, 31, 34, 49),
+      sixtyFourJoinedHexs.parallelogonIndices shouldBe List(0, 1, 16, 31, 32, 47),
       sixtyFourJoinedHexs.parallelogonIndexClasses shouldBe
         List(
-          List(0, 18, 34),
-          List(3, 31, 49),
-          List(1, 33),
-          List(2, 32),
-          List(4, 48),
-          List(5, 47),
-          List(6, 46),
-          List(7, 45),
-          List(8, 44),
-          List(9, 43),
-          List(10, 42),
-          List(11, 41),
-          List(12, 40),
-          List(13, 39),
-          List(14, 38),
-          List(15, 37),
-          List(16, 36),
-          List(17, 35),
-          List(19, 61),
-          List(20, 60),
-          List(21, 59),
-          List(22, 58),
-          List(23, 57),
-          List(24, 56),
-          List(25, 55),
-          List(26, 54),
-          List(27, 53),
-          List(28, 52),
-          List(29, 51),
-          List(30, 50)
+          List(0, 16, 32),
+          List(1, 31, 47),
+          List(2, 46),
+          List(3, 45),
+          List(4, 44),
+          List(5, 43),
+          List(6, 42),
+          List(7, 41),
+          List(8, 40),
+          List(9, 39),
+          List(10, 38),
+          List(11, 37),
+          List(12, 36),
+          List(13, 35),
+          List(14, 34),
+          List(15, 33),
+          List(17, 61),
+          List(18, 60),
+          List(19, 59),
+          List(20, 58),
+          List(21, 57),
+          List(22, 56),
+          List(23, 55),
+          List(24, 54),
+          List(25, 53),
+          List(26, 52),
+          List(27, 51),
+          List(28, 50),
+          List(29, 49),
+          List(30, 48)
         )
     )
 

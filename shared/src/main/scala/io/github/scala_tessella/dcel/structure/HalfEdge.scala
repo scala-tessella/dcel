@@ -322,6 +322,16 @@ object HalfEdge:
           _.angle
         .sumExact
 
+    /** Sets each boundary edge's angle to the conjugate of the interior angles meeting at its origin. */
+    private[dcel] def setOuterEdgeAngles(boundaryEdges: List[HalfEdge], outerFace: Face): Unit =
+      boundaryEdges.foreach: outerEdge =>
+        val vertex         = outerEdge.origin
+        val incidentAtV    =
+          halfEdges.filter: halfEdge =>
+            halfEdge.origin eq vertex
+        val innerAnglesSum = incidentAtV.interiorAnglesSum(outerFace)
+        outerEdge.angle = Some(innerAnglesSum.conjugate)
+
     def getPathUnsafe(from: Vertex, to: Vertex): List[HalfEdge] =
       val startEdgeOpt =
         halfEdges.find:

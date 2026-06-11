@@ -1,6 +1,5 @@
 package io.github.scala_tessella.dcel
 
-import io.github.scala_tessella.dcel.TilingBuilder.*
 import io.github.scala_tessella.dcel.Utils.sequence
 import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
 
