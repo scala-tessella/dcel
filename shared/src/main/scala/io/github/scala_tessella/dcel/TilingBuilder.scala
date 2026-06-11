@@ -298,7 +298,7 @@ object TilingBuilder:
     for
       base   <- createTriangleNet(width, height)
       tiling <- holes
-                  .foldLeft(Right(base): Either[TilingError, TilingDCEL]): (either, vertexId) =>
-                    either.flatMap: tilingDCEL =>
-                      tilingDCEL.maybeDeleteVertex(vertexId)
-    yield Tiling.trusted(tiling)
+                  .foldLeft(Right(base): Either[TilingError, Tiling]): (either, vertexId) =>
+                    either.flatMap: certified =>
+                      certified.maybeDeleteVertex(vertexId)
+    yield tiling

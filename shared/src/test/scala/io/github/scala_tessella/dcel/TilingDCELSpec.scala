@@ -183,7 +183,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     )
 
   /** @see <img src="file:../../../../../resources/bench.svg"/> */
-  def bench: TilingDCEL =
+  def bench: Tiling =
     hexagon
       .maybeAddRegularPolygonToBoundary(V1, RegularPolygon(3)).value
       .maybeAddRegularPolygonToBoundary(V2, RegularPolygon(3)).value
@@ -270,7 +270,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 //
 //  behavior of "TilingDCEL.groupedInnerVertices"
 
-  def net: TilingDCEL = TilingBuilder.createRhombusNet(3, 6).value
+  def net: Tiling = TilingBuilder.createRhombusNet(3, 6).value
 
   def holeInNet2: TilingDCEL = net.deleteEdge(VertexId(14), VertexId(15)).value
 
@@ -332,7 +332,7 @@ class TilingDCELSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
   behavior of "TilingDCEL.doubleArea"
 
   it should "keep an empty tiling" in:
-    TilingDCEL.empty.doubleArea.value.isEmpty shouldBe true
+    Tiling.empty.doubleArea.value.isEmpty shouldBe true
 
   it should "double a 2x1 square net along the longest segment" in:
     val doubled = TilingBuilder.createRhombusNet(2, 1).value.doubleArea

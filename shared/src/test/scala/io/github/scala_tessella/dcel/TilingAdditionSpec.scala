@@ -259,7 +259,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     )
 
   /** Common bench  <img src="file:../../../../../resources/commonBench.svg"/> */
-  def commonBench: TilingDCEL =
+  def commonBench: Tiling =
     square
       .maybeAddRegularPolygonToBoundary(V1, RegularPolygon(3)).value
       .maybeAddRegularPolygonToBoundary(V3, RegularPolygon(3)).value
@@ -541,7 +541,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
   // Stress tests
   it should "handle adding many small polygons" in:
-    var currentTiling = hexagon
+    var currentTiling: TilingDCEL = hexagon
 
     // Add triangles to create a flower pattern
     for i <- 1 to 6 do
@@ -557,7 +557,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     currentTiling.innerFaces should have size 7 // 1 hexagon + 6 triangles
 
   /** Five triangles <img src="file:../../../../../resources/fiveTrianglesInHex.svg"/> */
-  def fiveTrianglesInHex: TilingDCEL =
+  def fiveTrianglesInHex: Tiling =
     triangle
       .maybeAddRegularPolygonToBoundary(V1, RegularPolygon(3)).value
       .maybeAddRegularPolygonToBoundary(V1, RegularPolygon(3)).value
@@ -577,7 +577,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     )
 
   /** Three hexagons <img src="file:../../../../../resources/threeHexagons.svg"/> */
-  def threeHexagons: TilingDCEL =
+  def threeHexagons: Tiling =
     hexagon
       .maybeAddRegularPolygonToBoundary(V1, RegularPolygon(6)).value
       .maybeAddRegularPolygonToBoundary(VertexId(7), RegularPolygon(6)).value
@@ -619,7 +619,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     )
 
   /** Three squares <img src="file:../../../../../resources/threeSquares.svg"/> */
-  def threeSquares: TilingDCEL =
+  def threeSquares: Tiling =
     square
       .maybeAddRegularPolygonToBoundary(V1, RegularPolygon(4)).value
       .maybeAddRegularPolygonToBoundary(V1, RegularPolygon(4)).value
@@ -664,7 +664,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   /** Irregular hole almost joined by side <img
     * src="file:../../../../../resources/irregularHoleAlmostJoinedBySide.svg"/>
     */
-  def irregularHoleAlmostJoinedBySide: TilingDCEL =
+  def irregularHoleAlmostJoinedBySide: Tiling =
     hexagon
       .maybeAddRegularPolygonToBoundary(V6, RegularPolygon(6)).value
       .maybeAddRegularPolygonToBoundary(VertexId(7), RegularPolygon(6)).value
@@ -676,7 +676,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   /** Irregular hole almost joined by vertex <img
     * src="file:../../../../../resources/irregularHoleAlmostJoinedByVertex.svg"/>
     */
-  def irregularHoleAlmostJoinedByVertex: TilingDCEL =
+  def irregularHoleAlmostJoinedByVertex: Tiling =
     irregularHoleAlmostJoinedBySide
       .maybeAddRegularPolygonToBoundary(VertexId(27), RegularPolygon(3)).value
 
@@ -694,7 +694,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
   /** Regular hole almost joined <img src="file:../../../../../resources/regularHoleAlmostJoinedBySide.svg"/>
     */
-  def regularHoleAlmostJoinedBySide: TilingDCEL =
+  def regularHoleAlmostJoinedBySide: Tiling =
     commonBench
       .maybeAddRegularPolygonToBoundary(VertexId(9), RegularPolygon(3)).value
       .maybeAddRegularPolygonToBoundary(VertexId(11), RegularPolygon(3)).value
@@ -727,7 +727,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
   /** Regular holes almost joined by side <img
     * src="file:../../../../../resources/regularHolesAlmostJoinedBySide.svg"/>
     */
-  def regularHolesAlmostJoinedBySide: TilingDCEL =
+  def regularHolesAlmostJoinedBySide: Tiling =
     hexagon
       .maybeAddRegularPolygonToBoundary(V6, RegularPolygon(6)).value
       .maybeAddRegularPolygonToBoundary(VertexId(7), RegularPolygon(6)).value
@@ -757,7 +757,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     result.isLeft shouldBe true
 
   /** Irregular shape <img src="file:../../../../../resources/irregularShape.svg"/> */
-  def irregularShape: TilingDCEL =
+  def irregularShape: Tiling =
     TilingBuilder.createSimplePolygon(90, 180, 180, 90, 150, 60, 240, 330, 90, 90, 150, 150).value
 
   it should "fail if just one vertex is added but crosses the boundary" in:
@@ -799,7 +799,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     )
 
   /** Double square <img src="file:../../../../../resources/doubleSquare.svg"/> */
-  def doubleSquare: TilingDCEL =
+  def doubleSquare: Tiling =
     TilingBuilder.createSimplePolygon(90, 180, 90, 180, 90, 180, 90, 180).value
 
   it should "add an inner regular polygon sharing a second edge" in:
@@ -834,7 +834,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
     )
 
   /** <img src="file:../../../../../resources/parallelogram.svg"/> */
-  def parallelogram: TilingDCEL =
+  def parallelogram: Tiling =
     TilingBuilder.createSimplePolygon(30, 180, 150, 30, 180, 150).value
 
   it should "fail to add an inner regular polygon crossing the boundary" in:
@@ -857,7 +857,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
       result.left.value.message should include("Boundary intersection")
     )
 
-  def base: TilingDCEL =
+  def base: Tiling =
     val angles =
       List(120, 180, 180, 180, 120, 120, 180, 120, 60, 180, 300, 180, 180, 300, 180, 60, 120, 180, 120)
     TilingBuilder.createSimplePolygon(angles*).value
@@ -972,7 +972,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
   /** Tiling with three dodecagons <img src="file:../../../../../resources/threeDodecagons.svg"/>
     */
-  def threeDodecagons: TilingDCEL =
+  def threeDodecagons: Tiling =
     TilingBuilder.createRegularPolygon(RegularPolygon(12))
       .maybeAddRegularPolygonToBoundary(V3, RegularPolygon(12)).value
       .maybeAddRegularPolygonToBoundary(VertexId(11), RegularPolygon(12)).value
@@ -1005,7 +1005,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
   /** Tiling with two pots <img src="file:../../../../../resources/twoPots.svg"/>
     */
-  def twoPots: TilingDCEL =
+  def twoPots: Tiling =
     TilingBuilder
       .createSimplePolygon(
         90, 180, 180, 180, 180, 90, 180, 90, 90, 270, 270, 90, 90, 270, 270, 90, 90, 180
@@ -1048,7 +1048,7 @@ class TilingAdditionSpec extends AnyFlatSpec with Matchers with TilingTestHelper
 
   /** Tiling with three pots <img src="file:../../../../../resources/threePots.svg"/>
     */
-  def threePots: TilingDCEL =
+  def threePots: Tiling =
     TilingBuilder
       .createSimplePolygon(
         90, 180, 180, 180, 180, 180, 180, 90, 180, 90, 90, 270, 270, 90, 90, 270, 270, 90, 90, 270, 270, 90,

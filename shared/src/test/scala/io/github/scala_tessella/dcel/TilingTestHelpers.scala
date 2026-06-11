@@ -14,32 +14,32 @@ trait TilingTestHelpers extends EitherValues:
   object allAssert:
     def apply(assertions: Assertion*): Assertion = succeed
 
-  def emptyTiling: TilingDCEL =
-    TilingDCEL.empty
+  def emptyTiling: Tiling =
+    Tiling.empty
 
   /** Tiling with a single triangle <img src="file:../../../../../resources/triangle.svg"/>
     */
-  def triangle: TilingDCEL =
+  def triangle: Tiling =
     TilingBuilder.createRegularPolygon(RegularPolygon(3))
 
   /** Tiling with a single square <img src="file:../../../../../resources/square.svg"/>
     */
-  def square: TilingDCEL =
+  def square: Tiling =
     TilingBuilder.createRegularPolygon(RegularPolygon(4))
 
   /** Tiling with a single rhombus <img src="file:../../../../../resources/rhombus.svg"/>
     */
-  def rhombus: TilingDCEL =
+  def rhombus: Tiling =
     TilingBuilder.createSimplePolygon(60, 120, 60, 120).value
 
   /** Tiling with a single regular hexagon <img src="file:../../../../../resources/hexagon.svg"/>
     */
-  def hexagon: TilingDCEL =
+  def hexagon: Tiling =
     TilingBuilder.createRegularPolygon(RegularPolygon(6))
 
   /** Tiling with a single regular dodecagon <img src="file:../../../../../resources/dodecagon.svg"/>
     */
-  def dodecagon: TilingDCEL =
+  def dodecagon: Tiling =
     TilingBuilder.createRegularPolygon(RegularPolygon(12))
 
   val V1: VertexId = VertexId(1)

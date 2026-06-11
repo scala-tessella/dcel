@@ -26,11 +26,11 @@ class PropertyBasedDCELSpec
 
   private val genSteps: Gen[Int] = Gen.choose(0, 10) // keep runtime modest
 
-  private def createRegular(s: Int): TilingDCEL =
+  private def createRegular(s: Int): Tiling =
     // Guard against ScalaCheck shrinking producing invalid values (e.g., 0)
     TilingBuilder.createRegularPolygon(RegularPolygon(math.max(3, s)))
 
-  private def validateAll(tiling: TilingDCEL): Assertion =
+  private def validateAll(tiling: Tiling): Assertion =
     allAssert(
       // Topology
       validateTopologically(tiling).isRight shouldBe true,
@@ -40,10 +40,10 @@ class PropertyBasedDCELSpec
       validateSpatially(tiling).isRight shouldBe true
     )
 
-  private def validateTopology(tiling: TilingDCEL): Assertion =
+  private def validateTopology(tiling: Tiling): Assertion =
     validateTopologically(tiling).isRight shouldBe true
 
-  private def interiorVertices(tiling: TilingDCEL): List[Vertex] =
+  private def interiorVertices(tiling: Tiling): List[Vertex] =
     val boundary = tiling.boundaryVerticesUnsafe.toSet
     tiling.vertices.filterNot(boundary.contains)
 
@@ -52,7 +52,7 @@ class PropertyBasedDCELSpec
 
   private def random: Random = new Random(0xc0ffee) // deterministic seed for reproducibility
 
-  private def randomBoundaryEdgeStart(tiling: TilingDCEL): Option[VertexId] =
+  private def randomBoundaryEdgeStart(tiling: Tiling): Option[VertexId] =
     val edges = tiling.boundaryEdgesUnsafe
     if edges.isEmpty then None
     else Some(edges(random.nextInt(edges.length)).origin.id)
@@ -61,7 +61,7 @@ class PropertyBasedDCELSpec
     * boolean "performed" indicating whether any addition succeeded. Only accepts the addition if the
     * resulting tiling passes topological validation.
     */
-  private def tryRandomAddition(tiling: TilingDCEL, attempts: Int = 24): (TilingDCEL, Boolean) =
+  private def tryRandomAddition(tiling: Tiling, attempts: Int = 24): (Tiling, Boolean) =
     var current = tiling
     var i       = 0
     var done    = false
@@ -88,7 +88,7 @@ class PropertyBasedDCELSpec
     * "performed" indicating whether any deletion succeeded. Only accepts the deletion if the resulting tiling
     * passes topological validation.
     */
-  private def tryRandomDeletion(tiling: TilingDCEL, attempts: Int = 24): (TilingDCEL, Boolean) =
+  private def tryRandomDeletion(tiling: Tiling, attempts: Int = 24): (Tiling, Boolean) =
     var current = tiling
     var i       = 0
     var done    = false

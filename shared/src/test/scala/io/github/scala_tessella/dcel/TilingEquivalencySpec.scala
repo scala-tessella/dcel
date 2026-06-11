@@ -14,7 +14,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
 
   it should "create a copy with same structural properties as original" in:
     val original = triangle
-    val copy     = original.deepCopy
+    val copy     = Tiling.trusted(original.deepCopy)
 
     allAssert(
       // Basic structural properties should match
@@ -38,7 +38,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
 
   it should "create completely independent objects" in:
     val original = square
-    val copy     = original.deepCopy
+    val copy     = Tiling.trusted(original.deepCopy)
 
     allAssert(
       allAssert(
@@ -61,7 +61,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
 
   it should "preserve all cross-references correctly" in:
     val original = hexagon
-    val copy     = original.deepCopy
+    val copy     = Tiling.trusted(original.deepCopy)
 
     allAssert(
       {
@@ -115,7 +115,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
 
   it should "maintain DCEL validation after copying" in:
     val original = triangle
-    val copy     = original.deepCopy
+    val copy     = Tiling.trusted(original.deepCopy)
 
     // Both original and copy should validate successfully
     allAssert(
@@ -125,7 +125,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
 
   it should "not affect original when copy is modified" in:
     val original = square
-    val copy     = original.deepCopy
+    val copy     = Tiling.trusted(original.deepCopy)
 
     // Get the original boundary before modification
     val originalBoundaryBefore = original.boundaryVerticesUnsafe
@@ -150,7 +150,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
 
   it should "not affect copy when original is modified" in:
     val original = triangle
-    val copy     = original.deepCopy
+    val copy     = Tiling.trusted(original.deepCopy)
 
     // Get copy boundary before modification
     val copyBoundaryBefore = copy.boundaryVerticesUnsafe
@@ -173,7 +173,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
 
   it should "work correctly with empty tiling" in:
     val original = emptyTiling
-    val copy     = original.deepCopy
+    val copy     = Tiling.trusted(original.deepCopy)
 
     allAssert(
       copy.vertices shouldBe empty,
@@ -185,7 +185,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
 
   it should "preserve boundary traversal functionality" in:
     val original = hexagon
-    val copy     = original.deepCopy
+    val copy     = Tiling.trusted(original.deepCopy)
 
     // Boundary traversal should work the same way
     allAssert(
@@ -206,7 +206,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
 
   it should "preserve angle information correctly" in:
     val original = triangle
-    val copy     = original.deepCopy
+    val copy     = Tiling.trusted(original.deepCopy)
 
     allAssert(
       // Check that angles are preserved
@@ -228,7 +228,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
 
   it should "maintain connectedness property" in:
     val original = square
-    val copy     = original.deepCopy
+    val copy     = Tiling.trusted(original.deepCopy)
     allAssert(
       original.hasConnectedFaces shouldEqual copy.hasConnectedFaces, {
         // Add polygons to both and check they remain connected
@@ -246,7 +246,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
       .maybeAddRegularPolygonToBoundary(V1, RegularPolygon(4)).value
       .maybeAddRegularPolygonToBoundary(V5, RegularPolygon(3)).value
 
-    val copy = original.deepCopy
+    val copy = Tiling.trusted(original.deepCopy)
 
     allAssert(
       // Verify the structure is preserved
@@ -297,7 +297,7 @@ class TilingEquivalencySpec extends AnyFlatSpec with Matchers with TilingTestHel
     )
 
   /** <img src="file:../../../../../resources/shapeL.svg"/> */
-  def shapeL: TilingDCEL = square
+  def shapeL: Tiling = square
     .maybeAddRegularPolygonToBoundary(V3, RegularPolygon(4)).value
     .maybeAddRegularPolygonToBoundary(V4, RegularPolygon(4)).value
     .maybeAddRegularPolygonToBoundary(VertexId(7), RegularPolygon(4)).value

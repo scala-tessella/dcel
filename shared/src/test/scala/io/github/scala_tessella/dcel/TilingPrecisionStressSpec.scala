@@ -14,10 +14,10 @@ import org.scalatest.matchers.should.Matchers
   */
 class TilingPrecisionStressSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
-  private def grid(side: Int): TilingDCEL =
+  private def grid(side: Int): Tiling =
     TilingBuilder.createRhombusNet(side, side).value
 
-  private def centroidOf(tiling: TilingDCEL): BigPoint =
+  private def centroidOf(tiling: Tiling): BigPoint =
     tiling.coordinates.values.toList.centroid
 
   behavior of "copy operations under precision stress"
@@ -58,7 +58,7 @@ class TilingPrecisionStressSpec extends AnyFlatSpec with Matchers with TilingTes
     // are five compounded rotations of the first. The ring must still close into a 6-triangle flower with a
     // 360-degree interior vertex at the apex.
     val apex   = triangle.coordinates(V1)
-    val flower = (1 to 5).foldLeft[Either[TilingError, TilingDCEL]](Right(triangle)): (acc, _) =>
+    val flower = (1 to 5).foldLeft[Either[TilingError, Tiling]](Right(triangle)): (acc, _) =>
       acc.flatMap(_.maybeAddRotatedCopy(apex, AngleDegree(60)))
     allAssert(
       flower.map(_.innerFaces.size) shouldBe Right(6),
@@ -69,7 +69,7 @@ class TilingPrecisionStressSpec extends AnyFlatSpec with Matchers with TilingTes
     // Deep iteration: each step translates the whole growing row by one unit and merges, so the overlap
     // deduplicates and the row grows by one square. 30 sequential merges -> 31 squares, validated at the end.
     val step  = BigPoint(BigDecimal(1), BigDecimal(0))
-    val grown = (1 to 30).foldLeft[Either[TilingError, TilingDCEL]](Right(square)): (acc, _) =>
+    val grown = (1 to 30).foldLeft[Either[TilingError, Tiling]](Right(square)): (acc, _) =>
       acc.flatMap: current =>
         val origin = current.coordinates(V1)
         current.maybeAddTranslatedCopy(origin, origin + step)

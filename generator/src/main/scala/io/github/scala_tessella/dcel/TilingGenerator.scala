@@ -61,7 +61,7 @@ object TilingGenerator:
   )
 
   private def canonicalStateKey(
-      tiling: TilingDCEL,
+      tiling: Tiling,
       knownSigs: Set[VertexSignature]
   ): SearchStateKey =
     SearchStateKey(
@@ -85,16 +85,16 @@ object TilingGenerator:
     * @return
     *   A list of representative tilings.
     */
-  def findTilings(n: Int, maxVertices: Int = 50): List[TilingDCEL] =
-    val found = mutable.ListBuffer[TilingDCEL]()
+  def findTilings(n: Int, maxVertices: Int = 50): List[Tiling] =
+    val found = mutable.ListBuffer[Tiling]()
 
     // Priority Queue for search: (Tiling, Distinct Signatures Found)
     // Ordered by number of vertices (DFS-like) or size of boundary (BFS-like)
     // Here we use a stack for DFS to find one complete example faster, or Queue for BFS.
-    val queue         = mutable.Queue[(TilingDCEL, Set[VertexSignature])]()
+    val queue         = mutable.Queue[(Tiling, Set[VertexSignature])]()
     val visitedStates = mutable.HashSet[SearchStateKey]()
 
-    def enqueueIfNew(tiling: TilingDCEL, knownSigs: Set[VertexSignature]): Unit =
+    def enqueueIfNew(tiling: Tiling, knownSigs: Set[VertexSignature]): Unit =
       val stateKey = canonicalStateKey(tiling, knownSigs)
       if visitedStates.add(stateKey) then
         queue.enqueue((tiling, knownSigs))
@@ -131,9 +131,9 @@ object TilingGenerator:
     found.toList
 
   private def expand(
-      tiling: TilingDCEL,
+      tiling: Tiling,
       currentSigs: Set[VertexSignature]
-  ): List[(TilingDCEL, Set[VertexSignature])] =
+  ): List[(Tiling, Set[VertexSignature])] =
     // Find boundary vertex with smallest non-zero gap
     val candidates = tiling.boundaryVerticesUnsafe.flatMap { v =>
       val currentAngle = v.currentInteriorAngleSumUnsafe(tiling.outerFace)
@@ -198,18 +198,18 @@ object TilingGenerator:
           None
     }.flatten
 
-  private def getSignature(tiling: TilingDCEL, v: Vertex): VertexSignature =
+  private def getSignature(tiling: Tiling, v: Vertex): VertexSignature =
     val edges = v.incidentEdgesUnsafe
     // Collect number of sides of incident faces
     val sides =
       edges.flatMap(_.incidentFace).filter(_ != tiling.outerFace).map(_.halfEdgesUnsafe.size)
     normalizeSignature(sides)
 
-  extension (tilings: List[TilingDCEL])
+  extension (tilings: List[Tiling])
 
-    def distinctByBoundaryEquivalency: List[TilingDCEL] =
+    def distinctByBoundaryEquivalency: List[Tiling] =
       tilings
-        .foldLeft(List.empty[TilingDCEL]): (acc, tiling) =>
+        .foldLeft(List.empty[Tiling]): (acc, tiling) =>
           if acc.exists: t =>
               t.hasSameSizesOf(tiling) && t.isBoundaryEquivalentTo(tiling)
           then
@@ -241,7 +241,7 @@ object TilingGenerator:
     Set(3, 4, 6, 12).map:
       RegularPolygon.apply
 
-  extension (tiling: TilingDCEL)
+  extension (tiling: Tiling)
 
     /** Expands the given tiling rotationally by attempting to add regular polygons to its boundary, ensuring
       * symmetry based on the specified rotational order.
@@ -258,7 +258,7 @@ object TilingGenerator:
     def expandRotationally(
         order: Int,
         regularPolygons: Set[RegularPolygon] = targetRegularPolygons
-    ): List[TilingDCEL] =
+    ): List[Tiling] =
       require(validRotationalSymmetryOrders.contains(order), s"Invalid rotational symmetry: $order")
 
       // take the first segment of boundary vertices
@@ -276,30 +276,30 @@ object TilingGenerator:
       val initialVertexId = boundaryVertexIds(edgeStartIndex)
 
       /** Attempt initial addition, then propagate to other segments if successful */
-      def maybeSymmetricAddition(regularPolygon: RegularPolygon): Option[TilingDCEL] =
-        (1 until order).foldLeft(tiling.maybeAddRegularPolygonToBoundary(
-          initialVertexId,
-          regularPolygon
-        ).toOption): (maybeTiling, segmentIndex) =>
-          maybeTiling.flatMap: currentTiling =>
-            val symmetricVertexId = boundaryVertexIds(edgeStartIndex + segmentIndex * segmentSize)
-            currentTiling.maybeAddRegularPolygonToBoundary(symmetricVertexId, regularPolygon).toOption
+      def maybeSymmetricAddition(regularPolygon: RegularPolygon)
+          : Option[Tiling] = (1 until order).foldLeft(tiling.maybeAddRegularPolygonToBoundary(
+        initialVertexId,
+        regularPolygon
+      ).toOption): (maybeTiling, segmentIndex) =>
+        maybeTiling.flatMap: currentTiling =>
+          val symmetricVertexId = boundaryVertexIds(edgeStartIndex + segmentIndex * segmentSize)
+          currentTiling.maybeAddRegularPolygonToBoundary(symmetricVertexId, regularPolygon).toOption
 
       for
         regularPolygon <- regularPolygons.toList
         grownTiling    <- maybeSymmetricAddition(regularPolygon)
       yield grownTiling
 
-  type GuardedTiling = (TilingDCEL, Option[Set[RegularPolygon]])
+  type GuardedTiling = (Tiling, Option[Set[RegularPolygon]])
 
-  extension (tilings: List[TilingDCEL])
+  extension (tilings: List[Tiling])
 
     def expandRotationallyMore(
         order: Int,
         steps: Int = 1,
         uniformity: Option[Int] = None,
         gonality: Option[Int] = None
-    ): List[TilingDCEL] =
+    ): List[Tiling] =
       if uniformity.exists: u =>
           gonality.exists: g =>
             u < g
