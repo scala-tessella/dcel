@@ -35,6 +35,7 @@ decision. Each file has:
 | 0013 | [Pinch vertices and merge determinism](0013-pinch-vertices-and-merge-determinism.md) | Accepted               |
 | 0014 | [Exact corner angles for multi-pinch enclosed regions](0014-multi-pinch-enclosed-region-angles.md) | Accepted               |
 | 0015 | [Largest parallelogon contained in a tiling](0015-largest-contained-parallelogon.md) | Accepted               |
+| 0016 | [Scala Native stays blocked on Spire — keep waiting, don't replace](0016-native-wait-for-spire.md) | Proposed               |
 
 ## When to add an ADR
 
