@@ -4,8 +4,13 @@ import io.github.scala_tessella.dcel.TilingAddition.*
 import io.github.scala_tessella.dcel.TilingDeletion.*
 import io.github.scala_tessella.dcel.TilingEquivalency.deepCopy
 import io.github.scala_tessella.dcel.TilingMultiplication.*
+import io.github.scala_tessella.dcel.TilingUniformity.regularPolygonsUnsafeFrom
+import io.github.scala_tessella.dcel.Tree
+import io.github.scala_tessella.dcel.Tree.{Branch, Leaf}
 import io.github.scala_tessella.dcel.TilingValidation.validate
-import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint, BigRadian, RegularPolygon}
+import io.github.scala_tessella.dcel.geometry.{
+  AngleDegree, BigPoint, BigRadian, RegularPolygon, SimplePolygon
+}
 import io.github.scala_tessella.dcel.structure.{FaceId, VertexId}
 
 /** A [[TilingDCEL]] that is known to satisfy the full invariants of [[TilingValidation.validate]] — the
@@ -125,7 +130,7 @@ object Tiling:
       if tiling.isEmpty then
         Right(tiling)
       else
-        val polygon       = tiling.boundarySimplePolygon
+        val polygon       = tiling.boundarySimplePolygonUnsafe
         lazy val boundary = tiling.boundaryVerticesUnsafe
         polygon.parallelogonDoubleIndices match
           case None if polygon.isEquilateralTriangle =>
@@ -321,3 +326,43 @@ object Tiling:
       */
     def maybeDeleteFace(faceId: FaceId): Either[TilingError, Tiling] =
       tiling.deepCopy.deleteFace(faceId).map(trusted)
+
+    /** The outer boundary expressed as a `SimplePolygon` (angles are the conjugates of the boundary half-edge
+      * angles, since the polygon is traversed externally). Total on a certified tiling; cached on the
+      * underlying instance.
+      */
+    def boundarySimplePolygon: SimplePolygon =
+      tiling.boundarySimplePolygonUnsafe
+
+    /** Computes the gonality trees for the given uniformity tree structure, generating a list of partial
+      * trees with representative vertex ids. It ensures that the root branches are not empty.
+      *
+      * @return
+      *   A list of trees where each tree represents a simplified slice of the original uniformity tree, with
+      *   just one representative vertex id instead of the full list.
+      */
+    def gonalityTrees: List[Tree[VertexId]] =
+      val adjusted = tiling.uniformityTree match
+        case Leaf(Nil)         => Leaf(Nil)
+        case Leaf(value)       => Branch(value, List(Leaf(value)))
+        case branch: Branch[?] => branch
+      adjusted.ensureDepthOneBranchesHaveValidValues(_.isEmpty, _.head.firstLeaf.get)
+        .children
+        .map: child =>
+          child.map: vertexIds =>
+            vertexIds.headOption.getOrElse(VertexId(-1))
+        .map:
+          case leaf: Leaf[VertexId]     => leaf
+          case child @ Branch(value, _) =>
+            Branch(
+              value,
+              child.flattenLeaves.map: vertexId =>
+                Leaf(vertexId)
+            )
+
+    /** Pairs each gonality tree with the list of regular polygons incident to its representative vertex. On a
+      * certified tiling every vertex surround is well-formed, so no fallible variant is needed.
+      */
+    def gonalityTreesWithPolygons: List[(List[RegularPolygon], Tree[VertexId])] =
+      gonalityTrees.map: tree =>
+        (tiling.regularPolygonsUnsafeFrom(tree.value), tree)

@@ -232,7 +232,7 @@ object TilingValidation:
     */
   private[dcel] def validateSpatially(tiling: TilingDCEL): Either[TilingError, Unit] =
     collect(ErrorCategory.Spatial): errors =>
-      SimplePolygon.fromUntrusted(tiling.boundarySimplePolygon.toAngles) match
+      SimplePolygon.fromUntrusted(tiling.boundarySimplePolygonUnsafe.toAngles) match
         case Left(SpatialError(message)) => errors += s"Coordinates: boundary not a simple polygon. $message"
         case _                           => ()
 

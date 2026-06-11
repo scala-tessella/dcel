@@ -332,7 +332,7 @@ object HalfEdge:
         val innerAnglesSum = incidentAtV.interiorAnglesSum(outerFace)
         outerEdge.angle = Some(innerAnglesSum.conjugate)
 
-    def getPathUnsafe(from: Vertex, to: Vertex): List[HalfEdge] =
+    private[dcel] def getPathUnsafe(from: Vertex, to: Vertex): List[HalfEdge] =
       val startEdgeOpt =
         halfEdges.find:
           _.origin == from
@@ -358,7 +358,7 @@ object HalfEdge:
       *
       * @return
       */
-    def maybePathUnsafe: Option[List[HalfEdge]] =
+    private[dcel] def maybePathUnsafe: Option[List[HalfEdge]] =
       if halfEdges.isEmpty then return Some(Nil)
 
       val degrees = mutable.Map.empty[Vertex, Int].withDefaultValue(0)

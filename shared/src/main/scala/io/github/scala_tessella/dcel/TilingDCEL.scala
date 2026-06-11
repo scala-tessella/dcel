@@ -3,7 +3,6 @@ package io.github.scala_tessella.dcel
 import io.github.scala_tessella.dcel.TilingUniformity.*
 import io.github.scala_tessella.dcel.TilingValidation.validate
 import io.github.scala_tessella.dcel.Tree
-import io.github.scala_tessella.dcel.Tree.{Branch, Leaf}
 import io.github.scala_tessella.dcel.conversion.TilingDOT.*
 import io.github.scala_tessella.dcel.conversion.TilingSVG.*
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint, RegularPolygon, SimplePolygon}
@@ -192,39 +191,6 @@ final case class TilingDCEL private (
     this.uniformityTreeUncompressed().compress:
       _ ::: _
 
-  /** Computes the gonality trees for the given uniformity tree structure, generating a list of partial trees
-    * with representative vertex ids. It ensures that the root branches are not empty.
-    *
-    * @return
-    *   A list of trees where each tree represents a simplified slice of the original uniformity tree, with
-    *   just one representative vertex id instead of the full list.
-    */
-  def gonalityTrees: List[Tree[VertexId]] =
-    val adjusted = uniformityTree match
-      case Leaf(Nil)         => Leaf(Nil)
-      case Leaf(value)       => Branch(value, List(Leaf(value)))
-      case branch: Branch[?] => branch
-    adjusted.ensureDepthOneBranchesHaveValidValues(_.isEmpty, _.head.firstLeaf.get)
-      .children
-      .map: child =>
-        child.map: vertexIds =>
-          vertexIds.headOption.getOrElse(VertexId(-1))
-      .map:
-        case leaf: Leaf[VertexId]     => leaf
-        case child @ Branch(value, _) =>
-          Branch(
-            value,
-            child.flattenLeaves.map: vertexId =>
-              Leaf(vertexId)
-          )
-
-  /** Pairs each gonality tree with the list of regular polygons incident to its representative vertex.
-    * Unsafe: skips validation and throws if the representative vertex's surround is broken.
-    */
-  def gonalityTreesUnsafe: List[(List[RegularPolygon], Tree[VertexId])] =
-    gonalityTrees.map: tree =>
-      (this.regularPolygonsUnsafeFrom(tree.value), tree)
-
   /** True when every inner face is reachable from any other via face-adjacency steps (no disconnected
     * components). Empty tilings are considered connected.
     */
@@ -286,9 +252,10 @@ final case class TilingDCEL private (
       case None            => List.empty
 
   /** The outer boundary expressed as a `SimplePolygon` (angles are the conjugates of the boundary half-edge
-    * angles, since the polygon is traversed externally). Cached.
+    * angles, since the polygon is traversed externally). Cached on the instance. Unsafe: assumes a
+    * well-formed boundary with angles set; the public view is `Tiling.boundarySimplePolygon`.
     */
-  lazy val boundarySimplePolygon: SimplePolygon =
+  private[dcel] lazy val boundarySimplePolygonUnsafe: SimplePolygon =
     SimplePolygon(
       boundaryEdgesUnsafe
         .map: halfEdge =>

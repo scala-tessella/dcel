@@ -230,7 +230,7 @@ object TilingLattice:
       */
     private def wholeBoundaryCorners: Option[List[Vertex]] =
       val boundary = tiling.boundaryEdgesUnsafe
-      tiling.boundarySimplePolygon.parallelogonIndices match
+      tiling.boundarySimplePolygonUnsafe.parallelogonIndices match
         case Nil     => None
         case indices => Some(canonicalCorners(indices.map(i => boundary(i).origin)))
 

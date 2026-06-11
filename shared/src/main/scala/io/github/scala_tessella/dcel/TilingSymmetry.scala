@@ -24,7 +24,7 @@ object TilingSymmetry:
       if edges.isEmpty then return 1
 
       // 1. Get upper bound from the boundary polygon
-      val boundarySym = tiling.boundarySimplePolygon.rotationalSymmetryOrder
+      val boundarySym = tiling.boundarySimplePolygonUnsafe.rotationalSymmetryOrder
       val step        = edges.size / boundarySym
 
       // 2. Check each candidate shift
@@ -50,7 +50,7 @@ object TilingSymmetry:
       val boundaryVertexIds   =
         boundaryVertices.map: vertex =>
           vertex.id
-      val boundaryAngles      = tiling.boundarySimplePolygon.toAngles
+      val boundaryAngles      = tiling.boundarySimplePolygonUnsafe.toAngles
       val segmentSize         = boundaryAngles.size / symmetryOrder
       val symVertices         = (0 until segmentSize).map { i =>
         SymVertex(i)
@@ -80,7 +80,7 @@ object TilingSymmetry:
       val boundaryVertexIds =
         tiling.boundaryVerticesUnsafe.map: vertex =>
           vertex.id
-      val axes              = tiling.boundarySimplePolygon.reflectionalIndexPairs
+      val axes              = tiling.boundarySimplePolygonUnsafe.reflectionalIndexPairs
       axes
         .filter: (loc1, _) =>
           val (startA, startB) = loc1 match

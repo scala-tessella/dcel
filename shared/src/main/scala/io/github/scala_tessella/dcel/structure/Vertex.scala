@@ -56,8 +56,13 @@ final class Vertex(
     incidentEdges.map: halfEdge =>
       halfEdge.interiorAnglesSum(outerFace)
 
+  /** Number of incident edges. Precondition: the vertex belongs to a well-formed DCEL (its edge ring
+    * traverses) — guaranteed for vertices reached from a certified `Tiling` or any tiling produced by the
+    * public API; throws on hand-built broken wiring.
+    */
   def degree: Int = incidentEdgesUnsafe.length
 
+  /** True when the vertex has exactly two incident edges. Same precondition as [[degree]]. */
   def isThread: Boolean = degree == 2
 
   private[dcel] def adjacentVerticesUnsafe: List[Vertex] =

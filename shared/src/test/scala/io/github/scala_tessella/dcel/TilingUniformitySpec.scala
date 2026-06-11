@@ -68,7 +68,7 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
     )
 
   /** Uniform 6 <img src="file:../../../../../resources/uniform6.svg"/> */
-  val uniformity6: TilingDCEL =
+  val uniformity6: Tiling =
     TilingBuilder.createHoledTriangleNet(9, 9)((i, j) => (i + 3 * j) % 13 == 0).value
 
   it should "find an uniform 6 tiling" in:
@@ -112,7 +112,7 @@ class TilingUniformitySpec extends AnyFlatSpec with Matchers with TilingTestHelp
     )
 
   it should "find trees with regular polygons for each gonality order" in:
-    val trees = uniformity6.gonalityTreesUnsafe
+    val trees = uniformity6.gonalityTreesWithPolygons
     allAssert(
       trees.size shouldBe 2,
       trees shouldBe

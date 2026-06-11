@@ -331,7 +331,7 @@ object TilingGenerator:
                   case None                  => tiling.expandRotationally(order)
               expandedTilings
                 .filter:
-                  _.boundarySimplePolygon.toAngles.forall: angle =>
+                  _.boundarySimplePolygonUnsafe.toAngles.forall: angle =>
                     angle.toRational <= Rational(300)
 
         val nowGrown2: List[List[GuardedTiling]] =
@@ -365,7 +365,7 @@ object TilingGenerator:
             case (Some(u), Some(g)) =>
               nowGrown.map:
                 _.map: til =>
-                  (til, til.gonalityTreesUnsafe)
+                  (til, til.gonalityTreesWithPolygons)
                 .filter: (_, trees) =>
                   val gonalityOrder = trees.size
 
