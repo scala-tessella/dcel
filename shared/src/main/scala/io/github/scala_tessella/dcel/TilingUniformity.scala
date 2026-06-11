@@ -1,6 +1,5 @@
 package io.github.scala_tessella.dcel
 
-import io.github.scala_tessella.dcel.TilingBuilder.setOuterEdgeAngles
 import io.github.scala_tessella.dcel.TilingEquivalency.groupByBoundaryEquivalency
 import io.github.scala_tessella.dcel.Tree.*
 import io.github.scala_tessella.dcel.Utils.associate
