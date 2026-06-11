@@ -63,19 +63,25 @@ object TilingUniformity:
         // 1) Collect vertex set in the radius
         val inRadius: Set[Vertex] = center.bfsVertices(d)
 
-        // 2) Collect all inner faces that are incident to at least one vertex in the set
-        val selectedInnerFaces: Set[Face] =
-          inRadius.flatMap: vertex =>
-            vertex.incidentEdgesUnsafe
-              .flatMap: halfEdge =>
-                halfEdge.incidentFace
-              .filter: face =>
-                face != tiling.outerFace
+        // 2) Collect all inner faces that are incident to at least one vertex in the set, in
+        //    stable id order so the build below is a pure function of its input, not of hash
+        //    iteration order (cf. ADR-0013)
+        val selectedInnerFaces: List[Face] =
+          inRadius
+            .flatMap: vertex =>
+              vertex.incidentEdgesUnsafe
+                .flatMap: halfEdge =>
+                  halfEdge.incidentFace
+                .filter: face =>
+                  face != tiling.outerFace
+            .toList
+            .sortBy(_.id.value)
 
-        // 3) Build a local DCEL from those faces, cloning only the necessary vertices/edges/faces
-        val vMap  = scala.collection.mutable.HashMap[VertexId, Vertex]()
-        val heMap = scala.collection.mutable.HashMap[HalfEdgeId, HalfEdge]()
-        val fMap  = scala.collection.mutable.HashMap[FaceId, Face]()
+        // 3) Build a local DCEL from those faces, cloning only the necessary vertices/edges/faces.
+        //    Insertion-ordered maps carry the deterministic face order through every pass.
+        val vMap  = scala.collection.mutable.LinkedHashMap[VertexId, Vertex]()
+        val heMap = scala.collection.mutable.LinkedHashMap[HalfEdgeId, HalfEdge]()
+        val fMap  = scala.collection.mutable.LinkedHashMap[FaceId, Face]()
 
         def cloneVertex(v: Vertex): Vertex =
           vMap.getOrElseUpdate(v.id, Vertex(v.id, v.coords, leaving = None))
@@ -196,6 +202,8 @@ object TilingUniformity:
         if boundaryCycles.nonEmpty then
           localOuter.outerComponent = Some(boundaryCycles.head)
 
+        // Deterministic order for free: the maps are insertion-ordered and were filled in
+        // sorted-face order.
         val newVertices = vMap.values.toList
         val newInner    = fMap.values.toList
         val newHalf     = (heMap.values ++ boundaryStubs).toList

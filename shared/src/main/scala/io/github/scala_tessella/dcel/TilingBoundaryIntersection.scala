@@ -64,31 +64,38 @@ private[dcel] object TilingBoundaryIntersection:
         check: AngleDegree,
         angles: List[AngleDegree],
         acc: List[HalfEdge],
-        getNext: HalfEdge => HalfEdge,
+        getNext: HalfEdge => Option[HalfEdge],
         getVertex: HalfEdge => Vertex
     ): Either[TilingError, (List[HalfEdge], AngleDegree, HalfEdge)] =
       if check.toRational < 0 then Left(ValidationError("Angle wider than container"))
       else if !check.isFullCircle then Right((acc, check, edge))
       else if angles.isEmpty then Left(ValidationError("Same as container"))
       else
-        val nextCheck = boundaryAngleForVertex(getVertex(edge), outerFace, angles.head)
-        traverse(getNext(edge), nextCheck, angles.tail, edge :: acc, getNext, getVertex)
+        getNext(edge) match
+          case None           => Left(TopologyError("Boundary cycle is broken: edge without next/prev"))
+          case Some(nextEdge) =>
+            val nextCheck = boundaryAngleForVertex(getVertex(edge), outerFace, angles.head)
+            traverse(nextEdge, nextCheck, angles.tail, edge :: acc, getNext, getVertex)
 
     for
+      prevEdge                           <-
+        edgeToBuildOn.prev.toRight(TopologyError("Boundary edge without prev"))
+      nextEdge                           <-
+        edgeToBuildOn.next.toRight(TopologyError("Boundary edge without next"))
       (prepended, startCheck, startEdge) <- traverse(
-                                              edgeToBuildOn.prev.get,
+                                              prevEdge,
                                               boundaryAngles.start,
                                               boundaryAngles.newVertices.reverse,
                                               Nil,
-                                              _.prev.get,
+                                              _.prev,
                                               _.origin
                                             )
       (appended, endCheck, endEdge)      <- traverse(
-                                              edgeToBuildOn.next.get,
+                                              nextEdge,
                                               boundaryAngles.end,
                                               boundaryAngles.newVertices,
                                               Nil,
-                                              _.next.get,
+                                              _.next,
                                               _.destinationUnsafe
                                             )
     yield SharedEdgesResult(
@@ -105,61 +112,41 @@ private[dcel] object TilingBoundaryIntersection:
       adjustedTempVertices: List[Vertex],
       boundaryEdges: List[HalfEdge]
   ): Either[TilingError, Unit] =
-    def segmentsFromPairs[A](pairs: Vector[List[A]])(toSegment: (
-        A,
-        A
-    ) => BigLineSegment): Vector[BigLineSegment] =
-      pairs.map:
-        case a :: b :: Nil => toSegment(a, b)
-        case _             => throw new Error("Pairs not in list")
+    // Windows of fewer than two elements (degenerate input) describe no segment and are skipped;
+    // pairs and sides stay index-aligned by construction.
+    val verticesPairs: Vector[List[Vertex]] =
+      adjustedTempVertices.sliding(2).filter(_.sizeIs == 2).toVector
+    val newSides                            =
+      verticesPairs.map: pair =>
+        BigLineSegment(pair.head.coords, pair(1).coords)
 
-    def decodeIntersectionPairs(
-        intersections: Vector[(BigLineSegment, BigLineSegment)],
-        newSides: Vector[BigLineSegment],
-        oldSides: Vector[BigLineSegment],
-        verticesPairs: Vector[List[Vertex]],
-        edgesPairs: Vector[List[HalfEdge]]
-    ): Vector[(List[Vertex], List[HalfEdge])] =
-      intersections.map: (segment1, segment2) =>
-        val newIndex = newSides.indexOf(segment1)
-        if newIndex >= 0 then
-          val j = oldSides.indexOf(segment2)
-          if j < 0 then throw new Error("Segment 2 not in list")
-          (verticesPairs(newIndex), edgesPairs(j))
-        else
-          val oldIndex = oldSides.indexOf(segment1)
-          if oldIndex < 0 then throw new Error("Intersection not in either list")
-          val i        = newSides.indexOf(segment2)
-          if i < 0 then throw new Error("Segment 2 not in list")
-          (verticesPairs(i), edgesPairs(oldIndex))
-
-    // Create line segments for the new boundary
-    val verticesPairs = adjustedTempVertices.sliding(2).toVector
-    val newSides      =
-      segmentsFromPairs(verticesPairs): (p1, p2) =>
-        BigLineSegment(p1.coords, p2.coords)
-
-    val edgesPairs = boundaryEdges.slidingO(2).toVector
-    val oldSides   =
-      segmentsFromPairs(edgesPairs): (e1, e2) =>
-        BigLineSegment(e1.origin.coords, e2.origin.coords)
+    val edgesPairs: Vector[List[HalfEdge]] =
+      boundaryEdges.slidingO(2).filter(_.sizeIs == 2).toVector
+    val oldSides                           =
+      edgesPairs.map: pair =>
+        BigLineSegment(pair.head.origin.coords, pair(1).origin.coords)
 
     // Check for intersections
     if oldSides.hasProperIntersections(newSides) then
-      val intersections = oldSides.properIntersections(newSides)
-      val decoded       =
-        decodeIntersectionPairs(intersections.toVector, newSides, oldSides, verticesPairs, edgesPairs)
-      val vertexIds     =
-        decoded.map: (verticesPair, edgesPair) =>
-          (
-            verticesPair.map: vertex =>
-              vertex.id,
-            edgesPair.map: halfEdge =>
-              halfEdge.origin.id
-          )
-      val edges         =
-        vertexIds.map: (e1, e2) =>
-          s"${e1.head}-${e1(1)} with ${e2.head}-${e2(1)}"
+      // First-occurrence index per segment: O(1) decode instead of repeated linear indexOf scans.
+      val newIndexOf: Map[BigLineSegment, Int] = newSides.zipWithIndex.reverse.toMap
+      val oldIndexOf: Map[BigLineSegment, Int] = oldSides.zipWithIndex.reverse.toMap
+
+      def description(newIndex: Int, oldIndex: Int): String =
+        val vertexIds = verticesPairs(newIndex).map(_.id)
+        val edgeIds   = edgesPairs(oldIndex).map(_.origin.id)
+        s"${vertexIds.head}-${vertexIds(1)} with ${edgeIds.head}-${edgeIds(1)}"
+
+      val edges =
+        oldSides.properIntersections(newSides).toVector.map: (segment1, segment2) =>
+          (newIndexOf.get(segment1), oldIndexOf.get(segment2)) match
+            case (Some(i), Some(j)) => description(i, j)
+            case _                  =>
+              (newIndexOf.get(segment2), oldIndexOf.get(segment1)) match
+                case (Some(i), Some(j)) => description(i, j)
+                // Unreachable for segments produced from these very collections; degrade the
+                // report rather than crash an error-message builder.
+                case _                  => s"$segment1 with $segment2"
       Left(ValidationError(s"Boundary intersection: ${edges.mkString(", ")}"))
     else
       Right(())

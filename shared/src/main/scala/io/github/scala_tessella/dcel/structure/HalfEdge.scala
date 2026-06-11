@@ -330,10 +330,12 @@ object HalfEdge:
       startEdgeOpt match
         case Some(startEdge) =>
           val holeEdgesList = mutable.ListBuffer[HalfEdge]()
+          val visited       = mutable.HashSet[HalfEdge]() // O(1) cycle check vs O(n) ListBuffer.contains
           var currentEdge   = startEdge
 
-          while currentEdge.destinationUnsafe != to && !holeEdgesList.contains(currentEdge) do
+          while currentEdge.destinationUnsafe != to && !visited.contains(currentEdge) do
             holeEdgesList += currentEdge
+            visited += currentEdge
             currentEdge = currentEdge.next.get
 
           if currentEdge.destinationUnsafe == to then

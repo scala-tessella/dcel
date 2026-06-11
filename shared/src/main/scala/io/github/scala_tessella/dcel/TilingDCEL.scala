@@ -376,21 +376,23 @@ final case class TilingDCEL private (
     if isEmpty then
       Right(this)
     else
-      boundarySimplePolygon.parallelogonDoubleIndices match
-        case None if boundarySimplePolygon.isEquilateralTriangle =>
-          val angles = boundarySimplePolygon.toAngles
+      val polygon       = boundarySimplePolygon
+      lazy val boundary = boundaryVerticesUnsafe
+      polygon.parallelogonDoubleIndices match
+        case None if polygon.isEquilateralTriangle =>
+          val angles = polygon.toAngles
           val origin =
             angles.indexWhere: angleDegree =>
               angleDegree == AngleDegree(60)
           val repeat = (angles.size / 3) + origin
           Right(this.rawDouble(
-            boundaryVerticesUnsafe(origin),
-            boundaryVerticesUnsafe(repeat),
+            boundary(origin),
+            boundary(repeat),
             withInversion = true
           ))
-        case None                                                => Left(ValidationError("Tiling is not a parallelogon, cannot fill the whole plane."))
-        case Some((origin, repeat))                              =>
-          Right(this.rawDouble(boundaryVerticesUnsafe(origin), boundaryVerticesUnsafe(repeat)))
+        case None                                  => Left(ValidationError("Tiling is not a parallelogon, cannot fill the whole plane."))
+        case Some((origin, repeat))                =>
+          Right(this.rawDouble(boundary(origin), boundary(repeat)))
 
   /** Adds a copy of the whole tiling to itself under the given [[Isometry]] (translation, rotation,
     * reflection or glide reflection), merging it in and validating the result in full. The single primitive

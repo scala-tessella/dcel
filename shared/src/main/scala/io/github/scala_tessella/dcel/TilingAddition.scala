@@ -65,18 +65,10 @@ object TilingAddition:
   extension (tiling: TilingDCEL)
 
     private def nextFaceId: FaceId =
-      FaceId(
-        tiling.innerFaces
-          .map: face =>
-            face.id.value
-          .max + 1
-      )
+      FaceId(tiling.innerFaces.map(_.id.value).maxOption.getOrElse(0) + 1)
 
     private def nextVertexIndex: Int =
-      tiling.vertices
-        .map: vertex =>
-          vertex.id.value
-        .max + 1
+      tiling.vertices.map(_.id.value).maxOption.getOrElse(0) + 1
 
     private def addElements(
         newVertices: List[Vertex],
