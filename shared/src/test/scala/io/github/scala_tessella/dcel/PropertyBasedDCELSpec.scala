@@ -266,3 +266,44 @@ class PropertyBasedDCELSpec
         i += 1
       assertions += (Tiling.from(t).isRight shouldBe true)
       allAssert(assertions.toList*)
+
+  behavior of "Isometric copy operations (the merge engine, ADR-0011/0017)"
+
+  it should "certify every accepted copy and leave the receiver intact on rejection" in
+    forAll(genInitialSides, genSteps, Gen.choose(0, 1000000)): (initialSides, steps, seed) =>
+      // The four isometries are the four coincidence patterns mergeTilings must survive: pure
+      // translation overlap, rotational seam, reflected (orientation-reversing) wiring, and
+      // reflection plus offset. Parameters are drawn from the tiling's own structure (edge
+      // vectors, vertices, centroid) so acceptance actually occurs — uniformly random isometries
+      // would only ever exercise the Left branch. Two invariants per step:
+      //   - an accepted copy re-certifies via Tiling.from (the ADR-0017 audit), and
+      //   - a REJECTED copy leaves the receiver untouched and re-certifiable (ADR-0002: every
+      //     mutator works on a deep copy, so failure must never corrupt the original).
+      val rng        = new Random(seed)
+      var t: Tiling  = createRegular(initialSides)
+      val assertions = ListBuffer[Assertion]()
+      var i          = 0
+      while i < steps do
+        val boundaryEdges = t.boundaryEdgesUnsafe
+        // Same Node.js heap guard as the certification property: every accepted copy roughly
+        // doubles the patch.
+        if t.innerFaces.sizeIs < 30 && boundaryEdges.nonEmpty then
+          val edge   = boundaryEdges(rng.nextInt(boundaryEdges.length))
+          val from   = edge.origin.coords
+          val to     = edge.destinationUnsafe.coords
+          val result = rng.nextInt(4) match
+            case 0 => t.maybeAddTranslatedCopy(from, to)
+            case 1 =>
+              val degrees = List(60, 90, 120, 180)(rng.nextInt(4))
+              val center  = if rng.nextBoolean() then from else t.coordinates.values.toList.centroid
+              t.maybeAddRotatedCopy(center, AngleDegree(degrees))
+            case 2 => t.maybeAddMirroredCopy(from, to)
+            case 3 => t.maybeAddGlideReflectedCopy(from, to)
+          result match
+            case Right(grown) =>
+              assertions += (Tiling.from(grown).isRight shouldBe true)
+              t = grown
+            case Left(_)      =>
+              assertions += (Tiling.from(t).isRight shouldBe true)
+        i += 1
+      allAssert(assertions.toList*)
