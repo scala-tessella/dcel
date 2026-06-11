@@ -6,6 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (breaking — next release starts the 0.2.x line)
+
+- **SVG export split by concern.** The `SimplePolygon` rendering extensions
+  (`toScalableVectorG`, `toParallelogonTiling`) moved from `TilingSVG` to the
+  new `SimplePolygonSVG`, and `toUniformityAnimation` moved to the new
+  `SvgAnimation` — update imports accordingly. `TilingSVG` keeps the static
+  tiling renderer, `SvgOptions` and the metadata round-trip.
+- **`setOuterEdgeAngles` removed from the public surface.** It was a
+  package-internal structural mutator that leaked onto `TilingBuilder`; it now
+  lives package-private alongside the other `List[HalfEdge]` wiring helpers.
+
 ### Changed
 
 - **Hardened growth, uniformity and traversal internals.** Broken-topology
