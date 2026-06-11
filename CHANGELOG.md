@@ -4,9 +4,9 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.2.0] — 2026-06-11
 
-### Changed (breaking — next release starts the 0.2.x line)
+### Changed (breaking)
 
 - **`Tiling`: the certified, validated tiling type.** New opaque subtype of
   `TilingDCEL` proving its value passed full validation — the compiler-checked
@@ -25,7 +25,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   raw type); `gonalityTreesUnsafe` is renamed `gonalityTreesWithPolygons`.
   `getPathUnsafe`, `maybePathUnsafe` and `adjacencyMapUnsafe` are no longer
   public.
-
 - **SVG export split by concern.** The `SimplePolygon` rendering extensions
   (`toScalableVectorG`, `toParallelogonTiling`) moved from `TilingSVG` to the
   new `SimplePolygonSVG`, and `toUniformityAnimation` moved to the new
@@ -56,6 +55,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   artifact while the rest of the dependency set is Native 0.5-only. Decision:
   keep waiting (no demand), with the Spire-replacement contingency documented.
   See [ADR-0016](adr/0016-native-wait-for-spire.md).
+- **Toolchain refresh.** Scala 3.8.4, sbt 1.12.11, iron 3.3.1, scalatest
+  3.2.20, scalacheck 1.19.0, Scala.js 1.21.0, scalafmt 3.11.1 (test titles
+  shortened to keep `it should "..." in:` within `maxColumn` — longer titles
+  trigger a scalafix/scalameta `ParseError`, see the `.scalafmt.conf` note).
 
 ## [0.1.4] — 2026-06-11
 
