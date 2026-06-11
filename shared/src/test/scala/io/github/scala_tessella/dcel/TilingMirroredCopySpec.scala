@@ -14,8 +14,7 @@ import org.scalatest.matchers.should.Matchers
   */
 class TilingMirroredCopySpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
-  private def midpoint(a: BigPoint, b: BigPoint): BigPoint =
-    (a + b) / BigDecimal(2)
+  private def midpoint(a: BigPoint, b: BigPoint): BigPoint = (a + b) / BigDecimal(2)
 
   private def containsPoint(tiling: TilingDCEL, p: BigPoint): Boolean =
     tiling.coordinates.values.exists(_.almostEquals(p))

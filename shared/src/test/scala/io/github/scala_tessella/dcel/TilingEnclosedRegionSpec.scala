@@ -242,7 +242,8 @@ class TilingEnclosedRegionSpec extends AnyFlatSpec with Matchers with TilingTest
     allAssert(
       pentomino.innerFaces.size shouldBe 5,
       validate(result).isRight shouldBe true,
-      result.innerFaces.size shouldBe 12, // 10 tiles (the two reflected pentominoes are disjoint) + 2 enclosed
+      result.innerFaces.size shouldBe
+        12, // 10 tiles (the two reflected pentominoes are disjoint) + 2 enclosed
       // The reflection welds two disjoint 5-cell pentominoes, so any faces above 2 × 5 are newly enclosed.
       result.innerFaces.size - 2 * pentomino.innerFaces.size shouldBe 2,
       result.innerFaces.forall(_.getVerticesUnsafe.size == 4) shouldBe true,

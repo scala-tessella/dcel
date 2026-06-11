@@ -8,8 +8,7 @@ import org.scalatest.matchers.should.Matchers
 /** Step 4 of ADR-0011: the unified `maybeAddCopy(Isometry)` entry point and its three named wrappers. */
 class TilingAddCopySpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
-  private def midpoint(a: BigPoint, b: BigPoint): BigPoint =
-    (a + b) / BigDecimal(2)
+  private def midpoint(a: BigPoint, b: BigPoint): BigPoint = (a + b) / BigDecimal(2)
 
   behavior of "TilingDCEL.maybeAddCopy"
 

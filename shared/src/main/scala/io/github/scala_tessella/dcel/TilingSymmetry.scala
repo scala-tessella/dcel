@@ -63,9 +63,8 @@ object TilingSymmetry:
           .map: vertex =>
             vertex.coords
           .toList.centroid
-      val first: AxisLocation =
-        (symVertices ++ symEdges).maxBy: location =>
-          BigLineSegment(coordsOf(location), center).length
+      val first: AxisLocation = (symVertices ++ symEdges).maxBy: location =>
+        BigLineSegment(coordsOf(location), center).length
       (0 until symmetryOrder).toList
         .map: i =>
           val step = i * segmentSize

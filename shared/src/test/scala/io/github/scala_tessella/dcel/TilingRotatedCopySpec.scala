@@ -16,8 +16,7 @@ class TilingRotatedCopySpec extends AnyFlatSpec with Matchers with TilingTestHel
   private def centroidOf(tiling: TilingDCEL): BigPoint =
     tiling.coordinates.values.toList.centroid
 
-  private def midpoint(a: BigPoint, b: BigPoint): BigPoint =
-    (a + b) / BigDecimal(2)
+  private def midpoint(a: BigPoint, b: BigPoint): BigPoint = (a + b) / BigDecimal(2)
 
   /** Counterclockwise rotation in the internal (y-up) model frame — the reference the implementation must
     * match for a positive `degrees` (ADR-0011: positive = clockwise as rendered = CCW in the model frame).

@@ -353,8 +353,7 @@ private[dcel] object TilingMerge:
               case (c, degrees) if Math.abs(c - cos) <= snapTolerance =>
                 AngleDegree(if reflex then 360 - degrees else degrees)
 
-    val firstFreeFaceId: Int =
-      (FaceId.outerId.value :: faceMap.values.map(_.id.value).toList).max + 1
+    val firstFreeFaceId: Int = (FaceId.outerId.value :: faceMap.values.map(_.id.value).toList).max + 1
 
     val newHoleFaces: List[Face] =
       holeCycles.zipWithIndex.map: (cycle, index) =>

@@ -98,13 +98,12 @@ object SvgAnimation:
       for vertex <- tiling.innerVertices do
         val vid         = vertex.id
         val (x, y)      = vertex.coords.toSvgCoords(scale)
-        val colorSeqIdx =
-          (0 until totalSteps)
-            .map: i =>
-              vertexToColorAtStep.get(i)
-                .flatMap:
-                  _.get(vid)
-                .getOrElse(0)
+        val colorSeqIdx = (0 until totalSteps)
+          .map: i =>
+            vertexToColorAtStep.get(i)
+              .flatMap:
+                _.get(vid)
+              .getOrElse(0)
 
         val colorSeq =
           colorSeqIdx
@@ -112,10 +111,9 @@ object SvgAnimation:
               uniformColorMap.getOrElse(ci, "gray")
 
         // Determine visibility at each step: visible if vertex is in the tree at that distance
-        val visibilitySeq =
-          (0 until totalSteps).map: i =>
-            val verticesAtStep = trees(i).flattenLeaves.flatten.toSet
-            if verticesAtStep.contains(vid) then "visible" else "hidden"
+        val visibilitySeq = (0 until totalSteps).map: i =>
+          val verticesAtStep = trees(i).flattenLeaves.flatten.toSet
+          if verticesAtStep.contains(vid) then "visible" else "hidden"
 
         sb.append(
           s"""    <circle cx="$x" cy="$y" r="$vertexRadius" fill="${colorSeq.head}" visibility="${visibilitySeq.head}">"""
@@ -160,11 +158,10 @@ object SvgAnimation:
       for i <- 0 until totalSteps do
         val keyTimes = getKeyTimes
 
-        val visValues        =
-          (0 until totalSteps)
-            .map: j =>
-              if j == i then "visible" else "hidden"
-          :+ "hidden" :+ "hidden"
+        val visValues        = (0 until totalSteps)
+          .map: j =>
+            if j == i then "visible" else "hidden"
+        :+ "hidden" :+ "hidden"
         val visibilityValues = visValues.mkString(";")
 
         sb.append(
@@ -189,10 +186,9 @@ object SvgAnimation:
       for i <- 0 until totalSteps do
         val keyTimes = getKeyTimes
 
-        val visValues        =
-          (0 until totalSteps).map: j =>
-            if j == i then "visible" else "hidden"
-          :+ "hidden" :+ "hidden"
+        val visValues        = (0 until totalSteps).map: j =>
+          if j == i then "visible" else "hidden"
+        :+ "hidden" :+ "hidden"
         val visibilityValues = visValues.mkString(";")
 
         val numClasses = trees(i).sizeLeaves

@@ -141,9 +141,8 @@ object SimplePolygon:
     def rotationalIndices: List[Int] =
       val symmetryOrder = angles.rotationalSymmetryOrder
       val segmentSize   = angles.size / symmetryOrder
-      val first         =
-        (0 until segmentSize).maxBy: index =>
-          angles(index).toRational
+      val first         = (0 until segmentSize).maxBy: index =>
+        angles(index).toRational
       (0 until symmetryOrder).toList.map: index =>
         first + index * segmentSize
 
@@ -225,11 +224,10 @@ object SimplePolygon:
 //        )
 
         // all combinations of indices for the start of three consecutive segments in the 6-sides parallelogon
-        val halfIndices =
-          (0 until half - 1).view.flatMap: i =>
-            (i until half - 1).view.flatMap: j =>
-              (j + 1 until half).map: k =>
-                List(i, j, k)
+        val halfIndices = (0 until half - 1).view.flatMap: i =>
+          (i until half - 1).view.flatMap: j =>
+            (j + 1 until half).map: k =>
+              List(i, j, k)
 
         // separate the degenerate square results, where the first two indices are the same
         val (sqr, hex) = halfIndices.partition: indexes =>
@@ -282,9 +280,8 @@ object SimplePolygon:
       val n = angles.size
 
       // connect the other indices of the segment to those of its antiparallel counterpart
-      def connect(i0: Int, i1: Int, i3: Int): List[List[Int]] =
-        (1 until i1 - i0).toList.map: i =>
-          List(i0 + i, (i3 - i + n) % n)
+      def connect(i0: Int, i1: Int, i3: Int): List[List[Int]] = (1 until i1 - i0).toList.map: i =>
+        List(i0 + i, (i3 - i + n) % n)
 
       parallelogonIndices match
         case sqr @ a :: b :: c :: d :: Nil     => sqr :: connect(a, b, d) ::: connect(b, c, a)

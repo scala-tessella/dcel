@@ -1,4 +1,4 @@
-ThisBuild / scalaVersion := "3.8.3"
+ThisBuild / scalaVersion := "3.8.4"
 ThisBuild / organization := "io.github.scala-tessella"
 ThisBuild / versionScheme := Some("early-semver")
 
@@ -34,12 +34,12 @@ lazy val commonSettings = Seq(
 //  idePackagePrefix := Some("io.github.scala_tessella"),
   libraryDependencies ++= Seq(
     "io.github.scala-tessella" %%% "ring-seq" % "0.8.0",
-    "io.github.iltotore" %%% "iron" % "3.2.3",
+    "io.github.iltotore" %%% "iron" % "3.3.1",
     "org.typelevel" %%% "spire" % "0.18.0",
-    "org.scalatest" %%% "scalatest" % "3.2.19" % Test,
+    "org.scalatest" %%% "scalatest" % "3.2.20" % Test,
     // ScalaCheck + ScalaTest integration for property-based tests (JVM & JS)
-    "org.scalacheck" %%% "scalacheck" % "1.18.1" % Test,
-    "org.scalatestplus" %%% "scalacheck-1-18" % "3.2.19.0" % Test
+    "org.scalacheck" %%% "scalacheck" % "1.19.0" % Test,
+    "org.scalatestplus" %%% "scalacheck-1-19" % "3.2.20.0" % Test
   ),
   // Compiler hygiene: turn on key warnings and make them fail the build
   scalacOptions ++= Seq(
@@ -151,9 +151,9 @@ lazy val generator = project
     name           := "dcel-generator",
     publish / skip := true,
     libraryDependencies ++= Seq(
-      "org.scalatest"     %% "scalatest"       % "3.2.19"   % Test,
-      "org.scalacheck"    %% "scalacheck"      % "1.18.1"   % Test,
-      "org.scalatestplus" %% "scalacheck-1-18" % "3.2.19.0" % Test
+      "org.scalatest"     %% "scalatest"       % "3.2.20"   % Test,
+      "org.scalacheck"    %% "scalacheck"      % "1.19.0"   % Test,
+      "org.scalatestplus" %% "scalacheck-1-19" % "3.2.20.0" % Test
     )
   )
 

@@ -12,7 +12,8 @@ case class BigBox(min: BigPoint, max: BigPoint):
 
   /** Checks if this bounding box intersects with another one. */
   def intersects(that: BigBox): Boolean =
-    !(that.min.x > this.max.x || that.max.x < this.min.x || that.min.y > this.max.y || that.max.y < this.min.y)
+    !(that.min.x > this.max.x || that.max.x < this.min.x || that.min.y > this.max.y ||
+      that.max.y < this.min.y)
 
   def enlargeMinMax(by: BigPoint): BigBox =
     BigBox(min - by, max + by)
