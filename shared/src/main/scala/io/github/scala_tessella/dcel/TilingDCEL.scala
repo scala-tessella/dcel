@@ -14,13 +14,15 @@ import io.github.scala_tessella.ring_seq.RingSeq.startAt
   * incident face, twin, predecessor and successor. The tiling has exactly one unbounded `outerFace`; all
   * other faces are inner.
   *
-  * Construct via the companion's smart constructors ([[TilingDCEL.empty]],
-  * [[TilingDCEL.createRegularPolygon]], [[TilingDCEL.createSimplePolygon]], [[TilingDCEL.fromUntrusted]]) or
-  * via [[TilingBuilder]] for lattices and rings. The primary constructor is private to enforce validation on
-  * untrusted input.
+  * This is the raw, uncertified structure: queries live here, but every mutating operation lives on
+  * [[Tiling]], the certified subtype proving its value passed [[TilingValidation.validate]] (ADR-0017).
+  * Consumers normally hold a `Tiling`, obtained from the companion's smart constructors
+  * ([[TilingDCEL.createRegularPolygon]], [[TilingDCEL.createSimplePolygon]], [[TilingDCEL.fromUntrusted]]),
+  * from [[TilingBuilder]] for lattices and rings, or by certifying a raw value with [[Tiling.from]]. The
+  * primary constructor is private to enforce validation on untrusted input.
   *
-  * Mutating operations ([[maybeAddRegularPolygonToBoundary]], [[maybeDeleteFace]], …) return a fresh
-  * `Either[TilingError, TilingDCEL]` and operate on an internal deep copy — the original is never modified.
+  * Mutating operations on [[Tiling]] return a fresh `Either[TilingError, Tiling]` and operate on an internal
+  * deep copy — the original is never modified.
   *
   * @param vertices
   *   All vertices in the tiling.

@@ -220,3 +220,45 @@ class PropertyBasedDCELSpec
         if performed then assertions += validateTopology(t)
         i += 1
       allAssert(assertions.toList*)
+
+  behavior of "Tiling certification (ADR-0017)"
+
+  it should "yield only re-certifiable tilings through any public-API op sequence" in
+    forAll(genInitialSides, genSteps, Gen.choose(0, 1000000)): (initialSides, steps, seed) =>
+      // Every Right of every public mutator must satisfy Tiling.from (full validation, empty certified):
+      // this audits each by-construction Tiling.trusted call in the ADR-0017 trust table.
+      val rng        = new Random(seed)
+      var t: Tiling  = createRegular(initialSides)
+      val assertions = ListBuffer[Assertion]()
+      var i          = 0
+      while i < steps do
+        val boundaryStarts                                 = t.boundaryEdgesUnsafe.map(_.origin)
+        def randomBoundary: Option[Vertex]                 =
+          if boundaryStarts.isEmpty then None else Some(boundaryStarts(rng.nextInt(boundaryStarts.length)))
+        // Cap the patch size: doubleArea grows geometrically, and consecutive doublings would
+        // exhaust the Node.js heap on the Scala.js run.
+        val roomToGrow                                     = t.innerFaces.sizeIs < 50
+        val attempted: Option[Either[TilingError, Tiling]] = rng.nextInt(6) match
+          case 0 => randomBoundary.map(v =>
+              t.maybeAddRegularPolygonToBoundary(v.id, RegularPolygon(3 + rng.nextInt(4)))
+            )
+          case 1 =>
+            if t.innerFaces.isEmpty then None
+            else Some(t.maybeDeleteFace(t.innerFaces(rng.nextInt(t.innerFaces.length)).id))
+          case 2 => Option.when(roomToGrow)(t.doubleArea)
+          case 3 =>
+            randomBoundary.flatMap(v =>
+              v.leaving.flatMap(_.destination).map(_.coords).map(dest =>
+                t.maybeAddTranslatedCopy(v.coords, dest)
+              )
+            )
+          case 4 => randomBoundary.map(v => t.fanAt(v.id))
+          case 5 => randomBoundary.map(v => t.maybeDeleteVertex(v.id))
+        attempted match
+          case Some(Right(grown)) =>
+            assertions += (Tiling.from(grown).isRight shouldBe true)
+            t = grown
+          case _                  => () // rejected or inapplicable ops are fine
+        i += 1
+      assertions += (Tiling.from(t).isRight shouldBe true)
+      allAssert(assertions.toList*)

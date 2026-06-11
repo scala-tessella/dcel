@@ -3,6 +3,11 @@
 - **Status:** Accepted
 - **Date:** 2026-04-21
 
+> **Superseded in part by ADR-0017.** The public surface now carries the proof
+> in the type: `Tiling` (the certified subtype) hosts the mutators and the
+> validity-dependent queries, so no public `Unsafe` methods remain. This ADR's
+> convention still governs the `private[dcel]` internals.
+
 ## Context
 
 Many DCEL queries depend on invariants that are either:

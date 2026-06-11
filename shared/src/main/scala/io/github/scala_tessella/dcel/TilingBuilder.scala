@@ -22,9 +22,9 @@ import spire.implicits.*
   *     [[createHoledTriangleNet]] and [[createRing]] build edge-to-edge tilings of arbitrary size from
   *     unit-side regular pieces.
   *
-  * All constructors validate their inputs and return `Either[TilingError, TilingDCEL]` (regular polygon is
-  * the one exception: its construction cannot fail). The constructed tilings are guaranteed to satisfy the
-  * full DCEL invariants and pass [[TilingValidation.validate]].
+  * All constructors validate their inputs and return `Either[TilingError, Tiling]` (regular polygon is the
+  * one exception: its construction cannot fail). The constructed tilings are certified [[Tiling]] values —
+  * guaranteed by construction to satisfy the full DCEL invariants (ADR-0017).
   *
   * This object owns input validation and the single-polygon builds; the lattice-construction plumbing lives
   * in the package-private [[TilingNetBuilder]].
