@@ -309,7 +309,9 @@ private[dcel] object TilingNetBuilder:
     inline def addTriples(a: (Int, Int, Int), b: (Int, Int, Int)): (Int, Int, Int) =
       (a._1 + b._1, a._2 + b._2, a._3 + b._3)
 
-    val vertexByTriple = mutable.Map[(Int, Int, Int), Vertex]()
+    // Insertion-ordered so the values.toList extractions below are a pure function of the build
+    // order, not of hash iteration order (cf. ADR-0013).
+    val vertexByTriple = mutable.LinkedHashMap[(Int, Int, Int), Vertex]()
     var vertexCounter  = 1
 
     def tripleToPoint(n0: Int, n1: Int, n2: Int): BigPoint =
@@ -327,7 +329,7 @@ private[dcel] object TilingNetBuilder:
         }
       )
 
-    val halfEdgeByDir = mutable.Map[(Vertex, Vertex), HalfEdge]()
+    val halfEdgeByDir = mutable.LinkedHashMap[(Vertex, Vertex), HalfEdge]()
 
     def getOrCreateHalfEdge(v1: Vertex, v2: Vertex): HalfEdge =
       halfEdgeByDir.getOrElseUpdate(
