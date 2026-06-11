@@ -26,7 +26,7 @@ class CopyOperationsBenchmark:
   @Param(Array("4", "8", "12", "16"))
   var size: Int = uninitialized
 
-  private var base: TilingDCEL   = uninitialized
+  private var base: Tiling       = uninitialized
   private var centre: BigPoint   = uninitialized
   private var stepFrom: BigPoint = uninitialized
   private var stepTo: BigPoint   = uninitialized

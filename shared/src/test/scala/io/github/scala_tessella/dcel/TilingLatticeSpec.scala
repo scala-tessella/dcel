@@ -25,7 +25,7 @@ class TilingLatticeSpec extends AnyFlatSpec with Matchers with OptionValues with
   /** Best-effort welding of up to `count` foreign `polygon`s onto the current boundary, skipping any that
     * would not fit. Mirrors the "clean tiling + a few foreign faces" motif from ADR-0015.
     */
-  private def weld(base: TilingDCEL, polygon: RegularPolygon, count: Int): TilingDCEL =
+  private def weld(base: Tiling, polygon: RegularPolygon, count: Int): Tiling =
     base.boundaryVerticesUnsafe.map(_.id).foldLeft((base, 0)) { case ((tiling, added), vid) =>
       if added >= count then (tiling, added)
       else
@@ -108,7 +108,7 @@ class TilingLatticeSpec extends AnyFlatSpec with Matchers with OptionValues with
 
   behavior of "TilingLattice.largestContainedParallelogonBlock (package-private)"
 
-  private def isVertexOf(p: BigPoint, tiling: TilingDCEL): Boolean =
+  private def isVertexOf(p: BigPoint, tiling: Tiling): Boolean =
     tiling.vertices.exists(_.coords.almostEquals(p))
 
   it should "cover a whole clean square net (every unit square is a complete cell)" in:

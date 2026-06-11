@@ -1,6 +1,7 @@
 package io.github.scala_tessella.dcel.geometry
 
 import io.github.scala_tessella.dcel.{
+  Tiling,
   TilingBuilder,
   TilingDCEL,
   TilingError,
@@ -147,8 +148,8 @@ class ValidationLibraryCrossCheckSpec
     var harvested = 0
     var i         = 0
     while i < tilings do
-      var t  = TilingBuilder.createRegularPolygon(RegularPolygon(initial(rng.nextInt(3))))
-      var st = 0
+      var t: Tiling = TilingBuilder.createRegularPolygon(RegularPolygon(initial(rng.nextInt(3))))
+      var st        = 0
       while st < steps do
         var a      = 0
         var placed = false

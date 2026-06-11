@@ -8,6 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed (breaking — next release starts the 0.2.x line)
 
+- **`Tiling`: the certified, validated tiling type.** New opaque subtype of
+  `TilingDCEL` proving its value passed full validation — the compiler-checked
+  form of the safe/`Unsafe` convention. Public constructors and `fromMetadata`
+  now return `Tiling` (source-compatible narrowing); the seventeen mutating
+  operations (`maybeAdd*`, `maybeDelete*`, `doubleArea`, `fanAt`, `fanAround`,
+  `repeatAlong`, `repeatGrid`) moved from `TilingDCEL` to `Tiling` with
+  unchanged names and parameters, returning `Either[TilingError, Tiling]`.
+  Editor migration: hold `Tiling` as state, start from `Tiling.empty`, load
+  with `fromMetadata`, certify foreign DCELs with `Tiling.from`. Code breaks
+  only where a mutated value was explicitly annotated `: TilingDCEL` — change
+  the annotation to `Tiling`. Every query keeps working on both types. See
+  [ADR-0017](adr/0017-validated-tiling.md).
+- **Hidden-throw queries scoped to `Tiling`.** `gonalityTrees` and
+  `boundarySimplePolygon` are now total queries on `Tiling` (no longer on the
+  raw type); `gonalityTreesUnsafe` is renamed `gonalityTreesWithPolygons`.
+  `getPathUnsafe`, `maybePathUnsafe` and `adjacencyMapUnsafe` are no longer
+  public.
+
 - **SVG export split by concern.** The `SimplePolygon` rendering extensions
   (`toScalableVectorG`, `toParallelogonTiling`) moved from `TilingSVG` to the
   new `SimplePolygonSVG`, and `toUniformityAnimation` moved to the new

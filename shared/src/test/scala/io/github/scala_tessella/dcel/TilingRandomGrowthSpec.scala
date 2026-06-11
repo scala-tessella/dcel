@@ -21,11 +21,11 @@ class TilingRandomGrowthSpec
   private val genInitialSides: Gen[Int] = Gen.oneOf(3, 4, 6)
   private val genSteps: Gen[Int]        = Gen.choose(1, 12)
 
-  private def mk(s: Int): TilingDCEL =
+  private def mk(s: Int): Tiling =
     // Guard against ScalaCheck shrinking producing invalid values (e.g., 0)
     TilingBuilder.createRegularPolygon(RegularPolygon(math.max(3, s)))
 
-  private def validateAll(t: TilingDCEL): Assertion =
+  private def validateAll(t: Tiling): Assertion =
     allAssert(
       validateTopologically(t).isRight shouldBe true,
       validateGeometrically(t).isRight shouldBe true,
@@ -34,7 +34,7 @@ class TilingRandomGrowthSpec
 
   private val rng = new Random(0xfaceb00c)
 
-  private def pickBoundaryStart(t: TilingDCEL): Option[VertexId] =
+  private def pickBoundaryStart(t: Tiling): Option[VertexId] =
     val b = t.boundaryEdgesUnsafe
     if b.isEmpty then None else Some(b(rng.nextInt(b.length)).origin.id)
 

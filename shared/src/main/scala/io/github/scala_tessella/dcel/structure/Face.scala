@@ -124,7 +124,7 @@ object Face:
 
   extension (faces: List[Face])
 
-    def adjacencyMapUnsafe: Map[Face, List[Face]] =
+    private[dcel] def adjacencyMapUnsafe: Map[Face, List[Face]] =
       val faceSet = faces.toSet
       faces.associate: face =>
         face

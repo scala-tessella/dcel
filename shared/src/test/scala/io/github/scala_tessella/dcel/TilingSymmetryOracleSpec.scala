@@ -13,13 +13,13 @@ import org.scalatest.matchers.should.Matchers
   */
 class TilingSymmetryOracleSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
-  private def pointOf(tiling: TilingDCEL, location: BoundaryLocation): BigPoint =
+  private def pointOf(tiling: Tiling, location: BoundaryLocation): BigPoint =
     location match
       case BoundaryVertex(i)  => tiling.coordinates(i)
       case BoundaryEdge(i, j) => (tiling.coordinates(i) + tiling.coordinates(j)) / BigDecimal(2)
 
   /** Mirroring across every detected reflection axis must reproduce the tiling (same face count, valid). */
-  private def reflectionAxesReproduce(tiling: TilingDCEL): Assertion =
+  private def reflectionAxesReproduce(tiling: Tiling): Assertion =
     val axes       = tiling.reflectionalVertexIds
     val expected   = Right(tiling.innerFaces.size)
     val faceCounts =
@@ -33,7 +33,7 @@ class TilingSymmetryOracleSpec extends AnyFlatSpec with Matchers with TilingTest
       )
 
   /** Fanning at the detected rotational order about the centroid must reproduce the tiling. */
-  private def rotationReproduces(tiling: TilingDCEL): Assertion =
+  private def rotationReproduces(tiling: Tiling): Assertion =
     val order    = tiling.rotationalSymmetryOrder
     val centroid = tiling.coordinates.values.toList.centroid
     val result   = tiling.fanAround(centroid, order).map(_.innerFaces.size)

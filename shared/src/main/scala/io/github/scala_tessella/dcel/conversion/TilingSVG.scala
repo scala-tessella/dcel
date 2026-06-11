@@ -2,7 +2,7 @@ package io.github.scala_tessella.dcel.conversion
 
 import io.github.scala_tessella.dcel.geometry.*
 import io.github.scala_tessella.dcel.structure.{HalfEdge, Vertex}
-import io.github.scala_tessella.dcel.{TilingDCEL, TilingError}
+import io.github.scala_tessella.dcel.{Tiling, TilingDCEL, TilingError}
 import io.github.scala_tessella.dcel.conversion.SvgDsl.*
 import io.github.scala_tessella.dcel.conversion.SvgRendering.*
 
@@ -408,5 +408,5 @@ object TilingSVG:
       SvgMetadata.toMetadataXml(tiling)
 
   /** @see [[SvgMetadata.fromMetadata]] */
-  def fromMetadata(metadata: String): Either[TilingError, TilingDCEL] =
+  def fromMetadata(metadata: String): Either[TilingError, Tiling] =
     SvgMetadata.fromMetadata(metadata)

@@ -26,11 +26,11 @@ class PropertyBasedDCELSpec
 
   private val genSteps: Gen[Int] = Gen.choose(0, 10) // keep runtime modest
 
-  private def createRegular(s: Int): TilingDCEL =
+  private def createRegular(s: Int): Tiling =
     // Guard against ScalaCheck shrinking producing invalid values (e.g., 0)
     TilingBuilder.createRegularPolygon(RegularPolygon(math.max(3, s)))
 
-  private def validateAll(tiling: TilingDCEL): Assertion =
+  private def validateAll(tiling: Tiling): Assertion =
     allAssert(
       // Topology
       validateTopologically(tiling).isRight shouldBe true,
@@ -40,10 +40,10 @@ class PropertyBasedDCELSpec
       validateSpatially(tiling).isRight shouldBe true
     )
 
-  private def validateTopology(tiling: TilingDCEL): Assertion =
+  private def validateTopology(tiling: Tiling): Assertion =
     validateTopologically(tiling).isRight shouldBe true
 
-  private def interiorVertices(tiling: TilingDCEL): List[Vertex] =
+  private def interiorVertices(tiling: Tiling): List[Vertex] =
     val boundary = tiling.boundaryVerticesUnsafe.toSet
     tiling.vertices.filterNot(boundary.contains)
 
@@ -52,7 +52,7 @@ class PropertyBasedDCELSpec
 
   private def random: Random = new Random(0xc0ffee) // deterministic seed for reproducibility
 
-  private def randomBoundaryEdgeStart(tiling: TilingDCEL): Option[VertexId] =
+  private def randomBoundaryEdgeStart(tiling: Tiling): Option[VertexId] =
     val edges = tiling.boundaryEdgesUnsafe
     if edges.isEmpty then None
     else Some(edges(random.nextInt(edges.length)).origin.id)
@@ -61,7 +61,7 @@ class PropertyBasedDCELSpec
     * boolean "performed" indicating whether any addition succeeded. Only accepts the addition if the
     * resulting tiling passes topological validation.
     */
-  private def tryRandomAddition(tiling: TilingDCEL, attempts: Int = 24): (TilingDCEL, Boolean) =
+  private def tryRandomAddition(tiling: Tiling, attempts: Int = 24): (Tiling, Boolean) =
     var current = tiling
     var i       = 0
     var done    = false
@@ -88,7 +88,7 @@ class PropertyBasedDCELSpec
     * "performed" indicating whether any deletion succeeded. Only accepts the deletion if the resulting tiling
     * passes topological validation.
     */
-  private def tryRandomDeletion(tiling: TilingDCEL, attempts: Int = 24): (TilingDCEL, Boolean) =
+  private def tryRandomDeletion(tiling: Tiling, attempts: Int = 24): (Tiling, Boolean) =
     var current = tiling
     var i       = 0
     var done    = false
@@ -219,4 +219,46 @@ class PropertyBasedDCELSpec
         t = grown
         if performed then assertions += validateTopology(t)
         i += 1
+      allAssert(assertions.toList*)
+
+  behavior of "Tiling certification (ADR-0017)"
+
+  it should "yield only re-certifiable tilings through any public-API op sequence" in
+    forAll(genInitialSides, genSteps, Gen.choose(0, 1000000)): (initialSides, steps, seed) =>
+      // Every Right of every public mutator must satisfy Tiling.from (full validation, empty certified):
+      // this audits each by-construction Tiling.trusted call in the ADR-0017 trust table.
+      val rng        = new Random(seed)
+      var t: Tiling  = createRegular(initialSides)
+      val assertions = ListBuffer[Assertion]()
+      var i          = 0
+      while i < steps do
+        val boundaryStarts                                 = t.boundaryEdgesUnsafe.map(_.origin)
+        def randomBoundary: Option[Vertex]                 =
+          if boundaryStarts.isEmpty then None else Some(boundaryStarts(rng.nextInt(boundaryStarts.length)))
+        // Cap the patch size: doubleArea grows geometrically, and consecutive doublings would
+        // exhaust the Node.js heap on the Scala.js run.
+        val roomToGrow                                     = t.innerFaces.sizeIs < 50
+        val attempted: Option[Either[TilingError, Tiling]] = rng.nextInt(6) match
+          case 0 => randomBoundary.map(v =>
+              t.maybeAddRegularPolygonToBoundary(v.id, RegularPolygon(3 + rng.nextInt(4)))
+            )
+          case 1 =>
+            if t.innerFaces.isEmpty then None
+            else Some(t.maybeDeleteFace(t.innerFaces(rng.nextInt(t.innerFaces.length)).id))
+          case 2 => Option.when(roomToGrow)(t.doubleArea)
+          case 3 =>
+            randomBoundary.flatMap(v =>
+              v.leaving.flatMap(_.destination).map(_.coords).map(dest =>
+                t.maybeAddTranslatedCopy(v.coords, dest)
+              )
+            )
+          case 4 => randomBoundary.map(v => t.fanAt(v.id))
+          case 5 => randomBoundary.map(v => t.maybeDeleteVertex(v.id))
+        attempted match
+          case Some(Right(grown)) =>
+            assertions += (Tiling.from(grown).isRight shouldBe true)
+            t = grown
+          case _                  => () // rejected or inapplicable ops are fine
+        i += 1
+      assertions += (Tiling.from(t).isRight shouldBe true)
       allAssert(assertions.toList*)

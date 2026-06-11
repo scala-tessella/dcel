@@ -30,16 +30,20 @@ object TilingValidation:
     * returns immediately with an [[IncompleteError]] and skips the later stages.
     */
   private[dcel] def validateCompleteness(tiling: TilingDCEL): Either[TilingError, Unit] =
-    collect(ErrorCategory.Incomplete): errors =>
-      tiling.vertices.foreach: vertex =>
-        if vertex.validate().isLeft then
-          errors += vertex.toString
-      tiling.halfEdges.foreach: halfEdge =>
-        if halfEdge.validate().isLeft then
-          errors += halfEdge.toString
-      (tiling.outerFace :: tiling.innerFaces).foreach: face =>
-        if face.validate().isLeft then
-          errors += face.toString
+    // The structurally empty tiling is complete vacuously: its bare outer face is the definition of
+    // emptiness, not a missing component. Keeps all four validation stages consistent on empty.
+    if tiling.isStructurallyEmpty then Right(())
+    else
+      collect(ErrorCategory.Incomplete): errors =>
+        tiling.vertices.foreach: vertex =>
+          if vertex.validate().isLeft then
+            errors += vertex.toString
+        tiling.halfEdges.foreach: halfEdge =>
+          if halfEdge.validate().isLeft then
+            errors += halfEdge.toString
+        (tiling.outerFace :: tiling.innerFaces).foreach: face =>
+          if face.validate().isLeft then
+            errors += face.toString
 
   /** Half-edge linkage and face cycle consistency: twin / next / prev relationships are symmetric and point
     * into the tiling, every edge's incident face owns it back, the outer face is reachable from its outer
@@ -232,7 +236,7 @@ object TilingValidation:
     */
   private[dcel] def validateSpatially(tiling: TilingDCEL): Either[TilingError, Unit] =
     collect(ErrorCategory.Spatial): errors =>
-      SimplePolygon.fromUntrusted(tiling.boundarySimplePolygon.toAngles) match
+      SimplePolygon.fromUntrusted(tiling.boundarySimplePolygonUnsafe.toAngles) match
         case Left(SpatialError(message)) => errors += s"Coordinates: boundary not a simple polygon. $message"
         case _                           => ()
 

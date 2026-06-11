@@ -16,18 +16,18 @@ import org.scalatest.matchers.should.Matchers
   */
 class TilingEnclosedRegionSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
-  private def pentagon: TilingDCEL =
+  private def pentagon: Tiling =
     TilingBuilder.createRegularPolygon(RegularPolygon(5))
 
   /** Central pentagon + two pentagons on subsequent sides (sharing vertex V2): 3 faces, a 36° gap at V2. */
-  private def threePentagonCluster: TilingDCEL =
+  private def threePentagonCluster: Tiling =
     (for
       a <- pentagon.maybeAddRegularPolygonToBoundary(V1, RegularPolygon(5))
       b <- a.maybeAddRegularPolygonToBoundary(V2, RegularPolygon(5))
     yield b).value
 
   /** Faces whose corners are not all 108° — i.e. not pentagons, hence the enclosed gaps. */
-  private def enclosedFaces(tiling: TilingDCEL): List[structure.Face] =
+  private def enclosedFaces(tiling: Tiling): List[structure.Face] =
     tiling.innerFaces.filterNot: face =>
       face.anglesUnsafe.forall(_ == AngleDegree(108))
 
@@ -38,9 +38,9 @@ class TilingEnclosedRegionSpec extends AnyFlatSpec with Matchers with TilingTest
     * right caps every notch into an enclosed unit square — `(rows - 1) / 2` of them, scaling with the comb
     * height.
     */
-  private def squareComb(rows: Int): TilingDCEL =
+  private def squareComb(rows: Int): Tiling =
     val spine = TilingBuilder.createRhombusNet(1, rows).value
-    (0 until rows by 2).foldLeft[Either[TilingError, TilingDCEL]](Right(spine)): (acc, row) =>
+    (0 until rows by 2).foldLeft[Either[TilingError, Tiling]](Right(spine)): (acc, row) =>
       acc.flatMap: tiling =>
         val startVertex =
           tiling.coordinates.collectFirst:
@@ -170,15 +170,15 @@ class TilingEnclosedRegionSpec extends AnyFlatSpec with Matchers with TilingTest
   /** A T-pentomino of unit squares: a 3-tall spine with one arm left and one arm right of the top cell. The
     * base cell (bottom of the spine) is centred on (0.5, 0.5).
     */
-  private def tPentomino: TilingDCEL =
-    def addSquareAt(tiling: TilingDCEL, x: Int, y: Int): TilingDCEL =
+  private def tPentomino: Tiling =
+    def addSquareAt(tiling: Tiling, x: Int, y: Int): Tiling =
       tiling.coordinates
         .collectFirst:
           case (id, p) if p.almostEquals(BigPoint(BigDecimal(x), BigDecimal(y))) => id
         .flatMap: id =>
           tiling.maybeAddRegularPolygonToBoundary(id, RegularPolygon(4)).toOption
         .get
-    val spine                                                       = TilingBuilder.createRhombusNet(1, 3).value
+    val spine                                               = TilingBuilder.createRhombusNet(1, 3).value
     addSquareAt(addSquareAt(spine, 1, 3), 0, 2) // right arm at (1,2), left arm at (-1,2)
 
   it should "enclose a unit square when a T-pentomino rotates 90°/270° onto its base (a pinch vertex)" in:
@@ -187,10 +187,10 @@ class TilingEnclosedRegionSpec extends AnyFlatSpec with Matchers with TilingTest
     // become internal and the outer boundary stays simple — a valid tiling. The merge must trace the rims
     // correctly at the pinch and assign a rational corner angle there; both directions pinch on opposite sides
     // (ADR-0013).
-    val centre                                      = BigPoint(BigDecimal(0.5), BigDecimal(0.5)) // base cell centroid
-    def closed(degrees: Int): TilingDCEL            =
+    val centre                                  = BigPoint(BigDecimal(0.5), BigDecimal(0.5)) // base cell centroid
+    def closed(degrees: Int): Tiling            =
       tPentomino.maybeAddRotatedCopy(centre, AngleDegree(degrees)).value
-    def enclosedSquare(tiling: TilingDCEL): Boolean =
+    def enclosedSquare(tiling: Tiling): Boolean =
       tiling.innerFaces.exists: face =>
         face.getVerticesUnsafe.size == 4 &&
           face.anglesUnsafe.forall(_ == AngleDegree(90)) &&
@@ -205,7 +205,7 @@ class TilingEnclosedRegionSpec extends AnyFlatSpec with Matchers with TilingTest
     )
 
   /** The set of grid cells a square tiling occupies, keyed by integer lower-left corner. */
-  private def cells(tiling: TilingDCEL): Set[(Int, Int)] =
+  private def cells(tiling: Tiling): Set[(Int, Int)] =
     tiling.innerFaces.map: face =>
       val c = face.getVerticesUnsafe.map(_.coords).centroid
       (
@@ -217,7 +217,7 @@ class TilingEnclosedRegionSpec extends AnyFlatSpec with Matchers with TilingTest
   /** Builds a polyomino equal to `target` (which must contain cell (0,0)) by attaching unit squares one at a
     * time, trying every boundary vertex and keeping the attachment that lands a new cell inside `target`.
     */
-  private def buildPolyomino(target: Set[(Int, Int)]): TilingDCEL =
+  private def buildPolyomino(target: Set[(Int, Int)]): Tiling =
     require(target.contains((0, 0)))
     var tiling = square
     while cells(tiling) != target do

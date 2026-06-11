@@ -1,22 +1,11 @@
 package io.github.scala_tessella.dcel
 
-import io.github.scala_tessella.dcel.TilingAddition.*
-import io.github.scala_tessella.dcel.TilingMultiplication.*
-import io.github.scala_tessella.dcel.TilingDeletion.*
-import io.github.scala_tessella.dcel.TilingEquivalency.*
 import io.github.scala_tessella.dcel.TilingUniformity.*
 import io.github.scala_tessella.dcel.TilingValidation.validate
 import io.github.scala_tessella.dcel.Tree
-import io.github.scala_tessella.dcel.Tree.{Branch, Leaf}
 import io.github.scala_tessella.dcel.conversion.TilingDOT.*
 import io.github.scala_tessella.dcel.conversion.TilingSVG.*
-import io.github.scala_tessella.dcel.geometry.{
-  AngleDegree,
-  BigPoint,
-  BigRadian,
-  RegularPolygon,
-  SimplePolygon
-}
+import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint, RegularPolygon, SimplePolygon}
 import io.github.scala_tessella.dcel.structure.{Face, FaceId, HalfEdge, Vertex, VertexId}
 import io.github.scala_tessella.ring_seq.RingSeq.startAt
 
@@ -25,13 +14,15 @@ import io.github.scala_tessella.ring_seq.RingSeq.startAt
   * incident face, twin, predecessor and successor. The tiling has exactly one unbounded `outerFace`; all
   * other faces are inner.
   *
-  * Construct via the companion's smart constructors ([[TilingDCEL.empty]],
-  * [[TilingDCEL.createRegularPolygon]], [[TilingDCEL.createSimplePolygon]], [[TilingDCEL.fromUntrusted]]) or
-  * via [[TilingBuilder]] for lattices and rings. The primary constructor is private to enforce validation on
-  * untrusted input.
+  * This is the raw, uncertified structure: queries live here, but every mutating operation lives on
+  * [[Tiling]], the certified subtype proving its value passed [[TilingValidation.validate]] (ADR-0017).
+  * Consumers normally hold a `Tiling`, obtained from the companion's smart constructors
+  * ([[TilingDCEL.createRegularPolygon]], [[TilingDCEL.createSimplePolygon]], [[TilingDCEL.fromUntrusted]]),
+  * from [[TilingBuilder]] for lattices and rings, or by certifying a raw value with [[Tiling.from]]. The
+  * primary constructor is private to enforce validation on untrusted input.
   *
-  * Mutating operations ([[maybeAddRegularPolygonToBoundary]], [[maybeDeleteFace]], …) return a fresh
-  * `Either[TilingError, TilingDCEL]` and operate on an internal deep copy — the original is never modified.
+  * Mutating operations on [[Tiling]] return a fresh `Either[TilingError, Tiling]` and operate on an internal
+  * deep copy — the original is never modified.
   *
   * @param vertices
   *   All vertices in the tiling.
@@ -52,6 +43,13 @@ final case class TilingDCEL private (
   /** True when the tiling has no vertices (i.e. [[TilingDCEL.empty]]). */
   def isEmpty: Boolean =
     vertices.isEmpty
+
+  /** True when the tiling is the structurally empty one: no components at all and a bare outer face. The
+    * empty tiling is valid (a blank canvas); a tiling with empty lists but a wired outer face is not.
+    */
+  private[dcel] def isStructurallyEmpty: Boolean =
+    vertices.isEmpty && halfEdges.isEmpty && innerFaces.isEmpty &&
+      outerFace.outerComponent.isEmpty && outerFace.innerComponents.isEmpty
 
   /** All vertex coordinates indexed by `VertexId`. Computed on each call. */
   def coordinates: Map[VertexId, BigPoint] =
@@ -202,39 +200,6 @@ final case class TilingDCEL private (
     this.uniformityTreeUncompressed().compress:
       _ ::: _
 
-  /** Computes the gonality trees for the given uniformity tree structure, generating a list of partial trees
-    * with representative vertex ids. It ensures that the root branches are not empty.
-    *
-    * @return
-    *   A list of trees where each tree represents a simplified slice of the original uniformity tree, with
-    *   just one representative vertex id instead of the full list.
-    */
-  def gonalityTrees: List[Tree[VertexId]] =
-    val adjusted = uniformityTree match
-      case Leaf(Nil)         => Leaf(Nil)
-      case Leaf(value)       => Branch(value, List(Leaf(value)))
-      case branch: Branch[?] => branch
-    adjusted.ensureDepthOneBranchesHaveValidValues(_.isEmpty, _.head.firstLeaf.get)
-      .children
-      .map: child =>
-        child.map: vertexIds =>
-          vertexIds.headOption.getOrElse(VertexId(-1))
-      .map:
-        case leaf: Leaf[VertexId]     => leaf
-        case child @ Branch(value, _) =>
-          Branch(
-            value,
-            child.flattenLeaves.map: vertexId =>
-              Leaf(vertexId)
-          )
-
-  /** Pairs each gonality tree with the list of regular polygons incident to its representative vertex.
-    * Unsafe: skips validation and throws if the representative vertex's surround is broken.
-    */
-  def gonalityTreesUnsafe: List[(List[RegularPolygon], Tree[VertexId])] =
-    gonalityTrees.map: tree =>
-      (this.regularPolygonsUnsafeFrom(tree.value), tree)
-
   /** True when every inner face is reachable from any other via face-adjacency steps (no disconnected
     * components). Empty tilings are considered connected.
     */
@@ -296,282 +261,16 @@ final case class TilingDCEL private (
       case None            => List.empty
 
   /** The outer boundary expressed as a `SimplePolygon` (angles are the conjugates of the boundary half-edge
-    * angles, since the polygon is traversed externally). Cached.
+    * angles, since the polygon is traversed externally). Cached on the instance. Unsafe: assumes a
+    * well-formed boundary with angles set; the public view is `Tiling.boundarySimplePolygon`.
     */
-  lazy val boundarySimplePolygon: SimplePolygon =
+  private[dcel] lazy val boundarySimplePolygonUnsafe: SimplePolygon =
     SimplePolygon(
       boundaryEdgesUnsafe
         .map: halfEdge =>
           halfEdge.angle.get.conjugate
         .toVector
     )
-
-  /** Adds a regular polygon to the tiling along the outer boundary.
-    *
-    * Preconditions:
-    *   - onEdgeStartingWithVertexId identifies a half-edge that belongs to the current outer boundary.
-    *   - sides >= 3.
-    *   - The operation must not introduce self-intersections on the boundary.
-    *
-    * Postconditions on success:
-    *   - A new inner face representing the regular polygon is added.
-    *   - The outer boundary is updated to exclude any edges consumed by the new face and include the new
-    *     outer edges.
-    *   - All DCEL invariants are preserved: every inserted half-edge has a twin, coherent next/prev links,
-    *     correct incident faces, and updated vertex leaving edges.
-    *   - The returned TilingDCEL is a new instance reflecting the mutation.
-    *
-    * Failure cases:
-    *   - Returns a TilingError when the edge is not on the boundary, sides are invalid, or the growth would
-    *     cause boundary intersections or violate topology/geometry constraints.
-    */
-  def maybeAddRegularPolygonToBoundary(
-      onEdgeStartingWith: VertexId,
-      polygon: RegularPolygon
-  ): Either[TilingError, TilingDCEL] =
-    this.deepCopy.addRegularPolygonToBoundary(onEdgeStartingWith, polygon)
-
-  /** Adds an arbitrary simple polygon (described by its interior angles, in degrees) to the outer boundary,
-    * starting at the given vertex. The polygon's first edge sits on the boundary edge starting at
-    * `onEdgeStartingWith`.
-    *
-    * @return
-    *   A fresh tiling with the polygon appended, or a `TilingError` if the angles do not close, the polygon
-    *   would self-intersect, or the precondition checks fail.
-    */
-  def maybeAddSimplePolygonToBoundary(
-      onEdgeStartingWith: VertexId,
-      angles: Vector[AngleDegree]
-  ): Either[TilingError, TilingDCEL] =
-    this.deepCopy.addUntrustedSimplePolygonToBoundary(onEdgeStartingWith, angles)
-
-  /** Adds a regular polygon to the outer boundary along the path between two boundary vertices, growing
-    * outward. Use this overload when you want to specify both endpoints rather than only the starting edge.
-    */
-  def maybeAddRegularPolygon(
-      start: VertexId,
-      end: VertexId,
-      polygon: RegularPolygon
-  ): Either[TilingError, TilingDCEL] =
-    this.deepCopy.addRegularPolygon(start, end, polygon)
-
-  /** Two-endpoint variant of [[maybeAddSimplePolygonToBoundary]]: adds a simple polygon (described by its
-    * interior angles) to the boundary along the path from `start` to `end`.
-    */
-  def maybeAddSimplePolygon(
-      start: VertexId,
-      end: VertexId,
-      angles: Vector[AngleDegree]
-  ): Either[TilingError, TilingDCEL] =
-    this.deepCopy.addUntrustedSimplePolygon(start, end, angles)
-
-  /** Doubles the tiling area by translating it across one of its parallelogon period directions (or by
-    * reflecting it across the centroid for an equilateral-triangle boundary). Useful for growing periodic
-    * tilings without computing per-vertex additions.
-    *
-    * @return
-    *   The doubled tiling, or [[ValidationError]] when the tiling's boundary is not a parallelogon (and not
-    *   an equilateral triangle).
-    */
-  def doubleArea: Either[TilingError, TilingDCEL] =
-    if isEmpty then
-      Right(this)
-    else
-      val polygon       = boundarySimplePolygon
-      lazy val boundary = boundaryVerticesUnsafe
-      polygon.parallelogonDoubleIndices match
-        case None if polygon.isEquilateralTriangle =>
-          val angles = polygon.toAngles
-          val origin =
-            angles.indexWhere: angleDegree =>
-              angleDegree == AngleDegree(60)
-          val repeat = (angles.size / 3) + origin
-          Right(this.rawDouble(
-            boundary(origin),
-            boundary(repeat),
-            withInversion = true
-          ))
-        case None                                  => Left(ValidationError("Tiling is not a parallelogon, cannot fill the whole plane."))
-        case Some((origin, repeat))                =>
-          Right(this.rawDouble(boundary(origin), boundary(repeat)))
-
-  /** Adds a copy of the whole tiling to itself under the given [[Isometry]] (translation, rotation,
-    * reflection or glide reflection), merging it in and validating the result in full. The single primitive
-    * behind the four named `maybeAdd…Copy` convenience methods.
-    *
-    * The result is valid only if the copy lands outside the existing tiling or exactly follows its
-    * composition: coincident vertices are unified, shared edges collapsed and fully-overlapping faces
-    * deduplicated. An isometry that maps the tiling onto an existing symmetry reproduces the original.
-    *
-    * @return
-    *   The grown tiling, or a [[TilingError]] when the copy conflicts with the existing composition (partial
-    *   overlap, crossing edges, over-full vertex angles, a degenerate reflection axis, ...).
-    */
-  def maybeAddCopy(isometry: Isometry): Either[TilingError, TilingDCEL] =
-    isometry match
-      case Isometry.Translation(from, to)           =>
-        val delta: BigPoint = to - from
-        this.addIsometricCopy(_ + delta)
-      case Isometry.Rotation(center, degrees)       =>
-        val angle: BigRadian = degrees.toBigRadian
-        this.addIsometricCopy(_.rotatedAround(center, angle))
-      case Isometry.Reflection(axisP1, axisP2)      =>
-        if axisP1.almostEquals(axisP2) then
-          Left(ValidationError("A mirror axis requires two distinct points."))
-        else
-          this.addReflectedCopy(_.reflectedAcross(axisP1, axisP2))
-      case Isometry.GlideReflection(axisP1, axisP2) =>
-        if axisP1.almostEquals(axisP2) then
-          Left(ValidationError("A glide-reflection axis requires two distinct points."))
-        else
-          val glide: BigPoint = axisP2 - axisP1
-          this.addReflectedCopy(point => point.reflectedAcross(axisP1, axisP2) + glide)
-
-  def maybeAddTranslatedCopy(from: BigPoint, to: BigPoint): Either[TilingError, TilingDCEL] =
-    maybeAddCopy(Isometry.Translation(from, to))
-
-  /** Adds a rotated copy of the whole tiling to itself, rotating it about `center` (an arbitrary point — a
-    * vertex, an edge midpoint, a face centre, anything) by `degrees`.
-    *
-    * Sign convention (ADR-0011): `degrees` is positive **clockwise** as rendered in the SVG view (negative
-    * counterclockwise). Internally this is a counterclockwise rotation in the y-up model frame, which the
-    * `flippedY` export turns into a clockwise on-screen rotation.
-    *
-    * As with [[maybeAddTranslatedCopy]], the result is valid only if the copy lands outside the existing
-    * tiling or exactly follows its composition; the merged tiling is validated in full. Because the copy must
-    * snap onto the existing unit-edge composition, only rotations by a local symmetry angle (a multiple of
-    * 60°/90°/... by configuration) will succeed — most arbitrary angles are rejected.
-    *
-    * @return
-    *   The grown tiling, or a [[TilingError]] when the copy conflicts with the existing composition.
-    */
-  def maybeAddRotatedCopy(center: BigPoint, degrees: AngleDegree): Either[TilingError, TilingDCEL] =
-    maybeAddCopy(Isometry.Rotation(center, degrees))
-
-  /** Adds a mirrored copy of the whole tiling to itself, reflecting it across the line through `axisP1` and
-    * `axisP2` (arbitrary points — vertices, edge midpoints, anything).
-    *
-    * Reflection is the orientation-reversing isometry, so the copy's DCEL wiring is rebuilt with reversed
-    * orientation (unlike translate/rotate); the coordinate map itself is exact in `BigDecimal`. As with the
-    * other copy operations, the result is valid only if the copy lands outside the existing tiling or exactly
-    * follows its composition, and the merged tiling is validated in full. Reflecting across an existing
-    * symmetry axis reproduces the original.
-    *
-    * @return
-    *   The grown tiling, or a [[TilingError]] when the two axis points coincide, or when the copy conflicts
-    *   with the existing composition.
-    */
-  def maybeAddMirroredCopy(axisP1: BigPoint, axisP2: BigPoint): Either[TilingError, TilingDCEL] =
-    maybeAddCopy(Isometry.Reflection(axisP1, axisP2))
-
-  /** Adds a glide-reflected copy of the whole tiling to itself: reflect across the line through `axisP1` and
-    * `axisP2`, then slide along that line by the vector `axisP2 - axisP1`. The fourth plane isometry,
-    * orientation-reversing like a plain reflection but with a built-in translation along the axis (the
-    * symmetry of running-bond and many monohedral tilings).
-    *
-    * @return
-    *   The grown tiling, or a [[TilingError]] when the two axis points coincide, or when the copy conflicts
-    *   with the existing composition.
-    */
-  def maybeAddGlideReflectedCopy(axisP1: BigPoint, axisP2: BigPoint): Either[TilingError, TilingDCEL] =
-    maybeAddCopy(Isometry.GlideReflection(axisP1, axisP2))
-
-  /** Fills the gap around `vertexId` with as many triangles as fit, producing a fan whose apex is the named
-    * vertex. Useful for closing small angular gaps on the boundary.
-    */
-  def fanAt(vertexId: VertexId): Either[TilingError, TilingDCEL] =
-    for
-      vertex <- findVertex(vertexId)
-      result <- this.rawFan(vertex)
-    yield result
-
-  /** Fans `order` rotated copies of the whole tiling around an arbitrary `center` point — each rotated by a
-    * full `360 / order` slice — into one rotationally-symmetric patch. The general, full-ring counterpart of
-    * [[fanAt]]: the centre may be any point (a face centroid, an edge midpoint, ...), not only a boundary
-    * vertex.
-    *
-    * The ring always spans the complete 360°: it succeeds only if every wedge fits the existing composition
-    * (a centre face that maps onto itself is deduplicated; coincident vertices and edges are unified) and the
-    * whole patch validates — otherwise it returns a [[TilingError]] (strict). For example, mirroring a
-    * pentagon across an edge and then `fanAround`-ing the central pentagon's centroid with `order = 5`
-    * produces the six-pentagon Dürer cluster.
-    *
-    * For a regular n-gon centred on its own centroid, `order = n` is the canonical full fan; any divisor of
-    * `n` is also geometrically valid. A best-effort partial fan is intentionally not offered here — chain
-    * [[maybeAddRotatedCopy]] until the first `Left` to fill one side as far as it goes.
-    *
-    * @return
-    *   The fanned tiling, or a [[TilingError]] if `order < 2` or any wedge conflicts with the composition.
-    */
-  def fanAround(center: BigPoint, order: Int): Either[TilingError, TilingDCEL] =
-    this.rawFanAround(center, order)
-
-  /** Repeats the whole tiling `count` times in a strip, each copy translated by a further step of the vector
-    * from `from` to `to` (`k · (to − from)` for `k = 0 until count`). The translational counterpart of
-    * [[fanAround]]; the `count = 2` period-detected special case is [[doubleArea]].
-    *
-    * All copies are merged and the completed strip is validated once; a copy that conflicts with the
-    * composition surfaces as a self-intersection or over-full vertex in that final check. Copies that exactly
-    * overlap (a period equal to part of the tiling) are deduplicated.
-    *
-    * @return
-    *   The repeated tiling (the original unchanged when `count == 1`), or a [[TilingError]] if `count < 1` or
-    *   a copy conflicts with the composition.
-    */
-  def repeatAlong(from: BigPoint, to: BigPoint, count: Int): Either[TilingError, TilingDCEL] =
-    this.rawRepeatAlong(to - from, count)
-
-  /** Repeats the whole tiling over a 2-D lattice: `countA` copies stepped by `toA − from`, each of those rows
-    * then repeated `countB` times stepped by `toB − from`. A convenience composition of two [[repeatAlong]]
-    * sweeps (the editor can equally chain `repeatAlong(...).flatMap(_.repeatAlong(...))`).
-    *
-    * @return
-    *   The lattice patch, or a [[TilingError]] if either count is `< 1` or a copy conflicts with the
-    *   composition.
-    */
-  def repeatGrid(
-      from: BigPoint,
-      toA: BigPoint,
-      countA: Int,
-      toB: BigPoint,
-      countB: Int
-  ): Either[TilingError, TilingDCEL] =
-    repeatAlong(from, toA, countA).flatMap: strip =>
-      strip.repeatAlong(from, toB, countB)
-
-  /** Removes the vertex and the edges/faces incident to it. Fails with a [[TopologyError]] if the deletion
-    * would disconnect the tiling or break a topological invariant.
-    */
-  def maybeDeleteVertex(vertexId: VertexId): Either[TilingError, TilingDCEL] =
-    this.deepCopy.deleteVertex(vertexId)
-
-  /** Removes the edge connecting `startVertexId` to `endVertexId` (and its twin), merging the two incident
-    * faces. Fails with a [[TopologyError]] if the edge is missing or the merge would violate an invariant.
-    */
-  def maybeDeleteEdge(startVertexId: VertexId, endVertexId: VertexId): Either[TilingError, TilingDCEL] =
-    this.deepCopy.deleteEdge(startVertexId, endVertexId)
-
-  /** Deletes an inner face from the tiling.
-    *
-    * Preconditions:
-    *   - faceId references an existing inner (bounded) face.
-    *   - Deleting the face does not partition the tiling into disconnected components except for the intended
-    *     boundary change.
-    *
-    * Postconditions on success:
-    *   - The face and its incident half-edges that are not shared with other faces are removed or repurposed.
-    *   - If the deleted face touches the outer boundary, the boundary expands accordingly by relinking or
-    *     creating appropriate boundary half-edges.
-    *   - All DCEL invariants remain satisfied (twin, next/prev, incidentFace, vertex leaving edges).
-    *   - The returned TilingDCEL is a new instance reflecting the mutation. If the deleted face was the only
-    *     inner face, the result may be an empty tessellation.
-    *
-    * Failure cases:
-    *   - Returns a TilingError when the face does not exist, when the removal would split the tiling
-    *     invalidly, or when integrity checks fail.
-    */
-  def maybeDeleteFace(faceId: FaceId): Either[TilingError, TilingDCEL] =
-    this.deepCopy.deleteFace(faceId)
 
   /** Generates an SVG representation of the tiling. The width, height, and viewBox are automatically
     * calculated to fit the tiling at the given scale.
@@ -638,10 +337,10 @@ object TilingDCEL:
       halfEdges: List[HalfEdge],
       innerFaces: List[Face],
       outerFace: Face
-  ): Either[TilingError, TilingDCEL] =
+  ): Either[TilingError, Tiling] =
     val candidateTiling = apply(vertices, halfEdges, innerFaces, outerFace)
     validate(candidateTiling).map: _ =>
-      candidateTiling
+      Tiling.trusted(candidateTiling)
 
   /** The empty tiling: no vertices, no edges, no inner faces, just the bare outer face. */
   def empty: TilingDCEL =
@@ -655,17 +354,17 @@ object TilingDCEL:
   /** Creates a tiling consisting of a single simple polygon described by its interior angles in integer
     * degrees. Delegates to [[TilingBuilder.createSimplePolygon]].
     */
-  def createSimplePolygon(degrees: Int*): Either[TilingError, TilingDCEL] =
+  def createSimplePolygon(degrees: Int*): Either[TilingError, Tiling] =
     TilingBuilder.createSimplePolygon(degrees*)
 
   /** Variant of [[createSimplePolygon(degrees:Int*)*]] taking a vector of [[geometry.AngleDegree]] values
     * (allowing rational angles).
     */
-  def createSimplePolygon(angles: Vector[AngleDegree]): Either[TilingError, TilingDCEL] =
+  def createSimplePolygon(angles: Vector[AngleDegree]): Either[TilingError, Tiling] =
     TilingBuilder.createSimplePolygon(angles)
 
   /** Creates a tiling consisting of a single regular polygon. Total: delegates to
     * [[TilingBuilder.createRegularPolygon]].
     */
-  def createRegularPolygon(polygon: RegularPolygon): TilingDCEL =
+  def createRegularPolygon(polygon: RegularPolygon): Tiling =
     TilingBuilder.createRegularPolygon(polygon)

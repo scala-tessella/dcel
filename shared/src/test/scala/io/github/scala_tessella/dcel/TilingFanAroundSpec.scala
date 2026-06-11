@@ -13,10 +13,10 @@ import org.scalatest.matchers.should.Matchers
   */
 class TilingFanAroundSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
 
-  private def centroidOf(tiling: TilingDCEL): BigPoint =
+  private def centroidOf(tiling: Tiling): BigPoint =
     tiling.coordinates.values.toList.centroid
 
-  private def pentagon: TilingDCEL =
+  private def pentagon: Tiling =
     TilingBuilder.createRegularPolygon(RegularPolygon(5))
 
   behavior of "TilingDCEL.fanAround"
