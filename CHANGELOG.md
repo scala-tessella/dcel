@@ -4,6 +4,27 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.4] — 2026-06-11
+
+### Added
+
+- **Largest contained parallelogon.** New query
+  `largestContainedParallelogon` (extension on `TilingDCEL`, in
+  `TilingLattice`) returning the ordered corner vertices (4 or 6) of the
+  largest parallelogon contained in a finite patch — the translational unit
+  of the infinite tessellation the patch tends to. Stray boundary faces that
+  break the parallelogon condition are excluded by construction; when the
+  patch's own boundary is already a parallelogon, its corners are returned
+  directly. Returns `None` when the patch neither is nor contains one. See
+  [ADR-0015](adr/0015-largest-contained-parallelogon.md).
+- **Translation-lattice detection.** `translationLattice` returns the
+  primitive translation basis `(v, w)` of a periodic patch
+  (Lagrange–Gauss reduced, sign-canonicalised), detected from interior
+  structure via orientation-aware vertex signatures and robust to a few
+  welded foreign faces. Independently useful as a periodicity test and as
+  the lattice-vector supplier for the translated-copy operation. See
+  [ADR-0015](adr/0015-largest-contained-parallelogon.md).
+
 ## [0.1.3] — 2026-06-02
 
 ### Fixed
