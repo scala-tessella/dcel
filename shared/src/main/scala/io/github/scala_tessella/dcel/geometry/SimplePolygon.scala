@@ -1,7 +1,7 @@
 package io.github.scala_tessella.dcel.geometry
 
 import io.github.scala_tessella.dcel.{GeometryError, SpatialError, TilingError}
-import io.github.scala_tessella.dcel.conversion.TilingSVG.toScalableVectorG
+import io.github.scala_tessella.dcel.conversion.SimplePolygonSVG.toScalableVectorG
 import io.github.scala_tessella.dcel.geometry.BigDecimalGeometry.ACCURACY
 import io.github.scala_tessella.ring_seq.RingSeq.*
 import io.github.scala_tessella.ring_seq.SymmetryOps.AxisLocation

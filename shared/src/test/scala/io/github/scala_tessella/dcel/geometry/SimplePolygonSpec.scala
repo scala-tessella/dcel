@@ -1,6 +1,6 @@
 package io.github.scala_tessella.dcel.geometry
 
-//import io.github.scala_tessella.dcel.conversion.TilingSVG.toParallelogonTiling
+//import io.github.scala_tessella.dcel.conversion.SimplePolygonSVG.toParallelogonTiling
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, SimplePolygon}
 import io.github.scala_tessella.dcel.{TilingBuilder, TilingTestHelpers}
 import io.github.scala_tessella.ring_seq.SymmetryOps.{Edge, Vertex}
