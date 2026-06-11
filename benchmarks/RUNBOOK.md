@@ -54,3 +54,24 @@ sbt "benchmarks/Jmh/run -i 30 -wi 10 -f 1 -t 1 -rf json -rff validation-baseline
 # single fixture, single operation (e.g. validate-only on domino)
 sbt "benchmarks/Jmh/run -p fixture=aperiodic/domino .*ValidationBenchmark.validateOnly"
 ```
+
+### Construction
+
+Three net builders (`triangleNet`, `rhombusNet`, `hexagonNet`) timed
+end-to-end over `size` ∈ {4, 8, 12, 16} — 12 benchmark rows per run. Unlike
+the other suites, the fixture build *is* the measured operation: this is the
+polygon-by-polygon growth pipeline (`TilingAddition` + per-step validation)
+the editor exercises on every edit. Watch the growth curve over `size` —
+each addition walks the existing boundary, so a super-linear regression in a
+single growth step shows up as a worse-than-expected curve.
+
+```bash
+# full matrix (3 builders × 4 sizes) with default JMH settings
+sbt "benchmarks/Jmh/run -i 10 -wi 5 -f 1 -t 1 .*ConstructionBenchmark.*"
+
+# machine-readable output for before/after comparison across branches
+sbt "benchmarks/Jmh/run -i 30 -wi 10 -f 1 -t 1 -rf json -rff construction-baseline.json .*ConstructionBenchmark.*"
+
+# quick scaling check on the largest sizes only
+sbt "benchmarks/Jmh/run -p size=8,16 .*ConstructionBenchmark.*"
+```
