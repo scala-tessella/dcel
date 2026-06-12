@@ -101,8 +101,11 @@ object TilingLattice:
       *   `(v, w)` the Lagrange–Gauss reduced primitive basis (sign-canonicalised), or `None` if no lattice is
       *   found
       */
-    def translationLattice(minOverlapFraction: Double = 0.25): Option[(BigPoint, BigPoint)] =
-      periodicData(minOverlapFraction).map((_, v, w) => (v, w))
+    def translationLattice(
+        minOverlapFraction: Double = 0.25,
+        maxDefectFraction: Double = 0.1
+    ): Option[(BigPoint, BigPoint)] =
+      periodicData(minOverlapFraction, maxDefectFraction).map((_, v, w) => (v, w))
 
     /** The dominant translation orbit plus its reduced lattice basis — shared by [[translationLattice]] and
       * [[largestContainedParallelogon]].
@@ -111,7 +114,10 @@ object TilingLattice:
       *   a candidate period must map at least this fraction of dominant-orbit vertices onto interior
       *   vertices, ruling out large vectors with little/no genuine overlap.
       */
-    private def periodicData(minOverlapFraction: Double): Option[(List[Vertex], BigPoint, BigPoint)] =
+    private def periodicData(
+        minOverlapFraction: Double,
+        maxDefectFraction: Double
+    ): Option[(List[Vertex], BigPoint, BigPoint)] =
       val interior                         = interiorVertices
       val sigAll: Map[VertexId, List[Key]] =
         interior.map(v => v.id -> signature(v)).toMap
@@ -130,7 +136,13 @@ object TilingLattice:
         val vertexAt: Map[Key, Vertex] =
           interior.map(v => key(v.coords) -> v).toMap
         val minMatches                 = math.max(3, (dominant.size * minOverlapFraction).toInt)
-        val maxDefects                 = math.max(2, dominant.size / 10)
+        // maxDefectFraction = 0 demands exact signature preservation on every landing: the right
+        // setting for weld-free patches (e.g. enumeration candidates), where a tolerance would let a
+        // sub-period of a dominant-orbit sublattice pass on the back of sparse minority-type
+        // mismatches. The default keeps the welded-defect tolerance this detector was built with.
+        val maxDefects                 =
+          if maxDefectFraction == 0.0 then 0
+          else math.max(2, (dominant.size * maxDefectFraction).toInt)
 
         def isPeriod(t: BigPoint): Boolean =
           val landings   = interior.flatMap(u => vertexAt.get(key(u.coords + t)).map(w => (u, w)))
@@ -158,8 +170,8 @@ object TilingLattice:
       * boundary faces (e.g. welded triangles) leave their cells short of a full covolume, so they are
       * excluded.
       */
-    private def maximalBlock(minOverlapFraction: Double): Option[Block] =
-      periodicData(minOverlapFraction).flatMap { (dominant, v, w) =>
+    private def maximalBlock(minOverlapFraction: Double, maxDefectFraction: Double): Option[Block] =
+      periodicData(minOverlapFraction, maxDefectFraction).flatMap { (dominant, v, w) =>
         val det    = v.cross(w)
         val covol  = det.abs
         val origin = dominant.head.coords
@@ -188,22 +200,25 @@ object TilingLattice:
       * @return
       *   the block, or `None` if no lattice is found or no cell is complete
       */
-    private[dcel] def largestContainedParallelogonBlock(minOverlapFraction: Double =
-      0.25): Option[ParallelogonBlock] =
-      maximalBlock(minOverlapFraction).map { case Block(v, w, origin, (i0, j0, width, height), _) =>
-        def corner(i: Int, j: Int): BigPoint =
-          origin + scaled(v, BigDecimal(i)) + scaled(w, BigDecimal(j))
-        ParallelogonBlock(
-          corners = List(
-            corner(i0, j0),
-            corner(i0 + width, j0),
-            corner(i0 + width, j0 + height),
-            corner(i0, j0 + height)
-          ),
-          cellsWide = width,
-          cellsHigh = height,
-          area = v.cross(w).abs * width * height
-        )
+    private[dcel] def largestContainedParallelogonBlock(
+        minOverlapFraction: Double = 0.25,
+        maxDefectFraction: Double = 0.1
+    ): Option[ParallelogonBlock] =
+      maximalBlock(minOverlapFraction, maxDefectFraction).map {
+        case Block(v, w, origin, (i0, j0, width, height), _) =>
+          def corner(i: Int, j: Int): BigPoint =
+            origin + scaled(v, BigDecimal(i)) + scaled(w, BigDecimal(j))
+          ParallelogonBlock(
+            corners = List(
+              corner(i0, j0),
+              corner(i0 + width, j0),
+              corner(i0 + width, j0 + height),
+              corner(i0, j0 + height)
+            ),
+            cellsWide = width,
+            cellsHigh = height,
+            area = v.cross(w).abs * width * height
+          )
       }
 
     /** The largest parallelogon contained in the patch (ADR-0015), as its ordered corner vertices (4 or 6) —
@@ -222,8 +237,11 @@ object TilingLattice:
       * @return
       *   the corner vertices, or `None` if the patch is neither a parallelogon nor contains one
       */
-    def largestContainedParallelogon(minOverlapFraction: Double = 0.25): Option[List[Vertex]] =
-      wholeBoundaryCorners.orElse(latticeParallelogonCorners(minOverlapFraction))
+    def largestContainedParallelogon(
+        minOverlapFraction: Double = 0.25,
+        maxDefectFraction: Double = 0.1
+    ): Option[List[Vertex]] =
+      wholeBoundaryCorners.orElse(latticeParallelogonCorners(minOverlapFraction, maxDefectFraction))
 
     /** Whole-boundary fast path: if the patch boundary itself is a parallelogon, its corner vertices are the
       * answer (the whole patch is the largest contained parallelogon).
@@ -238,32 +256,36 @@ object TilingLattice:
       * `parallelogonIndices`. The block interior angle at each boundary vertex is the sum of the incident
       * block-face corner angles there.
       */
-    private def latticeParallelogonCorners(minOverlapFraction: Double): Option[List[Vertex]] =
-      maximalBlock(minOverlapFraction).flatMap { case Block(_, _, _, (i0, j0, width, height), facesByCell) =>
-        val blockCells: Set[(Int, Int)] =
-          (for i <- i0 until i0 + width; j <- j0 until j0 + height yield (i, j)).toSet
-        val blockFaces: Set[Face]       =
-          blockCells.flatMap(facesByCell.getOrElse(_, Nil))
-        val blockEdges: List[HalfEdge]  =
-          blockFaces.toList.flatMap(_.halfEdgesUnsafe)
+    private def latticeParallelogonCorners(
+        minOverlapFraction: Double,
+        maxDefectFraction: Double
+    ): Option[List[Vertex]] =
+      maximalBlock(minOverlapFraction, maxDefectFraction).flatMap {
+        case Block(_, _, _, (i0, j0, width, height), facesByCell) =>
+          val blockCells: Set[(Int, Int)] =
+            (for i <- i0 until i0 + width; j <- j0 until j0 + height yield (i, j)).toSet
+          val blockFaces: Set[Face]       =
+            blockCells.flatMap(facesByCell.getOrElse(_, Nil))
+          val blockEdges: List[HalfEdge]  =
+            blockFaces.toList.flatMap(_.halfEdgesUnsafe)
 
-        // boundary = block-face half-edges whose twin lies outside the block (a non-block face, or the outer)
-        val boundary: List[HalfEdge] =
-          blockEdges.filter(he => !he.twin.flatMap(_.incidentFace).exists(blockFaces.contains))
-        val ordered                  = orderCycle(boundary)
+          // boundary = block-face half-edges whose twin lies outside the block (a non-block face, or the outer)
+          val boundary: List[HalfEdge] =
+            blockEdges.filter(he => !he.twin.flatMap(_.incidentFace).exists(blockFaces.contains))
+          val ordered                  = orderCycle(boundary)
 
-        if ordered.size < 4 || ordered.size != boundary.size then None
-        else
-          // block interior angle at each boundary vertex = Σ corner angles of block faces meeting there
-          val angleAt: Map[VertexId, AngleDegree] =
-            blockEdges
-              .groupBy(_.origin.id)
-              .map((vertexId, hes) => vertexId -> hes.flatMap(_.angle).foldLeft(AngleDegree(0))(_ + _))
-          val cycleVertices                       = ordered.map(_.origin)
-          val polygon                             = SimplePolygon(ordered.map(he => angleAt(he.origin.id)).toVector)
-          polygon.parallelogonIndices match
-            case Nil     => None
-            case indices => Some(canonicalCorners(indices.map(cycleVertices)))
+          if ordered.size < 4 || ordered.size != boundary.size then None
+          else
+            // block interior angle at each boundary vertex = Σ corner angles of block faces meeting there
+            val angleAt: Map[VertexId, AngleDegree] =
+              blockEdges
+                .groupBy(_.origin.id)
+                .map((vertexId, hes) => vertexId -> hes.flatMap(_.angle).foldLeft(AngleDegree(0))(_ + _))
+            val cycleVertices                       = ordered.map(_.origin)
+            val polygon                             = SimplePolygon(ordered.map(he => angleAt(he.origin.id)).toVector)
+            polygon.parallelogonIndices match
+              case Nil     => None
+              case indices => Some(canonicalCorners(indices.map(cycleVertices)))
       }
 
   /** Flip a vector to a canonical half-plane so the basis is deterministic. */

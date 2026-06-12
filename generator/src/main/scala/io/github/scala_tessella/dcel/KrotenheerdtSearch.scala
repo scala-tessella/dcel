@@ -34,6 +34,7 @@ object KrotenheerdtSearch:
       n: Int,
       maxVertices: Int,
       hardCapFactor: Double = 3.5,
+      earlyTypeGate: Int = 60,
       log: String => Unit = _ => ()
   ): Outcome =
     val visited    = mutable.HashSet[List[(Int, BigDecimal, BigDecimal)]]()
@@ -65,11 +66,22 @@ object KrotenheerdtSearch:
       states += 1
 
       def grow(nextCertifyAt: Int): Unit =
-        expansions(patch, n).foreach: next =>
+        // children are pushed largest-polygon-first so the DFS pops small-polygon branches first:
+        // dodecagon-rich families have the deepest lineages (huge cells) and would otherwise
+        // monopolize the search front for hours before any other family completes.
+        expansions(patch, n).reverse.foreach: next =>
           val key = PatchCanonical.congruenceKey(next)
           if visited.add(key) then stack.push((next, nextCertifyAt))
 
-      if patch.vertices.sizeIs < certifyAt then grow(certifyAt)
+      if patch.vertices.sizeIs < certifyAt then
+        // Type-density gate: in every published Krotenheerdt tiling all n types appear within any
+        // ~60-vertex ball (fundamental cells are small), so a patch still type-deficient past the
+        // gate is a mono-type core acquiring fringe decorations — an exponential family of doomed
+        // congruence classes if allowed to grow to the horizon. Validated by the published-count
+        // cross-checks (a too-aggressive gate would surface as a missing tiling at n <= 3).
+        if patch.vertices.sizeIs >= earlyTypeGate && innerVertexTypes(patch).size < n then
+          rejections(RejectReason.WrongTypeCount) += 1
+        else grow(certifyAt)
       else if innerVertexTypes(patch).size < n then
         // Horizon assumption (validated by the published-count cross-checks): every ball of horizon
         // size in a true Krotenheerdt-n tiling shows all n vertex types — the fundamental cells are

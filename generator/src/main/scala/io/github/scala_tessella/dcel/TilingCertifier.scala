@@ -93,8 +93,13 @@ object TilingCertifier:
 
   def certify(patch: Tiling, n: Int): Either[RejectReason, Certified] =
     for
-      basis <- patch.translationLattice().toRight(RejectReason.NoLattice)
-      block <- patch.largestContainedParallelogonBlock().toRight(RejectReason.BlockTooSmall)
+      // Strict detection (zero defect tolerance): enumeration patches are weld-free, so a true
+      // period preserves every interior signature; any tolerance lets sublattice false periods
+      // through on the back of sparse minority-type mismatches.
+      basis <- patch.translationLattice(maxDefectFraction = 0.0).toRight(RejectReason.NoLattice)
+      block <- patch
+                 .largestContainedParallelogonBlock(maxDefectFraction = 0.0)
+                 .toRight(RejectReason.BlockTooSmall)
       _     <- Either.cond(block.cellsWide >= 2 && block.cellsHigh >= 2, (), RejectReason.BlockTooSmall)
       cell   = CellGeometry(basis, block)
 
@@ -149,7 +154,9 @@ object TilingCertifier:
   private def orbitClasses(patch: Tiling, reps: List[Vertex]): Option[Int] =
     val boundary  = patch.boundaryVerticesUnsafe.map(_.id).toSet
     val safeDepth = reps.map(depthToBoundary(_, boundary)).min - 1
-    if safeDepth < 1 then None
+    // Depth 1 coronas cannot separate orbits that agree on first neighbourhoods (seen: a shifted
+    // multi-orbit 3.3.4.3.4 variant certifying as 1-uniform); require radius 2 before judging.
+    if safeDepth < 2 then None
     else
       var classes: List[List[Vertex]] = List(reps)
       for d <- 0 to safeDepth do
@@ -186,7 +193,12 @@ object TilingCertifier:
       cell: CellGeometry,
       witnessCell: (Int, Int)
   ): String =
-    val (v, w) = basis
+    // Primitive reduction first: strict lattice detection can settle on a doubled cell when a
+    // single rounding-borderline landing breaks the true period. If the block content is invariant
+    // under a half-vector self-translation (pure arithmetic on reduced coordinates — no signature
+    // rounding involved), halve the basis and repeat, so the key always describes the primitive
+    // torus and candidate bases are enumerated from primitive vectors.
+    val (v, w) = primitiveBasis(tiling, cell, basis)
     val det0   = (v.x * w.y - v.y * w.x).abs
 
     val candidateVectors = List(v, w, v + w, v - w).flatMap(p => List(p, BigPoint.origin - p))
@@ -211,6 +223,38 @@ object TilingCertifier:
           (vertexTypeOf(tiling, vertex), vertex.coords)
         .filter((_, c) => cell.cellOf(c).contains(witnessCell))
 
+    // Primitive reduction: strict lattice detection can settle on a doubled cell when a single
+    // rounding-borderline landing breaks the true period. If the cell content is invariant under a
+    // half-vector self-translation, fold it onto the finer lattice (pure arithmetic on reduced
+    // coordinates — no signature rounding involved) so the key always describes the primitive torus.
+    def reducePrimitive(
+        faces0: List[(Int, (BigDecimal, BigDecimal))],
+        verts0: List[(String, (BigDecimal, BigDecimal))]
+    ): (List[(Int, (BigDecimal, BigDecimal))], List[(String, (BigDecimal, BigDecimal))]) =
+      val half                                                                                             = BigDecimal("0.5")
+      def fr(x: BigDecimal): BigDecimal                                                                    =
+        val r = x.setScale(SCALE, BigDecimal.RoundingMode.HALF_UP)
+        val f = r - r.setScale(0, BigDecimal.RoundingMode.FLOOR)
+        if f >= BigDecimal(1) then BigDecimal(0).setScale(SCALE)
+        else f.setScale(SCALE, BigDecimal.RoundingMode.HALF_UP)
+      val shifts: List[((BigDecimal, BigDecimal), ((BigDecimal, BigDecimal)) => (BigDecimal, BigDecimal))] =
+        List(
+          ((half, BigDecimal(0)), (ab: (BigDecimal, BigDecimal)) => (fr(ab._1 * 2), ab._2)),
+          ((BigDecimal(0), half), (ab: (BigDecimal, BigDecimal)) => (ab._1, fr(ab._2 * 2))),
+          ((half, half), (ab: (BigDecimal, BigDecimal)) => (fr(ab._1 - ab._2), fr(ab._2 * 2)))
+        )
+      def contentKey(fs: List[(Int, (BigDecimal, BigDecimal))])                                            =
+        fs.map((sd, ab) => (sd, fr(ab._1), fr(ab._2))).toSet
+      shifts.collectFirst {
+        case ((sa, sb), transform)
+            if contentKey(faces0.map((sd, ab) => (sd, (fr(ab._1 + sa), fr(ab._2 + sb))))) ==
+              contentKey(faces0) =>
+          reducePrimitive(
+            faces0.map((sd, ab) => (sd, transform(ab))).distinctBy((sd, ab) => (sd, fr(ab._1), fr(ab._2))),
+            verts0.map((t, ab) => (t, transform(ab))).distinctBy((t, ab) => (t, fr(ab._1), fr(ab._2)))
+          )
+      }.getOrElse((faces0, verts0))
+
     val keys =
       for (a, b, det) <- candidateBases
       yield
@@ -218,7 +262,7 @@ object TilingCertifier:
           ((p.x * b.y - b.x * p.y) / det, (a.x * p.y - p.x * a.y) / det)
 
         val faceCells   = faces.map((sides, c) => (sides, lattice(c)))
-        val vertexCells = typedVertices.map((t, c) => (t, lattice(c)))
+        val vertexCells = typedVertices.map((t, c) => (t.mkString("."), lattice(c)))
 
         val anchored =
           faceCells.map(_._2).distinct.map: (anchorAlpha, anchorBeta) =>
@@ -228,9 +272,51 @@ object TilingCertifier:
                 .distinct.sorted
             val vs =
               vertexCells
-                .map((t, ab) => (t.mkString("."), frac(ab._1 - anchorAlpha), frac(ab._2 - anchorBeta)))
+                .map((t, ab) => (t, frac(ab._1 - anchorAlpha), frac(ab._2 - anchorBeta)))
                 .distinct.sorted
             (fs.map((s, x, y) => s"$s:$x:$y") ++ vs.map((t, x, y) => s"$t:$x:$y")).mkString("|")
         anchored.min
 
     keys.min
+
+  /** Reduces a possibly non-primitive basis by detecting half-vector self-translations of the block content
+    * (faces only, by reduced position): content invariant under `v/2`, `w/2` or `(v+w)/2` means the true
+    * fundamental cell is finer; halve and recurse.
+    */
+  private def primitiveBasis(
+      tiling: TilingDCEL,
+      cell: CellGeometry,
+      basis: (BigPoint, BigPoint)
+  ): (BigPoint, BigPoint) =
+    val faces =
+      tiling.innerFaces
+        .map: face =>
+          val vertices = face.getVerticesUnsafe.map(_.coords)
+          (vertices.size, vertices.centroid)
+        .filter((_, c) => cell.containsFace(c))
+
+    def fr(x: BigDecimal): BigDecimal =
+      val r = x.setScale(SCALE, BigDecimal.RoundingMode.HALF_UP)
+      val f = r - r.setScale(0, BigDecimal.RoundingMode.FLOOR)
+      if f >= BigDecimal(1) then BigDecimal(0).setScale(SCALE)
+      else f.setScale(SCALE, BigDecimal.RoundingMode.HALF_UP)
+
+    def reduce(v: BigPoint, w: BigPoint): (BigPoint, BigPoint) =
+      val det                                                = v.x * w.y - v.y * w.x
+      def coords(p: BigPoint)                                =
+        ((p.x * w.y - w.x * p.y) / det, (v.x * p.y - p.x * v.y) / det)
+      val content                                            = faces.map((sides, c) => (sides, coords(c)))
+      def contentKey(shiftA: BigDecimal, shiftB: BigDecimal) =
+        content.map((sd, ab) => (sd, fr(ab._1 + shiftA), fr(ab._2 + shiftB))).toSet
+      val base                                               = contentKey(BigDecimal(0), BigDecimal(0))
+      val half                                               = BigDecimal("0.5")
+      val finer                                              =
+        if contentKey(half, BigDecimal(0)) == base then Some((v.scaled(half), w))
+        else if contentKey(BigDecimal(0), half) == base then Some((v, w.scaled(half)))
+        else if contentKey(half, half) == base then Some((v, (v + w).scaled(half)))
+        else None
+      finer match
+        case Some((fv, fw)) => reduce(fv, fw)
+        case None           => (v, w)
+
+    reduce(basis._1, basis._2)
