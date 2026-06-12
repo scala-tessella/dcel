@@ -46,13 +46,22 @@ object KrotenheerdtSearch:
     // operations deep-copy their input (the sequential search already relies on parent immutability
     // when trying sibling polygons), each congruence class is claimed exactly once through the
     // atomic visited-set add, and a claimed patch is processed by a single worker.
-    val visited    = ConcurrentHashMap.newKeySet[List[(Int, BigDecimal, BigDecimal)]]()
-    val found      = new ConcurrentHashMap[String, Certified]()
-    val foundCount = new AtomicLong(0)
-    val rejections = new ConcurrentHashMap[RejectReason, AtomicLong]()
-    val retries    = new ConcurrentHashMap[RejectReason, AtomicLong]()
-    val states     = new AtomicLong(0)
-    val sample     = new AtomicReference[Int](0)
+    //
+    // The visited-set stores a 128-bit digest of the congruence key, not the key itself: a full key
+    // is a list of hundreds of rounded coordinates (~10-20 KB) and millions of visited states would
+    // exhaust any heap (seen: GC collapse at 1.3M states on a 20 GB heap). A digest collision would
+    // silently merge two distinct classes; at 10^8 states the probability is ~10^-22 — far below
+    // any other source of error in the pipeline.
+    val visited                                       = ConcurrentHashMap.newKeySet[java.math.BigInteger]()
+    def digestOf(patch: Tiling): java.math.BigInteger =
+      val md = java.security.MessageDigest.getInstance("MD5")
+      java.math.BigInteger(1, md.digest(PatchCanonical.congruenceKey(patch).toString.getBytes("UTF-8")))
+    val found                                         = new ConcurrentHashMap[String, Certified]()
+    val foundCount                                    = new AtomicLong(0)
+    val rejections                                    = new ConcurrentHashMap[RejectReason, AtomicLong]()
+    val retries                                       = new ConcurrentHashMap[RejectReason, AtomicLong]()
+    val states                                        = new AtomicLong(0)
+    val sample                                        = new AtomicReference[Int](0)
 
     def bump(map: ConcurrentHashMap[RejectReason, AtomicLong], reason: RejectReason): Unit  =
       map.computeIfAbsent(reason, _ => new AtomicLong(0)).incrementAndGet(): Unit
@@ -72,7 +81,7 @@ object KrotenheerdtSearch:
 
     polygonSides.reverse.foreach: sides =>
       val seed = TilingBuilder.createRegularPolygon(RegularPolygon(sides))
-      if visited.add(PatchCanonical.congruenceKey(seed)) then push((seed, maxVertices))
+      if visited.add(digestOf(seed)) then push((seed, maxVertices))
 
     // Rejections that just mean "not enough patch yet": keep growing (bounded) instead of dropping.
     val transient =
@@ -99,8 +108,7 @@ object KrotenheerdtSearch:
         // dodecagon-rich families have the deepest lineages (huge cells) and would otherwise
         // monopolize the search front for hours before any other family completes.
         expansions(patch, n).reverse.foreach: next =>
-          val key = PatchCanonical.congruenceKey(next)
-          if visited.add(key) then push((next, nextCertifyAt))
+          if visited.add(digestOf(next)) then push((next, nextCertifyAt))
 
       // Growth gates past the early-gate size (all validated by the published-count cross-checks):
       // type density — all n types showing, each deep vertex seeing every type within the ball
