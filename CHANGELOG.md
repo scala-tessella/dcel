@@ -4,7 +4,7 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.2.1] — 2026-06-12
 
 ### Fixed
 
@@ -29,6 +29,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   sane wiring; on a broken candidate (e.g. a rejected overlapping merge) the
   traversal never terminated and exhausted the heap. Topology now gates the
   later stages, so such candidates fail fast with a `TopologyError`.
+
+### Infrastructure
+
+- **Merge-engine property test.** Random sequences of the four isometric copy
+  operations (the four coincidence patterns `mergeTilings` must survive), with
+  parameters drawn from the tiling's own structure. Asserts both that every
+  accepted copy re-certifies and that a rejected copy leaves its receiver
+  untouched — the first executable check of ADR-0002's no-mutation-on-failure
+  guarantee.
+- **README** refreshed to the 0.2.x surface, with all usage snippets
+  compile- and run-verified.
 
 ## [0.2.0] — 2026-06-11
 
