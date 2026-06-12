@@ -23,9 +23,6 @@ object PatchCanonical:
   /** One face under a frame: side count plus rounded centroid coordinates. */
   private type FaceDescriptor = (Int, BigDecimal, BigDecimal)
 
-  given Ordering[FaceDescriptor] =
-    Ordering.Tuple3(Ordering.Int, Ordering.BigDecimal, Ordering.BigDecimal)
-
   def congruenceKey(tiling: TilingDCEL): List[(Int, BigDecimal, BigDecimal)] =
     val faces: List[(Int, BigPoint)] =
       tiling.innerFaces.map: face =>

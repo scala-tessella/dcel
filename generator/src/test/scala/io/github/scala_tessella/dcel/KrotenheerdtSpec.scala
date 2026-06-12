@@ -92,3 +92,28 @@ class KrotenheerdtSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
     val withSquare   = triangle.maybeAddRegularPolygonToBoundary(V1, RegularPolygon(4)).value
     val withTriangle = triangle.maybeAddRegularPolygonToBoundary(V1, RegularPolygon(3)).value
     PatchCanonical.congruenceKey(withSquare) should not be PatchCanonical.congruenceKey(withTriangle)
+
+  behavior of "KrotenheerdtSearch (A068600, n = 1)"
+
+  it should "certify exactly the 11 Archimedean tilings" in:
+    val outcome      = KrotenheerdtSearch.enumerate(1, 150)
+    val compositions =
+      outcome.certified
+        .map(_.vertexTypes.map(_.mkString(".")).toList.sorted.mkString(";"))
+        .sorted
+    allAssert(
+      outcome.certified.size shouldBe 11,
+      compositions shouldBe List(
+        "3.12.12",
+        "3.3.3.3.3.3",
+        "3.3.3.3.6",
+        "3.3.3.4.4",
+        "3.3.4.3.4",
+        "3.4.6.4",
+        "3.6.3.6",
+        "4.4.4.4",
+        "4.6.12",
+        "4.8.8",
+        "6.6.6"
+      )
+    )
