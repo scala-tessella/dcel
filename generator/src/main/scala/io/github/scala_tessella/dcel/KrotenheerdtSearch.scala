@@ -1,6 +1,5 @@
 package io.github.scala_tessella.dcel
 
-import io.github.scala_tessella.dcel.TilingLattice.{largestContainedParallelogonBlock, translationLattice}
 import io.github.scala_tessella.dcel.TilingCertifier.{Certified, RejectReason, certify, innerVertexTypes}
 import io.github.scala_tessella.dcel.VertexTypes.*
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, RegularPolygon}

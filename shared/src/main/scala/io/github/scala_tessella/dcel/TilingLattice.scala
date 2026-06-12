@@ -81,6 +81,21 @@ object TilingLattice:
 
   extension (tiling: TilingDCEL)
 
+    /** All translation-period candidates that pass the (tolerant) landing validation, sorted by norm,
+      * together with the dominant-orbit anchor point. Unlike [[translationLattice]] — which commits to the
+      * two shortest independent vectors — this exposes the full validated list so a caller can select a basis
+      * by stronger structural criteria (e.g. cell-content equality, which is robust to the signature-rounding
+      * noise that breaks strict validation on large patches and to the sublattice false periods that tolerant
+      * validation admits).
+      */
+    private[dcel] def validatedPeriods(
+        minOverlapFraction: Double = 0.25,
+        maxDefectFraction: Double = 0.1
+    ): Option[(BigPoint, List[BigPoint])] =
+      periodCandidates(minOverlapFraction, maxDefectFraction).map((dominant, validated) =>
+        (dominant.head.coords, validated)
+      )
+
     /** The local star of a vertex: the sorted, rounded directions to its adjacent vertices. Invariant under
       * translation, so two vertices related by a lattice translation share a signature; mirror/rotation
       * images do not.
@@ -114,10 +129,10 @@ object TilingLattice:
       *   a candidate period must map at least this fraction of dominant-orbit vertices onto interior
       *   vertices, ruling out large vectors with little/no genuine overlap.
       */
-    private def periodicData(
+    private def periodCandidates(
         minOverlapFraction: Double,
         maxDefectFraction: Double
-    ): Option[(List[Vertex], BigPoint, BigPoint)] =
+    ): Option[(List[Vertex], List[BigPoint])] =
       val interior                         = interiorVertices
       val sigAll: Map[VertexId, List[Key]] =
         interior.map(v => v.id -> signature(v)).toMap
@@ -155,13 +170,20 @@ object TilingLattice:
             .groupBy(key).values.map(_.head).toList
 
         val validated = candidates.filter(isPeriod).sortBy(v => v.dot(v))
+        Some((dominant, validated))
 
+    private def periodicData(
+        minOverlapFraction: Double,
+        maxDefectFraction: Double
+    ): Option[(List[Vertex], BigPoint, BigPoint)] =
+      periodCandidates(minOverlapFraction, maxDefectFraction).flatMap { (dominant, validated) =>
         validated.headOption.flatMap { v =>
           validated
             .find(u => v.cross(u).abs > BigDecimal(ACCURACY)) // shortest independent
             .map(w => gaussReduced(v, w))
             .map((a, b) => (dominant, canonicalSign(a), canonicalSign(b)))
         }
+      }
 
     /** Maximal block of complete lattice cells (shared by the area- and corner-returning methods).
       *
@@ -293,10 +315,10 @@ object TilingLattice:
     val positive = v.x > BigDecimal(ACCURACY) || (v.x.abs <= BigDecimal(ACCURACY) && v.y > 0)
     if positive then v else BigPoint.origin - v
 
-  private def scaled(p: BigPoint, k: BigDecimal): BigPoint =
+  private[dcel] def scaled(p: BigPoint, k: BigDecimal): BigPoint =
     BigPoint(p.x * k, p.y * k)
 
-  private def floorToInt(x: BigDecimal): Int =
+  private[dcel] def floorToInt(x: BigDecimal): Int =
     x.setScale(0, BigDecimal.RoundingMode.FLOOR).toInt
 
   /** Chains boundary half-edges into a single cycle by matching each one's destination to the next one's
@@ -331,7 +353,7 @@ object TilingLattice:
     * cell. Classic histogram sweep: for each row, grow per-column run-heights and take the largest rectangle
     * in that histogram, tracking the winning position. O(rows · cols).
     */
-  private def maximalRectangle(occupied: Set[(Int, Int)]): Option[(Int, Int, Int, Int)] =
+  private[dcel] def maximalRectangle(occupied: Set[(Int, Int)]): Option[(Int, Int, Int, Int)] =
     if occupied.isEmpty then None
     else
       val minI    = occupied.iterator.map(_._1).min
@@ -368,7 +390,7 @@ object TilingLattice:
     * (minimal) basis — the two successive minima — which in 2D is guaranteed to be a basis of the same
     * lattice.
     */
-  private def gaussReduced(v0: BigPoint, w0: BigPoint): (BigPoint, BigPoint) =
+  private[dcel] def gaussReduced(v0: BigPoint, w0: BigPoint): (BigPoint, BigPoint) =
     var a        = v0
     var b        = w0
     if a.dot(a) > b.dot(b) then
