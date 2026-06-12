@@ -88,12 +88,12 @@ object TilingLattice:
       * equality, which is robust to the signature-rounding noise that breaks strict validation on large
       * patches and to the sublattice false periods that tolerant validation admits). The mismatch fraction
       * separates the two populations cheaply: ~0 for true periods (rounding flips only), near the defect
-      * budget for tolerated false periods.
+      * budget for tolerated false periods. Each candidate carries `(vector, mismatches, landings)`.
       */
     private[dcel] def validatedPeriods(
         minOverlapFraction: Double = 0.25,
         maxDefectFraction: Double = 0.1
-    ): Option[(BigPoint, List[(BigPoint, Double)])] =
+    ): Option[(BigPoint, List[(BigPoint, Int, Int)])] =
       periodCandidates(minOverlapFraction, maxDefectFraction, anchorOnly = true).map((dominant, validated) =>
         (dominant.head.coords, validated)
       )
@@ -135,7 +135,7 @@ object TilingLattice:
         minOverlapFraction: Double,
         maxDefectFraction: Double,
         anchorOnly: Boolean = false
-    ): Option[(List[Vertex], List[(BigPoint, Double)])] =
+    ): Option[(List[Vertex], List[(BigPoint, Int, Int)])] =
       val interior                         = interiorVertices
       val sigAll: Map[VertexId, List[Key]] =
         interior.map(v => v.id -> signature(v)).toMap
@@ -182,18 +182,19 @@ object TilingLattice:
             .filterNot(t => t.almostEquals(BigPoint.origin))
             .groupBy(key).values.map(_.head).toList
 
-        // Each surviving candidate carries its mismatch fraction: a true period mismatches only on
-        // rounding flips (~0), a tolerated sublattice false period sits near the defect budget —
-        // callers that select a basis by content evidence rank by this before norm.
+        // Each surviving candidate carries its landing statistics: a true period mismatches only on
+        // rounding flips (an absolute handful), a tolerated sublattice false period mismatches in
+        // proportion to the structure it breaks — callers that select a basis by content evidence
+        // rank and threshold on these.
         val validated =
           candidates
             .flatMap: t =>
               val landings   = interior.flatMap(u => vertexAt.get(key(u.coords + t)).map(w => (u, w)))
               val mismatches = landings.count((u, w) => sigAll(u.id) != sigAll(w.id))
               Option.when(landings.size >= minMatches && mismatches <= maxDefects)(
-                (t, mismatches.toDouble / landings.size)
+                (t, mismatches, landings.size)
               )
-            .sortBy((t, _) => t.dot(t))
+            .sortBy((t, _, _) => t.dot(t))
         Some((anchored, validated))
 
     private def periodicData(

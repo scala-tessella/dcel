@@ -164,7 +164,7 @@ object TilingCertifier:
   private[dcel] def selectBasis(
       patch: Tiling,
       anchor: BigPoint,
-      vectors: List[(BigPoint, Double)]
+      vectors: List[(BigPoint, Int, Int)]
   ): Either[RejectReason, ((BigPoint, BigPoint), CellGeometry)] =
     val eps = BigDecimal("1e-9")
 
@@ -183,16 +183,18 @@ object TilingCertifier:
     // dominant signature class merges several true orbits (the triangles of 3.3.3.3.3.3+3.3.3.3.6
     // families), the sublattice floods the shortest ranks with false vectors and the true period
     // would never be tried.
-    // A candidate is "low" when its mismatch fraction is explainable by rounding flips alone (one
-    // flip among >= 25 landings). In a genuine n-uniform patch only true periods are low: every
-    // decoration is dense enough to break sublattice vectors at a visible fraction of landings.
-    val LOW = 0.04
+    // A candidate is "low" when its mismatches are explainable by rounding flips alone. Flips scale
+    // with the landing count (each landing is one rounded-key comparison), so the bound is hybrid:
+    // an absolute floor of 2 for small patches, 2.5% of landings at scale — a true period at v~300
+    // can show 3-5 flips and must not be mistaken for a broken sublattice vector.
+    def isLow(mismatches: Int, landings: Int): Boolean =
+      mismatches <= math.max(2, (landings * 0.025).toInt)
 
-    val pool: List[(BigPoint, Double)] =
+    val pool: List[(BigPoint, Int, Int)] =
       vectors
-        .map((t, f) => (canonicalSign(t), f))
-        .sortBy((t, f) => (f, t.dot(t)))
-        .distinctBy((t, _) => key9(t))
+        .map((t, m, l) => (canonicalSign(t), m, l))
+        .sortBy((t, m, l) => (m.toDouble / l, t.dot(t)))
+        .distinctBy((t, _, _) => key9(t))
         .take(32)
 
     val bases: List[((BigPoint, BigPoint), Boolean)] =
@@ -207,7 +209,7 @@ object TilingCertifier:
         val ord      = Ordering[(BigDecimal, (BigDecimal, BigDecimal))]
         val pair     =
           if ord.lteq((ca.dot(ca), key9(ca)), (cb.dot(cb), key9(cb))) then (ca, cb) else (cb, ca)
-        (pair, pool(i)._2 <= LOW && pool(j)._2 <= LOW)
+        (pair, isLow(pool(i)._2, pool(i)._3) && isLow(pool(j)._2, pool(j)._3))
       )
         .toList
         .groupMapReduce((pair, _) => (key9(pair._1), key9(pair._2)))(identity)((x, y) =>
@@ -279,7 +281,8 @@ object TilingCertifier:
     hit.toRight {
       if subTilingPeriod then RejectReason.SubTilingPeriod
       else
-        val low            = vectors.filter(_._2 <= LOW).map((t, _) => canonicalSign(t)).distinctBy(key9)
+        val low            =
+          vectors.filter((_, m, l) => isLow(m, l)).map((t, _, _) => canonicalSign(t)).distinctBy(key9)
         val twoDimensional = low.exists(a => low.exists(b => a.cross(b).abs > eps))
         if !twoDimensional then RejectReason.NoPeriodEvidence
         else if sawBlock then RejectReason.CellsDiffer

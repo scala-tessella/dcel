@@ -35,20 +35,44 @@ object KrotenheerdtSearch:
       hardCapFactor: Double = 3.5,
       earlyTypeGate: Int = 60,
       typeBallRadius: Int = 5,
+      parallelism: Int = 1,
       log: String => Unit = _ => ()
   ): Outcome =
-    val visited    = mutable.HashSet[List[(Int, BigDecimal, BigDecimal)]]()
-    val found      = mutable.LinkedHashMap[String, Certified]()
-    val rejections = mutable.Map[RejectReason, Int]().withDefaultValue(0)
-    var states     = 0L
+    import java.util.concurrent.{ConcurrentHashMap, ConcurrentLinkedDeque}
+    import java.util.concurrent.atomic.{AtomicLong, AtomicReference}
+    import scala.jdk.CollectionConverters.*
 
-    // (patch, nextCertifyAt): certification is expensive (lattice + block + corona refinement), so
-    // past the horizon it runs on a vertex-count cadence rather than at every state.
-    val certifyStep = 20
-    val stack       = mutable.Stack[(Tiling, Int)]()
+    // Parallel workers are safe because every state is an independent object graph: expansion
+    // operations deep-copy their input (the sequential search already relies on parent immutability
+    // when trying sibling polygons), each congruence class is claimed exactly once through the
+    // atomic visited-set add, and a claimed patch is processed by a single worker.
+    val visited    = ConcurrentHashMap.newKeySet[List[(Int, BigDecimal, BigDecimal)]]()
+    val found      = new ConcurrentHashMap[String, Certified]()
+    val foundCount = new AtomicLong(0)
+    val rejections = new ConcurrentHashMap[RejectReason, AtomicLong]()
+    val retries    = new ConcurrentHashMap[RejectReason, AtomicLong]()
+    val states     = new AtomicLong(0)
+    val sample     = new AtomicReference[Int](0)
+
+    def bump(map: ConcurrentHashMap[RejectReason, AtomicLong], reason: RejectReason): Unit  =
+      map.computeIfAbsent(reason, _ => new AtomicLong(0)).incrementAndGet(): Unit
+    def snapshot(map: ConcurrentHashMap[RejectReason, AtomicLong]): Map[RejectReason, Long] =
+      map.asScala.map((k, v) => (k, v.get)).toMap
+
+    val certifyStep = 10
+    // Shared LIFO work deque: pollFirst keeps the global front depth-first-ish, so memory stays
+    // bounded like the sequential stack. `pending` counts pushed-but-unfinished tasks — zero means
+    // the deque is empty AND no worker can still push, the only sound termination signal.
+    val deque       = new ConcurrentLinkedDeque[(Tiling, Int)]()
+    val pending     = new AtomicLong(0)
+
+    def push(task: (Tiling, Int)): Unit =
+      pending.incrementAndGet()
+      deque.addFirst(task)
+
     polygonSides.reverse.foreach: sides =>
       val seed = TilingBuilder.createRegularPolygon(RegularPolygon(sides))
-      if visited.add(PatchCanonical.congruenceKey(seed)) then stack.push((seed, maxVertices))
+      if visited.add(PatchCanonical.congruenceKey(seed)) then push((seed, maxVertices))
 
     // Rejections that just mean "not enough patch yet": keep growing (bounded) instead of dropping.
     val transient =
@@ -61,15 +85,13 @@ object KrotenheerdtSearch:
       )
     val hardCap   = (maxVertices * hardCapFactor).toInt
 
-    val retries = mutable.Map[RejectReason, Long]().withDefaultValue(0L)
-
-    while stack.nonEmpty do
-      val (patch, certifyAt) = stack.pop()
-      states += 1
-      if states % 5000 == 0 then
+    def process(patch: Tiling, certifyAt: Int): Unit =
+      val state = states.incrementAndGet()
+      sample.set(patch.vertices.size)
+      if state % 5000 == 0 then
         log(
-          s"heartbeat: states=$states stack=${stack.size} visited=${visited.size} found=${found.size} " +
-            s"v=${patch.vertices.size} retries=${retries.toMap} finals=${rejections.toMap}"
+          s"heartbeat: states=$state pending=${pending.get} visited=${visited.size} " +
+            s"found=${foundCount.get} v=${sample.get} retries=${snapshot(retries)} finals=${snapshot(rejections)}"
         )
 
       def grow(nextCertifyAt: Int): Unit =
@@ -78,40 +100,36 @@ object KrotenheerdtSearch:
         // monopolize the search front for hours before any other family completes.
         expansions(patch, n).reverse.foreach: next =>
           val key = PatchCanonical.congruenceKey(next)
-          if visited.add(key) then stack.push((next, nextCertifyAt))
+          if visited.add(key) then push((next, nextCertifyAt))
 
       // Growth gates past the early-gate size (all validated by the published-count cross-checks):
-      //   - type density: all n types showing, each deep vertex seeing every type within the ball
-      //     radius — kills mono-type cores acquiring fringe decorations;
-      //   - witnessed splits: with n types showing, types and orbits must be in bijection, so a
-      //     witnessed corona split inside any single type group is fatal. The dominant field group
-      //     is the discriminator for the scattered-decoration families: decoration vertices all
-      //     look alike at shallow depth (every isolated hexagon's surround is congruent), but field
-      //     vertices differ by their distance to the nearest decoration — the split fires as soon
-      //     as the inconsistency is witnessed, before the placement combinatorics fan out toward
-      //     the horizon. Affordable at every state: the equivalence grouping is signature-based.
+      // type density — all n types showing, each deep vertex seeing every type within the ball
+      // radius — kills mono-type cores acquiring fringe decorations. A witnessed corona split
+      // (tooManyWitnessedOrbits) was also tried here as a growth gate, but the adversarial
+      // decoration families keep their inconsistencies just outside the truncation-guarded
+      // witnessed core until the horizon, so it fired ~once per 6000 states while costing
+      // local-DCEL construction on every state — the certify-time verdicts do the real work. It
+      // remains the veto on transient certify retries.
       def gateReason: Option[RejectReason] =
         if innerVertexTypes(patch).size < n || !typesLocallyComplete(patch, n, typeBallRadius) then
           Some(RejectReason.WrongTypeCount)
-        else if TilingCertifier.tooManyWitnessedOrbits(patch, n, maxDepth = 2) then
-          Some(RejectReason.WrongClassCount)
         else None
 
       if patch.vertices.sizeIs < certifyAt then
         if patch.vertices.sizeIs >= earlyTypeGate then
           gateReason match
-            case Some(reason) => rejections(reason) += 1
+            case Some(reason) => bump(rejections, reason)
             case None         => grow(certifyAt)
         else grow(certifyAt)
-      else if gateReason.isDefined then rejections(gateReason.get) += 1
+      else if gateReason.isDefined then bump(rejections, gateReason.get)
       else
         def finalReject(reason: RejectReason): Unit =
-          rejections(reason) += 1
+          bump(rejections, reason)
           if sys.props.get("krot.dump").isDefined then
             val dir = java.nio.file.Paths.get("/tmp/krot-rejects")
             java.nio.file.Files.createDirectories(dir)
             java.nio.file.Files.writeString(
-              dir.resolve(s"reject-$states.xml"), {
+              dir.resolve(s"reject-$state.xml"), {
                 import io.github.scala_tessella.dcel.conversion.TilingSVG.toMetadataXml
                 patch.toMetadataXml
               }
@@ -122,10 +140,9 @@ object KrotenheerdtSearch:
 
         certify(patch, n) match
           case Right(certified)                                                     =>
-            if !found.contains(certified.torusKey) then
-              found(certified.torusKey) = certified
+            if found.putIfAbsent(certified.torusKey, certified) == null then
               log(
-                s"found #${found.size}: types ${certified.vertexTypes.map(_.mkString(".")).toList.sorted.mkString("; ")}"
+                s"found #${foundCount.incrementAndGet()}: types ${certified.vertexTypes.map(_.mkString(".")).toList.sorted.mkString("; ")}"
               )
           case Left(reason) if transient(reason) && patch.vertices.sizeIs < hardCap =>
             // Retry growth is granted only if the patch could still be n-uniform: the witnessed
@@ -135,12 +152,29 @@ object KrotenheerdtSearch:
             if TilingCertifier.tooManyWitnessedOrbits(patch, n) then
               finalReject(RejectReason.WrongClassCount)
             else
-              retries(reason) += 1
+              bump(retries, reason)
               grow(patch.vertices.size + certifyStep)
           case Left(reason)                                                         =>
             finalReject(reason)
 
-    Outcome(found.values.toList, rejections.toMap, states)
+    def workerLoop(): Unit =
+      while pending.get() > 0 do
+        val task = deque.pollFirst()
+        if task == null then Thread.sleep(1)
+        else
+          try process(task._1, task._2)
+          finally pending.decrementAndGet(): Unit
+
+    if parallelism <= 1 then workerLoop()
+    else
+      val workers = (1 to parallelism).map(i => Thread.ofPlatform.name(s"krot-$i").start(() => workerLoop()))
+      workers.foreach(_.join())
+
+    Outcome(
+      found.values.asScala.toList.sortBy(_.torusKey),
+      snapshot(rejections).map((k, v) => (k, v.toInt)),
+      states.get
+    )
 
   /** Every inner vertex whose `radius`-ball is fully interior must see all n vertex types within it.
     *

@@ -34,7 +34,7 @@ object KrotDebug:
       case None                    => println("no validated periods")
       case Some((anchor, vectors)) =>
         println(s"anchor=$anchor candidates=${vectors.size}")
-        vectors.take(12).foreach((t, f) => println(f"  cand $t norm2=${t.dot(t)} mismatch=$f%.4f"))
+        vectors.take(12).foreach((t, m, l) => println(f"  cand $t norm2=${t.dot(t)} mismatch=$m/$l"))
         traceBases(patch, anchor, vectors)
         selectBasis(patch, anchor, vectors) match
           case Left(r)              => println(s"selectBasis reject: $r")
@@ -73,7 +73,7 @@ object KrotDebug:
   private def traceBases(
       patch: Tiling,
       anchor: geometry.BigPoint,
-      vectors: List[(geometry.BigPoint, Double)]
+      vectors: List[(geometry.BigPoint, Int, Int)]
   ): Unit =
     import io.github.scala_tessella.dcel.TilingLattice.{floorToInt, gaussReduced, maximalRectangle}
     import io.github.scala_tessella.dcel.geometry.BigPoint
@@ -85,9 +85,9 @@ object KrotDebug:
       if y > 0 || (y == 0 && x > 0) then t else BigPoint.origin - t
     val pool                       =
       vectors
-        .map((t, f) => (canonicalSign(t), f))
-        .sortBy((t, f) => (f, t.dot(t)))
-        .distinctBy((t, _) => key9(t))
+        .map((t, m, l) => (canonicalSign(t), m, l))
+        .sortBy((t, m, l) => (m.toDouble / l, t.dot(t)))
+        .distinctBy((t, _, _) => key9(t))
         .take(32)
         .map(_._1)
     val bases                      =
