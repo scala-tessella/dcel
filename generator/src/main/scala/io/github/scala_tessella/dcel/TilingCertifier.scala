@@ -16,13 +16,15 @@ import io.github.scala_tessella.dcel.structure.Vertex
 /** Certification pipeline of the Krotenheerdt enumeration (OEIS A068600): turns a finite horizon patch into
   * evidence of an infinite n-uniform tiling with n vertex types, or a structured rejection.
   *
-  *   1. **Lattice** — the patch must reveal a primitive translation basis (k-uniform tilings are periodic, so
-  *      a large-enough patch of a true tiling always does).
-  *   1. **Parallelogon block** — the patch must contain a block of at least 2x2 whole lattice cells
-  *      ([[TilingLattice.largestContainedParallelogonBlock]]). The block's boundary is a parallelogon, which
-  *      tiles the plane by translation carrying its faces (ADR-0015), and with >= 2 cells in each direction
-  *      every seam of that infinite tiling is witnessed inside the patch — a constructive periodicity proof
-  *      that, unlike a translate-and-merge wallpaper test, does not depend on the patch's outline shape.
+  *   1. **Lattice** — the patch must reveal translation-period candidates
+  *      ([[TilingLattice.validatedPeriods]], tolerant validation); the basis among them is selected by
+  *      content evidence ([[selectBasis]]), which is robust both to the signature-rounding noise that breaks
+  *      strict validation at scale and to the sublattice false periods that tolerant validation admits.
+  *   1. **Parallelogon block** — the selected basis must yield a block of at least 2x2 whole lattice cells of
+  *      identical face content. The block's boundary is a parallelogon, which tiles the plane by translation
+  *      carrying its faces (ADR-0015), and with >= 2 cells in each direction every seam of that infinite
+  *      tiling is witnessed inside the patch — a constructive periodicity proof that, unlike a
+  *      translate-and-merge wallpaper test, does not depend on the patch's outline shape.
   *   1. **Block-interior witnessing** — every vertex inside the block must be an interior (fully surrounded)
   *      patch vertex, and the block's vertex types must equal the patch-interior types, exactly n of them.
   *      Without this, a patch can masquerade as a different tiling: e.g. a chunk of a triangle+hexagon tiling
@@ -34,7 +36,8 @@ import io.github.scala_tessella.dcel.structure.Vertex
 object TilingCertifier:
 
   enum RejectReason:
-    case NoLattice, BlockTooSmall, CellsDiffer, NoWitnessCell, TooShallow, WrongTypeCount, WrongClassCount
+    case NoLattice, NoPeriodEvidence, SubTilingPeriod, BlockTooSmall, CellsDiffer, NoWitnessCell,
+      TooShallow, WrongTypeCount, WrongClassCount
 
   final case class Certified(
       n: Int,
@@ -161,7 +164,7 @@ object TilingCertifier:
   private[dcel] def selectBasis(
       patch: Tiling,
       anchor: BigPoint,
-      vectors: List[BigPoint]
+      vectors: List[(BigPoint, Double)]
   ): Either[RejectReason, ((BigPoint, BigPoint), CellGeometry)] =
     val eps = BigDecimal("1e-9")
 
@@ -174,77 +177,114 @@ object TilingCertifier:
       val (x, y) = key9(t)
       if y > 0 || (y == 0 && x > 0) then t else BigPoint.origin - t
 
-    // Candidates come in +/- pairs and are sorted by norm: keep one sign and bound the pool — the
-    // primitive true vectors are among the shortest validated candidates.
-    val pool  = vectors.map(canonicalSign).distinctBy(key9).take(32)
-    val bases =
+    // Candidates come in +/- pairs: rank by mismatch fraction first (a true period mismatches only
+    // on rounding flips, a tolerated sublattice false period sits near the defect budget), then by
+    // norm; keep one sign per vector and bound the pool. Norm alone is not enough: on patches whose
+    // dominant signature class merges several true orbits (the triangles of 3.3.3.3.3.3+3.3.3.3.6
+    // families), the sublattice floods the shortest ranks with false vectors and the true period
+    // would never be tried.
+    // A candidate is "low" when its mismatch fraction is explainable by rounding flips alone (one
+    // flip among >= 25 landings). In a genuine n-uniform patch only true periods are low: every
+    // decoration is dense enough to break sublattice vectors at a visible fraction of landings.
+    val LOW = 0.04
+
+    val pool: List[(BigPoint, Double)] =
+      vectors
+        .map((t, f) => (canonicalSign(t), f))
+        .sortBy((t, f) => (f, t.dot(t)))
+        .distinctBy((t, _) => key9(t))
+        .take(32)
+
+    val bases: List[((BigPoint, BigPoint), Boolean)] =
       (for
         i <- pool.indices
         j <- (i + 1) until pool.size
         // collinear pairs are not a basis and would zero-divide inside the reduction
-        if pool(i).cross(pool(j)).abs > eps
-      yield gaussReduced(pool(i), pool(j)))
-        .map((a, b) =>
-          val (ca, cb) = (canonicalSign(a), canonicalSign(b))
-          val ord      = Ordering[(BigDecimal, (BigDecimal, BigDecimal))]
+        if pool(i)._1.cross(pool(j)._1).abs > eps
+      yield
+        val (a, b)   = gaussReduced(pool(i)._1, pool(j)._1)
+        val (ca, cb) = (canonicalSign(a), canonicalSign(b))
+        val ord      = Ordering[(BigDecimal, (BigDecimal, BigDecimal))]
+        val pair     =
           if ord.lteq((ca.dot(ca), key9(ca)), (cb.dot(cb), key9(cb))) then (ca, cb) else (cb, ca)
-        )
-        .distinctBy((a, b) => (key9(a), key9(b)))
-        .sortBy((a, b) => (a.cross(b).abs, a.dot(a) + b.dot(b)))
+        (pair, pool(i)._2 <= LOW && pool(j)._2 <= LOW)
+      )
         .toList
+        .groupMapReduce((pair, _) => (key9(pair._1), key9(pair._2)))(identity)((x, y) =>
+          (x._1, x._2 || y._2)
+        )
+        .values.toList
+        .sortBy((pair, _) => (pair._1.cross(pair._2).abs, pair._1.dot(pair._1) + pair._2.dot(pair._2)))
 
     val faces          =
       patch.innerFaces.map: f =>
         (f.halfEdgesUnsafe.size, f.getVerticesUnsafe.map(_.coords).centroid, f.areaUnsafe)
     val patchFaceSizes = faces.map(_._1).toSet
 
-    var sawBlock = false
-    val hit      =
-      bases.iterator
-        .flatMap: (v, w) =>
-          val det   = v.cross(w)
-          val covol = det.abs
+    var sawBlock                                          = false
+    var subTilingPeriod                                   = false
+    var hit: Option[((BigPoint, BigPoint), CellGeometry)] = None
+    val iterator                                          = bases.iterator
+    while hit.isEmpty && iterator.hasNext do
+      val ((v, w), low) = iterator.next()
+      val det           = v.cross(w)
+      val covol         = det.abs
 
-          def cellIndex(p: BigPoint): (Int, Int) =
-            val d = p - anchor
-            (floorToInt((d.x * w.y - w.x * d.y) / det), floorToInt((v.x * d.y - d.x * v.y) / det))
+      def cellIndex(p: BigPoint): (Int, Int) =
+        val d = p - anchor
+        (floorToInt((d.x * w.y - w.x * d.y) / det), floorToInt((v.x * d.y - d.x * v.y) / det))
 
-          val byCell: Map[(Int, Int), List[(Int, BigPoint, BigDecimal)]] =
-            faces.groupBy((_, c, _) => cellIndex(c))
-          val occupied                                                   =
-            byCell.filter((_, fs) => (fs.map(_._3).sum - covol).abs < CELL_TOL).keySet
+      val byCell: Map[(Int, Int), List[(Int, BigPoint, BigDecimal)]] =
+        faces.groupBy((_, c, _) => cellIndex(c))
+      val occupied                                                   =
+        byCell.filter((_, fs) => (fs.map(_._3).sum - covol).abs < CELL_TOL).keySet
 
-          maximalRectangle(occupied).flatMap: (i0, j0, cellsWide, cellsHigh) =>
-            if cellsWide < 2 || cellsHigh < 2 then None
-            else
-              sawBlock = true
-              val origin = anchor + scaled(v, BigDecimal(i0)) + scaled(w, BigDecimal(j0))
-              val sideV  = scaled(v, BigDecimal(cellsWide))
-              val sideW  = scaled(w, BigDecimal(cellsHigh))
-              val block  = ParallelogonBlock(
-                corners = List(origin, origin + sideV, origin + sideV + sideW, origin + sideW),
-                cellsWide = cellsWide,
-                cellsHigh = cellsHigh,
-                area = covol * cellsWide * cellsHigh
-              )
-              val cell   = CellGeometry((v, w), block)
+      maximalRectangle(occupied).foreach: (i0, j0, cellsWide, cellsHigh) =>
+        if cellsWide >= 2 && cellsHigh >= 2 then
+          sawBlock = true
+          val origin = anchor + scaled(v, BigDecimal(i0)) + scaled(w, BigDecimal(j0))
+          val sideV  = scaled(v, BigDecimal(cellsWide))
+          val sideW  = scaled(w, BigDecimal(cellsHigh))
+          val block  = ParallelogonBlock(
+            corners = List(origin, origin + sideV, origin + sideV + sideW, origin + sideW),
+            cellsWide = cellsWide,
+            cellsHigh = cellsHigh,
+            area = covol * cellsWide * cellsHigh
+          )
+          val cell   = CellGeometry((v, w), block)
 
-              val faceCells =
-                faces
-                  .flatMap((sides, c, _) => cell.cellOf(c).map(ij => (ij, (sides, cell.reduced(c)))))
-                  .groupMap(_._1)(_._2)
-                  .view.mapValues(_.toSet).toMap
-              val allCells  =
-                (for i <- 0 until cellsWide; j <- 0 until cellsHigh yield (i, j)).toSet
+          val faceCells =
+            faces
+              .flatMap((sides, c, _) => cell.cellOf(c).map(ij => (ij, (sides, cell.reduced(c)))))
+              .groupMap(_._1)(_._2)
+              .view.mapValues(_.toSet).toMap
+          val allCells  =
+            (for i <- 0 until cellsWide; j <- 0 until cellsHigh yield (i, j)).toSet
 
-              Option.when(
-                faceCells.keySet == allCells &&
-                  faceCells.values.toSet.sizeIs == 1 &&
-                  patchFaceSizes.subsetOf(faceCells.values.head.map(_._1))
-              )(((v, w), cell))
-        .nextOption()
+          if faceCells.keySet == allCells && faceCells.values.toSet.sizeIs == 1 then
+            if patchFaceSizes.subsetOf(faceCells.values.head.map(_._1)) then
+              hit = Some(((v, w), cell))
+            else if low then
+              // A rounding-clean basis whose content-equal block misses a face size: the patch's
+              // only flawless periodic structure is a sub-tiling of fewer face kinds (a mono-type
+              // core decorated at its rim, say). In a genuine n-uniform patch a low basis is a true
+              // period and its cells contain every face of the tiling — final, not transient.
+              subTilingPeriod = true
 
-    hit.toRight(if sawBlock then RejectReason.CellsDiffer else RejectReason.BlockTooSmall)
+    // Failure triage. With two independent near-zero-mismatch candidates the patch shows a true 2D
+    // period and just needs more room (transient: the search may grow it). Without them the patch
+    // is at best 1D-periodic — the signature of the stacking-aperiodic families (dense decoration
+    // rows at random offsets, locally indistinguishable from a genuine n-uniform tiling) that
+    // otherwise retry-branch all the way to the hard cap.
+    hit.toRight {
+      if subTilingPeriod then RejectReason.SubTilingPeriod
+      else
+        val low            = vectors.filter(_._2 <= LOW).map((t, _) => canonicalSign(t)).distinctBy(key9)
+        val twoDimensional = low.exists(a => low.exists(b => a.cross(b).abs > eps))
+        if !twoDimensional then RejectReason.NoPeriodEvidence
+        else if sawBlock then RejectReason.CellsDiffer
+        else RejectReason.BlockTooSmall
+    }
 
   /** Refines the witness-cell representatives into uniformity classes by corona equivalence at growing
     * radius, bounded by the depth at which every representative's corona is still fully interior to the
@@ -284,6 +324,48 @@ object TilingCertifier:
     // multi-orbit 3.3.4.3.4 variant certifying as 1-uniform); require radius 2 before judging
     // multi-member classes. All-singleton classes are exact at any depth: every split is genuine.
     if classes.forall(_.sizeIs == 1) || lastSound >= 2 then Some(classes.size) else None
+
+  /** Sound aperiodicity detector: lower-bounds the vertex-orbit count of ANY tiling containing the patch.
+    *
+    * Inner vertices are grouped by type, then refined by corona equivalence at growing depth, comparing only
+    * vertices whose local DCEL at that depth is fully witnessed (contains no patch-boundary vertex, as in
+    * [[orbitClasses]]). Vertices with structurally different witnessed coronas can never share an orbit in
+    * any continuation, so more than n classes is a final verdict — no heuristic threshold involved. This is
+    * what stops the stacking-aperiodic decoration families (type-complete in every ball, periodic along rows
+    * but stacked at mismatched offsets), which no local gate can distinguish from a genuine n-uniform patch:
+    * vertices at differently shifted seams split at shallow depth.
+    */
+  private[dcel] def tooManyWitnessedOrbits(
+      patch: Tiling,
+      n: Int,
+      maxDepth: Int = 3,
+      skipLargestGroup: Boolean = false
+  ): Boolean =
+    val boundaryIds                = patch.boundaryVerticesUnsafe.map(_.id).toSet
+    val typeGroups                 = patch.innerVertices.groupBy(vertexTypeOf(patch, _)).values.toList
+    // With exactly n types showing, types and orbits must be in bijection, so a witnessed split
+    // inside ANY single type group is fatal on its own. The dominant group carries almost the whole
+    // O(g^2) equivalence cost; growth-time callers skip it (still sound, just weaker — the skipped
+    // group counts as one class) and leave its refinement to the certify-time checks.
+    val candidates                 =
+      if skipLargestGroup && typeGroups.sizeIs > 1 then typeGroups.sortBy(-_.size).tail
+      else typeGroups
+    val skipped                    = typeGroups.size - candidates.size
+    // Depth 0 cannot split beyond the type grouping (same type = congruent star), so start at 1.
+    var groups: List[List[Vertex]] = candidates
+    var exceeded                   = groups.size + skipped > n
+    var depth                      = 1
+    while !exceeded && depth <= maxDepth do
+      groups = groups.flatMap: group =>
+        val measured =
+          group
+            .map(v => v -> patch.getDcelAtVertex(v.id, depth).toOption.get)
+            .filterNot((_, local) => local.vertices.exists(u => boundaryIds.contains(u.id)))
+        if measured.sizeIs <= 1 then List(measured.map(_._1)).filter(_.nonEmpty)
+        else groupByBoundaryEquivalency(measured)
+      exceeded = groups.size + skipped > n
+      depth += 1
+    exceeded
 
   // --------------------------------------------------------------------------------------------
   // Torus key: canonical identity of the infinite tiling

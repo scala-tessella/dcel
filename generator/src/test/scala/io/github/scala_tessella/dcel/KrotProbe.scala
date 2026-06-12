@@ -7,8 +7,16 @@ object KrotProbe:
     val start  = System.nanoTime
     val factor = args.lift(2).map(_.toDouble).getOrElse(3.5)
     val gate   = args.lift(3).map(_.toInt).getOrElse(60)
+    val radius = args.lift(4).map(_.toInt).getOrElse(5)
     val out    =
-      KrotenheerdtSearch.enumerate(n, maxV, factor, gate, msg => { println(msg); System.out.flush() })
+      KrotenheerdtSearch.enumerate(
+        n,
+        maxV,
+        factor,
+        gate,
+        radius,
+        msg => { println(msg); System.out.flush() }
+      )
     val secs   = (System.nanoTime - start) / 1e9
     println(
       f"n=$n maxVertices=$maxV -> ${out.certified.size} tilings, states=${out.statesExplored}, ${secs}%.1f s"

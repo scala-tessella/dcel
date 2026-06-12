@@ -34,6 +34,7 @@ object KrotenheerdtSearch:
       maxVertices: Int,
       hardCapFactor: Double = 3.5,
       earlyTypeGate: Int = 60,
+      typeBallRadius: Int = 5,
       log: String => Unit = _ => ()
   ): Outcome =
     val visited    = mutable.HashSet[List[(Int, BigDecimal, BigDecimal)]]()
@@ -60,9 +61,16 @@ object KrotenheerdtSearch:
       )
     val hardCap   = (maxVertices * hardCapFactor).toInt
 
+    val retries = mutable.Map[RejectReason, Long]().withDefaultValue(0L)
+
     while stack.nonEmpty do
       val (patch, certifyAt) = stack.pop()
       states += 1
+      if states % 5000 == 0 then
+        log(
+          s"heartbeat: states=$states stack=${stack.size} visited=${visited.size} found=${found.size} " +
+            s"v=${patch.vertices.size} retries=${retries.toMap} finals=${rejections.toMap}"
+        )
 
       def grow(nextCertifyAt: Int): Unit =
         // children are pushed largest-polygon-first so the DFS pops small-polygon branches first:
@@ -72,22 +80,46 @@ object KrotenheerdtSearch:
           val key = PatchCanonical.congruenceKey(next)
           if visited.add(key) then stack.push((next, nextCertifyAt))
 
+      // Growth gates past the early-gate size (all validated by the published-count cross-checks):
+      //   - type density: all n types showing, each deep vertex seeing every type within the ball
+      //     radius — kills mono-type cores acquiring fringe decorations;
+      //   - witnessed splits: with n types showing, types and orbits must be in bijection, so a
+      //     witnessed corona split inside any single type group is fatal. The dominant field group
+      //     is the discriminator for the scattered-decoration families: decoration vertices all
+      //     look alike at shallow depth (every isolated hexagon's surround is congruent), but field
+      //     vertices differ by their distance to the nearest decoration — the split fires as soon
+      //     as the inconsistency is witnessed, before the placement combinatorics fan out toward
+      //     the horizon. Affordable at every state: the equivalence grouping is signature-based.
+      def gateReason: Option[RejectReason] =
+        if innerVertexTypes(patch).size < n || !typesLocallyComplete(patch, n, typeBallRadius) then
+          Some(RejectReason.WrongTypeCount)
+        else if TilingCertifier.tooManyWitnessedOrbits(patch, n, maxDepth = 2) then
+          Some(RejectReason.WrongClassCount)
+        else None
+
       if patch.vertices.sizeIs < certifyAt then
-        // Type-density gate: in every published Krotenheerdt tiling all n types appear within any
-        // ~60-vertex ball (fundamental cells are small), so a patch still type-deficient past the
-        // gate is a mono-type core acquiring fringe decorations — an exponential family of doomed
-        // congruence classes if allowed to grow to the horizon. Validated by the published-count
-        // cross-checks (a too-aggressive gate would surface as a missing tiling at n <= 3).
-        if patch.vertices.sizeIs >= earlyTypeGate && innerVertexTypes(patch).size < n then
-          rejections(RejectReason.WrongTypeCount) += 1
+        if patch.vertices.sizeIs >= earlyTypeGate then
+          gateReason match
+            case Some(reason) => rejections(reason) += 1
+            case None         => grow(certifyAt)
         else grow(certifyAt)
-      else if innerVertexTypes(patch).size < n then
-        // Horizon assumption (validated by the published-count cross-checks): every ball of horizon
-        // size in a true Krotenheerdt-n tiling shows all n vertex types — the fundamental cells are
-        // far smaller than the horizon. A patch still type-deficient here is a mono-type core whose
-        // retry tree would dominate the search for nothing.
-        rejections(RejectReason.WrongTypeCount) += 1
+      else if gateReason.isDefined then rejections(gateReason.get) += 1
       else
+        def finalReject(reason: RejectReason): Unit =
+          rejections(reason) += 1
+          if sys.props.get("krot.dump").isDefined then
+            val dir = java.nio.file.Paths.get("/tmp/krot-rejects")
+            java.nio.file.Files.createDirectories(dir)
+            java.nio.file.Files.writeString(
+              dir.resolve(s"reject-$states.xml"), {
+                import io.github.scala_tessella.dcel.conversion.TilingSVG.toMetadataXml
+                patch.toMetadataXml
+              }
+            ): Unit
+          log(
+            s"reject $reason: types ${innerVertexTypes(patch).map(_.mkString(".")).toList.sorted.mkString("; ")} (v=${patch.vertices.size})"
+          )
+
         certify(patch, n) match
           case Right(certified)                                                     =>
             if !found.contains(certified.torusKey) then
@@ -96,23 +128,38 @@ object KrotenheerdtSearch:
                 s"found #${found.size}: types ${certified.vertexTypes.map(_.mkString(".")).toList.sorted.mkString("; ")}"
               )
           case Left(reason) if transient(reason) && patch.vertices.sizeIs < hardCap =>
-            grow(patch.vertices.size + certifyStep)
+            // Retry growth is granted only if the patch could still be n-uniform: the witnessed
+            // corona refinement lower-bounds the orbit count of any continuation, so > n classes is
+            // a sound final verdict that stops the stacking-aperiodic families at their first
+            // certification instead of letting them retry-branch to the hard cap.
+            if TilingCertifier.tooManyWitnessedOrbits(patch, n) then
+              finalReject(RejectReason.WrongClassCount)
+            else
+              retries(reason) += 1
+              grow(patch.vertices.size + certifyStep)
           case Left(reason)                                                         =>
-            rejections(reason) += 1
-            if sys.props.get("krot.dump").isDefined then
-              val dir = java.nio.file.Paths.get("/tmp/krot-rejects")
-              java.nio.file.Files.createDirectories(dir)
-              java.nio.file.Files.writeString(
-                dir.resolve(s"reject-$states.xml"), {
-                  import io.github.scala_tessella.dcel.conversion.TilingSVG.toMetadataXml
-                  patch.toMetadataXml
-                }
-              ): Unit
-            log(
-              s"reject $reason: types ${innerVertexTypes(patch).map(_.mkString(".")).toList.sorted.mkString("; ")} (v=${patch.vertices.size})"
-            )
+            finalReject(reason)
 
     Outcome(found.values.toList, rejections.toMap, states)
+
+  /** Every inner vertex whose `radius`-ball is fully interior must see all n vertex types within it.
+    *
+    * A fully interior ball is final content — no continuation can change it — so a mono-type ball can only
+    * tend to a tiling whose fundamental cell outgrows this horizon: the certifier requires a 2x2 cell block
+    * inside the patch, and a cell containing all n types cannot be smaller than the type-complete
+    * neighbourhoods it is made of. Without this prune the search front drowns in sparse-decoration families
+    * (a triangle field with isolated hexagons shows exactly the types of `3.3.3.3.3.3 + 3.3.3.3.6` while
+    * being aperiodic for every hexagon spacing — an exponential family that survives every other gate all the
+    * way to the hard cap). Like the type-density gate, the radius is validated by the published-count
+    * cross-checks at n <= 3.
+    */
+  private def typesLocallyComplete(patch: Tiling, n: Int, radius: Int): Boolean =
+    val boundaryIds = patch.boundaryVerticesUnsafe.map(_.id).toSet
+    val typeOf      = patch.innerVertices.map(v => v.id -> TilingCertifier.vertexTypeOf(patch, v)).toMap
+    patch.innerVertices.forall: v =>
+      val ball = v.bfsVertices(radius)
+      ball.exists(u => boundaryIds.contains(u.id))
+      || ball.flatMap(u => typeOf.get(u.id)).sizeIs == n
 
   /** All sound continuations of the patch: every polygon that fits the slot at the canonical target vertex,
     * filtered by the soundness prunes described in the object scaladoc.

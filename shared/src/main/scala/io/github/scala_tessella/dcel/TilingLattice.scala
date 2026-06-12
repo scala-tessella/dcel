@@ -81,18 +81,20 @@ object TilingLattice:
 
   extension (tiling: TilingDCEL)
 
-    /** All translation-period candidates that pass the (tolerant) landing validation, sorted by norm,
-      * together with the dominant-orbit anchor point. Unlike [[translationLattice]] — which commits to the
-      * two shortest independent vectors — this exposes the full validated list so a caller can select a basis
-      * by stronger structural criteria (e.g. cell-content equality, which is robust to the signature-rounding
-      * noise that breaks strict validation on large patches and to the sublattice false periods that tolerant
-      * validation admits).
+    /** All translation-period candidates that pass the (tolerant) landing validation, sorted by norm and
+      * paired with their landing-mismatch fraction, together with the dominant-orbit anchor point. Unlike
+      * [[translationLattice]] — which commits to the two shortest independent vectors — this exposes the full
+      * validated list so a caller can select a basis by stronger structural criteria (e.g. cell-content
+      * equality, which is robust to the signature-rounding noise that breaks strict validation on large
+      * patches and to the sublattice false periods that tolerant validation admits). The mismatch fraction
+      * separates the two populations cheaply: ~0 for true periods (rounding flips only), near the defect
+      * budget for tolerated false periods.
       */
     private[dcel] def validatedPeriods(
         minOverlapFraction: Double = 0.25,
         maxDefectFraction: Double = 0.1
-    ): Option[(BigPoint, List[BigPoint])] =
-      periodCandidates(minOverlapFraction, maxDefectFraction).map((dominant, validated) =>
+    ): Option[(BigPoint, List[(BigPoint, Double)])] =
+      periodCandidates(minOverlapFraction, maxDefectFraction, anchorOnly = true).map((dominant, validated) =>
         (dominant.head.coords, validated)
       )
 
@@ -131,8 +133,9 @@ object TilingLattice:
       */
     private def periodCandidates(
         minOverlapFraction: Double,
-        maxDefectFraction: Double
-    ): Option[(List[Vertex], List[BigPoint])] =
+        maxDefectFraction: Double,
+        anchorOnly: Boolean = false
+    ): Option[(List[Vertex], List[(BigPoint, Double)])] =
       val interior                         = interiorVertices
       val sigAll: Map[VertexId, List[Key]] =
         interior.map(v => v.id -> signature(v)).toMap
@@ -159,26 +162,48 @@ object TilingLattice:
           if maxDefectFraction == 0.0 then 0
           else math.max(2, (dominant.size * maxDefectFraction).toInt)
 
-        def isPeriod(t: BigPoint): Boolean =
-          val landings   = interior.flatMap(u => vertexAt.get(key(u.coords + t)).map(w => (u, w)))
-          val mismatches = landings.count((u, w) => sigAll(u.id) != sigAll(w.id))
-          landings.size >= minMatches && mismatches <= maxDefects
+        // anchorOnly trades the O(d^2) full difference set for the O(d) differences from a single
+        // well-placed anchor — the dominant vertex nearest the patch centroid, whose visible
+        // orbit-mates surround it in every direction. Enumeration certifiers call this on every
+        // horizon patch, where candidate generation dominates the certify cost; the anchor is moved
+        // to the head of the returned orbit so callers anchor their cell grids on it.
+        val anchored: List[Vertex] =
+          if anchorOnly then
+            val centroid = interior.map(_.coords).centroid
+            val anchor   = dominant.minBy(v => (v.coords - centroid).dot(v.coords - centroid))
+            anchor :: dominant.filterNot(_.id == anchor.id)
+          else dominant
 
         val candidates: List[BigPoint] =
-          (for a <- dominant; b <- dominant if a.id != b.id yield b.coords - a.coords)
+          val pairs =
+            if anchorOnly then anchored.tail.map(b => b.coords - anchored.head.coords)
+            else for a <- anchored; b <- anchored if a.id != b.id yield b.coords - a.coords
+          pairs
             .filterNot(t => t.almostEquals(BigPoint.origin))
             .groupBy(key).values.map(_.head).toList
 
-        val validated = candidates.filter(isPeriod).sortBy(v => v.dot(v))
-        Some((dominant, validated))
+        // Each surviving candidate carries its mismatch fraction: a true period mismatches only on
+        // rounding flips (~0), a tolerated sublattice false period sits near the defect budget —
+        // callers that select a basis by content evidence rank by this before norm.
+        val validated =
+          candidates
+            .flatMap: t =>
+              val landings   = interior.flatMap(u => vertexAt.get(key(u.coords + t)).map(w => (u, w)))
+              val mismatches = landings.count((u, w) => sigAll(u.id) != sigAll(w.id))
+              Option.when(landings.size >= minMatches && mismatches <= maxDefects)(
+                (t, mismatches.toDouble / landings.size)
+              )
+            .sortBy((t, _) => t.dot(t))
+        Some((anchored, validated))
 
     private def periodicData(
         minOverlapFraction: Double,
         maxDefectFraction: Double
     ): Option[(List[Vertex], BigPoint, BigPoint)] =
       periodCandidates(minOverlapFraction, maxDefectFraction).flatMap { (dominant, validated) =>
-        validated.headOption.flatMap { v =>
-          validated
+        val vectors = validated.map(_._1)
+        vectors.headOption.flatMap { v =>
+          vectors
             .find(u => v.cross(u).abs > BigDecimal(ACCURACY)) // shortest independent
             .map(w => gaussReduced(v, w))
             .map((a, b) => (dominant, canonicalSign(a), canonicalSign(b)))
