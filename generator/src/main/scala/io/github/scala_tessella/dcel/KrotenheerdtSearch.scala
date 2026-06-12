@@ -30,16 +30,24 @@ object KrotenheerdtSearch:
       statesExplored: Long
   )
 
-  def enumerate(n: Int, maxVertices: Int, log: String => Unit = _ => ()): Outcome =
+  def enumerate(
+      n: Int,
+      maxVertices: Int,
+      hardCapFactor: Double = 3.5,
+      log: String => Unit = _ => ()
+  ): Outcome =
     val visited    = mutable.HashSet[List[(Int, BigDecimal, BigDecimal)]]()
     val found      = mutable.LinkedHashMap[String, Certified]()
     val rejections = mutable.Map[RejectReason, Int]().withDefaultValue(0)
     var states     = 0L
 
-    val stack = mutable.Stack[Tiling]()
-    polygonSides.foreach: sides =>
+    // (patch, nextCertifyAt): certification is expensive (lattice + block + corona refinement), so
+    // past the horizon it runs on a vertex-count cadence rather than at every state.
+    val certifyStep = 20
+    val stack       = mutable.Stack[(Tiling, Int)]()
+    polygonSides.reverse.foreach: sides =>
       val seed = TilingBuilder.createRegularPolygon(RegularPolygon(sides))
-      if visited.add(PatchCanonical.congruenceKey(seed)) then stack.push(seed)
+      if visited.add(PatchCanonical.congruenceKey(seed)) then stack.push((seed, maxVertices))
 
     // Rejections that just mean "not enough patch yet": keep growing (bounded) instead of dropping.
     val transient =
@@ -50,19 +58,24 @@ object KrotenheerdtSearch:
         RejectReason.TooShallow,
         RejectReason.CellsDiffer
       )
-    val hardCap   = maxVertices * 2
+    val hardCap   = (maxVertices * hardCapFactor).toInt
 
     while stack.nonEmpty do
-      val patch     = stack.pop()
+      val (patch, certifyAt) = stack.pop()
       states += 1
-      val atHorizon = patch.vertices.sizeIs >= maxVertices
 
-      def grow(): Unit =
+      def grow(nextCertifyAt: Int): Unit =
         expansions(patch, n).foreach: next =>
           val key = PatchCanonical.congruenceKey(next)
-          if visited.add(key) then stack.push(next)
+          if visited.add(key) then stack.push((next, nextCertifyAt))
 
-      if !atHorizon then grow()
+      if patch.vertices.sizeIs < certifyAt then grow(certifyAt)
+      else if innerVertexTypes(patch).size < n then
+        // Horizon assumption (validated by the published-count cross-checks): every ball of horizon
+        // size in a true Krotenheerdt-n tiling shows all n vertex types — the fundamental cells are
+        // far smaller than the horizon. A patch still type-deficient here is a mono-type core whose
+        // retry tree would dominate the search for nothing.
+        rejections(RejectReason.WrongTypeCount) += 1
       else
         certify(patch, n) match
           case Right(certified)                                                     =>
@@ -72,9 +85,18 @@ object KrotenheerdtSearch:
                 s"found #${found.size}: types ${certified.vertexTypes.map(_.mkString(".")).toList.sorted.mkString("; ")}"
               )
           case Left(reason) if transient(reason) && patch.vertices.sizeIs < hardCap =>
-            grow()
+            grow(patch.vertices.size + certifyStep)
           case Left(reason)                                                         =>
             rejections(reason) += 1
+            if sys.props.get("krot.dump").isDefined then
+              val dir = java.nio.file.Paths.get("/tmp/krot-rejects")
+              java.nio.file.Files.createDirectories(dir)
+              java.nio.file.Files.writeString(
+                dir.resolve(s"reject-$states.xml"), {
+                  import io.github.scala_tessella.dcel.conversion.TilingSVG.toMetadataXml
+                  patch.toMetadataXml
+                }
+              ): Unit
             log(
               s"reject $reason: types ${innerVertexTypes(patch).map(_.mkString(".")).toList.sorted.mkString("; ")} (v=${patch.vertices.size})"
             )

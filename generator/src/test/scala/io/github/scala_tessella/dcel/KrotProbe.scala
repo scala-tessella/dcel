@@ -2,11 +2,12 @@ package io.github.scala_tessella.dcel
 
 object KrotProbe:
   def main(args: Array[String]): Unit =
-    val n     = args.headOption.map(_.toInt).getOrElse(1)
-    val maxV  = args.lift(1).map(_.toInt).getOrElse(30)
-    val start = System.nanoTime
-    val out   = KrotenheerdtSearch.enumerate(n, maxV, msg => { println(msg); System.out.flush() })
-    val secs  = (System.nanoTime - start) / 1e9
+    val n      = args.headOption.map(_.toInt).getOrElse(1)
+    val maxV   = args.lift(1).map(_.toInt).getOrElse(30)
+    val start  = System.nanoTime
+    val factor = args.lift(2).map(_.toDouble).getOrElse(3.5)
+    val out    = KrotenheerdtSearch.enumerate(n, maxV, factor, msg => { println(msg); System.out.flush() })
+    val secs   = (System.nanoTime - start) / 1e9
     println(
       f"n=$n maxVertices=$maxV -> ${out.certified.size} tilings, states=${out.statesExplored}, ${secs}%.1f s"
     )
