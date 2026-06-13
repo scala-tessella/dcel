@@ -117,3 +117,20 @@ class KrotenheerdtSpec extends AnyFlatSpec with Matchers with TilingTestHelpers:
         "6.6.6"
       )
     )
+
+  behavior of "KrotenheerdtSearch (A068600, n = 2): torus-key identity per composition"
+
+  // The full n = 2 enumeration is a multi-hour research run (KrotenheerdtApp): it certifies exactly
+  // the 20 published 2-uniform Krotenheerdt tilings — five vertex-type compositions occurring twice
+  // and ten once. Here we lock in the torus-key canonicalisation that makes that count correct, on
+  // the compositions whose type-restricted space exhausts quickly: distinct tilings sharing a
+  // composition must stay apart, and a chiral tiling must merge with its mirror image (A068600
+  // classifies tilings up to all isometries, reflections included).
+
+  it should "give two torus keys for the 3.3.3.4.4 + 4.4.4.4 pair" in:
+    val targets = Set(List(3, 3, 3, 4, 4), List(4, 4, 4, 4)).map(normalize)
+    KrotSanity.distinctKeys(targets, 90).size shouldBe 2
+
+  it should "give one torus key for the chiral 3.12.12 + 3.4.3.12 tiling (mirror images identified)" in:
+    val targets = Set(List(3, 12, 12), List(3, 4, 3, 12)).map(normalize)
+    KrotSanity.distinctKeys(targets, 100).size shouldBe 1

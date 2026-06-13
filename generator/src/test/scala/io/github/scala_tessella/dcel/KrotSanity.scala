@@ -13,23 +13,24 @@ import scala.collection.mutable
   * Usage: KrotSanity <maxVertices> <type> <type> ... e.g. `KrotSanity 100 3.3.3.4.4 4.4.4.4`
   */
 object KrotSanity:
-  def main(args: Array[String]): Unit =
-    val maxV                          = args.head.toInt
-    val targets: Set[VertexSignature] =
-      args.tail.map(s => normalize(s.split('.').map(_.toInt).toList)).toSet
-    val n                             = targets.size
-    val hardCap                       = (maxV * 4.5).toInt
-    println(s"targets ($n): ${targets.map(_.mkString(".")).mkString("; ")}, horizon $maxV, cap $hardCap")
 
-    val visited = mutable.HashSet[List[(Int, BigDecimal, BigDecimal)]]()
-    val stack   = mutable.Stack[(Tiling, Int)]()
-    val finals  = mutable.Map[RejectReason, Int]().withDefaultValue(0)
-    var states  = 0L
-
-    polygonSides.reverse.foreach: sides =>
-      val seed = TilingBuilder.createRegularPolygon(RegularPolygon(sides))
-      if visited.add(PatchCanonical.congruenceKey(seed)) then stack.push((seed, maxV))
-
+  /** Distinct certified torus keys of all tilings whose vertex types lie in `targets`. Grows patches
+    * restricted to the target type set (collapsing the branching to one composition) and certifies at the
+    * horizon. With `stopAtFirst` it returns as soon as one key is found (existence check); otherwise it
+    * exhausts the restricted space (multiplicity check). `onKey` receives the patch behind each new key.
+    */
+  def distinctKeys(
+      targets: Set[VertexSignature],
+      maxV: Int,
+      hardCapFactor: Double = 4.5,
+      stopAtFirst: Boolean = false,
+      onKey: (String, Tiling) => Unit = (_, _) => ()
+  ): Set[String] =
+    val n         = targets.size
+    val hardCap   = (maxV * hardCapFactor).toInt
+    val visited   = mutable.HashSet[List[(Int, BigDecimal, BigDecimal)]]()
+    val stack     = mutable.Stack[(Tiling, Int)]()
+    val keys      = mutable.LinkedHashSet[String]()
     val transient = Set[RejectReason](
       RejectReason.NoLattice,
       RejectReason.BlockTooSmall,
@@ -38,52 +39,54 @@ object KrotSanity:
       RejectReason.CellsDiffer
     )
 
-    // Collect mode: keep going, accumulate distinct certified torus keys, dump one patch per key.
-    val collect = sys.props.get("krot.collect").isDefined
-    val keys    = mutable.LinkedHashMap[String, Tiling]()
+    polygonSides.reverse.foreach: sides =>
+      val seed = TilingBuilder.createRegularPolygon(RegularPolygon(sides))
+      if visited.add(PatchCanonical.congruenceKey(seed)) then stack.push((seed, maxV))
 
-    while stack.nonEmpty do
+    var done = false
+    while stack.nonEmpty && !done do
       val (patch, certifyAt) = stack.pop()
-      states += 1
 
       def grow(next: Int): Unit =
         expansions(patch, targets).reverse.foreach: child =>
-          val key = PatchCanonical.congruenceKey(child)
-          if visited.add(key) then stack.push((child, next))
+          if visited.add(PatchCanonical.congruenceKey(child)) then stack.push((child, next))
 
       if patch.vertices.sizeIs < certifyAt then grow(certifyAt)
       else
         certify(patch, n) match
           case Right(certified)                                                     =>
-            if !collect then
-              println(
-                s"CERTIFIED at v=${patch.vertices.size} states=$states: " +
-                  s"types ${certified.vertexTypes.map(_.mkString(".")).toList.sorted.mkString("; ")} " +
-                  s"basis=${certified.basis} key=${certified.torusKey.take(80)}"
-              )
-              return
-            else if !keys.contains(certified.torusKey) then
-              val idx = keys.size
-              keys(certified.torusKey) = patch
-              val dir = java.nio.file.Paths.get("/tmp/krot-collect")
-              java.nio.file.Files.createDirectories(dir)
-              import io.github.scala_tessella.dcel.conversion.TilingSVG.toMetadataXml
-              java.nio.file.Files.writeString(
-                dir.resolve(s"key-$idx-v${patch.vertices.size}.xml"),
-                patch.toMetadataXml
-              ): Unit
-              println(
-                s"DISTINCT KEY #$idx at v=${patch.vertices.size} states=$states: " +
-                  s"basis=${certified.basis}\n  key=${certified.torusKey}"
-              )
+            if keys.add(certified.torusKey) then onKey(certified.torusKey, patch)
+            if stopAtFirst then done = true
           case Left(reason) if transient(reason) && patch.vertices.sizeIs < hardCap =>
             grow(patch.vertices.size + 10)
-          case Left(reason)                                                         =>
-            finals(reason) += 1
-            if !collect && finals.values.sum % 50 == 0 then
-              println(s"  ...finals so far: ${finals.toMap} (states=$states)")
+          case Left(_)                                                              => ()
 
-    println(s"EXHAUSTED: distinctKeys=${keys.size} finals=${finals.toMap} states=$states")
+    keys.toSet
+
+  def main(args: Array[String]): Unit =
+    val maxV                          = args.head.toInt
+    val targets: Set[VertexSignature] =
+      args.tail.map(s => normalize(s.split('.').map(_.toInt).toList)).toSet
+    println(s"targets (${targets.size}): ${targets.map(_.mkString(".")).mkString("; ")}, horizon $maxV")
+
+    val collect = sys.props.get("krot.collect").isDefined
+    val keys    = distinctKeys(
+      targets,
+      maxV,
+      stopAtFirst = !collect,
+      onKey = (key, patch) =>
+        if collect then
+          val dir = java.nio.file.Paths.get("/tmp/krot-collect")
+          java.nio.file.Files.createDirectories(dir)
+          import io.github.scala_tessella.dcel.conversion.TilingSVG.toMetadataXml
+          java.nio.file.Files.writeString(
+            dir.resolve(s"key-${key.hashCode}-v${patch.vertices.size}.xml"),
+            patch.toMetadataXml
+          ): Unit
+          println(s"DISTINCT KEY at v=${patch.vertices.size}:\n  $key")
+        else println(s"CERTIFIED at v=${patch.vertices.size}: $key")
+    )
+    println(if collect then s"EXHAUSTED: distinctKeys=${keys.size}" else s"FOUND ${keys.size}")
 
   private def expansions(patch: Tiling, targets: Set[VertexSignature]): List[Tiling] =
     val gaps     = patch.boundaryVerticesUnsafe.flatMap: vertex =>
