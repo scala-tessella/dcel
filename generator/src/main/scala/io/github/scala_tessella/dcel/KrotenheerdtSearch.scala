@@ -189,7 +189,10 @@ object KrotenheerdtSearch:
 
     if workers <= 1 then workerLoop(0)
     else
-      val threads = (0 until workers).map(i => Thread.ofPlatform.name(s"krot-$i").start(() => workerLoop(i)))
+      val threads = (0 until workers).map: i =>
+        val t = new Thread(() => workerLoop(i), s"krot-$i")
+        t.start()
+        t
       threads.foreach(_.join())
 
     Outcome(
