@@ -17,7 +17,7 @@ object KrotProbe:
         gate,
         radius,
         parallel,
-        msg => { println(msg); System.out.flush() }
+        log = msg => { println(msg); System.out.flush() }
       )
     val secs     = (System.nanoTime - start) / 1e9
     println(

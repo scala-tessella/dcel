@@ -36,6 +36,7 @@ object KrotenheerdtSearch:
       earlyTypeGate: Int = 60,
       typeBallRadius: Int = 5,
       parallelism: Int = 1,
+      onFound: Certified => Unit = _ => (),
       log: String => Unit = _ => ()
   ): Outcome =
     import java.util.concurrent.{ConcurrentHashMap, ConcurrentLinkedDeque}
@@ -154,6 +155,7 @@ object KrotenheerdtSearch:
         certify(patch, n) match
           case Right(certified)                                                     =>
             if found.putIfAbsent(certified.torusKey, certified) == null then
+              onFound(certified)
               log(
                 s"found #${foundCount.incrementAndGet()}: types ${certified.vertexTypes.map(_.mkString(".")).toList.sorted.mkString("; ")}"
               )
