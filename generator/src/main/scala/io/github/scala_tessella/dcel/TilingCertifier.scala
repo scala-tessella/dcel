@@ -401,19 +401,17 @@ object TilingCertifier:
     // under a half-vector self-translation (pure arithmetic on reduced coordinates — no signature
     // rounding involved), halve the basis and repeat, so the key always describes the primitive
     // torus and candidate bases are enumerated from primitive vectors.
-    val (v, w) = primitiveBasis(tiling, cell, basis)
-    val det0   = (v.x * w.y - v.y * w.x).abs
+    // Reduce to the canonical shortest-vector basis: primitiveBasis returns *some* primitive basis,
+    // and a doubled cell halved by it comes out skewed. Two windows of the same tiling can thus
+    // arrive with differently-shaped primitive bases (one near-square, one skewed), which the small
+    // candidate set ±v, ±w, ±(v±w) below cannot reconcile — they would get distinct keys. Gauss
+    // reduction maps both to the same reduced basis (the two successive minima), so the candidate
+    // set spans the lattice's full symmetry and both windows canonicalize identically.
+    val (v0, w0) = primitiveBasis(tiling, cell, basis)
+    val (v, w)   = gaussReduced(v0, w0)
 
-    val candidateVectors = List(v, w, v + w, v - w).flatMap(p => List(p, BigPoint.origin - p))
-    val candidateBases   =
-      for
-        a  <- candidateVectors
-        b  <- candidateVectors
-        det = a.x * b.y - a.y * b.x
-        if (det.abs - det0).abs < BigDecimal("1e-9")
-      yield (a, b, det)
-
-    // The witness cell's content only: one fundamental domain, fully measured.
+    // The witness cell's content only: one fundamental domain, fully measured — faces as
+    // (sides, centroid), vertices as (type, position).
     val faces         =
       tiling.innerFaces
         .map: face =>
@@ -422,65 +420,56 @@ object TilingCertifier:
         .filter((_, c) => cell.cellOf(c).contains(witnessCell))
     val typedVertices =
       tiling.innerVertices
-        .map: vertex =>
-          (vertexTypeOf(tiling, vertex), vertex.coords)
+        .map(vertex => (vertexTypeOf(tiling, vertex).mkString("."), vertex.coords))
         .filter((_, c) => cell.cellOf(c).contains(witnessCell))
 
-    // Primitive reduction: strict lattice detection can settle on a doubled cell when a single
-    // rounding-borderline landing breaks the true period. If the cell content is invariant under a
-    // half-vector self-translation, fold it onto the finer lattice (pure arithmetic on reduced
-    // coordinates — no signature rounding involved) so the key always describes the primitive torus.
-    def reducePrimitive(
-        faces0: List[(Int, (BigDecimal, BigDecimal))],
-        verts0: List[(String, (BigDecimal, BigDecimal))]
-    ): (List[(Int, (BigDecimal, BigDecimal))], List[(String, (BigDecimal, BigDecimal))]) =
-      val half                                                                                             = BigDecimal("0.5")
-      def fr(x: BigDecimal): BigDecimal                                                                    =
-        val r = x.setScale(SCALE, BigDecimal.RoundingMode.HALF_UP)
-        val f = r - r.setScale(0, BigDecimal.RoundingMode.FLOOR)
-        if f >= BigDecimal(1) then BigDecimal(0).setScale(SCALE)
-        else f.setScale(SCALE, BigDecimal.RoundingMode.HALF_UP)
-      val shifts: List[((BigDecimal, BigDecimal), ((BigDecimal, BigDecimal)) => (BigDecimal, BigDecimal))] =
-        List(
-          ((half, BigDecimal(0)), (ab: (BigDecimal, BigDecimal)) => (fr(ab._1 * 2), ab._2)),
-          ((BigDecimal(0), half), (ab: (BigDecimal, BigDecimal)) => (ab._1, fr(ab._2 * 2))),
-          ((half, half), (ab: (BigDecimal, BigDecimal)) => (fr(ab._1 - ab._2), fr(ab._2 * 2)))
-        )
-      def contentKey(fs: List[(Int, (BigDecimal, BigDecimal))])                                            =
-        fs.map((sd, ab) => (sd, fr(ab._1), fr(ab._2))).toSet
-      shifts.collectFirst {
-        case ((sa, sb), transform)
-            if contentKey(faces0.map((sd, ab) => (sd, (fr(ab._1 + sa), fr(ab._2 + sb))))) ==
-              contentKey(faces0) =>
-          reducePrimitive(
-            faces0.map((sd, ab) => (sd, transform(ab))).distinctBy((sd, ab) => (sd, fr(ab._1), fr(ab._2))),
-            verts0.map((t, ab) => (t, transform(ab))).distinctBy((t, ab) => (t, fr(ab._1), fr(ab._2)))
-          )
-      }.getOrElse((faces0, verts0))
+    // Canonical descriptor of the fundamental cell under a primitive basis: express every face and
+    // vertex in lattice coordinates, then quotient by the choice of cell origin (anchor at each face
+    // in turn) and by the basis ambiguity (candidate vectors ±v, ±w, ±(v±w) paired to equal cell
+    // area, covering the lattice's rotations and basis re-expressions). Lex-min over all of these.
+    def canonicalKey(
+        vv: BigPoint,
+        ww: BigPoint,
+        facePts: List[(Int, BigPoint)],
+        vertPts: List[(String, BigPoint)]
+    ): String =
+      val det0             = (vv.x * ww.y - vv.y * ww.x).abs
+      val candidateVectors = List(vv, ww, vv + ww, vv - ww).flatMap(p => List(p, BigPoint.origin - p))
+      val candidateBases   =
+        for
+          a  <- candidateVectors
+          b  <- candidateVectors
+          det = a.x * b.y - a.y * b.x
+          if (det.abs - det0).abs < BigDecimal("1e-9")
+        yield (a, b, det)
+      val keys             =
+        for (a, b, det) <- candidateBases
+        yield
+          def lattice(p: BigPoint): (BigDecimal, BigDecimal) =
+            ((p.x * b.y - b.x * p.y) / det, (a.x * p.y - p.x * a.y) / det)
 
-    val keys =
-      for (a, b, det) <- candidateBases
-      yield
-        def lattice(p: BigPoint): (BigDecimal, BigDecimal) =
-          ((p.x * b.y - b.x * p.y) / det, (a.x * p.y - p.x * a.y) / det)
+          val faceCells   = facePts.map((sides, c) => (sides, lattice(c)))
+          val vertexCells = vertPts.map((t, c) => (t, lattice(c)))
 
-        val faceCells   = faces.map((sides, c) => (sides, lattice(c)))
-        val vertexCells = typedVertices.map((t, c) => (t.mkString("."), lattice(c)))
+          val anchored =
+            faceCells.map(_._2).distinct.map: (anchorAlpha, anchorBeta) =>
+              val fs =
+                faceCells
+                  .map((sides, ab) => (sides, frac(ab._1 - anchorAlpha), frac(ab._2 - anchorBeta)))
+                  .distinct.sorted
+              val vs =
+                vertexCells
+                  .map((t, ab) => (t, frac(ab._1 - anchorAlpha), frac(ab._2 - anchorBeta)))
+                  .distinct.sorted
+              (fs.map((s, x, y) => s"$s:$x:$y") ++ vs.map((t, x, y) => s"$t:$x:$y")).mkString("|")
+          anchored.min
+      keys.min
 
-        val anchored =
-          faceCells.map(_._2).distinct.map: (anchorAlpha, anchorBeta) =>
-            val fs =
-              faceCells
-                .map((sides, ab) => (sides, frac(ab._1 - anchorAlpha), frac(ab._2 - anchorBeta)))
-                .distinct.sorted
-            val vs =
-              vertexCells
-                .map((t, ab) => (t, frac(ab._1 - anchorAlpha), frac(ab._2 - anchorBeta)))
-                .distinct.sorted
-            (fs.map((s, x, y) => s"$s:$x:$y") ++ vs.map((t, x, y) => s"$t:$x:$y")).mkString("|")
-        anchored.min
-
-    keys.min
+    // canonicalKey is already reflection-invariant: it quotients over every basis of the lattice,
+    // including orientation-reversing ones, and descriptor(reflect P, reflect B) = descriptor(P, B),
+    // so a chiral tiling and its mirror (the A068600 convention treats them as one) reduce to the
+    // same key — no explicit mirror pass is needed.
+    canonicalKey(v, w, faces, typedVertices)
 
   /** Reduces a possibly non-primitive basis by detecting half-vector self-translations of the block content
     * (faces only, by reduced position): content invariant under `v/2`, `w/2` or `(v+w)/2` means the true

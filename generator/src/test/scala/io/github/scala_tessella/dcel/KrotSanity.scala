@@ -38,6 +38,10 @@ object KrotSanity:
       RejectReason.CellsDiffer
     )
 
+    // Collect mode: keep going, accumulate distinct certified torus keys, dump one patch per key.
+    val collect = sys.props.get("krot.collect").isDefined
+    val keys    = mutable.LinkedHashMap[String, Tiling]()
+
     while stack.nonEmpty do
       val (patch, certifyAt) = stack.pop()
       states += 1
@@ -51,20 +55,35 @@ object KrotSanity:
       else
         certify(patch, n) match
           case Right(certified)                                                     =>
-            println(
-              s"CERTIFIED at v=${patch.vertices.size} states=$states: " +
-                s"types ${certified.vertexTypes.map(_.mkString(".")).toList.sorted.mkString("; ")} " +
-                s"basis=${certified.basis} key=${certified.torusKey.take(80)}"
-            )
-            return
+            if !collect then
+              println(
+                s"CERTIFIED at v=${patch.vertices.size} states=$states: " +
+                  s"types ${certified.vertexTypes.map(_.mkString(".")).toList.sorted.mkString("; ")} " +
+                  s"basis=${certified.basis} key=${certified.torusKey.take(80)}"
+              )
+              return
+            else if !keys.contains(certified.torusKey) then
+              val idx = keys.size
+              keys(certified.torusKey) = patch
+              val dir = java.nio.file.Paths.get("/tmp/krot-collect")
+              java.nio.file.Files.createDirectories(dir)
+              import io.github.scala_tessella.dcel.conversion.TilingSVG.toMetadataXml
+              java.nio.file.Files.writeString(
+                dir.resolve(s"key-$idx-v${patch.vertices.size}.xml"),
+                patch.toMetadataXml
+              ): Unit
+              println(
+                s"DISTINCT KEY #$idx at v=${patch.vertices.size} states=$states: " +
+                  s"basis=${certified.basis}\n  key=${certified.torusKey}"
+              )
           case Left(reason) if transient(reason) && patch.vertices.sizeIs < hardCap =>
             grow(patch.vertices.size + 10)
           case Left(reason)                                                         =>
             finals(reason) += 1
-            if finals.values.sum % 50 == 0 then
+            if !collect && finals.values.sum % 50 == 0 then
               println(s"  ...finals so far: ${finals.toMap} (states=$states)")
 
-    println(s"EXHAUSTED with no certification: finals=${finals.toMap} states=$states")
+    println(s"EXHAUSTED: distinctKeys=${keys.size} finals=${finals.toMap} states=$states")
 
   private def expansions(patch: Tiling, targets: Set[VertexSignature]): List[Tiling] =
     val gaps     = patch.boundaryVerticesUnsafe.flatMap: vertex =>
