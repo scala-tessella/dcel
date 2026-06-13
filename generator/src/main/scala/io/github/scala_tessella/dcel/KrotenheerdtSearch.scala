@@ -69,19 +69,24 @@ object KrotenheerdtSearch:
       map.asScala.map((k, v) => (k, v.get)).toMap
 
     val certifyStep = 10
-    // Shared LIFO work deque: pollFirst keeps the global front depth-first-ish, so memory stays
-    // bounded like the sequential stack. `pending` counts pushed-but-unfinished tasks — zero means
-    // the deque is empty AND no worker can still push, the only sound termination signal.
-    val deque       = new ConcurrentLinkedDeque[(Tiling, Int)]()
+    // Work-stealing deques: each worker pushes and pops at the head of its own deque (depth-first,
+    // memory bounded like the sequential stack) and steals from another worker's tail when its own
+    // is empty. A single shared deque makes all workers collectively burrow into whichever subtree
+    // owns the global front — seen pinning an entire 12-worker run inside one decoration-scatter
+    // forest for a million states while other seed families held all the findings. `pending` counts
+    // pushed-but-unfinished tasks — zero means every deque is empty AND no worker can still push,
+    // the only sound termination signal.
+    val workers     = math.max(1, parallelism)
+    val deques      = Array.fill(workers)(new ConcurrentLinkedDeque[(Tiling, Int)]())
     val pending     = new AtomicLong(0)
 
-    def push(task: (Tiling, Int)): Unit =
+    def push(worker: Int, task: (Tiling, Int)): Unit =
       pending.incrementAndGet()
-      deque.addFirst(task)
+      deques(worker).addFirst(task)
 
-    polygonSides.reverse.foreach: sides =>
+    polygonSides.reverse.zipWithIndex.foreach: (sides, i) =>
       val seed = TilingBuilder.createRegularPolygon(RegularPolygon(sides))
-      if visited.add(digestOf(seed)) then push((seed, maxVertices))
+      if visited.add(digestOf(seed)) then push(i % workers, (seed, maxVertices))
 
     // Rejections that just mean "not enough patch yet": keep growing (bounded) instead of dropping.
     val transient =
@@ -94,7 +99,7 @@ object KrotenheerdtSearch:
       )
     val hardCap   = (maxVertices * hardCapFactor).toInt
 
-    def process(patch: Tiling, certifyAt: Int): Unit =
+    def process(worker: Int, patch: Tiling, certifyAt: Int): Unit =
       val state = states.incrementAndGet()
       sample.set(patch.vertices.size)
       if state % 5000 == 0 then
@@ -108,7 +113,7 @@ object KrotenheerdtSearch:
         // dodecagon-rich families have the deepest lineages (huge cells) and would otherwise
         // monopolize the search front for hours before any other family completes.
         expansions(patch, n).reverse.foreach: next =>
-          if visited.add(digestOf(next)) then push((next, nextCertifyAt))
+          if visited.add(digestOf(next)) then push(worker, (next, nextCertifyAt))
 
       // Growth gates past the early-gate size (all validated by the published-count cross-checks):
       // type density — all n types showing, each deep vertex seeing every type within the ball
@@ -165,18 +170,25 @@ object KrotenheerdtSearch:
           case Left(reason)                                                         =>
             finalReject(reason)
 
-    def workerLoop(): Unit =
+    def workerLoop(worker: Int): Unit =
       while pending.get() > 0 do
-        val task = deque.pollFirst()
+        val task =
+          deques(worker).pollFirst() match
+            case null => // steal from the tail of the first non-empty victim, round-robin from us
+              (1 until workers).iterator
+                .map(k => deques((worker + k) % workers).pollLast())
+                .find(_ != null)
+                .orNull
+            case own  => own
         if task == null then Thread.sleep(1)
         else
-          try process(task._1, task._2)
+          try process(worker, task._1, task._2)
           finally pending.decrementAndGet(): Unit
 
-    if parallelism <= 1 then workerLoop()
+    if workers <= 1 then workerLoop(0)
     else
-      val workers = (1 to parallelism).map(i => Thread.ofPlatform.name(s"krot-$i").start(() => workerLoop()))
-      workers.foreach(_.join())
+      val threads = (0 until workers).map(i => Thread.ofPlatform.name(s"krot-$i").start(() => workerLoop(i)))
+      threads.foreach(_.join())
 
     Outcome(
       found.values.asScala.toList.sortBy(_.torusKey),
