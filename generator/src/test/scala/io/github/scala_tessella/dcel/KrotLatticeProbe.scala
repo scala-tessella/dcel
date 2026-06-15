@@ -17,9 +17,9 @@ object KrotLatticeProbe:
       )
     val secs     = (System.nanoTime - start) / 1e9
     println(
-      f"n=$n k=$k -> ${out.certified.size} tilings, bases=${out.basesTried}, states=${out.statesExplored}, ${secs}%.1f s"
+      f"n=$n k=$k -> ${out.tilings.size} tilings, bases=${out.basesTried}, states=${out.statesExplored}, ${secs}%.1f s"
     )
-    out.certified
-      .map(_.vertexTypes.map(_.mkString(".")).toList.sorted.mkString("; "))
+    out.tilings
+      .map((types, _) => types.map(_.mkString(".")).toList.sorted.mkString("; "))
       .sorted
       .foreach(c => println(s"  $c"))

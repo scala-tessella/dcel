@@ -24,7 +24,11 @@ import scala.collection.mutable
   */
 object KrotenheerdtLatticeSearch:
 
-  final case class Outcome(certified: List[Certified], basesTried: Int, statesExplored: Long)
+  final case class Outcome(
+      tilings: List[(Set[VertexSignature], String)],
+      basesTried: Int,
+      statesExplored: Long
+  )
 
   // Candidate lattices are enumerated in Double — exact BigDecimal arithmetic on arbitrary module points
   // makes gaussReduced explode in precision and hang; the candidates only need ~1e-12 accuracy (the oracle
@@ -81,15 +85,32 @@ object KrotenheerdtLatticeSearch:
     */
   private val minCovolume = 0.4
 
+  // Unit-edge polygon areas {3,4,6,8,12}. A fundamental cell is a whole number of polygons, so its covolume
+  // is a non-negative integer combination of these — a sparse set. Filtering candidate covolumes to it drops
+  // the dense module's spurious lattices (whose covolume is an arbitrary real) by a large factor.
+  private val polygonAreas = List(3, 4, 6, 8, 12).map(s => s / (4.0 * math.tan(math.Pi / s)))
+
+  private def achievableCovolumes(maxCovolume: Double): Set[Double] =
+    val reached  = mutable.Set(0.0)
+    var frontier = List(0.0)
+    while frontier.nonEmpty do
+      frontier = frontier.flatMap: c =>
+        polygonAreas.map(c + _).filter(s => s <= maxCovolume + 1e-6 && reached.add(s))
+    reached.filter(_ >= minCovolume - 1e-6).toSet
+
+  private def isAchievable(covol: Double, achievable: Set[Double]): Boolean =
+    achievable.exists(a => math.abs(a - covol) < 1e-6)
+
   /** Candidate primitive bases within step bound `k` and covolume in `[minCovolume, maxCovolume]`, Gauss-
     * reduced, sign-canonicalised, deduped, ordered by covolume (smallest fundamental cell first). Includes
     * the octagon (45°) module when `withOctagon`.
     */
   def candidateBases(k: Int, maxCovolume: Double, withOctagon: Boolean = false): List[(BigPoint, BigPoint)] =
-    val points =
+    val achievable = achievableCovolumes(maxCovolume)
+    val points     =
       (modulePoints(generators12, k) ++ (if withOctagon then modulePoints(generators8, k) else Nil))
         .filter(p => math.hypot(p._1, p._2) > 1e-6)
-    val byKey  = mutable.LinkedHashMap.empty[((Long, Long), (Long, Long)), (P, P)]
+    val byKey      = mutable.LinkedHashMap.empty[((Long, Long), (Long, Long)), (P, P)]
     for
       i   <- points.indices
       j   <- (i + 1) until points.size
@@ -98,7 +119,7 @@ object KrotenheerdtLatticeSearch:
     do
       val (a, b) = gaussReduceD(points(i), points(j))
       val cov    = math.abs(cross(a, b))
-      if cov >= minCovolume - 1e-9 && cov <= maxCovolume + 1e-9 then
+      if cov >= minCovolume - 1e-9 && cov <= maxCovolume + 1e-9 && isAchievable(cov, achievable) then
         val (ca, cb) = (canonicalSign(a), canonicalSign(b))
         val ord      = Ordering[(Double, (Long, Long))]
         val pair     =
@@ -124,7 +145,7 @@ object KrotenheerdtLatticeSearch:
     import scala.jdk.CollectionConverters.*
 
     val bases  = candidateBases(k, maxCovolume, withOctagon = n == 1)
-    val found  = new ConcurrentHashMap[String, Certified]()
+    val found  = new ConcurrentHashMap[String, Set[VertexSignature]]()
     val states = new AtomicLong(0)
     val done   = new AtomicLong(0)
     val capped = new AtomicLong(0)
@@ -149,12 +170,14 @@ object KrotenheerdtLatticeSearch:
         // cell (small) — no large planar growth. Then replicate it to a block by lattice translation (cheap,
         // and the merge validates periodicity) and hand that to the existing certify for orbit count, types
         // and the canonical key. The cheap area test gates the expensive torus-area scan.
+        // Verify once the patch's distinct faces tile a cell; verifyTorus also needs every torus vertex to
+        // have a complete (interior) instance, which takes ~1.5 cells, so keep growing until it succeeds or
+        // the patch is clearly too big (3 cells).
         if area >= covol - 1e-6 && distinctTorusFaceArea(patch, v, w, origin) >= covol - 1e-6 then
-          replicate(patch, v, w, covol, origin).foreach: block =>
-            certify(block, n) match
-              case Right(c) => found.putIfAbsent(c.torusKey, c)
-              case Left(_)  => ()
-        else if area < covol * 3 then grow(patch, v, w, origin, n, visited, stack)
+          verifyTorus(patch, v, w, origin, n) match
+            case Some((types, key)) => found.putIfAbsent(key, types): Unit
+            case None               => if area < covol * 9 then grow(patch, v, w, origin, n, visited, stack)
+        else if area < covol * 9 then grow(patch, v, w, origin, n, visited, stack)
       if local >= perCap then capped.incrementAndGet()
       val d       = done.incrementAndGet()
       if d % 50 == 0 then
@@ -169,7 +192,7 @@ object KrotenheerdtLatticeSearch:
         pool.awaitTermination(7, java.util.concurrent.TimeUnit.DAYS)
     log(s"  capped lattices (hit ${perCap} states): ${capped.get}")
 
-    Outcome(found.values.asScala.toList.sortBy(_.torusKey), bases.size, states.get)
+    Outcome(found.asScala.toList.map((key, types) => (types, key)).sortBy(_._2), bases.size, states.get)
 
   private def fracOf(x: BigDecimal): BigDecimal =
     val r = x.setScale(9, BigDecimal.RoundingMode.HALF_UP)
@@ -201,6 +224,129 @@ object KrotenheerdtLatticeSearch:
       .distinctBy(_._1)
       .map(_._2)
       .sum
+
+  /** Torus-native verification of a one-cell Λ-consistent patch, replacing the expensive planar replicate +
+    * certify. Returns the canonical torus key and the vertex-type set when the patch is a valid Krotenheerdt
+    * tiling: the distinct torus faces tile one cell, every torus vertex has a complete 360° valid fan, and
+    * the vertex orbits (color refinement of the torus vertex graph) number exactly n with n distinct types.
+    */
+  private[dcel] def verifyTorus(
+      patch: TilingDCEL,
+      v: BigPoint,
+      w: BigPoint,
+      origin: BigPoint,
+      n: Int
+  ): Option[(Set[VertexSignature], String)] =
+    val det                                         = v.x * w.y - v.y * w.x
+    def tkey(p: BigPoint): (BigDecimal, BigDecimal) =
+      val d = p - origin
+      (fracOf((d.x * w.y - w.x * d.y) / det), fracOf((v.x * d.y - d.x * v.y) / det))
+
+    // Torus vertices: group planar vertices by position mod Λ; each must have an interior (complete) instance.
+    val byTorus  = patch.vertices.groupBy(vertex => tkey(vertex.coords))
+    val complete =
+      byTorus.view.mapValues(_.find(_.currentInteriorAngleSumUnsafe(patch.outerFace) ==
+        AngleDegree(360))).toMap
+    if sys.props.contains("krot.vdbg") then
+      println(s"  [vdbg] torusVerts=${byTorus.size} incomplete=${complete.count(
+          _._2.isEmpty
+        )} types=${complete.collect { case (k, Some(vx)) => vertexTypeOf(patch, vx).mkString(".") }.toSet}")
+    if complete.values.exists(_.isEmpty) then None
+    else
+      val reps  = complete.view.mapValues(_.get).toMap
+      val types = reps.values.map(vertexTypeOf(patch, _)).toSet
+      if types.sizeIs != n then None
+      else
+        // Torus-vertex adjacency with edge labels (the two incident face sizes), for color refinement.
+        def faceSize(f: Option[structure.Face]): Int =
+          f.filter(_ != patch.outerFace).map(_.halfEdgesUnsafe.size).getOrElse(0)
+        val adj                                      = reps.map: (tk, vertex) =>
+          tk -> vertex.incidentEdgesUnsafe.map: e =>
+            val label = List(faceSize(e.incidentFace), faceSize(e.twin.flatMap(_.incidentFace))).sorted
+            (tkey(e.destinationUnsafe.coords), label)
+        var color                                    = reps.map((tk, vtx) => tk -> vertexTypeOf(patch, vtx).mkString(".")).toMap
+        var stable                                   = false
+        while !stable do
+          val next = adj.map: (tk, ns) =>
+            tk ->
+              (color(tk) + "|" +
+                ns.map((nk, lbl) => (lbl.mkString, color.getOrElse(nk, ""))).sorted.mkString(","))
+          stable = next.values.toSet.size == color.values.toSet.size
+          color = next
+        val orbits                                   = color.values.toSet.size
+        if orbits != n then None
+        else
+          // Canonical torus key: faces (size, pos mod Λ) and typed vertices, lex-min over basis re-expressions
+          // and cell origins. Reuses the existing torusKey machinery via a synthetic single-cell block.
+          val faces = patch.innerFaces
+            .map(f => (f.halfEdgesUnsafe.size, f.getVerticesUnsafe.map(_.coords).centroid))
+            .distinctBy((s, c) => (s, tkey(c)))
+          Some((
+            types,
+            torusContentKey(
+              v,
+              w,
+              origin,
+              faces,
+              reps.values.toList.map(vtx => (vertexTypeOf(patch, vtx).mkString("."), vtx.coords))
+            )
+          ))
+
+  /** Reduce a basis to the primitive cell: if the face content (in lattice coordinates) is invariant under a
+    * half-period shift, the cell is a multiple of the true one — halve and repeat. Without this, the same
+    * tiling found under a sublattice (doubled cell) gets a different key than under its primitive cell.
+    */
+  private def primitiveBasis(
+      v0: BigPoint,
+      w0: BigPoint,
+      origin: BigPoint,
+      faces: List[(Int, BigPoint)]
+  ): (BigPoint, BigPoint) =
+    def reduce(v: BigPoint, w: BigPoint): (BigPoint, BigPoint) =
+      val det                                     = v.x * w.y - v.y * w.x
+      def lat(p: BigPoint)                        =
+        val d = p - origin
+        ((d.x * w.y - w.x * d.y) / det, (v.x * d.y - d.x * v.y) / det)
+      val content                                 = faces.map((s, c) => (s, lat(c)))
+      def shifted(sa: BigDecimal, sb: BigDecimal) =
+        content.map((s, ab) => (s, fracOf(ab._1 + sa), fracOf(ab._2 + sb))).toSet
+      val base                                    = shifted(0, 0)
+      val half                                    = BigDecimal("0.5")
+      if shifted(half, 0) == base then reduce(v.scaled(half), w)
+      else if shifted(0, half) == base then reduce(v, w.scaled(half))
+      else if shifted(half, half) == base then reduce(v, (v + w).scaled(half))
+      else (v, w)
+    reduce(v0, w0)
+
+  /** Canonical key of one fundamental cell's content under all equivalent bases and cell origins. */
+  private def torusContentKey(
+      v00: BigPoint,
+      w00: BigPoint,
+      origin: BigPoint,
+      faces: List[(Int, BigPoint)],
+      verts: List[(String, BigPoint)]
+  ): String =
+    val (v, w)     = primitiveBasis(v00, w00, origin, faces)
+    val candidates = List(v, w, v + w, v - w).flatMap(p => List(p, BigPoint.origin - p))
+    val det0       = (v.x * w.y - v.y * w.x).abs
+    val keys       =
+      for
+        a  <- candidates
+        b  <- candidates
+        det = a.x * b.y - a.y * b.x
+        if (det.abs - det0).abs < BigDecimal("1e-9")
+      yield
+        def lat(p: BigPoint): (BigDecimal, BigDecimal) =
+          val d = p - origin
+          ((d.x * b.y - b.x * d.y) / det, (a.x * d.y - d.x * a.y) / det)
+        val fs                                         = faces.map((s, c) => (s, lat(c)))
+        val vs                                         = verts.map((t, c) => (t, lat(c)))
+        fs.map(_._2).distinct.map: (oa, ob) =>
+          val f = fs.map((s, ab) => (s, fracOf(ab._1 - oa), fracOf(ab._2 - ob))).distinct.sorted
+          val u = vs.map((t, ab) => (t, fracOf(ab._1 - oa), fracOf(ab._2 - ob))).distinct.sorted
+          (f.map((s, x, y) => s"$s:$x:$y") ++ u.map((t, x, y) => s"$t:$x:$y")).mkString("|")
+        .min
+    keys.min
 
   /** Replicate a one-cell patch into a block by repeated lattice translation, until it spans at least a 5x5
     * block (so certify finds an interior witness cell). Each translated merge is fully validated, so a patch
