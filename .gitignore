@@ -51,3 +51,4 @@ shared/src/test/resources/generator/
 
 ### scalex code-intelligence cache ###
 .scalex/
+/paper scan.pdf
