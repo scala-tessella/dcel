@@ -128,7 +128,7 @@ object KrotenheerdtLatticeSearch:
     val states = new AtomicLong(0)
     val done   = new AtomicLong(0)
     val capped = new AtomicLong(0)
-    val perCap = 5000
+    val perCap = 400
     log(s"n=$n k=$k maxCovol=$maxCovolume: ${bases.size} candidate lattices")
 
     def runLattice(v: BigPoint, w: BigPoint): Unit =
@@ -145,22 +145,19 @@ object KrotenheerdtLatticeSearch:
         local += 1
         val origin = patch.vertices.head.coords
         val area   = patch.innerFaces.map(_.areaUnsafe).sum
-        // certify needs the witness cell's corona deep-interior (~5x5 cells), so trigger only once the patch
-        // is that big; the oracle makes growth deterministic past the first cell, so there is no scatter to
-        // retry through. Grow further only while still too small.
-        if area >= covol * 25 then
-          certify(patch, n) match
-            case Right(c) =>
-              found.putIfAbsent(c.torusKey, c)
-            case Left(r)
-                if (r == RejectReason.NoLattice || r == RejectReason.BlockTooSmall ||
-                  r == RejectReason.NoWitnessCell || r == RejectReason.TooShallow) && area < covol * 64 =>
-              grow(patch, v, w, origin, n, visited, stack)
-            case Left(_)  => ()
-        else grow(patch, v, w, origin, n, visited, stack)
+        // Grow only until the patch's distinct torus faces tile ONE fundamental cell, so the patch stays ~1
+        // cell (small) — no large planar growth. Then replicate it to a block by lattice translation (cheap,
+        // and the merge validates periodicity) and hand that to the existing certify for orbit count, types
+        // and the canonical key. The cheap area test gates the expensive torus-area scan.
+        if area >= covol - 1e-6 && distinctTorusFaceArea(patch, v, w, origin) >= covol - 1e-6 then
+          replicate(patch, v, w, covol, origin).foreach: block =>
+            certify(block, n) match
+              case Right(c) => found.putIfAbsent(c.torusKey, c)
+              case Left(_)  => ()
+        else if area < covol * 3 then grow(patch, v, w, origin, n, visited, stack)
       if local >= perCap then capped.incrementAndGet()
       val d       = done.incrementAndGet()
-      if d % 2000 == 0 then
+      if d % 50 == 0 then
         log(s"  lattices ${d}/${bases.size}, states=${states.get}, found=${found.size}, capped=${capped.get}")
 
     if parallelism <= 1 then bases.foreach(runLattice)
@@ -173,6 +170,60 @@ object KrotenheerdtLatticeSearch:
     log(s"  capped lattices (hit ${perCap} states): ${capped.get}")
 
     Outcome(found.values.asScala.toList.sortBy(_.torusKey), bases.size, states.get)
+
+  private def fracOf(x: BigDecimal): BigDecimal =
+    val r = x.setScale(9, BigDecimal.RoundingMode.HALF_UP)
+    val f = r - r.setScale(0, BigDecimal.RoundingMode.FLOOR)
+    if f >= BigDecimal(1) then BigDecimal(0).setScale(9) else f.setScale(9, BigDecimal.RoundingMode.HALF_UP)
+
+  /** Total area of the patch's inner faces taken once per torus position (size, centroid mod Λ). Equals one
+    * covolume exactly when the patch covers a full fundamental cell of distinct faces.
+    */
+  private def distinctTorusFaceArea(
+      patch: TilingDCEL,
+      v: BigPoint,
+      w: BigPoint,
+      origin: BigPoint
+  ): BigDecimal =
+    val det = v.x * w.y - v.y * w.x
+    patch.innerFaces
+      .map: f =>
+        val c = f.getVerticesUnsafe.map(_.coords).centroid
+        val d = c - origin
+        (
+          (
+            f.halfEdgesUnsafe.size,
+            fracOf((d.x * w.y - w.x * d.y) / det),
+            fracOf((v.x * d.y - d.x * v.y) / det)
+          ),
+          f.areaUnsafe
+        )
+      .distinctBy(_._1)
+      .map(_._2)
+      .sum
+
+  /** Replicate a one-cell patch into a block by repeated lattice translation, until it spans at least a 5x5
+    * block (so certify finds an interior witness cell). Each translated merge is fully validated, so a patch
+    * that is not actually Λ-periodic fails here and yields `None`.
+    */
+  private def replicate(
+      patch: Tiling,
+      v: BigPoint,
+      w: BigPoint,
+      covol: BigDecimal,
+      origin: BigPoint
+  ): Option[Tiling] =
+    val dirs = List(v, BigPoint.origin - v, w, BigPoint.origin - w)
+    var big  = patch
+    var i    = 0
+    var ok   = true
+    while ok && big.innerFaces.map(_.areaUnsafe).sum < covol * 30 && i < 16 do
+      val o = big.vertices.head.coords
+      big.maybeAddTranslatedCopy(o, o + dirs(i % 4)) match
+        case Right(t) => big = t
+        case Left(_)  => ok = false
+      i += 1
+    Option.when(ok && big.innerFaces.map(_.areaUnsafe).sum >= covol * 25)(big)
 
   /** Push every Λ-consistent, sound continuation that fills the centroid-nearest boundary gap. */
   private def grow(
