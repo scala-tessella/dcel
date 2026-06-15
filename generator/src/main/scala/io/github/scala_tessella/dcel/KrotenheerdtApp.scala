@@ -1,6 +1,6 @@
 package io.github.scala_tessella.dcel
 
-import io.github.scala_tessella.dcel.TilingCertifier.Certified
+import io.github.scala_tessella.dcel.TilingCertifier.{Certified, vertexTypeOf}
 import io.github.scala_tessella.dcel.conversion.TilingSVG.{toMetadataXml, toScalableVectorGraphics}
 
 import java.nio.file.{Files, Path, Paths, StandardOpenOption}
@@ -31,7 +31,7 @@ object KrotenheerdtApp:
 
     Files.createDirectories(outDir)
     val index = outDir.resolve("index.tsv")
-    Files.writeString(index, "composition\ttorusKey\tbasis\tpatchVertices\n")
+    Files.writeString(index, "composition\ttorusKey\tbasis\tpatchVertices\ttypeBallRadius\n")
 
     val started = System.nanoTime
     println(
@@ -49,7 +49,7 @@ object KrotenheerdtApp:
         s"(${c.basis._1.x.toDouble},${c.basis._1.y.toDouble})/(${c.basis._2.x.toDouble},${c.basis._2.y.toDouble})"
       Files.writeString(
         index,
-        s"$composition\t${c.torusKey}\t$basis\t${c.patch.vertices.size}\n",
+        s"$composition\t${c.torusKey}\t$basis\t${c.patch.vertices.size}\t${measuredTypeBallRadius(c.patch, n)}\n",
         StandardOpenOption.APPEND
       ): Unit
     }
@@ -80,6 +80,23 @@ object KrotenheerdtApp:
       println(if outcome.certified.size == target then s"MATCHES A068600($n) = $target"
       else s"MISMATCH: found ${outcome.certified.size}, A068600($n) = $target")
     )
+
+  /** Measured type-ball radius of a certified patch: the largest, over fully-interior vertices, of the
+    * smallest radius whose ball shows all `n` vertex types. This is the quantity the search's
+    * `typeBallRadius` gate bounds, so it tells whether that gate was lossy — if any certified tiling here
+    * measures above the gate value used, the gate would have dropped it. Vertices whose ball reaches the
+    * patch boundary before seeing all types are skipped (unmeasurable at this patch size).
+    */
+  private def measuredTypeBallRadius(patch: Tiling, n: Int): Int =
+    val boundaryIds = patch.boundaryVerticesUnsafe.map(_.id).toSet
+    val typeOf      = patch.innerVertices.map(v => v.id -> vertexTypeOf(patch, v)).toMap
+    patch.innerVertices.flatMap { v =>
+      Iterator
+        .from(1)
+        .map(r => (r, v.bfsVertices(r)))
+        .takeWhile((_, ball) => !ball.exists(u => boundaryIds.contains(u.id)))
+        .collectFirst { case (r, ball) if ball.flatMap(u => typeOf.get(u.id)).sizeIs == n => r }
+    }.maxOption.getOrElse(0)
 
   /** OEIS A068600, n = 1..8. */
   private val published = List(11, 20, 39, 33, 15, 10, 7, 0)
