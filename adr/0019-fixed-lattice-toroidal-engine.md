@@ -1,6 +1,8 @@
 # ADR-0019: Fixed-Λ toroidal enumeration engine (scaling A068600 to n ≥ 3)
 
-- **Status:** Proposed — work in progress (the performance approach is settled; full validation is not done)
+- **Status:** Accepted — the engine is **sound** (validated, no false positives); completeness is bounded by
+  the empirical `(k, maxCovolume)` and full published counts are pending a larger step bound / candidate
+  reduction
 - **Date:** 2026-06-15
 
 > Implemented (WIP) in `generator/.../KrotenheerdtLatticeSearch.scala` and
@@ -46,32 +48,58 @@ growth gate so off-lattice scatter is pruned at the branch point.
 The earlier plan was "grow a Λ-consistent window, hand it to `certify`". That is impractical (see
 Consequences): `certify` needs a ~5×5-cell patch, too expensive to grow planarly. Instead, grow only
 until the patch's *distinct torus faces tile one covolume* (so the patch stays ~1 cell), then verify
-**on the torus**: every torus vertex has a complete 360° valid fan; the vertex types are exactly n;
-the vertex **orbits** (color refinement of the torus vertex graph, labelled by incident face sizes)
-number exactly n; and the canonical key is the one-cell content (faces + typed vertices in lattice
-coordinates) lex-min over equivalent bases and origins, with **primitive-basis reduction** so a
-sublattice (doubled) cell collapses to its primitive key. Tilings are deduped globally by this key.
+**on the torus**. The verifier has four checks, each of which needed a non-obvious idea to get right:
+
+- **Complete fans, from one cell.** Every torus vertex must have a complete 360° fan. Requiring a single
+  *interior* planar instance would need a full corona (≈7 hexagons for `6.6.6`), defeating the "~1 cell"
+  goal. Instead each torus vertex's fan is **reconstructed by unioning the partial coronas of all its
+  planar instances, keyed by the corner angle** (translation-invariant). A single cell suffices — this is
+  what makes multi-vertex cells (`6.6.6`, the snubs) findable cheaply. Faces are deduped by *angle*, not
+  identity: in a one-face cell the three faces around a vertex are translates of the same face.
+- **Types = n.** The set of fan signatures has exactly n elements.
+- **Orbits = n, counted EXACTLY.** Two cell vertices are in the same orbit iff the whole cell content
+  rooted at one maps onto the content rooted at the other under a lattice **isometry** (a point-group
+  frame — basis pairs with the same Gram matrix as `(v, w)`); the orbit count is the number of distinct
+  rooted canonical fingerprints. This **replaces 1-WL colour refinement**, which only *lower-bounds* the
+  orbit count and silently merged distinct orbits (the `3.3.3.3.6 / 3.6.3.6` cell has four `3.3.3.3.6`
+  vertices in two orbits — 1-WL saw one, passing a 3-uniform tiling as 2-uniform). This was the engine's
+  single biggest soundness hole and is now closed.
+- **Canonical key.** The one-cell content (faces + typed vertices in lattice coordinates) lex-min over
+  equivalent bases (including reflected, det < 0, frames) and origins, with **primitive-basis reduction**
+  so a sublattice cell collapses to its primitive key and a chiral tiling and its mirror collapse to one
+  key (the up-to-all-isometries convention). Tilings are deduped globally by this key.
 
 ## Status (what is done / what remains)
 
-**Done and validated:** Phase 0 oracle (4/4 tests). Candidate enumerator (correct, fast). Torus-native
-verification correct for **single-vertex-cell tilings** — n = 1 small cells (3⁶, 4⁴, 3³.4²) enumerate
-in ~2 s, where the planar-replicate approach timed out. The achievable-covolume filter and primitive
-reduction (no duplicate keys) work.
+**Done and validated — the engine is SOUND.** Every tiling it reports is a genuine Krotenheerdt n-uniform
+tiling with the correct multiplicity, confirmed with **no false positives**:
+- Phase 0 oracle (4/4 tests); candidate enumerator (correct, fast).
+- **Multi-vertex cells** (`6.6.6`, the snub `3.3.3.3.6`, `3.6.3.6`, …) — solved by the union fan
+  reconstruction and by keying the torus-vertex grouping with a *wrapping* integer snap (folding the
+  ≈0 / ≈1 boundary coordinates that previously split translate-equivalent vertices).
+- **Sublattice deduplication** (a finer period is no longer than the *longer* basis vector — a `min`
+  bound missed the `2×1`-of-`4⁴` case) and **chirality** (the up-to-all-isometries convention: reflected
+  frames in the key; and a latent `Map.map` collapse that dropped same-type vertices, double-counting
+  mirror images).
+- **Orbit-count soundness** — 1-WL colour refinement replaced by the exact rooted-fingerprint count over
+  point-group frames (see the verification section). This closed the central risk: the engine no longer
+  accepts a >n-orbit tiling as n-uniform. Regression-tested on the `3.3.3.3.6 / 3.6.3.6` case.
+- **Validation:** n = 1 → 10 of the 11 Archimedean tilings; n = 2 → 16 of the 20 — every result correct,
+  none spurious, multiplicities matching the published table (the chiral `3.12.12 / 3.4.3.12` once; the
+  genuine same-composition pairs kept apart). `KrotenheerdtLatticeSearchSpec` locks the fast cases.
+- One technical fix worth recording: `primitiveBasis` must Gauss-reduce in **Double**, not the shared
+  exact-`BigDecimal` `gaussReduced`, which can *fail to terminate* on messy centroid-difference vectors.
 
-**Not done — the next session's work:**
-- **Multi-vertex-cell tilings** (6.6.6 has 2 vertices/cell; the snubs, 3.6.3.6, …) are not yet found.
-  `verifyTorus` requires *every* torus vertex to have a completed (interior) planar instance, which
-  needs more growth than the current `covol * 9` cap provides for cells with several vertices; and the
-  torus-vertex grouping (`tkey`, frac-rounded mod-Λ coordinate) needs hardening against rounding that
-  splits translate-equivalent vertices (seen: a hexagon field grouped into 7 classes instead of 2).
-- **Validation** against the published counts (n = 1 = 11, n = 2 = 20, n = 3 = 39), tuning `k` and
-  `maxCovolume` per n, and a regression test.
-- **Soundness of the orbit count.** Color refinement is an orbit *lower bound*; for these highly
-  symmetric tilings it is expected exact, but it can in principle under-count (merge two orbits) and so
-  wrongly accept a >n-orbit tiling. This must be cross-checked against the published counts before the
-  engine is trusted — the single most important correctness risk, and the reason the WIP was paused
-  rather than rushed.
+**Not done — completeness, which is bounded by `(k, maxCovolume)`:**
+- The few missing tilings are the **largest dodecagon cells** (`4.6.12` at n = 1; `4.6.12`, `3.3.4.12` and
+  the larger pairs at n = 2). Their translation lattices have long vectors that a step bound of `k = 5`
+  does not reach; `k = 6` does but the candidate set (~k⁴) makes it a ~hour run. Reaching the full
+  published counts (n = 1 = 11, n = 2 = 20, n = 3 = 39) needs either a larger `k` or the candidate-set
+  reduction below.
+- **Candidate-set reduction** is the lever for n ≥ 3 and especially n = 4–7: per-Λ cost is small and flat
+  across n, so the wall is purely the *number* of candidate lattices. Deduplicating them by reduced shape
+  (Gram matrix) — most are the same lattice at a different orientation and find nothing — is the planned
+  next optimisation (with care for the polygon-orientation subtlety it introduces).
 
 ## Consequences
 

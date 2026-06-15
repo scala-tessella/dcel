@@ -20,6 +20,6 @@ object KrotLatticeProbe:
       f"n=$n k=$k -> ${out.tilings.size} tilings, bases=${out.basesTried}, states=${out.statesExplored}, ${secs}%.1f s"
     )
     out.tilings
-      .map((types, _) => types.map(_.mkString(".")).toList.sorted.mkString("; "))
-      .sorted
-      .foreach(c => println(s"  $c"))
+      .map((types, key) => (types.map(_.mkString(".")).toList.sorted.mkString("; "), key))
+      .sortBy(_._1)
+      .foreach((c, key) => println(s"  $c  |  ${key.take(90)}"))

@@ -30,13 +30,15 @@ The certifier builds on the library's lattice/parallelogon machinery
 `KrotenheerdtSearch` (the **reference** engine, ADR-0018) grows patches freely and certifies horizon
 survivors. It rigorously enumerated **n ≤ 2** but does not scale (aperiodic "scatter" dominates at n ≥ 3).
 
-`KrotenheerdtLatticeSearch` (**work in progress**, ADR-0019) is the scalable replacement: it enumerates
-candidate translation lattices Λ and, for each fixed Λ, grows only Λ-consistent patches, verifying each
-one-cell patch directly on the torus (`verifyTorus`) — no scatter is ever built. The torus-native
-verification is the performance breakthrough (n=1 small cells ~2 s vs. timeout) and is correct for
-single-vertex-cell tilings; multi-vertex-cell tilings and full n=1..3 validation remain. **Until that is
-done, the published-count results below come from `KrotenheerdtSearch`.** See ADR-0019 for the design,
-status, and the lessons from the approaches that failed.
+`KrotenheerdtLatticeSearch` (ADR-0019) is the scalable replacement: it enumerates candidate translation
+lattices Λ and, for each fixed Λ, grows only Λ-consistent patches, verifying each one-cell patch directly
+on the torus (`verifyTorus`) — no scatter is ever built. It is **sound**: every tiling it reports is a
+genuine Krotenheerdt tiling with the correct multiplicity (multi-vertex cells, sublattice/chirality
+deduplication, and an **exact vertex-orbit count** that replaced the unsound 1-WL colour refinement).
+Validated with no false positives against n=1 (10 of 11) and n=2 (16 of 20); the few missing are the
+largest dodecagon cells, reached only at a larger step bound `k`. **Completeness is bounded by the
+empirical `(k, maxCovolume)`, so the full published counts below still come from `KrotenheerdtSearch`.**
+See ADR-0019 for the design, the verification, and the lessons from the approaches that failed.
 
 ## Running
 
