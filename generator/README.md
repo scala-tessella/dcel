@@ -19,9 +19,24 @@ them up to isometry. The design, certification chain, and assumptions are in
 | `KrotenheerdtSearch` | canonical-growth DFS with a work-stealing parallel scheduler |
 | `TilingCertifier` | patch → certified infinite tiling (lattice → parallelogon block → witness cell → orbit count), plus the canonical `torusKey` |
 | `KrotenheerdtApp` | `runMain` driver: runs a search and persists each tiling as SVG + metadata + an index line |
+| `LatticeConsistency` | Λ-consistency oracle for the second (fixed-Λ) engine — see below |
+| `KrotenheerdtLatticeSearch` | fixed-Λ toroidal engine (WIP, ADR-0019) — the scalable replacement for `KrotenheerdtSearch` |
 
 The certifier builds on the library's lattice/parallelogon machinery
 (`TilingLattice`, ADR-0015) and uses `TilingLattice.validatedPeriods`.
+
+### Two engines
+
+`KrotenheerdtSearch` (the **reference** engine, ADR-0018) grows patches freely and certifies horizon
+survivors. It rigorously enumerated **n ≤ 2** but does not scale (aperiodic "scatter" dominates at n ≥ 3).
+
+`KrotenheerdtLatticeSearch` (**work in progress**, ADR-0019) is the scalable replacement: it enumerates
+candidate translation lattices Λ and, for each fixed Λ, grows only Λ-consistent patches, verifying each
+one-cell patch directly on the torus (`verifyTorus`) — no scatter is ever built. The torus-native
+verification is the performance breakthrough (n=1 small cells ~2 s vs. timeout) and is correct for
+single-vertex-cell tilings; multi-vertex-cell tilings and full n=1..3 validation remain. **Until that is
+done, the published-count results below come from `KrotenheerdtSearch`.** See ADR-0019 for the design,
+status, and the lessons from the approaches that failed.
 
 ## Running
 

@@ -1,8 +1,6 @@
 package io.github.scala_tessella.dcel
 
-import io.github.scala_tessella.dcel.TilingCertifier.{
-  Certified, RejectReason, certify, innerVertexTypes, vertexTypeOf
-}
+import io.github.scala_tessella.dcel.TilingCertifier.{innerVertexTypes, vertexTypeOf}
 import io.github.scala_tessella.dcel.VertexTypes.*
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint, RegularPolygon}
 import io.github.scala_tessella.ring_seq.RingSeq.startAt
@@ -15,12 +13,20 @@ import scala.collection.mutable
   * Λ-consistent patches ([[LatticeConsistency]]): off-lattice "decoration" placements are pruned at the
   * branch point, so the scatter is never built. The per-Λ search is tiny, so the cost scales to higher n.
   *
-  * Soundness is by construction — every produced tiling is certified periodic and n-uniform by the existing
-  * [[TilingCertifier.certify]]. Completeness rests on the candidate set including every true lattice: the
-  * vertices of a regular-polygon tiling lie in the module ℤ[ζ₁₂] (30° directions, plus ℤ[ζ₈] 45° directions
-  * for the octagon's 4.8.8), and every translation period is itself such a vector, so a step-bounded
-  * enumeration of that module — with the bound K verified per n by reproducing the published count — contains
-  * them all.
+  * Each fixed-Λ patch that tiles one fundamental cell is verified directly on the torus ([[verifyTorus]]):
+  * distinct faces tile one covolume, every torus vertex has a complete 360° fan, and vertex orbits (color
+  * refinement of the torus vertex graph) and types both equal n. Completeness rests on the candidate set
+  * including every true lattice: the vertices of a regular-polygon tiling lie in the module ℤ[ζ₁₂] (30°
+  * directions, plus ℤ[ζ₈] 45° directions for the octagon's 4.8.8), and every translation period is itself
+  * such a vector, so a step-bounded enumeration of that module — with the bound k verified per n by
+  * reproducing the published count — contains them all.
+  *
+  * STATUS (WIP, see ADR-0019): the torus-native verification is the performance breakthrough (n=1 small cells
+  * ~2s vs. the planar approach's timeout) and is correct for single-vertex-cell tilings (3⁶, 4⁴, 3³.4²).
+  * Multi-vertex-cell tilings (e.g. 6.6.6) are not yet found — [[verifyTorus]] needs every torus vertex
+  * completed (more growth than the current cap) and the torus-vertex grouping needs rounding-hardening. Not
+  * yet validated against the published n=1..3 counts. The original [[KrotenheerdtSearch]] remains the
+  * reference engine that rigorously enumerated n ≤ 2.
   */
 object KrotenheerdtLatticeSearch:
 
@@ -31,8 +37,8 @@ object KrotenheerdtLatticeSearch:
   )
 
   // Candidate lattices are enumerated in Double — exact BigDecimal arithmetic on arbitrary module points
-  // makes gaussReduced explode in precision and hang; the candidates only need ~1e-12 accuracy (the oracle
-  // and certify recompute everything precisely), so Double is both correct enough and fast.
+  // makes Gauss reduction explode in precision and hang; the candidates only need ~1e-12 accuracy (the
+  // oracle and verifyTorus recompute everything precisely at SCALE 9), so Double is both correct and fast.
   private type P = (Double, Double)
 
   /** Unit vectors at multiples of `step` degrees. */
@@ -347,29 +353,6 @@ object KrotenheerdtLatticeSearch:
           (f.map((s, x, y) => s"$s:$x:$y") ++ u.map((t, x, y) => s"$t:$x:$y")).mkString("|")
         .min
     keys.min
-
-  /** Replicate a one-cell patch into a block by repeated lattice translation, until it spans at least a 5x5
-    * block (so certify finds an interior witness cell). Each translated merge is fully validated, so a patch
-    * that is not actually Λ-periodic fails here and yields `None`.
-    */
-  private def replicate(
-      patch: Tiling,
-      v: BigPoint,
-      w: BigPoint,
-      covol: BigDecimal,
-      origin: BigPoint
-  ): Option[Tiling] =
-    val dirs = List(v, BigPoint.origin - v, w, BigPoint.origin - w)
-    var big  = patch
-    var i    = 0
-    var ok   = true
-    while ok && big.innerFaces.map(_.areaUnsafe).sum < covol * 30 && i < 16 do
-      val o = big.vertices.head.coords
-      big.maybeAddTranslatedCopy(o, o + dirs(i % 4)) match
-        case Right(t) => big = t
-        case Left(_)  => ok = false
-      i += 1
-    Option.when(ok && big.innerFaces.map(_.areaUnsafe).sum >= covol * 25)(big)
 
   /** Push every Λ-consistent, sound continuation that fills the centroid-nearest boundary gap. */
   private def grow(
