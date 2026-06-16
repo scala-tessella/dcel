@@ -96,10 +96,16 @@ tiling with the correct multiplicity, confirmed with **no false positives**:
   does not reach; `k = 6` does but the candidate set (~k⁴) makes it a ~hour run. Reaching the full
   published counts (n = 1 = 11, n = 2 = 20, n = 3 = 39) needs either a larger `k` or the candidate-set
   reduction below.
-- **Candidate-set reduction** is the lever for n ≥ 3 and especially n = 4–7: per-Λ cost is small and flat
-  across n, so the wall is purely the *number* of candidate lattices. Deduplicating them by reduced shape
-  (Gram matrix) — most are the same lattice at a different orientation and find nothing — is the planned
-  next optimisation (with care for the polygon-orientation subtlety it introduces).
+- **Candidate-set reduction by Gram-class dedup does NOT work** (tested, reverted). The candidate set is
+  ~4–5× redundant: each lattice *shape* (Gram matrix) appears at several rotations. Keeping one
+  representative per shape drops ~30% of tilings at n = 1 k = 4 (`3.3.4.3.4`, `3.4.6.4`, `3.12.12`
+  vanish), because growth seeds an orientation-0 polygon: a tiling is only found when a candidate lattice
+  sits at *its* orientation, so the rotational copies are not waste — they are how the search sweeps
+  orientation. The sound repair (re-seed each representative at its ~12/|G| polygon-symmetry-distinct
+  rotations) re-introduces exactly the multiplicity removed, for no net win.
+
+See the **Performance** section for why per-state optimisation also stalls; the genuine lever for n ≥ 3 is
+a different search (canonical growth, or direct torus enumeration), not a tweak.
 
 ## Consequences
 
@@ -111,6 +117,41 @@ tiling with the correct multiplicity, confirmed with **no false positives**:
   published count per n, exactly as ADR-0018's radius gate is validated). The candidate set is still
   large (the dense rank-4 module), though most spurious lattices die in the growth quickly; further
   reduction (shape/orientation dedup) may be needed at higher n. The orbit-count soundness caveat above.
+
+## Performance — where the time goes, and why per-state optimisation stalls (profiled)
+
+Profiling one fixed-Λ run (n = 2, k = 4, maxCovol = 10, single-thread, ~290 s) splits the cost as:
+
+| phase | share | what it is |
+|-------|-------|------------|
+| dedup **key** (`PatchCanonical.congruenceKey`) | **45 %** | canonical congruence key for the visited-set |
+| **deep-copy** (`Tiling.maybeAddRegularPolygonToBoundary`) | **37 %** | immutable DCEL copy per candidate placement |
+| `LatticeConsistency.isConsistent` | 8 % | the Λ oracle |
+| `isSound` | 3 % | fan / type validity |
+| `verifyTorus` + `distinctTorusFaceArea` | 5 % | torus verification (already cheap) |
+
+Two findings, both counter-intuitive, that should stop a "lightweight growth" rewrite from being re-tried
+expecting a large win:
+
+1. **The dedup key, not the deep-copy, dominates — and it is irreducible.** The congruence key must stay
+   *exactly* `congruenceKey` (each boundary half-edge anchors a frame, faces expressed in it, lexicographic
+   min, SCALE 9). Three cheaper variants were tried and each **silently dropped a real tiling** (n = 1 k = 4:
+   10 → 9): (a) an absolute, non-congruence key — and the search also *tripled* in states, because the
+   symmetric seed grows congruent patches via different orders and congruence-invariance is doing essential
+   deduplication; (b) the same canonical form in `Double` — a false merge from trig rounding; (c) the same
+   form computed *exactly* without trig (rotate by the boundary edge's own unit vector — algebraically
+   identical to `congruenceKey`) — still over-merged, for a reason not pinned down. The key is fragile:
+   any reimplementation risks a completeness regression, which is the opposite of the goal.
+2. **A lightweight (non-DCEL) patch caps at ~1.6×.** It removes the 37 % deep-copy, but the 45 % dedup key
+   has to be computed on the lightweight structure too, at similar cost, and it carries the placement /
+   merge correctness risk (overlap, coincident vertices, enclosed regions — the work the DCEL does for free)
+   that could reintroduce the very spurious tilings the soundness work removed. High risk, ~1.6× reward.
+
+The conclusion: this architecture is near a local optimum. A real speedup needs a *different search* — one
+that generates each patch once and so needs no dedup key at all (canonical-growth, as `KrotenheerdtSearch`
+does), or direct enumeration of torus-cell contents. Both are rewrites, not optimisations. Until then, the
+practical route to actual n ≥ 3 counts is more compute (larger `k` / `maxCovolume`, accepting hour-scale
+runs), not a faster inner loop.
 
 ## Alternatives considered (and why they failed) — lessons for the next attempt
 
@@ -135,3 +176,7 @@ tiling with the correct multiplicity, confirmed with **no false positives**:
   **and** the achievable-covolume filter.
 - Sublattice (doubled) cells give a different key than the primitive cell — primitive-basis reduction in
   the key is required.
+- Do **not** replace the visited-set congruence key (`PatchCanonical.congruenceKey`) with a cheaper variant
+  to speed up the search: an absolute key triples the state count, and `Double` / "exact trig-free" canonical
+  keys each silently drop a tiling (see Performance). And do **not** Gram-dedup the candidate lattices (see
+  Status) — both look like obvious speedups and both are wrong.
