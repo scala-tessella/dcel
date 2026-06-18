@@ -20,12 +20,14 @@ them up to isometry. The design, certification chain, and assumptions are in
 | `TilingCertifier` | patch → certified infinite tiling (lattice → parallelogon block → witness cell → orbit count), plus the canonical `torusKey` |
 | `KrotenheerdtApp` | `runMain` driver: runs a search and persists each tiling as SVG + metadata + an index line |
 | `LatticeConsistency` | Λ-consistency oracle for the second (fixed-Λ) engine — see below |
-| `KrotenheerdtLatticeSearch` | fixed-Λ toroidal engine (WIP, ADR-0019) — the scalable replacement for `KrotenheerdtSearch` |
+| `KrotenheerdtLatticeSearch` | fixed-Λ toroidal engine (ADR-0019) — DCEL growth, the scalable replacement for `KrotenheerdtSearch` |
+| `ZetaPoint` | exact integer ℤ[ζ₁₂] coordinates (ADR-0020) — the foundation of the third engine |
+| `KrotenheerdtTorusSearch` | exact-coordinate torus engine (ADR-0020) — faster, key-equivalent successor of the fixed-Λ engine |
 
 The certifier builds on the library's lattice/parallelogon machinery
 (`TilingLattice`, ADR-0015) and uses `TilingLattice.validatedPeriods`.
 
-### Two engines
+### Three engines
 
 `KrotenheerdtSearch` (the **reference** engine, ADR-0018) grows patches freely and certifies horizon
 survivors. It rigorously enumerated **n ≤ 2** but does not scale (aperiodic "scatter" dominates at n ≥ 3).
@@ -39,6 +41,14 @@ Validated with no false positives against n=1 (10 of 11) and n=2 (16 of 20); the
 largest dodecagon cells, reached only at a larger step bound `k`. **Completeness is bounded by the
 empirical `(k, maxCovolume)`, so the full published counts below still come from `KrotenheerdtSearch`.**
 See ADR-0019 for the design, the verification, and the lessons from the approaches that failed.
+
+`KrotenheerdtTorusSearch` (ADR-0020) is the "different search" ADR-0019 called for: it replaces the DCEL
+patch with an exact integer ℤ[ζ₁₂] point set (`ZetaPoint`), so growth needs **no deep-copy and no trig
+congruence key** — the two costs that dominated the fixed-Λ engine. It reuses that engine's verification tail
+(`verifyContent`), is **key-equivalent** to it on every tested case (n=1 k=3/k=4, n=2 k=4), and is faster
+(parallel-4: 1.1–1.9×, best on the heaviest case). It targets the pure `{3,4,6,12}` world (the octagon's
+`4.8.8` needs ℤ[ζ₂₄]). The order-of-magnitude for n = 4–7 still needs the deeper vertex-completion constraint
+propagation built on this exact foundation — see ADR-0020.
 
 ## Running
 

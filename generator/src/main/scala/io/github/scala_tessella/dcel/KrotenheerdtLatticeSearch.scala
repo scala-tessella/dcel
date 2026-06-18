@@ -315,50 +315,69 @@ object KrotenheerdtLatticeSearch:
       val types = sigs.values.toSet
       if types.sizeIs != n then None
       else
-        val faces    = patch.innerFaces
+        val faces = patch.innerFaces
           .map(f => (f.halfEdgesUnsafe.size, f.getVerticesUnsafe.map(_.coords).centroid))
           .distinctBy((s, c) => (s, tkey(c)))
-        // Key on the content's PRIMITIVE lattice (not the candidate Λ, which may be a proper sublattice):
-        // a sublattice cell would otherwise key as an m-times-larger torus and duplicate the same tiling found
-        // under its primitive lattice. primitiveBasis recovers it from the content's own periods.
-        val (pv, pw) = primitiveBasis(v, w, origin, faces)
         // Iterate `sigs` as a list: mapping the Map to (signatureString, coords) pairs would rebuild a Map keyed
         // by the signature and collapse all same-type torus vertices (e.g. the snub's six 3.3.3.3.6 vertices)
         // into one, losing the chiral vertex positions and double-counting mirror images.
-        val verts    = sigs.toList.map((tk, sig) => (sig.mkString("."), byTorus(tk).head.coords))
-        // Rigorous vertex-orbit count on the primitive cell. 1-WL colour refinement only LOWER-bounds the orbit
-        // count — it merges genuinely distinct orbits whose local neighbourhoods are isomorphic (the four
-        // 3.3.3.3.6 vertices of the 3.3.3.3.6/3.6.3.6 pseudo-tiling look identical to 1-WL but split 2+2), which
-        // would wrongly accept a 3-uniform tiling as 2-uniform. Instead count orbits exactly.
-        val orbits   = vertexOrbits(pv, pw, faces, verts)
-        if orbits != n then None
-        else Some((types, torusContentKey(pv, pw, origin, faces, verts)))
+        val verts = sigs.toList.map((tk, sig) => (sig.mkString("."), byTorus(tk).head.coords))
+        verifyContent(v, w, origin, faces, verts, types, n)
+
+  /** The cell-content gate shared by the DCEL fixed-Λ engine ([[verifyTorus]]) and the exact-coordinate torus
+    * engine ([[KrotenheerdtTorusSearch]]): given one fundamental cell's distinct faces `(size, centroid)` and
+    * typed vertices `(typeString, coords)` whose fans are already complete and number exactly `n` types,
+    * re-keys on the content's PRIMITIVE lattice (a sublattice candidate Λ would otherwise key as an
+    * m-times-larger torus and duplicate the same tiling), counts the vertex ORBITS exactly ([[vertexOrbits]]
+    * — 1-WL colour refinement only lower-bounds them and would pass a >n-uniform tiling as n-uniform), and
+    * returns the canonical torus key iff the orbits also number `n`.
+    */
+  private[dcel] def verifyContent(
+      v: BigPoint,
+      w: BigPoint,
+      origin: BigPoint,
+      faces: List[(Int, BigPoint)],
+      verts: List[(String, BigPoint)],
+      types: Set[VertexSignature],
+      n: Int
+  ): Option[(Set[VertexSignature], String)] =
+    val (pv, pw) = primitiveBasis(v, w, origin, faces, verts)
+    val orbits   = vertexOrbits(pv, pw, faces, verts)
+    if orbits != n then None
+    else Some((types, torusContentKey(pv, pw, origin, faces, verts)))
 
   /** The primitive lattice of a cell's content, of any sublattice index. Candidate periods are the
-    * differences of same-type face centroids (plus the candidate basis v0, w0), kept iff they preserve the
-    * content mod Λ; the two shortest independent ones, Gauss-reduced, are the primitive basis. Handles any
-    * index (not just the doubled case), so the key of every sublattice cell collapses to the primitive one.
+    * differences of same-type face centroids AND same-type vertex positions (plus the candidate basis v0,
+    * w0), kept iff they preserve BOTH the face and vertex content mod Λ; the two shortest independent ones,
+    * Gauss-reduced, are the primitive basis. Using vertices as well as faces is what reduces a single-face
+    * sublattice cell (a doubled 4⁴ — one square but two vertices — has no same-size face pair to derive its
+    * period from, only the two same-type vertices do), so the key of every sublattice cell collapses to its
+    * primitive one.
     */
   private def primitiveBasis(
       v0: BigPoint,
       w0: BigPoint,
       origin: BigPoint,
-      faces: List[(Int, BigPoint)]
+      faces: List[(Int, BigPoint)],
+      verts: List[(String, BigPoint)]
   ): (BigPoint, BigPoint) =
     val det0                                      = v0.x * w0.y - v0.y * w0.x
     def tk(p: BigPoint): (BigDecimal, BigDecimal) =
       val d = p - origin
       (fracOf((d.x * w0.y - w0.x * d.y) / det0), fracOf((v0.x * d.y - d.x * v0.y) / det0))
-    val content                                   = faces.map((s, c) => (s, tk(c))).toSet
+    val faceContent                               = faces.map((s, c) => (s, tk(c))).toSet
+    val vertContent                               = verts.map((t, c) => (t, tk(c))).toSet
     def isPeriod(t: BigPoint): Boolean            =
-      faces.map((s, c) => (s, tk(c + t))).toSet == content
+      faces.map((s, c) => (s, tk(c + t))).toSet == faceContent &&
+        verts.map((t2, c) => (t2, tk(c + t))).toSet == vertContent
     // A finer (sub-Λ) period is no longer than the longer candidate basis vector (it spans the primitive cell
     // together with one basis vector); bounding candidates by that length keeps the check cheap on primitive
     // cells yet still catches every sublattice period — including one equal in length to the shorter basis
     // vector (a 2×1 sublattice of 4⁴, whose primitive period (1,0) equals |w0|), which a `min` bound misses.
     val maxLen2                                   = math.max(v0.dot(v0).toDouble, w0.dot(w0).toDouble)
     val shortPeriods                              =
-      (for (s1, c1) <- faces; (s2, c2) <- faces if s1 == s2 yield c2 - c1)
+      ((for (s1, c1) <- faces; (s2, c2) <- faces if s1 == s2 yield c2 - c1) ++
+        (for (t1, c1) <- verts; (t2, c2) <- verts if t1 == t2 yield c2 - c1))
         .filterNot(_.almostEquals(BigPoint.origin))
         .filter(d => d.dot(d).toDouble <= maxLen2 + 1e-6)
         .distinctBy(d =>
