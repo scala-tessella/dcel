@@ -1,8 +1,9 @@
 # ADR-0020: Exact-coordinate torus engine (the ADR-0019 "different search")
 
-- **Status:** Accepted (prototype, validated) — a third enumeration engine, faster than and key-equivalent to
-  the DCEL fixed-Λ engine on every tested case; kept alongside it as the DCEL engine remains the reference.
-- **Date:** 2026-06-18
+- **Status:** Accepted — a third enumeration engine, **key-equivalent to the DCEL fixed-Λ engine on every
+  tested case and ~3–4× faster** in its default **vertex-completion constraint-propagation** mode; kept
+  alongside the DCEL engine, which remains the cross-check reference.
+- **Date:** 2026-06-18 (propagation mode added the same day)
 
 > Implemented in `generator/.../ZetaPoint.scala` and `KrotenheerdtTorusSearch.scala`, validated by
 > `ZetaPointSpec`, `KrotenheerdtTorusSearchSpec`, and the head-to-head `TorusTimingProbe`. Reuses the DCEL
@@ -58,36 +59,55 @@ doubled `4⁴` — one square but two vertices) had no pair to reduce by and was
 The fix derives periods from same-type **vertex** positions as well (and requires a period to preserve the
 vertex content), which is strictly more correct.
 
-## Results (validated, `TorusTimingProbe`, single 8-core host)
+## Two growth strategies on the exact foundation
 
-Key sets are **identical** to the DCEL engine (octagon-free) on every tested case — n=1 k=3, n=1 k=4, n=2 k=4.
+The engine has two interchangeable growth strategies (the `completion` flag), both sound and complete, both
+key-equivalent to the DCEL engine; they differ only in how candidate cells are generated:
 
-| case | torus ∥4 | DCEL ∥4 | speedup | torus bases / states | DCEL bases / states |
-|------|---------:|--------:|--------:|----------------------|---------------------|
-| n=1 k=3 | 1.15 s | 1.31 s | 1.14× | 197 / 3 475 | 281 / 5 346 |
-| n=1 k=4 | 40.0 s | 49.8 s | 1.25× | 2 363 / 419 230 | 3 558 / 263 044 |
-| n=2 k=4 | **11.7 s** | **21.7 s** | **1.85×** | 1 925 / 191 009 | 1 947 / 122 282 |
+- **One-polygon growth** (`completion = false`) — adds a single polygon to the centroid-nearest boundary gap,
+  the direct port of the DCEL engine's growth onto exact coordinates. Removes the deep-copy and trig key, but
+  inherits a DCEL-like *state count*.
+- **Vertex-completion constraint propagation** (`completion = true`, the default) — the Galebach-scale search.
+  Seeds a **whole vertex** (a full corona of a valid vertex type, both chiralities — `seedTypes` /
+  `coronaFaces`), then repeatedly commits the **most-constrained** incomplete vertex (MRV: fewest valid
+  `completions` of its forced partial fan) all at once, branching only over those completions. A vertex with a
+  single completion is forced (no branch); one with none prunes the branch. Most of a cell is *forced*, not
+  *branched*, so the state count drops below even the DCEL engine's. Corona seeding is what makes it pay: it
+  constrains the corona's outer vertices immediately (and a 1-uniform cell often verifies at the seed itself),
+  removing the up-front branching explosion a single-polygon seed leaves on the first, unconstrained vertex.
 
-The micro-thesis holds: the exact engine is **~3× cheaper per state** (no key, no copy) and uses a **smaller
-candidate set**. It explores **~1.6× more states** than the DCEL engine — the canonical key over Λ's
-automorphism group merges less aggressively than the DCEL full-congruence key — so the net is a solid **1.1–1.9×**
-(largest on the heaviest case), not an order of magnitude. The octagon's `4.8.8` (45°, ℤ[ζ₂₄]) is out of scope
-for this engine, exactly as it is past the DCEL engine's current `k`.
+## Results (validated, `TorusTimingProbe`, single 8-core host, parallelism 4)
+
+Key sets are **identical** across all three engines (octagon-free) on every tested case — n=1 k=3, n=1 k=4,
+n=2 k=4.
+
+| case | **PROP** ∥4 | 1-poly ∥4 | DCEL ∥4 | PROP vs DCEL | PROP / 1-poly / DCEL states |
+|------|------------:|----------:|--------:|-------------:|-----------------------------|
+| n=1 k=3 | 0.9 s | 0.3 s | 1.2 s | 1.3× | 2 590 / 3 475 / 5 346 |
+| n=1 k=4 | **17.6 s** | 34 s | 48.8 s | **2.8×** | 184 841 / 421 365 / 263 044 |
+| n=2 k=4 | **6.8 s** | 18 s | 28.3 s | **4.2×** | 87 257 / 192 480 / 122 282 |
+
+The propagation engine explores **fewer states than even the DCEL engine** (n=2 k=4: 87 k vs 122 k — and 2.2×
+fewer than one-polygon growth), on top of the exact engine's **~3× cheaper per state** (no key, no copy) and
+**smaller candidate set** (n=2 k=4: 1 925 vs 1 947 bases). Net: **~3–4× faster than the DCEL engine** at the
+heavier cases — for scale, ADR-0019 clocked n=2 k=4 at ~290 s single-thread; this is 6.8 s. The octagon's
+`4.8.8` (45°, ℤ[ζ₂₄]) is out of scope for this engine, exactly as it is past the DCEL engine's current `k`.
 
 ## Consequences
 
-- **Positive.** A faster, fully **exact-integer** engine (no Double/√3 in the search; the rounding fragility
-  ADR-0019 warned about is gone), parallel like the DCEL engine, key-equivalent on every tested case, with a
-  smaller candidate set. The sublattice fix hardened the shared verification for both engines.
-- **The order-of-magnitude is still ahead.** The remaining lever is the **state count**, not per-state cost:
-  this engine still grows one polygon at a time (like the DCEL engine), so it inherits a similar state count.
-  The Galebach-scale win is the deeper **vertex-completion constraint propagation** — commit a whole vertex
-  type at the most-constrained torus vertex and propagate forced neighbours, backtracking early — built on
-  this exact-coordinate foundation. That is the recommended next step for n = 4–7.
-- **Scope unchanged from ADR-0019.** Completeness still rests on `(k, maxCovolume)`; the practical wall for high
-  n is still the *number* of candidate lattices. The library is untouched; `KrotenheerdtSearch` (ADR-0018)
-  remains the rigorous n ≤ 2 reference and `KrotenheerdtLatticeSearch` (ADR-0019) the validated fixed-Λ
-  reference for cross-checking.
+- **Positive.** A fully **exact-integer** engine (no Double/√3 in the search; the rounding fragility ADR-0019
+  warned about is gone), parallel, key-equivalent on every tested case, with a smaller candidate set, and —
+  in propagation mode — **~3–4× faster than the DCEL engine with fewer states than it**. The sublattice fix
+  hardened the shared verification for both engines. This is the realised "different search" ADR-0019 asked
+  for, and the right engine to push toward the higher-n counts.
+- **Remaining levers for n = 4–7.** Per-Λ cost is now small; the wall is again the **number of candidate
+  lattices** (and the `k` needed to reach the largest dodecagon cells). The next gains are candidate-set
+  reduction (sound this time, since orientation is no longer seed-bound the same way) and the standard
+  constraint-search refinements (forward-checking / a visited set tuned to the propagation order — much of
+  the residual state count is still re-derived partial cells).
+- **Scope unchanged from ADR-0019.** Completeness still rests on `(k, maxCovolume)`, verified per n by
+  reproducing the published count. The library is untouched; `KrotenheerdtSearch` (ADR-0018) remains the
+  rigorous n ≤ 2 reference and `KrotenheerdtLatticeSearch` (ADR-0019) the validated fixed-Λ cross-check.
 
 ## Pitfalls hit and fixed (do not repeat)
 

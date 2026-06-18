@@ -39,7 +39,7 @@ decision. Each file has:
 | 0017 | [`Tiling` — the certified, validated tiling type](0017-validated-tiling.md) | Accepted               |
 | 0018 | [Replicating OEIS A068600 — the Krotenheerdt tilings](0018-krotenheerdt-enumeration.md) | Accepted               |
 | 0019 | [Fixed-Λ toroidal enumeration engine (scaling to n ≥ 3)](0019-fixed-lattice-toroidal-engine.md) | Accepted (sound; completeness bounded) |
-| 0020 | [Exact-coordinate torus engine (the ADR-0019 "different search")](0020-exact-coordinate-torus-engine.md) | Accepted (prototype; faster, key-equivalent) |
+| 0020 | [Exact-coordinate torus engine (the ADR-0019 "different search")](0020-exact-coordinate-torus-engine.md) | Accepted (key-equivalent; ~3–4× faster via vertex-completion propagation) |
 
 ## When to add an ADR
 

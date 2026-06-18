@@ -22,24 +22,31 @@ class TorusTimingProbe extends AnyFlatSpec with Matchers:
 
   private def compare(n: Int, k: Int, maxCovol: Double): Unit =
     println(s"=== n=$n k=$k maxCovol=$maxCovol ===")
-    val torus     = time("torus (parallel 4)")(KrotenheerdtTorusSearch.enumerate(n, k, maxCovol, parallelism = 4))
-    val dcel      = time("DCEL (parallel 4)")(KrotenheerdtLatticeSearch.enumerate(n, k, maxCovol, parallelism = 4))
+    val prop      = time("torus PROP (∥4)")(KrotenheerdtTorusSearch.enumerate(n, k, maxCovol, parallelism = 4))
+    val poly      = time("torus 1-poly (∥4)")(KrotenheerdtTorusSearch.enumerate(
+      n,
+      k,
+      maxCovol,
+      parallelism = 4,
+      completion = false
+    ))
+    val dcel      = time("DCEL (∥4)")(KrotenheerdtLatticeSearch.enumerate(n, k, maxCovol, parallelism = 4))
     val dcelNoOct = dcel.tilings.filterNot((t, _) => t.exists(_.exists(_ == 8)))
+    println(s"  PROP : ${prop.tilings.size} tilings, ${prop.basesTried} bases, ${prop.statesExplored} states")
+    println(s"  1-POLY ${poly.tilings.size} tilings, ${poly.basesTried} bases, ${poly.statesExplored} states")
     println(
-      s"  torus: ${torus.tilings.size} tilings, ${torus.basesTried} bases, ${torus.statesExplored} states"
+      s"  DCEL : ${dcel.tilings.size} (${dcelNoOct.size} oct-free), ${dcel.basesTried} bases, ${dcel.statesExplored} states"
     )
-    println(
-      s"  DCEL : ${dcel.tilings.size} tilings (${dcelNoOct.size} octagon-free), ${dcel.basesTried} bases, ${dcel.statesExplored} states"
-    )
-    val torusKeys = torus.tilings.map(_._2).toSet
+    val propKeys  = prop.tilings.map(_._2).toSet
+    val polyKeys  = poly.tilings.map(_._2).toSet
     val dcelKeys  = dcelNoOct.map(_._2).toSet
-    val agree     = torusKeys == dcelKeys
-    println(s"  torus keys == DCEL octagon-free keys: $agree")
-    if !agree then
+    println(s"  PROP keys == 1-POLY keys: ${propKeys ==
+        polyKeys}   PROP keys == DCEL oct-free keys: ${propKeys == dcelKeys}")
+    if propKeys != dcelKeys then
       def label(ts: List[(Set[VertexSignature], String)], key: String): String =
         ts.find(_._2 == key).map((t, _) => t.map(_.sorted).mkString("+")).getOrElse("?")
-      (torusKeys -- dcelKeys).foreach(key => println(s"    torus-ONLY: ${label(torus.tilings, key)}  $key"))
-      (dcelKeys -- torusKeys).foreach(key => println(s"    DCEL-ONLY : ${label(dcelNoOct, key)}  $key"))
+      (propKeys -- dcelKeys).foreach(key => println(s"    PROP-ONLY: ${label(prop.tilings, key)}  $key"))
+      (dcelKeys -- propKeys).foreach(key => println(s"    DCEL-ONLY: ${label(dcelNoOct, key)}  $key"))
 
   behavior of "torus vs DCEL timing"
 

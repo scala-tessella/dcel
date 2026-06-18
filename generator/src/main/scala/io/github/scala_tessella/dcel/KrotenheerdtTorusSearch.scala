@@ -48,6 +48,22 @@ object KrotenheerdtTorusSearch:
 
   private val slotOfUnit: Map[ZetaPoint, Int] = (0 until 12).map(s => ZetaPoint.unit(s) -> s).toMap
 
+  /** The valid vertex types over `{3,4,6,12}`, each as a concrete cyclic order plus its mirror — the seeds for
+    * the propagation engine. Seeding a whole vertex (a full corona) instead of one polygon constrains the
+    * corona's outer vertices immediately, so propagation branches far less; a 1-uniform cell often verifies at
+    * the seed itself (its corona's outer vertices are lattice translates of the centre).
+    */
+  private val seedTypes: List[List[Int]] =
+    validSignatures.filterNot(_.contains(8)).flatMap(sig => List(sig, sig.reverse)).toList.distinct
+
+  /** The full corona of a vertex type: each polygon placed at its cumulative 30°-slot around the origin. */
+  private def coronaFaces(typeSizes: List[Int]): List[FaceZ] =
+    var slot = 0
+    typeSizes.map: m =>
+      val f = FaceZ(m, polygon(ZetaPoint.origin, slot, m))
+      slot += gSlots(m)
+      f
+
   /** The CCW corners of a unit `m`-gon rooted at `p` whose first edge leaves `p` along 30°-slot `s`. */
   private def polygon(p: ZetaPoint, s: Int, m: Int): Vector[ZetaPoint] =
     val buf = Vector.newBuilder[ZetaPoint]
@@ -160,6 +176,7 @@ object KrotenheerdtTorusSearch:
       k: Int,
       maxCovolume: Double,
       parallelism: Int = 1,
+      completion: Boolean = true,
       log: String => Unit = _ => ()
   ): Outcome =
     import java.util.concurrent.ConcurrentHashMap
@@ -170,9 +187,14 @@ object KrotenheerdtTorusSearch:
     val states  = new AtomicLong(0)
     val done    = new AtomicLong(0)
     val faceCap = sys.props.get("krot.facecap").map(_.toInt).getOrElse(64)
+    // Vertex-completion constraint propagation (ADR-0020 next step) by default; one-polygon growth for
+    // cross-checking. Both are sound and complete; propagation explores far fewer states.
+    val grower  = if completion then growByCompletion else grow
     log(s"n=$n k=$k maxCovol=$maxCovolume: ${bases.size} candidate lattices")
     def runOne(vz: ZetaPoint, wz: ZetaPoint): Unit =
-      states.addAndGet(runLattice(n, vz, wz, faceCap, (t, key) => found.putIfAbsent(key, t): Unit))
+      states.addAndGet(
+        runLattice(n, vz, wz, faceCap, grower, completion, (t, key) => found.putIfAbsent(key, t): Unit)
+      )
       val d = done.incrementAndGet()
       if d % 200 == 0 then log(s"  lattices $d/${bases.size}, states=${states.get}, found=${found.size}")
     if parallelism <= 1 then bases.foreach((vz, wz) => runOne(vz, wz))
@@ -192,6 +214,8 @@ object KrotenheerdtTorusSearch:
       vz: ZetaPoint,
       wz: ZetaPoint,
       faceCap: Int,
+      grower: (List[FaceZ], BigPoint, BigPoint) => List[List[FaceZ]],
+      coronaSeed: Boolean,
       emit: (Set[VertexSignature], String) => Unit
   ): Long =
     val vB      = vz.toBigPoint
@@ -204,14 +228,13 @@ object KrotenheerdtTorusSearch:
     val stack   = mutable.Stack.empty[List[FaceZ]]
     var count   = 0L
 
-    // Seed each polygon once, at the fixed slot-0 orientation. Orientation is swept by the candidate lattice
-    // set (which holds the rotated copies of each lattice), NOT by rotating the seed — seeding all 12 slots as
-    // well double-counts and, with the absolute face-set dedup, explodes the state count with congruent copies
-    // that never merge (the ADR-0019 "absolute key triples states" effect, ×12). Same orientation-sweep
-    // convention as the DCEL engine, so the completeness profile in `k` is identical.
-    for m <- sides do
-      val face = FaceZ(m, polygon(ZetaPoint.origin, 0, m))
-      if isConsistent(List(face), vB, wB) then stack.push(List(face))
+    // Seeds at the fixed slot-0 orientation (orientation is swept by the candidate lattice set's rotated
+    // copies, NOT by rotating the seed — seeding all 12 slots would double-count and explode the state count).
+    // Propagation seeds a whole vertex (corona, both chiralities); one-polygon growth seeds a single polygon.
+    val seeds =
+      if coronaSeed then seedTypes.map(coronaFaces)
+      else sides.map(m => List(FaceZ(m, polygon(ZetaPoint.origin, 0, m))))
+    for seed <- seeds do if isConsistent(seed, vB, wB) then stack.push(seed)
 
     while stack.nonEmpty do
       val faces    = stack.pop()
@@ -227,8 +250,8 @@ object KrotenheerdtTorusSearch:
         tryVerify match
           case Some((t, key)) => emit(t, key)
           case None           =>
-            if faces.sizeIs < faceCap && total < covol * 4 then
-              grow(faces, vB, wB).foreach: child =>
+            if faces.sizeIs < faceCap && total < covol * 6 then
+              grower(faces, vB, wB).foreach: child =>
                 if visited.add(canonicalKey(child, autos)) then stack.push(child)
     count
 
@@ -353,6 +376,51 @@ object KrotenheerdtTorusSearch:
       val covered = coveredSlots(fan)
       if covered.sizeIs == 12 then isCompleteVertex(fan.map(_._2))
       else isExtendableFan(fan.map(_._2))
+
+  /** Every way to fill a vertex's remaining `gap` (in 30° slots) so that `fan ++ completion`, read CCW, is a
+    * valid complete vertex type. The bounded recursion prunes through the partial-fan table at each step, so
+    * dead and forced (single-completion) vertices are recognised immediately — the basis of the MRV ordering.
+    */
+  private def completions(fan: List[Int], gap: Int): List[List[Int]] =
+    if gap == 0 then (if isCompleteVertex(fan) then List(Nil) else Nil)
+    else
+      sides.flatMap: m =>
+        val g = gSlots(m)
+        if g > gap then Nil
+        else
+          val extended = fan :+ m
+          val ok       = if g == gap then isCompleteVertex(extended) else isExtendableFan(extended)
+          if !ok then Nil else completions(extended, gap - g).map(m :: _)
+
+  /** Constraint-propagation growth: commit the WHOLE most-constrained (fewest-completions, MRV) incomplete
+    * vertex at once, branching only over its valid completions, instead of adding one polygon at a time. A
+    * vertex with a single completion is committed deterministically (no branch); one with none kills the
+    * branch. Completeness holds by the same argument as one-polygon growth — the chosen vertex must be
+    * completed by one of its valid vertex types — but the search tree is far smaller (most of a cell is forced,
+    * not branched). The ADR-0020 next step.
+    */
+  private def growByCompletion(faces: List[FaceZ], vB: BigPoint, wB: BigPoint): List[List[FaceZ]] =
+    val incomplete = faces.flatMap(_.corners).distinct.flatMap: p =>
+      val fan     = planarFan(faces, p)
+      val covered = coveredSlots(fan)
+      Option.when(covered.sizeIs < 12):
+        val free     = 12 - covered.size
+        val b        = (0 until 12).find(s => covered((s + 11) % 12) && !covered(s)).getOrElse(0)
+        val arcStart = (b + free) % 12
+        val ordered  = fan.sortBy((start, _) => (start - arcStart + 12) % 12).map(_._2)
+        (p, b, completions(ordered, free))
+    if incomplete.isEmpty then Nil
+    else
+      // MRV: the vertex with the fewest completions, tie-broken canonically by position for determinism.
+      val (p, b, comps) = incomplete.minBy((p, _, cs) => (cs.size, p.a0, p.a1, p.a2, p.a3))
+      comps.flatMap: comp =>
+        var slot     = b
+        val newFaces = comp.map: m =>
+          val f = FaceZ(m, polygon(p, slot, m))
+          slot += gSlots(m)
+          f
+        val next = newFaces ++ faces
+        Option.when(isConsistent(next, vB, wB) && isSound(next))(next)
 
   // ---- verification (reuses the DCEL engine's proven tail) --------------------------------------------
 

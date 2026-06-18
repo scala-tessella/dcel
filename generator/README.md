@@ -45,10 +45,12 @@ See ADR-0019 for the design, the verification, and the lessons from the approach
 `KrotenheerdtTorusSearch` (ADR-0020) is the "different search" ADR-0019 called for: it replaces the DCEL
 patch with an exact integer ℤ[ζ₁₂] point set (`ZetaPoint`), so growth needs **no deep-copy and no trig
 congruence key** — the two costs that dominated the fixed-Λ engine. It reuses that engine's verification tail
-(`verifyContent`), is **key-equivalent** to it on every tested case (n=1 k=3/k=4, n=2 k=4), and is faster
-(parallel-4: 1.1–1.9×, best on the heaviest case). It targets the pure `{3,4,6,12}` world (the octagon's
-`4.8.8` needs ℤ[ζ₂₄]). The order-of-magnitude for n = 4–7 still needs the deeper vertex-completion constraint
-propagation built on this exact foundation — see ADR-0020.
+(`verifyContent`) and is **key-equivalent** to it on every tested case (n=1 k=3/k=4, n=2 k=4). Its default mode
+is **vertex-completion constraint propagation**: seed a whole vertex (corona), then commit the most-constrained
+incomplete vertex at once (MRV), so most of a cell is *forced* rather than *branched*. That explores fewer
+states than even the DCEL engine and runs **~3–4× faster** at the heavier cases (n=2 k=4: 6.8 s vs 28 s ∥4 —
+ADR-0019 clocked it at ~290 s single-thread). It targets the pure `{3,4,6,12}` world (the octagon's `4.8.8`
+needs ℤ[ζ₂₄]). For n = 4–7 the wall is again the *number* of candidate lattices — see ADR-0020.
 
 ## Running
 
