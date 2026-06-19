@@ -165,11 +165,20 @@ separate task, since they are *complete* but currently *unsound* at high covolum
      including `4.8.8`** (which the ζ engines cannot do), in ~0.5 s, sound (3.3.6.6 / 3.4.4.6 cannot be
      constructed). Tested by `DelaneySymbolsSpec` (Frac laws, n=1 exact, octagon, soundness, A068600 bound,
      monotonicity, n=2 ⊆ the 20).
-   - **OPEN — the tractability wall:** `DSetGenerator` enumerates ALL D-sets (incl. hyperbolic, all v) up to
-     `maxSize`; the count explodes past `maxSize ≈ 16`, while n = 2 → 20 needs `maxSize ≈ 16–20` and n = 3–7
-     more. **Next: prune to euclidean + `{3,4,6,8,12}` tiles DURING generation** (bound the D-set growth by the
-     curvature/regular-polygon constraints, instead of generating-then-filtering) so the search size tracks the
-     few real tilings rather than the hyperbolic universe.
+   - **Pruning (2026-06-20):** two SOUND prunes restrict the search to the flat regular-polygon world:
+     (a) **regular-polygon r-values** — a closed 01-orbit (tile) must have `r ∈ {1,2,3,4,6,8,12}` and a closed
+     12-orbit (vertex) `r ∈ {1,2,3,4,5,6}` (so `m = r·v` can be a `{3,4,6,8,12}`-gon / a degree-3–6 vertex);
+     a closed orbit is final, so a partial D-set violating this is dropped in `DSetGenerator.children`.
+     (b) **euclidean-feasibility** — skip a complete D-set's whole `DSymGenerator` unless its MAXIMAL curvature
+     (all v at `minV`) is ≥ 0 (otherwise every v-assignment is hyperbolic). Effect: `maxSize 16` went from
+     time-out to 1.7 s; `maxSize 20` runs in ~42 s. Counts: n = 1 = 11 (complete), n = 2 = 19/20, n = 3 = 35/39
+     at `maxSize 20` (still climbing with size).
+   - **OPEN — the remaining wall for n ≥ 4:** the euclidean gate is on COMPLETE D-sets, so the D-set GENERATION
+     tree is still fully walked; cost still grows ~4–5× per `+2` chambers. n = 2 → 20 needs `maxSize ≈ 22–24`
+     (minutes); n = 4–7 need much larger symbols. The next lever is a **partial euclidean-curvature prune** in
+     `DSetGenerator` (cut a partial branch once no in-budget completion can reach curvature 0) or a smarter
+     euclidean-orbifold generator (Delgado-Friedrichs' methods) — both non-trivial; the crude per-chamber
+     curvature bound is too loose to prune, so a tighter r-value-aware bound is needed.
 3. **Validate** against `TilingReference`: n = 1 → 2 → 3 (counts 11/20/39, key-equivalence to the fixed-Λ
    engine where it reaches).
 4. **Measurement gate** (ADR-0021's): instrument states-per-cell at n = 2/3 and confirm it tracks cell

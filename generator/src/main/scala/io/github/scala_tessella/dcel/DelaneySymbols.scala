@@ -201,7 +201,8 @@ object DelaneySymbols:
               var ok                   = true
               if gap == 1 then dset.set(k, head, tail)
               else if gap == 0 && head != tail then ok = false
-              if ok && checkCanonicity(dset, isRemapStart) then out += DSetGenState(dset, isRemapStart)
+              if ok && regularFeasible(dset) && checkCanonicity(dset, isRemapStart) then
+                out += DSetGenState(dset, isRemapStart)
             e += 1
           out.result()
 
@@ -212,6 +213,48 @@ object DelaneySymbols:
       while i <= Dim do { if ds.get(i, d) == 0 then return Some((d, i)); i += 1 }
       d += 1
     None
+
+  // Admissible orbit r-values for a euclidean tiling by regular {3,4,6,8,12}-gons: a 01-orbit (a TILE) has
+  // m₀₁ = r·v ∈ {3,4,6,8,12} ⇒ r₀₁ divides one of those ⇒ r₀₁ ∈ {1,2,3,4,6,8,12}; a 12-orbit (a VERTEX) has
+  // degree m₁₂ = r·v ∈ {3,4,5,6} ⇒ r₁₂ ∈ {1,2,3,4,5,6}. A CLOSED orbit is final, so a partial D-set with a
+  // closed orbit of inadmissible r can never become such a tiling and is pruned (kills the hyperbolic /
+  // high-degree branches — a degree-7 vertex orbit closing is dropped at once).
+  private val admissibleR01 = Set(1, 2, 3, 4, 6, 8, 12)
+  private val admissibleR12 = Set(1, 2, 3, 4, 5, 6)
+
+  private def regularFeasible(ds: DSet): Boolean =
+    feasibleOrbits(ds, 0, 1, admissibleR01, 12) && feasibleOrbits(ds, 1, 2, admissibleR12, 6)
+
+  /** Sound only if every (i,j)-orbit can still become a regular tile / valid vertex: a CLOSED orbit must have
+    * an admissible `r`; an OPEN orbit already past `maxR` (it can only grow) will close inadmissibly, so it
+    * is pruned too. `maxR` is the largest admissible `r` (12 for tiles, 6 for vertices).
+    */
+  private def feasibleOrbits(ds: DSet, i: Int, j: Int, admissible: Set[Int], maxR: Int): Boolean =
+    val seen = Array.fill(ds.size + 1)(false)
+    var d    = 1
+    while d <= ds.size do
+      if !seen(d) then
+        var e        = d
+        var k        = i
+        var len      = 0
+        var isChain  = false
+        var complete = true
+        var go       = true
+        while go do
+          if !seen(e) then { seen(e) = true; len += 1 }
+          val ek = ds.get(k, e)
+          if ek == 0 then { complete = false; go = false } // hit an undefined op ⇒ orbit not yet closed
+          else
+            if ek == e then isChain = true
+            e = ek
+            k = i + j - k
+            if e == d && k == i then go = false
+        if complete then
+          val r = if isChain then len else (len + 1) / 2
+          if !admissible(r) then return false
+        else if len > 2 * maxR then return false // open orbit already too long to ever be admissible
+      d += 1
+    true
 
   /** Scan the alternating 0,2-orbit from `d`; returns (head, tail, gap, k) — the manifold-closure helper. */
   private def scan02Orbit(ds: DSet, d: Int): (Int, Int, Int, Int) =
@@ -481,15 +524,28 @@ object DelaneySymbols:
   def enumerateDetailed(maxN: Int, maxSize: Int): List[Tiling] =
     val out = List.newBuilder[Tiling]
     DSetGenerator(maxSize).foreach: dset =>
-      DSymGenerator(dset).foreach: dsym =>
-        // euclidean only (curvature 0), and MINIMAL (the maximal-symmetry symbol of the tiling — a
-        // non-minimal symbol is the same geometric tiling under a subgroup, counted at a higher n).
-        if isEuclidean(dsym) && isMinimal(dsym) then
-          regularPolygonVertices(dsym).foreach: sigs =>
-            val orbitCount = sigs.length
-            val typeCount  = sigs.toSet.size
-            if orbitCount == typeCount && orbitCount <= maxN then out += Tiling(orbitCount, sigs, dsym.size)
+      // EUCLIDEAN-feasibility gate: with v-values at their minimum the curvature is MAXIMAL; if even that is
+      // negative, every v-assignment is hyperbolic and no flat (curvature-0) tiling exists ⇒ skip the whole
+      // DSymGenerator for this D-set. This is what restricts the search to the flat world.
+      if euclideanFeasible(dset) then
+        DSymGenerator(dset).foreach: dsym =>
+          // euclidean only (curvature 0), and MINIMAL (the maximal-symmetry symbol of the tiling — a
+          // non-minimal symbol is the same geometric tiling under a subgroup, counted at a higher n).
+          if isEuclidean(dsym) && isMinimal(dsym) then
+            regularPolygonVertices(dsym).foreach: sigs =>
+              val orbitCount = sigs.length
+              val typeCount  = sigs.toSet.size
+              if orbitCount == typeCount && orbitCount <= maxN then out += Tiling(orbitCount, sigs, dsym.size)
     out.result()
+
+  /** True iff a flat (curvature-0) tiling is achievable on this D-set: the MAXIMAL curvature (every v at its
+    * minimum `minV`) is ≥ 0. Raising any v only lowers the curvature, so `maxCurv < 0` ⇒ purely hyperbolic.
+    */
+  private def euclideanFeasible(ds: DSet): Boolean =
+    var c = Frac.make(-ds.size, 2)
+    for orb <- orbits(ds, 0, 1) ++ orbits(ds, 1, 2) do
+      c = c + Frac.make(if orb.isChain then 1 else 2, orb.minV)
+    c.signum >= 0
 
   /** Bucketed `(n, vertex-type-set)` view of [[enumerateDetailed]]. */
   def enumerate(maxN: Int, maxSize: Int): List[(Int, Set[VertexSignature])] =
