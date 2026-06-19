@@ -2,8 +2,11 @@
 
 - **Status:** Accepted — a third enumeration engine, **key-equivalent to the DCEL fixed-Λ engine on every
   tested case and ~3–4× faster** in its default **vertex-completion constraint-propagation** mode; kept
-  alongside the DCEL engine, which remains the cross-check reference.
-- **Date:** 2026-06-18 (propagation mode added the same day)
+  alongside the DCEL engine, which remains the cross-check reference. **Characterized limit (see below): cost is
+  exponential in covolume, so n = 4–7 and the dodecagon cells are out of reach by this approach — superseded for
+  those by the direct combinatorial enumeration of ADR-0021.**
+- **Date:** 2026-06-18 (propagation mode same day; scaling work, combined pass, and the covolume-wall
+  characterization 2026-06-19)
 
 > Implemented in `generator/.../ZetaPoint.scala` and `KrotenheerdtTorusSearch.scala`, validated by
 > `ZetaPointSpec`, `KrotenheerdtTorusSearchSpec`, and the head-to-head `TorusTimingProbe`. Reuses the DCEL
@@ -146,6 +149,36 @@ a genuine Krotenheerdt tiling; the n=1/n=2-small key sets match the DCEL engine)
 - **Scope unchanged from ADR-0019.** Completeness still rests on `(k, maxCovolume)`, verified per n by
   reproducing the published count. The library is untouched; `KrotenheerdtSearch` (ADR-0018) remains the
   rigorous n ≤ 2 reference and `KrotenheerdtLatticeSearch` (ADR-0019) the validated fixed-Λ cross-check.
+
+## The characterized limit: cost is exponential in covolume (the wall for n ≥ 4)
+
+After the optimisation work below (Double candidates, type prune, primitive-period `classify`, compact key,
+crash-safety cap, the combined all-n pass), the engine is sound, crash-safe, ~2× faster, and independently
+reproduces the published counts **up to a covolume ceiling** — but it cannot reach the full table. Per-checkpoint
+timing of a combined sweep (candidate lattices are covolume-sorted) makes the wall explicit:
+
+| covolume | time / 200 lattices | states / lattice |
+|---------:|--------------------:|-----------------:|
+| 4.0 | 0.3 s | ~49 |
+| 6.5 | 3.3 s | ~140 |
+| 7.6 | 8.8 s | ~260 |
+| 8.0 | 11.6 s | ~376 |
+
+Per-lattice cost grows **~2.5× per +1 covolume** — *exponential in covolume*, the compound of two effects:
+**states/lattice ~1.7×/covol** (a near-miss / spurious lattice grows a search tree that is exponential in patch
+size, and the cell — hence patch — grows with covolume) **× per-state cost ~1.5×/covol** (bigger patches → bigger
+`primitiveBasis` / key work). The type prune and `classify` cut the *constant*, not the exponential.
+
+**Consequence:** extrapolating, around **covol ≈ 17** lattices begin hitting the `krot.percap` cap (losing
+completeness there) and each costs minutes. The full A068600 table needs exactly the high-covolume cells past
+this wall — the dodecagon cells (`3.12.12`, `4.6.12`, covol ~12–24) and **all of n = 4–7**, whose cells are
+larger still. So **n = 4–7 (and the dodecagon parts of n = 2, 3) are not reachable in days by this fixed-Λ
+approach.** What *is* feasible is the lower-covolume cells of each n — most of n ≤ 3.
+
+The root cause is structural: the engine grows **planar patches under candidate lattices**, and the vast majority
+of candidates are spurious. Reaching n = 4–7 needs a method that enumerates the finite **torus quotient directly**
+— a combinatorial (Delaney–Dress-style) enumeration with no covolume-exponential and no spurious-lattice growth.
+That is the subject of **ADR-0021**.
 
 ## Pitfalls hit and fixed (do not repeat)
 
