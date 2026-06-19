@@ -123,11 +123,53 @@ separate task, since they are *complete* but currently *unsound* at high covolum
 
 ## Plan
 
-1. **Gavrog reuse spike (cheap, possibly decisive).** Gavrog/3dt + Systre (Olaf Delgado-Friedrichs) enumerate
-   periodic tilings via D-symbols and are **JVM/Java** — same platform. Investigate (≈1–2 h) whether
-   `org.gavrog` can enumerate 2D Euclidean tilings constrained to `{3,4,6,12}` regular polygons with n vertex
-   types. If it fits, wire it in; if not (it leans 3D/nets), build the intrinsic enumerator below.
-2. **Build the intrinsic interleaved-gluing enumerator** with the canonical map key.
+1. **Gavrog reuse spike — DONE (2026-06-20).** Outcome: *reuse the D-symbol theory and data, build the
+   enumerator.* Findings:
+   - **Gavrog** (`org.gavrog`, JVM) has the D-symbol data structures + algorithms but ships as a **3D-net**
+     tool (Systre); reusable as a library for the `DSymbol` type, not as a turnkey 2D regular-polygon
+     enumerator.
+   - **Tegula** (Huson/Delgado-Friedrichs) is the dedicated **2D periodic-tiling** explorer via Delaney–Dress
+     symbols (Java/JavaFX, open source) — but GUI-oriented, no clean "all k-uniform `{3,4,6,12}` tilings" API.
+   - **genDSyms** (Julia) ships **databases of all Euclidean tilings up to Dress complexity 24** — the most
+     directly useful asset: a ready D-symbol dataset to **filter** (tile m-values ∈ {3,4,6,12}, χ = 0, n
+     vertex orbits = n types) as an **independent ground-truth oracle** for n = 3–7 (which Wikipedia/Galebach
+     could not give as text).
+   - **`gavrog.org/TCS.pdf`** (Delgado-Friedrichs, "Data Structures and Algorithms for Tilings I") is the
+     build blueprint.
+   Decision: do NOT bolt a 3D GUI app into the pipeline; build the enumerator in-stack per TCS.pdf, and use the
+   genDSyms Euclidean D-symbol database as the n = 3–7 cross-check oracle (filling the gap left in
+   `TilingReference`, where n = 6/7 were count-only).
+
+   **genDSyms "database" pull — DONE (2026-06-20).** There is **no bundled database** to pull: the repo
+   `github.com/odf/julia-dsymbols` is **generator source only** (Julia, ~1300 LOC), and the published
+   databases are giant SQLite files (≈2.4 billion tilings, all Euclidean+spherical ≤ Dress complexity 24) via
+   the Tegula download site — impractical to fetch here, and purely *combinatorial* (a "6-edge tile" is not
+   necessarily a regular hexagon), so they would need our `{3,4,6,12}` + 360° realizability filter regardless.
+   What we DID pull is the **generator algorithm**, which is the more useful asset: a generic `BackTracker` +
+   `DSetGenerator(2, maxSize)` (enumerate the σ-involution D-sets up to `maxSize` chambers) →
+   `DSymGenerator` (assign the v/m-values) → curvature/orientation properties. A D-symbol is `op[D,i]` (the
+   three involutions σ₀,σ₁,σ₂) plus `v[D,i]` (m-values: tile edge-count m₀₁ and vertex degree m₁₂). This ports
+   cleanly to Scala and IS the ADR-0022 engine core; run at a modest `maxSize` with our filter (tiles ∈
+   {3,4,6,12}, every vertex a valid 360° regular-polygon type, k tile/vertex orbits = k distinct types) it
+   yields the n = 1–7 Krotenheerdt tilings natively — no giant download. (genDSyms is external/licensed; we
+   port the algorithm, not vendor the source.)
+2. **Build the enumerator by porting the genDSyms generator** (`backTracker` → `DSetGenerator` →
+   `DSymGenerator` → properties) to Scala, plus the regular-polygon filter (tiles ∈ {3,4,6,8,12}, all vertices
+   valid 360° types, k orbits = k types). The minimal D-symbol is the canonical map key. This subsumes the
+   "intrinsic interleaved-gluing" idea — enumerating D-symbols IS the intrinsic, coordinate-free construction —
+   and gives the n = 3–7 oracle and the engine in one.
+   - **DONE (2026-06-20):** `DelaneySymbols.scala` ports the generator (Frac curvature, DSet + orbits +
+     orientation + automorphisms, `DSetGenerator`, `DSymGenerator`, the regular-polygon/Krotenheerdt filter)
+     plus a **minimality** filter (keep only the maximal-symmetry symbol per tiling) and a vertex-config
+     reconstruction that unfolds the symbol's symmetry (`m₁₂ = r₁₂·v₁₂`). **n = 1 = exactly 11 Archimedean,
+     including `4.8.8`** (which the ζ engines cannot do), in ~0.5 s, sound (3.3.6.6 / 3.4.4.6 cannot be
+     constructed). Tested by `DelaneySymbolsSpec` (Frac laws, n=1 exact, octagon, soundness, A068600 bound,
+     monotonicity, n=2 ⊆ the 20).
+   - **OPEN — the tractability wall:** `DSetGenerator` enumerates ALL D-sets (incl. hyperbolic, all v) up to
+     `maxSize`; the count explodes past `maxSize ≈ 16`, while n = 2 → 20 needs `maxSize ≈ 16–20` and n = 3–7
+     more. **Next: prune to euclidean + `{3,4,6,8,12}` tiles DURING generation** (bound the D-set growth by the
+     curvature/regular-polygon constraints, instead of generating-then-filtering) so the search size tracks the
+     few real tilings rather than the hyperbolic universe.
 3. **Validate** against `TilingReference`: n = 1 → 2 → 3 (counts 11/20/39, key-equivalence to the fixed-Λ
    engine where it reaches).
 4. **Measurement gate** (ADR-0021's): instrument states-per-cell at n = 2/3 and confirm it tracks cell
