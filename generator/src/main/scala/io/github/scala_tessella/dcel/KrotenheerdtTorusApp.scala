@@ -20,7 +20,11 @@ object KrotenheerdtTorusApp:
     val n           = args(0).toInt
     val k           = args(1).toInt
     val maxCovolume = args(2).toDouble
-    val parallelism = args.lift(3).map(_.toInt).getOrElse(Runtime.getRuntime.availableProcessors)
+    // Default to HALF the cores (min 1): a full-core run plus large per-lattice state explored 16 searches at
+    // once and exhausted the host. Override explicitly when the machine can take it; the per-lattice `krot.percap`
+    // cap bounds memory regardless.
+    val parallelism =
+      args.lift(3).map(_.toInt).getOrElse(math.max(1, Runtime.getRuntime.availableProcessors / 2))
     val completion  = args.lift(4).forall(_.toBoolean)
 
     val bases  = KrotenheerdtTorusSearch.candidateBasesZeta(k, maxCovolume).size

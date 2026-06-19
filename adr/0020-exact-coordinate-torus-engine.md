@@ -116,6 +116,13 @@ runner; `krot.growcells` / `krot.facecap` tune the growth bound):
   growing. Sound, and it cuts the n=1 k=4 state count 2.6× (185 k → 72 k) with identical keys.
 - **Tighter, n-scaled growth bound.** A branch grows only to `~(n+2)` cells of area (an n-uniform cell verifies
   once its ~n orbits each have a reconstructable fan), not the earlier ×6.
+- **Crash-safety: per-lattice state cap + halved default parallelism.** A pathological near-miss lattice can
+  explore *millions* of states, each adding a key to its `visited` set; an uncapped full-core run searched 16
+  such lattices at once and **exhausted the host's memory (OOM crash)**. `krot.percap` (default 100 000) aborts
+  any lattice that exceeds it — a real cell resolves in far fewer states, so this bounds memory and time per
+  lattice while only ever dropping pathological (spurious) lattices. Capped lattices are **counted and warned**
+  ("completeness caveat"), like the `(k, maxCovolume)` bound. The runner also defaults to **half the cores**
+  (override explicitly), so a run leaves the machine usable.
 
 **Calibration result (n = 2, ∥16).** The DCEL fixed-Λ engine (ADR-0019) reached **16 of 20**. The torus engine
 at `k=6, maxCovolume=28` reaches **18 of 20** — the two it adds are genuine covol≈27–28 cells (the 16→18 jump

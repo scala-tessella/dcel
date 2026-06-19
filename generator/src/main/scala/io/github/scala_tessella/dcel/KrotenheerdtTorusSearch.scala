@@ -204,7 +204,9 @@ object KrotenheerdtTorusSearch:
     val found                                                          = new ConcurrentHashMap[String, Set[VertexSignature]]()
     val states                                                         = new AtomicLong(0)
     val done                                                           = new AtomicLong(0)
+    val capped                                                         = new AtomicLong(0)
     val faceCap                                                        = sys.props.get("krot.facecap").map(_.toInt).getOrElse(64)
+    val perCap                                                         = sys.props.get("krot.percap").map(_.toLong).getOrElse(100000L)
     // Vertex-completion constraint propagation (ADR-0020 next step) by default; one-polygon growth for
     // cross-checking. Both sound and complete; propagation explores far fewer states. Closes over n so the
     // soundness prune can drop a branch the moment it shows more than n distinct vertex types.
@@ -212,11 +214,22 @@ object KrotenheerdtTorusSearch:
       if completion then (f, v, w) => growByCompletion(f, v, w, n) else (f, v, w) => grow(f, v, w, n)
     log(s"n=$n k=$k maxCovol=$maxCovolume: ${bases.size} candidate lattices")
     def runOne(vz: ZetaPoint, wz: ZetaPoint): Unit                     =
-      states.addAndGet(
-        runLattice(n, vz, wz, faceCap, grower, completion, (t, key) => found.putIfAbsent(key, t): Unit)
-      )
-      val d = done.incrementAndGet()
-      if d % 200 == 0 then log(s"  lattices $d/${bases.size}, states=${states.get}, found=${found.size}")
+      val (count, wasCapped) =
+        runLattice(
+          n,
+          vz,
+          wz,
+          faceCap,
+          perCap,
+          grower,
+          completion,
+          (t, key) => found.putIfAbsent(key, t): Unit
+        )
+      states.addAndGet(count)
+      if wasCapped then capped.incrementAndGet()
+      val d                  = done.incrementAndGet()
+      if d % 200 == 0 then
+        log(s"  lattices $d/${bases.size}, states=${states.get}, found=${found.size}, capped=${capped.get}")
     if parallelism <= 1 then bases.foreach((vz, wz) => runOne(vz, wz))
     else
       val pool = java.util.concurrent.Executors.newFixedThreadPool(parallelism)
@@ -224,6 +237,10 @@ object KrotenheerdtTorusSearch:
       finally
         pool.shutdown()
         pool.awaitTermination(7, java.util.concurrent.TimeUnit.DAYS)
+    if capped.get > 0 then
+      log(
+        s"  WARNING: ${capped.get} lattice(s) hit the ${perCap}-state cap (krot.percap) — completeness caveat"
+      )
     Outcome(found.asScala.toList.map((key, t) => (t, key)).sortBy(_._2), bases.size, states.get)
 
   /** Grow every Λ-consistent patch from each seed orientation; verify completed cells. Returns the state
@@ -234,10 +251,11 @@ object KrotenheerdtTorusSearch:
       vz: ZetaPoint,
       wz: ZetaPoint,
       faceCap: Int,
+      perCap: Long,
       grower: (List[FaceZ], BigPoint, BigPoint) => List[List[FaceZ]],
       coronaSeed: Boolean,
       emit: (Set[VertexSignature], String) => Unit
-  ): Long =
+  ): (Long, Boolean) =
     val vB          = vz.toBigPoint
     val wB          = wz.toBigPoint
     val originB     = BigPoint.origin
@@ -260,7 +278,11 @@ object KrotenheerdtTorusSearch:
       else sides.map(m => List(FaceZ(m, polygon(ZetaPoint.origin, 0, m))))
     for seed <- seeds do if isConsistent(seed, vB, wB) then stack.push(seed)
 
-    while stack.nonEmpty do
+    // Per-lattice state cap: a real cell resolves in few states, but a pathological near-miss lattice can
+    // explore millions (each adding a key to `visited`), so an uncapped parallel run can exhaust memory and
+    // crash the host. Abort such a lattice and report it (a capped lattice is a completeness caveat, like the
+    // (k, maxCovolume) bound). Tunable via `krot.percap`.
+    while stack.nonEmpty && count < perCap do
       val faces    = stack.pop()
       count += 1
       val distinct = distinctArea(faces, vB, wB)
@@ -288,7 +310,7 @@ object KrotenheerdtTorusSearch:
             if faces.sizeIs < faceCap && total < covol * growthCells then
               grower(faces, vB, wB).foreach: child =>
                 if visited.add(canonicalKey(child, autos)) then stack.push(child)
-    count
+    (count, stack.nonEmpty) // capped iff work remained when the cap was hit
 
   /** The 24 isometries of the module ℤ[ζ₁₂] (dihedral group of order 24): rotations `ζ^k` and their
     * reflections (conjugation `ζ→ζ⁻¹` then rotation), as exact integer maps on ZetaPoints.
