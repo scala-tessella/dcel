@@ -1,9 +1,11 @@
 # ADR-0021: Direct combinatorial torus-quotient enumeration (reaching n = 4–7)
 
-- **Status:** Proposed — design accepted, prototype starting. Supersedes the fixed-Λ engines (ADR-0019,
-  ADR-0020) **for the high-covolume / high-n cells they cannot reach**; those engines remain the validated
-  cross-check for the cells they *can* reach.
-- **Date:** 2026-06-19
+- **Status:** Accepted (goal + analysis) — its *realization* is superseded by **ADR-0022**. The
+  "discovered-Λ propagation" prototype here exposed a soundness defect (false-period overlaps, e.g. 3.3.6.6 /
+  3.4.4.6) and completeness gaps; ADR-0022 keeps this ADR's goal (reach n = 4–7, no covolume wall) but builds
+  the quotient as an *intrinsic combinatorial map* (Delaney–Dress) so soundness and canonical dedup hold by
+  construction. Still supersedes the fixed-Λ engines (ADR-0019, ADR-0020) for the cells they cannot reach.
+- **Date:** 2026-06-19 (realization superseded by ADR-0022, 2026-06-20)
 
 ## Context and problem statement
 
