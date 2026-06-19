@@ -93,3 +93,11 @@ class DelaneySymbolsSpec extends AnyFlatSpec with Matchers:
     )
     // and it has genuinely reached into the 2-uniform tilings (not vacuous)
     foundTypeSets should contain(Set(sig("3.3.3.4.4"), sig("4.4.4.4")))
+
+  behavior of "DelaneySymbols completeness (slow — run on demand)"
+
+  // ≈3 min at maxSize 22 (the D-set generation tree is the cost; see ADR-0022). Un-ignore to verify that the
+  // engine reproduces the FULL count, not just a subset — the decisive A068600(2) = 20 check.
+  ignore should "enumerate exactly the 20 two-uniform tilings (A068600(2)) at maxSize 22" in:
+    val twos = DelaneySymbols.enumerate(2, 22).count(_._1 == 2)
+    twos shouldBe TilingReference.counts(2) // 20

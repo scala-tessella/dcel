@@ -173,12 +173,18 @@ separate task, since they are *complete* but currently *unsound* at high covolum
      (all v at `minV`) is ≥ 0 (otherwise every v-assignment is hyperbolic). Effect: `maxSize 16` went from
      time-out to 1.7 s; `maxSize 20` runs in ~42 s. Counts: n = 1 = 11 (complete), n = 2 = 19/20, n = 3 = 35/39
      at `maxSize 20` (still climbing with size).
-   - **OPEN — the remaining wall for n ≥ 4:** the euclidean gate is on COMPLETE D-sets, so the D-set GENERATION
-     tree is still fully walked; cost still grows ~4–5× per `+2` chambers. n = 2 → 20 needs `maxSize ≈ 22–24`
-     (minutes); n = 4–7 need much larger symbols. The next lever is a **partial euclidean-curvature prune** in
-     `DSetGenerator` (cut a partial branch once no in-budget completion can reach curvature 0) or a smarter
-     euclidean-orbifold generator (Delgado-Friedrichs' methods) — both non-trivial; the crude per-chamber
-     curvature bound is too loose to prune, so a tighter r-value-aware bound is needed.
+   - **Filter reorder + n = 2 COMPLETE (2026-06-20):** run the cheap filters first (euclidean → regular-polygon
+     vertices → THEN the O(size²) `isMinimal`), since most euclidean symbols are not regular-polygon tilings.
+     With this, **n = 2 = 20** (the full A068600(2)) at `maxSize 22` (~3 min), n = 3 = 38/39, n = 1 = 11. The
+     `DelaneySymbolsSpec` ignored test `enumerate exactly the 20 two-uniform tilings` records this (run on
+     demand). The reorder confirmed the **D-set GENERATION tree**, not `isMinimal`, is the bottleneck.
+   - **OPEN — the remaining wall for n ≥ 4:** the euclidean gate is on COMPLETE D-sets, so the generation tree
+     is still fully walked; cost grows ~5× per `+2` chambers (maxSize 20 ≈ 33 s, 22 ≈ 180 s). A **partial
+     curvature prune** in `DSetGenerator` was tried and REVERTED — the sound per-chamber bound (each future
+     chamber nets ≤ 1/6) is too loose (fires only near full size) and the per-child `O(size)` recompute made it
+     a NET LOSS (maxSize 20: 33 → 79 s). The honest path to n = 4–7 is a **euclidean-specific generator** —
+     enumerate the 17 wallpaper orbifolds and their bounded covers directly (Delgado-Friedrichs' method),
+     rather than generate-all-2-manifold-D-sets-then-filter. That is a further, separate research/port effort.
 3. **Validate** against `TilingReference`: n = 1 → 2 → 3 (counts 11/20/39, key-equivalence to the fixed-Λ
    engine where it reaches).
 4. **Measurement gate** (ADR-0021's): instrument states-per-cell at n = 2/3 and confirm it tracks cell

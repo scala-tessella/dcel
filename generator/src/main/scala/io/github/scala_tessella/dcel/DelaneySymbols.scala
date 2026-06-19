@@ -529,13 +529,15 @@ object DelaneySymbols:
       // DSymGenerator for this D-set. This is what restricts the search to the flat world.
       if euclideanFeasible(dset) then
         DSymGenerator(dset).foreach: dsym =>
-          // euclidean only (curvature 0), and MINIMAL (the maximal-symmetry symbol of the tiling — a
-          // non-minimal symbol is the same geometric tiling under a subgroup, counted at a higher n).
-          if isEuclidean(dsym) && isMinimal(dsym) then
+          // Filters cheapest-first: euclidean (curvature 0) ⇒ regular-polygon tiling with valid 360° vertices
+          // ⇒ MINIMAL (maximal-symmetry symbol; the O(size²) check, so run it LAST, after the cheap ones have
+          // discarded the many euclidean-but-not-regular symbols).
+          if isEuclidean(dsym) then
             regularPolygonVertices(dsym).foreach: sigs =>
               val orbitCount = sigs.length
               val typeCount  = sigs.toSet.size
-              if orbitCount == typeCount && orbitCount <= maxN then out += Tiling(orbitCount, sigs, dsym.size)
+              if orbitCount == typeCount && orbitCount <= maxN && isMinimal(dsym) then
+                out += Tiling(orbitCount, sigs, dsym.size)
     out.result()
 
   /** True iff a flat (curvature-0) tiling is achievable on this D-set: the MAXIMAL curvature (every v at its
