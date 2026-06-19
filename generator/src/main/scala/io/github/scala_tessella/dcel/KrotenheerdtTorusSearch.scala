@@ -225,6 +225,7 @@ object KrotenheerdtTorusSearch:
     // soundness prune can drop a branch the moment it shows more than n distinct vertex types.
     val grower: (List[FaceZ], BigPoint, BigPoint) => List[List[FaceZ]] =
       if completion then (f, v, w) => growByCompletion(f, v, w, n) else (f, v, w) => grow(f, v, w, n)
+    val t0                                                             = System.nanoTime
     log(s"n=$n k=$k maxCovol=$maxCovolume: ${bases.size} candidate lattices")
     def runOne(vz: ZetaPoint, wz: ZetaPoint): Unit                     =
       val (count, wasCapped) =
@@ -243,7 +244,10 @@ object KrotenheerdtTorusSearch:
       if wasCapped then capped.incrementAndGet()
       val d                  = done.incrementAndGet()
       if d % 200 == 0 then
-        log(s"  lattices $d/${bases.size}, states=${states.get}, found=${found.size}, capped=${capped.get}")
+        val sec = (System.nanoTime - t0) / 1e9
+        log(
+          f"  [${sec}%6.1fs] lattices $d/${bases.size}, states=${states.get}, found=${found.size}, capped=${capped.get}"
+        )
     if parallelism <= 1 then bases.foreach((vz, wz) => runOne(vz, wz))
     else
       val pool = java.util.concurrent.Executors.newFixedThreadPool(parallelism)
@@ -280,6 +284,7 @@ object KrotenheerdtTorusSearch:
     val faceCap                                    = sys.props.get("krot.facecap").map(_.toInt).getOrElse(64)
     val perCap                                     = sys.props.get("krot.percap").map(_.toLong).getOrElse(100000L)
     val grower                                     = (f: List[FaceZ], v: BigPoint, w: BigPoint) => growByCompletion(f, v, w, maxN)
+    val t0                                         = System.nanoTime
     log(s"combined n≤$maxN k=$k maxCovol=$maxCovolume: ${bases.size} candidate lattices")
     def runOne(vz: ZetaPoint, wz: ZetaPoint): Unit =
       val (count, wasCapped) =
@@ -297,10 +302,13 @@ object KrotenheerdtTorusSearch:
       states.addAndGet(count)
       if wasCapped then capped.incrementAndGet()
       val d                  = done.incrementAndGet()
+      // Log elapsed seconds so the per-step delta (which grows with covolume — the lattices are covolume-sorted,
+      // so per-lattice cost is super-linear in the index) is visible.
       if d % 200 == 0 then
         val byN = found.values.asScala.groupBy(_._1).view.mapValues(_.size).toList.sortBy(_._1)
+        val sec = (System.nanoTime - t0) / 1e9
         log(
-          s"  lattices $d/${bases.size}, states=${states.get}, found=${found.size} $byN, capped=${capped.get}"
+          f"  [${sec}%6.1fs] lattices $d/${bases.size}, states=${states.get}, found=${found.size} $byN, capped=${capped.get}"
         )
     if parallelism <= 1 then bases.foreach((vz, wz) => runOne(vz, wz))
     else
