@@ -48,10 +48,10 @@ object KrotenheerdtTorusSearch:
 
   private val slotOfUnit: Map[ZetaPoint, Int] = (0 until 12).map(s => ZetaPoint.unit(s) -> s).toMap
 
-  /** The valid vertex types over `{3,4,6,12}`, each as a concrete cyclic order plus its mirror — the seeds for
-    * the propagation engine. Seeding a whole vertex (a full corona) instead of one polygon constrains the
-    * corona's outer vertices immediately, so propagation branches far less; a 1-uniform cell often verifies at
-    * the seed itself (its corona's outer vertices are lattice translates of the centre).
+  /** The valid vertex types over `{3,4,6,12}`, each as a concrete cyclic order plus its mirror — the seeds
+    * for the propagation engine. Seeding a whole vertex (a full corona) instead of one polygon constrains the
+    * corona's outer vertices immediately, so propagation branches far less; a 1-uniform cell often verifies
+    * at the seed itself (its corona's outer vertices are lattice translates of the centre).
     */
   private val seedTypes: List[List[Int]] =
     validSignatures.filterNot(_.contains(8)).flatMap(sig => List(sig, sig.reverse)).toList.distinct
@@ -90,82 +90,100 @@ object KrotenheerdtTorusSearch:
 
   private def cross(a: BigPoint, b: BigPoint): BigDecimal = a.x * b.y - a.y * b.x
 
-  private val minCovolume = BigDecimal("0.4")
+  private val minCovolume = 0.4
+  private val sqrt3d      = math.sqrt(3.0)
 
-  private def achievableCovolumes(maxCovolume: Double): Set[Double] =
+  /** Fast Double embedding of a ZetaPoint into the plane (candidate enumeration only — the search/verify
+    * recompute exactly at SCALE 9; ~1e-12 accuracy is ample for covolume filtering and basis dedup).
+    */
+  private def dxy(z: ZetaPoint): (Double, Double) =
+    ((2 * z.a0 + z.a2 + z.a1 * sqrt3d) / 2.0, (2 * z.a3 + z.a1 + z.a2 * sqrt3d) / 2.0)
+
+  /** Covolumes reachable as a non-negative integer combination of unit-polygon areas, as rounded keys for an
+    * O(1) membership test in the candidate filter.
+    */
+  private def achievableCovolumeKeys(maxCovolume: Double): Set[Long] =
     val reached  = mutable.Set(0.0)
     var frontier = List(0.0)
     val areas    = sides.map(m => m / (4.0 * math.tan(math.Pi / m)))
     while frontier.nonEmpty do
       frontier =
         frontier.flatMap(c => areas.map(c + _).filter(s => s <= maxCovolume + 1e-6 && reached.add(s)))
-    reached.filter(_ >= minCovolume.toDouble - 1e-6).toSet
+    reached.filter(_ >= minCovolume - 1e-6).map(a => math.round(a * 1e6)).toSet
 
-  /** Integer Lagrange–Gauss reduction tracking exact ZetaPoints; the multiplier is decided by the real dot
-    * products (so the reduced basis is the two successive minima) but `b ← b − m·a` stays exact.
+  /** Integer Lagrange–Gauss reduction tracking exact ZetaPoints; the multiplier is decided by the real
+    * (Double) dot products (so the reduced basis is the two successive minima) but `b ← b − m·a` stays exact
+    * integer.
     */
   private def gaussReduceZeta(v0: ZetaPoint, w0: ZetaPoint): (ZetaPoint, ZetaPoint) =
-    def dot(p: ZetaPoint, q: ZetaPoint): BigDecimal =
-      val (a, b) = (p.toBigPoint, q.toBigPoint); a.x * b.x + a.y * b.y
-    var a                                           = v0
-    var b                                           = w0
+    def dot(p: ZetaPoint, q: ZetaPoint): Double =
+      val (px, py) = dxy(p); val (qx, qy) = dxy(q); px * qx + py * qy
+    var a                                       = v0
+    var b                                       = w0
     if dot(a, a) > dot(b, b) then { val t = a; a = b; b = t }
-    var iter                                        = 0
-    while iter < 1000 && (dot(a, b).abs * 2) > dot(a, a) + BigDecimal("1e-9") do
-      val m  = (dot(a, b) / dot(a, a)).setScale(0, BigDecimal.RoundingMode.HALF_UP).toLong
-      val mb = ZetaPoint(m * a.a0, m * a.a1, m * a.a2, m * a.a3)
-      b = b - mb
+    var iter                                    = 0
+    while iter < 1000 && math.abs(dot(a, b)) * 2 > dot(a, a) + 1e-9 do
+      val m = math.round(dot(a, b) / dot(a, a))
+      b = ZetaPoint(b.a0 - m * a.a0, b.a1 - m * a.a1, b.a2 - m * a.a2, b.a3 - m * a.a3)
       if dot(a, a) > dot(b, b) then { val t = a; a = b; b = t }
       iter += 1
     (a, b)
 
-  /** Candidate primitive bases as exact integer ℤ[ζ₁₂] pairs: module points in the integer box `|aᵢ| ≤ k`
-    * with covolume in `[minCovolume, maxCovolume]` and achievable (an integer combination of unit-polygon
-    * areas), Gauss-reduced and deduped, smallest cell first. The integer-box enumeration is the exact
-    * analogue of [[KrotenheerdtLatticeSearch.candidateBases]] (which enumerates the same module in Double);
-    * orientation is swept by seeding all edge directions, so the candidate set need not be rotation-closed.
+  /** Candidate primitive bases as exact integer ℤ[ζ₁₂] pairs: module points within the L1 step budget
+    * `Σ|aᵢ| ≤ k` with covolume in `[minCovolume, maxCovolume]` and achievable (an integer combination of
+    * unit-polygon areas), Gauss-reduced, sign-canonicalised, deduped, smallest cell first. The whole
+    * O(points²) filter runs in Double (the exact analogue of [[KrotenheerdtLatticeSearch.candidateBases]]);
+    * orientation is swept by the candidate set's rotated copies, so it need not be rotation-closed.
     */
   def candidateBasesZeta(k: Int, maxCovolume: Double): List[(ZetaPoint, ZetaPoint)] =
-    val achievable                            = achievableCovolumes(maxCovolume)
-    // Module points within the L1 step budget Σ|aᵢ| ≤ k (the exact analogue of the DCEL engine's
-    // `modulePoints` over generators ζ⁰..ζ³); BigPoint embeddings are cached so the O(points²) pairing stays
-    // in cheap Double-magnitude BigDecimal, not in repeated √3 multiplies.
-    val points: Vector[(ZetaPoint, BigPoint)] =
+    val achievable                                 = achievableCovolumeKeys(maxCovolume)
+    def isAchievable(cov: Double): Boolean         =
+      val r = math.round(cov * 1e6)
+      achievable.contains(r) || achievable.contains(r - 1) || achievable.contains(r + 1)
+    val points: Array[(ZetaPoint, Double, Double)] =
       (for
         a0 <- -k to k
         a1 <- -(k - a0.abs) to (k - a0.abs)
         a2 <- -(k - a0.abs - a1.abs) to (k - a0.abs - a1.abs)
         a3 <- -(k - a0.abs - a1.abs - a2.abs) to (k - a0.abs - a1.abs - a2.abs)
-        p   = ZetaPoint(a0, a1, a2, a3)
-        if !p.isOrigin
-      yield (p, p.toBigPoint)).toVector
-    val byKey                                 = mutable.LinkedHashMap.empty[((Long, Long), (Long, Long)), (ZetaPoint, ZetaPoint)]
-    val maxCovB                               = BigDecimal(maxCovolume)
-    def snap(p: BigPoint): (Long, Long)       =
-      (
-        (p.x * 1000000).setScale(0, BigDecimal.RoundingMode.HALF_UP).toLong,
-        (p.y * 1000000).setScale(0, BigDecimal.RoundingMode.HALF_UP).toLong
-      )
-    // Sign-canonicalise to the upper half-plane and order the pair, exactly as the DCEL `candidateBases` does,
-    // so the lattice (not its ± / swap variants) is the dedup unit — a 180° sign flip is covered by polygon
-    // symmetry, so this removes redundancy without dropping any orientation the slot-0 seed needs.
-    def canon(z: ZetaPoint): ZetaPoint =
-      val p = z.toBigPoint
-      if p.y > BigDecimal("1e-9") || (p.y.abs <= BigDecimal("1e-9") && p.x > 0) then z else -z
-    for
-      i   <- points.indices
-      j   <- (i + 1) until points.size
-      covB = cross(points(i)._2, points(j)._2).abs
-      if covB >= minCovolume && covB <= maxCovB + BigDecimal("1e-9")
-      if achievable.exists(a => (BigDecimal(a) - covB).abs < BigDecimal("1e-6"))
-    do
-      val (a0, b0) = gaussReduceZeta(points(i)._1, points(j)._1)
-      val (ca, cb) = (canon(a0), canon(b0))
-      val (caB, cbB) = (ca.toBigPoint, cb.toBigPoint)
-      val ordered  =
-        if (caB.dot(caB), snap(caB)) <= (cbB.dot(cbB), snap(cbB)) then (ca, cb) else (cb, ca)
-      byKey.getOrElseUpdate((snap(ordered._1.toBigPoint), snap(ordered._2.toBigPoint)), ordered)
-    byKey.values.toList.sortBy((v, w) => cross(v.toBigPoint, w.toBigPoint).abs)
+        z   = ZetaPoint(a0, a1, a2, a3)
+        if !z.isOrigin
+      yield { val (x, y) = dxy(z); (z, x, y) }).toArray
+    val byKey                                      = mutable.HashMap.empty[((Long, Long), (Long, Long)), (ZetaPoint, ZetaPoint)]
+    def snap(x: Double, y: Double): (Long, Long)   = (math.round(x * 1e6), math.round(y * 1e6))
+    // Sign-canonicalise to the upper half-plane (a 180° flip is covered by polygon symmetry) and order the pair,
+    // exactly as the DCEL `candidateBases` does, so the lattice — not its ± / swap variants — is the dedup unit.
+    def canon(z: ZetaPoint): ZetaPoint             =
+      val (x, y) = dxy(z)
+      if y > 1e-9 || (math.abs(y) <= 1e-9 && x > 0) then z else -z
+    var i                                          = 0
+    while i < points.length do
+      val (zi, xi, yi) = points(i)
+      var j            = i + 1
+      while j < points.length do
+        val (zj, xj, yj) = points(j)
+        val cov          = math.abs(xi * yj - yi * xj)
+        if cov >= minCovolume && cov <= maxCovolume + 1e-9 && isAchievable(cov) then
+          val (a0, b0)   = gaussReduceZeta(zi, zj)
+          val (ca, cb)   = (canon(a0), canon(b0))
+          val (cax, cay) = dxy(ca)
+          val (cbx, cby) = dxy(cb)
+          val (la, lb)   = (cax * cax + cay * cay, cbx * cbx + cby * cby)
+          val (ka, kb)   = (snap(cax, cay), snap(cbx, cby))
+          // shorter vector first; tie-break lexicographically by snapped coordinates
+          val aFirst     =
+            if math.abs(la - lb) > 1e-9 then la < lb
+            else if ka._1 != kb._1 then ka._1 < kb._1
+            else ka._2 <= kb._2
+          val ordered    = if aFirst then (ca, cb) else (cb, ca)
+          val (ox, oy)   = dxy(ordered._1)
+          val (px, py)   = dxy(ordered._2)
+          byKey.getOrElseUpdate((snap(ox, oy), snap(px, py)), ordered)
+        j += 1
+      i += 1
+    byKey.values.toList.sortBy { (v, w) =>
+      val (vx, vy) = dxy(v); val (wx, wy) = dxy(w); math.abs(vx * wy - vy * wx)
+    }
 
   // ---- per-lattice exact flood fill -------------------------------------------------------------------
 
@@ -182,16 +200,18 @@ object KrotenheerdtTorusSearch:
     import java.util.concurrent.ConcurrentHashMap
     import java.util.concurrent.atomic.AtomicLong
     import scala.jdk.CollectionConverters.*
-    val bases   = candidateBasesZeta(k, maxCovolume)
-    val found   = new ConcurrentHashMap[String, Set[VertexSignature]]()
-    val states  = new AtomicLong(0)
-    val done    = new AtomicLong(0)
-    val faceCap = sys.props.get("krot.facecap").map(_.toInt).getOrElse(64)
+    val bases                                                          = candidateBasesZeta(k, maxCovolume)
+    val found                                                          = new ConcurrentHashMap[String, Set[VertexSignature]]()
+    val states                                                         = new AtomicLong(0)
+    val done                                                           = new AtomicLong(0)
+    val faceCap                                                        = sys.props.get("krot.facecap").map(_.toInt).getOrElse(64)
     // Vertex-completion constraint propagation (ADR-0020 next step) by default; one-polygon growth for
-    // cross-checking. Both are sound and complete; propagation explores far fewer states.
-    val grower  = if completion then growByCompletion else grow
+    // cross-checking. Both sound and complete; propagation explores far fewer states. Closes over n so the
+    // soundness prune can drop a branch the moment it shows more than n distinct vertex types.
+    val grower: (List[FaceZ], BigPoint, BigPoint) => List[List[FaceZ]] =
+      if completion then (f, v, w) => growByCompletion(f, v, w, n) else (f, v, w) => grow(f, v, w, n)
     log(s"n=$n k=$k maxCovol=$maxCovolume: ${bases.size} candidate lattices")
-    def runOne(vz: ZetaPoint, wz: ZetaPoint): Unit =
+    def runOne(vz: ZetaPoint, wz: ZetaPoint): Unit                     =
       states.addAndGet(
         runLattice(n, vz, wz, faceCap, grower, completion, (t, key) => found.putIfAbsent(key, t): Unit)
       )
@@ -218,11 +238,15 @@ object KrotenheerdtTorusSearch:
       coronaSeed: Boolean,
       emit: (Set[VertexSignature], String) => Unit
   ): Long =
-    val vB      = vz.toBigPoint
-    val wB      = wz.toBigPoint
-    val originB = BigPoint.origin
-    val covol   = cross(vB, wB).abs
-    val autos   = latticeAutos(vz, wz)
+    val vB          = vz.toBigPoint
+    val wB          = wz.toBigPoint
+    val originB     = BigPoint.origin
+    val covol       = cross(vB, wB).abs
+    val autos       = latticeAutos(vz, wz)
+    // Grow a branch only until its distinct content plus a thin verification corona is placed: an n-uniform
+    // cell verifies once each of its ~n vertex orbits has a reconstructable fan (~n+2 cells of total area).
+    // The generous old bound (×6) let high-covolume *spurious* (near-miss) lattices grow large before dying.
+    val growthCells = sys.props.get("krot.growcells").map(_.toDouble).getOrElse((n + 2).toDouble)
 
     val visited = mutable.HashSet.empty[String]
     val stack   = mutable.Stack.empty[List[FaceZ]]
@@ -240,17 +264,28 @@ object KrotenheerdtTorusSearch:
       val faces    = stack.pop()
       count += 1
       val distinct = distinctArea(faces, vB, wB)
-      if distinct > covol + BigDecimal("1e-6") then () // scatter — should not occur past the gate
+      if distinct > covol + BigDecimal("1e-6") then () // off-lattice: distinct content exceeds one Λ-cell
       else
-        val total     = faces.map(f => area(f.size)).sum
-        val tryVerify =
-          if total >= covol - BigDecimal("1e-6") && distinct >= covol - BigDecimal("1e-6") then
-            verify(faces, vB, wB, originB, n)
-          else None
-        tryVerify match
-          case Some((t, key)) => emit(t, key)
-          case None           =>
-            if faces.sizeIs < faceCap && total < covol * 6 then
+        val total       = faces.map(f => area(f.size)).sum
+        // Classify at the patch's PRIMITIVE period (not Λ): emit if it is an n-uniform tiling, prune if it is a
+        // finished sub-tiling of the wrong count, grow otherwise. classify runs the O(faces²) `primitiveBasis`,
+        // so gate it cheaply, firing it only when there is reason to (else it is per-state overhead):
+        //   • distinct content already fills the Λ-cell (a real primitive cell is ready), or
+        //   • one polygon size dominates (≥8) — a 1-type sublattice *field*, or
+        //   • two same-type completed vertices sit closer than the Λ basis — a *multi-type* sublattice (a real
+        //     small cell repeated), which the field test misses and which is the dominant high-covolume cost at
+        //     n ≥ 3. Both sublattice signals let classify emit/prune at the small primitive period instead of
+        //     rebuilding the whole coarse Λ-cell.
+        val likelyField = faces.groupBy(_.size).valuesIterator.exists(_.sizeIs >= 8)
+        val verdict     =
+          if distinct >= covol - BigDecimal("1e-6") || likelyField || hasShortSubPeriod(faces, vB, wB) then
+            classify(faces, vB, wB, originB, n)
+          else Verdict.Grow
+        verdict match
+          case Verdict.Emit(t, key) => emit(t, key)
+          case Verdict.Prune        => ()
+          case Verdict.Grow         =>
+            if faces.sizeIs < faceCap && total < covol * growthCells then
               grower(faces, vB, wB).foreach: child =>
                 if visited.add(canonicalKey(child, autos)) then stack.push(child)
     count
@@ -280,15 +315,18 @@ object KrotenheerdtTorusSearch:
 
   /** Exact dedup key invariant under Λ's point group + translation — the trig-free replacement for the DCEL
     * engine's expensive `congruenceKey` (ADR-0019 §Performance: 45 %, irreducible). For each lattice
-    * automorphism `g`, transform the corners, translation-anchor on the lexicographically minimal corner, sort
-    * faces and corners, and take the min serialization over all `g`. Collapses the symmetric-image duplicates
-    * that an absolute key leaves un-merged (the ~2.5× state inflation), at the cost of small-integer work only.
+    * automorphism `g`, transform the corners, translation-anchor on the lexicographically minimal corner,
+    * sort faces and corners, and take the min serialization over all `g`. Collapses the symmetric-image
+    * duplicates that an absolute key leaves un-merged (the ~2.5× state inflation), at the cost of
+    * small-integer work only.
     */
   private def canonicalKey(faces: List[FaceZ], autos: List[ZetaPoint => ZetaPoint]): String =
     autos.iterator.map: g =>
       val tf     = faces.map(f => (f.size, f.corners.map(g)))
       val anchor = tf.iterator.flatMap(_._2).min
-      tf.map((s, cs) => s"$s:" + cs.map(_ - anchor).sorted.iterator.map(z => s"${z.a0},${z.a1},${z.a2},${z.a3}").mkString(";"))
+      tf.map((s, cs) =>
+        s"$s:" + cs.map(_ - anchor).sorted.iterator.map(z => s"${z.a0},${z.a1},${z.a2},${z.a3}").mkString(";")
+      )
         .sorted
         .mkString("|")
     .min
@@ -351,7 +389,7 @@ object KrotenheerdtTorusSearch:
   /** Push every Λ-consistent, sound continuation that fills the centroid-nearest boundary gap (mirrors the
     * DCEL engine's deterministic single-vertex growth; completeness rests on the same argument).
     */
-  private def grow(faces: List[FaceZ], vB: BigPoint, wB: BigPoint): List[List[FaceZ]] =
+  private def grow(faces: List[FaceZ], vB: BigPoint, wB: BigPoint, n: Int): List[List[FaceZ]] =
     val verts    = faces.flatMap(_.corners).distinct
     val centroid = verts.map(_.toBigPoint).centroid
     val boundary = verts.flatMap: p =>
@@ -367,14 +405,43 @@ object KrotenheerdtTorusSearch:
           if claim.exists(covered) then None
           else
             val next = FaceZ(m, polygon(p, b, m)) :: faces
-            Option.when(isConsistent(next, vB, wB) && isSound(next))(next)
+            Option.when(isConsistent(next, vB, wB) && isSound(next, n))(next)
 
-  /** Sound iff every planar vertex's fan is a valid completed vertex or an extendable partial fan. */
-  private def isSound(faces: List[FaceZ]): Boolean =
+  /** A cheap heuristic that the patch already repeats with a period finer than Λ: two *completed* vertices of
+    * the same type sit closer than the shortest Λ basis vector (so their difference is a sub-period vector).
+    * It only *gates* the sound `classify`, so a false positive merely costs one `classify` call; a primitive
+    * cell's same-type vertices are ≥ a basis vector apart, so it does not fire there.
+    */
+  private def hasShortSubPeriod(faces: List[FaceZ], vB: BigPoint, wB: BigPoint): Boolean =
+    val minBasis2 = math.min(vB.dot(vB).toDouble, wB.dot(wB).toDouble)
+    val seen      = mutable.Map.empty[VertexSignature, mutable.ListBuffer[ZetaPoint]]
+    faces.flatMap(f => f.corners.map(p => (p, f))).groupBy(_._1).exists: (p, incident) =>
+      val fan = incident.map((_, f) => (outSlot(f, p), f.size)).sortBy(_._1)
+      coveredSlots(fan).sizeIs == 12 && {
+        val t   = VertexTypes.normalize(fan.map(_._2))
+        val buf = seen.getOrElseUpdate(t, mutable.ListBuffer.empty)
+        val hit = buf.exists: q =>
+          val d        = p - q
+          val (dx, dy) = dxy(d)
+          !d.isOrigin && dx * dx + dy * dy < minBasis2 - 1e-9
+        buf += p
+        hit
+      }
+
+  /** Sound iff every planar vertex's fan is a valid completed vertex or an extendable partial fan, AND the
+    * patch's *completed* vertices show at most `n` distinct types — an n-uniform tiling can never contain
+    * more, so this drops a spurious branch the moment an (n+1)-th type closes, long before the verify horizon
+    * (the main prune that keeps near-miss high-covolume lattices from growing large).
+    */
+  private def isSound(faces: List[FaceZ], n: Int): Boolean =
+    val completeTypes = mutable.Set.empty[VertexSignature]
     faces.flatMap(_.corners).distinct.forall: p =>
       val fan     = planarFan(faces, p)
       val covered = coveredSlots(fan)
-      if covered.sizeIs == 12 then isCompleteVertex(fan.map(_._2))
+      if covered.sizeIs == 12 then
+        isCompleteVertex(fan.map(_._2)) && {
+          completeTypes += VertexTypes.normalize(fan.map(_._2)); completeTypes.sizeIs <= n
+        }
       else isExtendableFan(fan.map(_._2))
 
   /** Every way to fill a vertex's remaining `gap` (in 30° slots) so that `fan ++ completion`, read CCW, is a
@@ -382,7 +449,7 @@ object KrotenheerdtTorusSearch:
     * dead and forced (single-completion) vertices are recognised immediately — the basis of the MRV ordering.
     */
   private def completions(fan: List[Int], gap: Int): List[List[Int]] =
-    if gap == 0 then (if isCompleteVertex(fan) then List(Nil) else Nil)
+    if gap == 0 then if isCompleteVertex(fan) then List(Nil) else Nil
     else
       sides.flatMap: m =>
         val g = gSlots(m)
@@ -396,10 +463,10 @@ object KrotenheerdtTorusSearch:
     * vertex at once, branching only over its valid completions, instead of adding one polygon at a time. A
     * vertex with a single completion is committed deterministically (no branch); one with none kills the
     * branch. Completeness holds by the same argument as one-polygon growth — the chosen vertex must be
-    * completed by one of its valid vertex types — but the search tree is far smaller (most of a cell is forced,
-    * not branched). The ADR-0020 next step.
+    * completed by one of its valid vertex types — but the search tree is far smaller (most of a cell is
+    * forced, not branched). The ADR-0020 next step.
     */
-  private def growByCompletion(faces: List[FaceZ], vB: BigPoint, wB: BigPoint): List[List[FaceZ]] =
+  private def growByCompletion(faces: List[FaceZ], vB: BigPoint, wB: BigPoint, n: Int): List[List[FaceZ]] =
     val incomplete = faces.flatMap(_.corners).distinct.flatMap: p =>
       val fan     = planarFan(faces, p)
       val covered = coveredSlots(fan)
@@ -419,24 +486,30 @@ object KrotenheerdtTorusSearch:
           val f = FaceZ(m, polygon(p, slot, m))
           slot += gSlots(m)
           f
-        val next = newFaces ++ faces
-        Option.when(isConsistent(next, vB, wB) && isSound(next))(next)
+        val next     = newFaces ++ faces
+        Option.when(isConsistent(next, vB, wB) && isSound(next, n))(next)
 
   // ---- verification (reuses the DCEL engine's proven tail) --------------------------------------------
 
-  private def verify(
+  /** Outcome of classifying a grown patch against its own primitive period. */
+  private enum Verdict:
+    case Emit(types: Set[VertexSignature], key: String)
+    case Prune
+    case Grow
+
+  /** Reconstruct each torus vertex's full fan (mod the basis aB, bB) by unioning the incident corners of all
+    * its planar instances, keyed by angle — exactly `verifyTorus`'s union reconstruction, on ZetaPoints.
+    */
+  private def reconstructFans(
       faces: List[FaceZ],
-      vB: BigPoint,
-      wB: BigPoint,
-      originB: BigPoint,
-      n: Int
-  ): Option[(Set[VertexSignature], String)] =
-    // Reconstruct each torus vertex's full fan by unioning the incident corners of all its planar instances,
-    // keyed by angle (translation-invariant) — exactly verifyTorus's union reconstruction, on ZetaPoints.
-    val byTorus                                     = faces
-      .flatMap(f => f.corners.map(p => (tkey(p.toBigPoint, vB, wB, originB), p, f)))
+      aB: BigPoint,
+      bB: BigPoint,
+      originB: BigPoint
+  ): (Map[(Long, Long), List[((Long, Long), ZetaPoint, FaceZ)]], Map[(Long, Long), Map[Long, Int]]) =
+    val byTorus = faces
+      .flatMap(f => f.corners.map(p => (tkey(p.toBigPoint, aB, bB, originB), p, f)))
       .groupBy(_._1)
-    val torusFan: Map[(Long, Long), Map[Long, Int]] = byTorus.view.mapValues: incident =>
+    val fans    = byTorus.view.mapValues: incident =>
       incident.map: (_, p, f) =>
         val c = f.centroid
         (
@@ -445,20 +518,40 @@ object KrotenheerdtTorusSearch:
         )
       .toMap
     .toMap
+    (byTorus, fans)
 
-    def fanComplete(fan: Map[Long, Int]): Boolean    =
-      fan.values.map(interiorAngle).foldLeft(AngleDegree(0))(_ + _) == AngleDegree(360)
-    def fanSig(fan: Map[Long, Int]): VertexSignature =
-      VertexTypes.normalize(fan.toList.sortBy(_._1).map(_._2))
+  private def fanComplete(fan: Map[Long, Int]): Boolean =
+    fan.values.map(interiorAngle).foldLeft(AngleDegree(0))(_ + _) == AngleDegree(360)
 
-    if torusFan.exists((_, f) => !fanComplete(f)) then None
+  /** Classify a grown patch **at its own primitive period**, not at the candidate Λ. This is the lever that
+    * tames the high-covolume cost: a near-miss / sublattice patch (e.g. a 3⁶ field grown under a coarse Λ) is
+    * recognised as a *complete tiling under a finer period* and pruned — instead of growing to `faceCap`
+    * because its distinct content never fills the coarse Λ-cell. Soundness rests on requiring **every** torus
+    * fan to be complete under that primitive period: a half-built big cell has incomplete boundary fans and
+    * so returns `Grow` (never pruned), while a genuinely finished sub-tiling has all fans complete and is
+    * either emitted (if n-uniform — it is also reachable at its primitive-lattice candidate, so dedup handles
+    * it) or pruned (wrong type/orbit count). The primitive period is read from the face content via the
+    * proven `primitiveBasis` (empty verts), so chirality/sublattice keying stays identical to the DCEL
+    * engine.
+    */
+  private def classify(faces: List[FaceZ], vB: BigPoint, wB: BigPoint, originB: BigPoint, n: Int): Verdict =
+    val distinctFaces = faces
+      .map(f => (f.size, f.centroid))
+      .distinctBy((s, c) => (s, tkey(c, vB, wB, originB)))
+    val (pv, pw)      = KrotenheerdtLatticeSearch.primitiveBasis(vB, wB, originB, distinctFaces, Nil)
+    val pcov          = cross(pv, pw).abs
+    if distinctArea(faces, pv, pw) < pcov - BigDecimal("1e-6") then Verdict.Grow
     else
-      val sigs  = torusFan.view.mapValues(fanSig).toMap
-      val types = sigs.values.toSet
-      if types.sizeIs != n then None
+      val (byTorus, fans) = reconstructFans(faces, pv, pw, originB)
+      if fans.exists((_, f) => !fanComplete(f)) then Verdict.Grow
       else
-        val faceList = faces
-          .map(f => (f.size, f.centroid))
-          .distinctBy((s, c) => (s, tkey(c, vB, wB, originB)))
-        val verts    = sigs.toList.map((tk, sig) => (sig.mkString("."), byTorus(tk).head._2.toBigPoint))
-        KrotenheerdtLatticeSearch.verifyContent(vB, wB, originB, faceList, verts, types, n)
+        val sigs  = fans.view.mapValues(f => VertexTypes.normalize(f.toList.sortBy(_._1).map(_._2))).toMap
+        val types = sigs.values.toSet
+        if types.sizeIs != n then Verdict.Prune
+        else
+          val faceList =
+            faces.map(f => (f.size, f.centroid)).distinctBy((s, c) => (s, tkey(c, pv, pw, originB)))
+          val verts    = sigs.toList.map((tk, sig) => (sig.mkString("."), byTorus(tk).head._2.toBigPoint))
+          KrotenheerdtLatticeSearch.verifyContent(pv, pw, originB, faceList, verts, types, n) match
+            case Some((t, key)) => Verdict.Emit(t, key)
+            case None           => Verdict.Prune

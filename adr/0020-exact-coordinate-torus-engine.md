@@ -93,6 +93,37 @@ fewer than one-polygon growth), on top of the exact engine's **~3× cheaper per 
 heavier cases — for scale, ADR-0019 clocked n=2 k=4 at ~290 s single-thread; this is 6.8 s. The octagon's
 `4.8.8` (45°, ℤ[ζ₂₄]) is out of scope for this engine, exactly as it is past the DCEL engine's current `k`.
 
+## Scaling toward the published counts (n ≥ 2)
+
+Reaching the full A068600 counts needs `(k, maxCovolume)` large enough for the largest (dodecagon) cells, and
+that exposes a different cost than the per-state one above: the *number* of candidate lattices (~k⁴) and the
+per-Λ work at high covolume. Four changes make the production runs tractable (`KrotenheerdtTorusApp` is the
+runner; `krot.growcells` / `krot.facecap` tune the growth bound):
+
+- **Candidate enumeration in Double.** The O(points²) covolume filter and Gauss reduction run in `Double` with
+  an O(1) achievable-covolume lookup, so enumerating ~37 k bases at k=6 takes ~0.2 s (was minutes in
+  BigDecimal). Exact integer ℤ[ζ₁₂] bases are still what the search consumes.
+- **Early type-count prune.** `isSound` drops a branch the moment its *completed* vertices show more than `n`
+  distinct types — an n-uniform tiling can never contain more, so near-miss growth dies long before the verify
+  horizon.
+- **Verify at the patch's primitive period, not at Λ** (`classify`). The dominant high-covolume cost is
+  *sublattice fields*: a tiling periodic with a small cell is also periodic with any coarser candidate Λ, so the
+  engine would re-grow the full big Λ-cell (e.g. a covol-28 candidate = a 64-triangle 3⁶ field) only for
+  `primitiveBasis` to collapse it at verify. Instead every grown patch is classified against its *own* primitive
+  period (read from the face content via the shared `primitiveBasis` with empty verts): a finished sub-tiling is
+  emitted (n-uniform — deduped against its primitive-lattice candidate) or pruned (wrong count), and only a
+  genuinely half-built cell — recognised by having an *incomplete boundary fan* under that period — keeps
+  growing. Sound, and it cuts the n=1 k=4 state count 2.6× (185 k → 72 k) with identical keys.
+- **Tighter, n-scaled growth bound.** A branch grows only to `~(n+2)` cells of area (an n-uniform cell verifies
+  once its ~n orbits each have a reconstructable fan), not the earlier ×6.
+
+**Calibration result (n = 2, ∥16).** The DCEL fixed-Λ engine (ADR-0019) reached **16 of 20**. The torus engine
+at `k=6, maxCovolume=28` reaches **18 of 20** — the two it adds are genuine covol≈27–28 cells (the 16→18 jump
+is in the top covolume band). The final two (the largest `3.12.12` / `4.6.12` pairs) have basis vectors past the
+`k=6` L1 budget and need `k=7`. So the completeness law is `(k, maxCovolume)` exactly as ADR-0019 posited, and
+the engine extends it further than the DCEL engine did, at the same soundness bar (every tiling cross-checks to
+a genuine Krotenheerdt tiling; the n=1/n=2-small key sets match the DCEL engine).
+
 ## Consequences
 
 - **Positive.** A fully **exact-integer** engine (no Double/√3 in the search; the rounding fragility ADR-0019

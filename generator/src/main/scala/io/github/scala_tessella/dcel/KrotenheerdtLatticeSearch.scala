@@ -354,7 +354,7 @@ object KrotenheerdtLatticeSearch:
     * period from, only the two same-type vertices do), so the key of every sublattice cell collapses to its
     * primitive one.
     */
-  private def primitiveBasis(
+  private[dcel] def primitiveBasis(
       v0: BigPoint,
       w0: BigPoint,
       origin: BigPoint,
