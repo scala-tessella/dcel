@@ -80,6 +80,19 @@ object KrotenheerdtTorusSearch:
   final private case class FaceZ(size: Int, corners: Vector[ZetaPoint]):
     def centroid: BigPoint = corners.map(_.toBigPoint).toList.centroid
 
+    /** Double centroid, cached — the per-state hot path groups faces by `tkeyD` of this, which needs only
+      * ~1e-9 precision (Double is accurate to ~1e-14, so the grouping is identical to the BigDecimal one).
+      * The exact `centroid` is used only at the verify horizon.
+      */
+    lazy val cD: (Double, Double) =
+      var sx = 0.0
+      var sy = 0.0
+      corners.foreach: z =>
+        val (x, y) = dxy(z)
+        sx += x
+        sy += y
+      (sx / size, sy / size)
+
   final case class Outcome(
       tilings: List[(Set[VertexSignature], String)],
       basesTried: Int,
@@ -371,12 +384,33 @@ object KrotenheerdtTorusSearch:
       (((r % 100000) + 100000) % 100000).toLong
     (snap((d.x * wB.y - wB.x * d.y) / det), snap((vB.x * d.y - d.x * vB.y) / det))
 
+  /** Double residue key (origin at 0) — the Double twin of [[tkey]] for the per-state hot path. Same 1e5
+    * wrapping snap; the coordinates are O(k)·√3-irrational, so Double's ~1e-14 accuracy snaps identically to
+    * the BigDecimal version for every real vertex (exact half-way snap points are measure-zero).
+    */
+  private def tkeyD(
+      x: Double,
+      y: Double,
+      vx: Double,
+      vy: Double,
+      wx: Double,
+      wy: Double,
+      det: Double
+  ): (Long, Long) =
+    def snap(t: Double): Long =
+      val r = math.round(t * 100000.0)
+      ((r % 100000) + 100000) % 100000
+    (snap((x * wy - wx * y) / det), snap((vx * y - x * vy) / det))
+
   /** Distinct-torus-face area: each face counted once per `(size, centroid mod Λ)`. Equals one covolume when
-    * a full cell of distinct faces is covered.
+    * a full cell of distinct faces is covered. Grouping is in Double ([[tkeyD]]); the summed areas stay
+    * exact.
     */
   private def distinctArea(faces: List[FaceZ], vB: BigPoint, wB: BigPoint): BigDecimal =
+    val vx  = vB.x.toDouble; val vy = vB.y.toDouble; val wx = wB.x.toDouble; val wy = wB.y.toDouble
+    val det = vx * wy - vy * wx
     faces
-      .map(f => (f.size, tkey(f.centroid, vB, wB, BigPoint.origin)))
+      .map(f => (f.size, tkeyD(f.cD._1, f.cD._2, vx, vy, wx, wy, det)))
       .distinct
       .map((m, _) => area(m))
       .sum
@@ -386,13 +420,18 @@ object KrotenheerdtTorusSearch:
     val i = f.corners.indexOf(p)
     slotOfUnit(f.corners((i + 1) % f.size) - p)
 
-  /** Λ-consistency: every torus vertex's incident faces occupy a conflict-free set of 30° slots. */
+  /** Λ-consistency: every torus vertex's incident faces occupy a conflict-free set of 30° slots. Residues are
+    * grouped in Double ([[tkeyD]]); the slot bookkeeping is exact integer.
+    */
   private def isConsistent(faces: List[FaceZ], vB: BigPoint, wB: BigPoint): Boolean =
+    val vx       = vB.x.toDouble; val vy = vB.y.toDouble; val wx = wB.x.toDouble; val wy = wB.y.toDouble
+    val det      = vx * wy - vy * wx
     val coverage = mutable.Map.empty[(Long, Long), mutable.Map[Int, (Int, Int)]]
     faces.forall: f =>
       f.corners.forall: p =>
-        val slotMap = coverage.getOrElseUpdate(tkey(p.toBigPoint, vB, wB, BigPoint.origin), mutable.Map.empty)
-        val start   = outSlot(f, p)
+        val (px, py) = dxy(p)
+        val slotMap  = coverage.getOrElseUpdate(tkeyD(px, py, vx, vy, wx, wy, det), mutable.Map.empty)
+        val start    = outSlot(f, p)
         (0 until gSlots(f.size)).forall: kk =>
           val slot = (start + kk) % 12
           slotMap.get(slot) match
