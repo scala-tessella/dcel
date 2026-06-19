@@ -302,13 +302,14 @@ object KrotenheerdtTorusSearch:
       states.addAndGet(count)
       if wasCapped then capped.incrementAndGet()
       val d                  = done.incrementAndGet()
-      // Log elapsed seconds so the per-step delta (which grows with covolume — the lattices are covolume-sorted,
-      // so per-lattice cost is super-linear in the index) is visible.
+      // Log elapsed seconds and the just-finished lattice's covolume so the per-step delta (which grows with
+      // covolume — lattices are covolume-sorted, so per-lattice cost is super-linear in the index) is visible.
       if d % 200 == 0 then
-        val byN = found.values.asScala.groupBy(_._1).view.mapValues(_.size).toList.sortBy(_._1)
-        val sec = (System.nanoTime - t0) / 1e9
+        val byN   = found.values.asScala.groupBy(_._1).view.mapValues(_.size).toList.sortBy(_._1)
+        val sec   = (System.nanoTime - t0) / 1e9
+        val covol = cross(vz.toBigPoint, wz.toBigPoint).abs.toDouble
         log(
-          f"  [${sec}%6.1fs] lattices $d/${bases.size}, states=${states.get}, found=${found.size} $byN, capped=${capped.get}"
+          f"  [${sec}%7.1fs] lattices $d/${bases.size}, covol≈$covol%5.1f, states=${states.get}, found=${found.size} $byN, capped=${capped.get}"
         )
     if parallelism <= 1 then bases.foreach((vz, wz) => runOne(vz, wz))
     else
