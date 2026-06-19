@@ -91,3 +91,62 @@ takes the concrete, coordinate-backed form that reuses the ADR-0020 infrastructu
 - Larger, higher-risk than the ADR-0020 optimisations (it is a new search, not a tweak), so it lands behind a
   validation bar: reproduce the fixed-Λ counts exactly before trusting it past them.
 - The fixed-Λ engines stay as the validated reference for the low-covolume cells and the cross-check.
+
+## Design refinements (from the planning phase — these sharpen the architecture above)
+
+**Reframing — "discovered-Λ propagation".** This is NOT a new kind of search: it is the ADR-0020
+vertex-completion propagation engine with **Λ promoted from a swept parameter to a discovered search
+variable**. The engine develops in ONE plane frame (the universal cover) in exact `ZetaPoint` and never
+physically wraps; a "gluing" is the assertion *"the face across this boundary edge is an already-placed face
+translated by a deck vector t"*, which adds `t` to a partial lattice of rank 0/1/2. Growth, slot bookkeeping,
+and the valid-vertex prune are the fixed-Λ engine's; the only new degree of freedom is the **extend-vs-glue
+branch** + incremental rank-≤2 accumulation.
+
+**Soundness — orientability is the one condition beyond all-360°.** All-360° vertices ⇒ the surface is a flat
+*manifold*, but that admits a flat **Klein bottle** (whose deck group has a glide reflection — not a translation
+lattice). The torus needs **orientability**; then the free-action / Bieberbach argument forces the deck group to
+be pure translations (a cone angle of exactly 2π ⇒ the cover acts freely ⇒ an orientation-preserving
+fixed-point-free isometry is a translation). "No net rotation around the generators" is then a *theorem*, not a
+side condition. Enforce orientability constructively, for free: develop with **direct isometries only**
+(`+`/`timesZeta`, never `conjugate`) and glue a boundary half-edge at slot `b` only to an existing open
+boundary half-edge at slot **`b+6`** (antiparallel). Assert each loop's rotational part `k ≡ 0 (mod 12)` as a
+bug detector.
+
+**Exact gluing/consistency (integers only).** A gluing yields a translation `t = q' − p` (`ZetaPoint`
+subtraction); it is edge-consistent iff the *other* identified endpoints also differ by exactly `t`. Accumulate
+`gens`: `Rank0+t→Rank1(t)`; `Rank1(g1)+t→Rank2(g1,t)` if `cross(g1,t)≠0` else require `t` a multiple of `g1`;
+`Rank2(g1,g2)+t→` accept iff `t.congruentMod(origin,g1,g2)` **else PRUNE** (a third independent generator ⇒
+non-discrete periods ⇒ not a torus). Re-validate standing vertex identifications after every generator change.
+Reject any `Rank2` whose covolume `< distinctArea(faces)` (over-gluing / overlap). Only `congruentMod` + an
+integer cross-product — no float in the lattice algebra.
+
+**Closure = verifiability (reuse `cellData`).** Drive closure off the existing `cellData(faces, g1.toBigPoint,
+g2.toBigPoint, origin)`: `Left(Grow)` ⇔ some torus fan is still incomplete ⇒ keep developing (place the thin
+corona of cheap Λ-translate faces until fans are physically complete — this is the honest answer to the corona
+question); `Right(...)` ⇒ hand to `verifyContentAnyN`. "Closed" and "verifiable" become the same predicate.
+
+**The crux risk — the gluing branch factor.** A′'s cost lives here: at a boundary vertex, *any* compatible
+existing boundary edge is a candidate identification (the localized analogue of "which lattice"). Controls:
+antiparallel-only candidates, glue only at the MRV vertex, dedup candidate `t`s congruent mod current Λ,
+best-first toward closure, the rank/covolume integer prunes, and a flag/dart canonical visited-set (geometry-free
+canonical labeling of the partial map). **Measurement gate before any high-n run:** instrument states-per-cell
+on n=2/n=3 and confirm it tracks cell *size*, not covolume. If it tracks covolume, tighten controls before
+attempting n=4–7.
+
+**Reuse — staged duplicate-then-extract.** Do NOT edit `KrotenheerdtTorusSearch` until the new engine reproduces
+its counts. Call `verifyContentAnyN`/`primitiveBasis` directly (`private[dcel]`). Duplicate the small pure
+helpers (`polygon`, `FaceZ`, slot tables, the `cellData`→`reconstructFans`→`verifyContentAnyN` "verify-a-
+developed-cell" pipeline) and reuse `completions`/seed tables; re-implement **rank-aware** `isConsistent`/
+boundary (the originals hard-assume a fixed rank-2 Λ). After validation, extract a `private[dcel] object
+TorusCellGeometry` shared by both engines.
+
+**Validation ladder (each milestone gates the next):** (1) single-face cells — square `polygon(origin,0,4)`,
+glues `t1=(1,0,0,0)`,`t2=(0,0,0,1)`, Λ covol 1, one vertex `4.4.4.4`; hexagon `polygon(origin,0,6)`,
+opposite-edge glues, Λ = triangular covol 3√3/2, **two** vertices `6.6.6` (the third glue is the redundant
+`congruentMod`-true path) — assert `verifyContentAnyN → Some((1, key))` with `key` == the fixed-Λ key. (2)
+multi-face small cells (`3⁶` = 2-triangle rhombus, `3.4.6.4`, `3.3.3.4.4`, `3.6.3.6`, the chiral snub
+`3.3.3.3.6`). (3) key-for-key cross-check vs `KrotenheerdtTorusSearch.enumerate` for n=1 small + n=2 (the trust
+gate). (4) the measurement gate, then n=3–7 + the dodecagon cells.
+
+> Full implementation plan with the worked coordinates and the algorithm step-by-step lives in the session plan
+> `.claude/plans/purring-herding-gosling.md`; the scaffold is `KrotenheerdtTorusMapSearch.scala`.
