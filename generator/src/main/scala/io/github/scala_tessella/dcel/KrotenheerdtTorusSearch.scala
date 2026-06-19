@@ -567,6 +567,9 @@ object KrotenheerdtTorusSearch:
       bB: BigPoint,
       originB: BigPoint
   ): (Map[(Long, Long), List[((Long, Long), ZetaPoint, FaceZ)]], Map[(Long, Long), Map[Long, Int]]) =
+    // Verify-horizon (gated), not the per-state hot path — kept fully exact (BigDecimal tkey + centroid). The
+    // fan-union angle buckets are sensitive: a Double centroid flips the 6.6.6 hexagon's symmetric 60° angles
+    // on a rounding boundary and drops the tiling.
     val byTorus = faces
       .flatMap(f => f.corners.map(p => (tkey(p.toBigPoint, aB, bB, originB), p, f)))
       .groupBy(_._1)
@@ -596,11 +599,17 @@ object KrotenheerdtTorusSearch:
     * engine.
     */
   private def classify(faces: List[FaceZ], vB: BigPoint, wB: BigPoint, originB: BigPoint, n: Int): Verdict =
-    val distinctFaces = faces
-      .map(f => (f.size, f.centroid))
-      .distinctBy((s, c) => (s, tkey(c, vB, wB, originB)))
-    val (pv, pw)      = KrotenheerdtLatticeSearch.primitiveBasis(vB, wB, originB, distinctFaces, Nil)
-    val pcov          = cross(pv, pw).abs
+    // Dedup the cell content by Double residue first, so the exact BigDecimal `centroid` is computed only for
+    // the few distinct faces (≈ cell size), not for every face in the patch.
+    def distinctOf(aB: BigPoint, bB: BigPoint): List[(Int, BigPoint)] =
+      val ax  = aB.x.toDouble; val ay = aB.y.toDouble; val bx = bB.x.toDouble; val by = bB.y.toDouble
+      val det = ax * by - ay * bx
+      faces.distinctBy(f => (f.size, tkeyD(f.cD._1, f.cD._2, ax, ay, bx, by, det))).map(f =>
+        (f.size, f.centroid)
+      )
+    val distinctFaces                                                 = distinctOf(vB, wB)
+    val (pv, pw)                                                      = KrotenheerdtLatticeSearch.primitiveBasis(vB, wB, originB, distinctFaces, Nil)
+    val pcov                                                          = cross(pv, pw).abs
     if distinctArea(faces, pv, pw) < pcov - BigDecimal("1e-6") then Verdict.Grow
     else
       val (byTorus, fans) = reconstructFans(faces, pv, pw, originB)
@@ -610,9 +619,7 @@ object KrotenheerdtTorusSearch:
         val types = sigs.values.toSet
         if types.sizeIs != n then Verdict.Prune
         else
-          val faceList =
-            faces.map(f => (f.size, f.centroid)).distinctBy((s, c) => (s, tkey(c, pv, pw, originB)))
-          val verts    = sigs.toList.map((tk, sig) => (sig.mkString("."), byTorus(tk).head._2.toBigPoint))
-          KrotenheerdtLatticeSearch.verifyContent(pv, pw, originB, faceList, verts, types, n) match
+          val verts = sigs.toList.map((tk, sig) => (sig.mkString("."), byTorus(tk).head._2.toBigPoint))
+          KrotenheerdtLatticeSearch.verifyContent(pv, pw, originB, distinctOf(pv, pw), verts, types, n) match
             case Some((t, key)) => Verdict.Emit(t, key)
             case None           => Verdict.Prune
