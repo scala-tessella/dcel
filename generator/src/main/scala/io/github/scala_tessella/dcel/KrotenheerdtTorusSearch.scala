@@ -279,7 +279,7 @@ object KrotenheerdtTorusSearch:
     // The generous old bound (×6) let high-covolume *spurious* (near-miss) lattices grow large before dying.
     val growthCells = sys.props.get("krot.growcells").map(_.toDouble).getOrElse((n + 2).toDouble)
 
-    val visited = mutable.HashSet.empty[String]
+    val visited = mutable.HashSet.empty[Vector[Long]]
     val stack   = mutable.Stack.empty[List[FaceZ]]
     var count   = 0L
 
@@ -351,19 +351,25 @@ object KrotenheerdtTorusSearch:
   /** Exact dedup key invariant under Λ's point group + translation — the trig-free replacement for the DCEL
     * engine's expensive `congruenceKey` (ADR-0019 §Performance: 45 %, irreducible). For each lattice
     * automorphism `g`, transform the corners, translation-anchor on the lexicographically minimal corner,
-    * sort faces and corners, and take the min serialization over all `g`. Collapses the symmetric-image
-    * duplicates that an absolute key leaves un-merged (the ~2.5× state inflation), at the cost of
-    * small-integer work only.
+    * sort faces and corners, and take the min over all `g`. Collapses the symmetric-image duplicates that an
+    * absolute key leaves un-merged (the ~2.5× state inflation).
+    *
+    * Emitted as a flat `Vector[Long]` — each face contributes `[size, a0,a1,a2,a3, …]` and the size prefix
+    * makes the concatenation of the sorted face vectors self-delimiting (so the flat key is injective on
+    * patches). This replaced a per-`g` `String` build (up to 12 string serializations per child for hexagonal
+    * lattices): far less allocation, which both speeds the inner loop and removes the GC contention that
+    * capped parallel scaling.
     */
-  private def canonicalKey(faces: List[FaceZ], autos: List[ZetaPoint => ZetaPoint]): String =
+  private def canonicalKey(faces: List[FaceZ], autos: List[ZetaPoint => ZetaPoint]): Vector[Long] =
+    import scala.math.Ordering.Implicits.seqOrdering
     autos.iterator.map: g =>
       val tf     = faces.map(f => (f.size, f.corners.map(g)))
       val anchor = tf.iterator.flatMap(_._2).min
-      tf.map((s, cs) =>
-        s"$s:" + cs.map(_ - anchor).sorted.iterator.map(z => s"${z.a0},${z.a1},${z.a2},${z.a3}").mkString(";")
-      )
-        .sorted
-        .mkString("|")
+      tf.map: (s, cs) =>
+        s.toLong +: cs.map(_ - anchor).sorted.flatMap(z => Vector(z.a0, z.a1, z.a2, z.a3))
+      .sorted
+        .flatten
+        .toVector
     .min
 
   // ---- torus bookkeeping (shared conventions with verifyTorus) ----------------------------------------
