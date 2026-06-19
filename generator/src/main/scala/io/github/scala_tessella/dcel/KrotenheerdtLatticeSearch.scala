@@ -346,6 +346,27 @@ object KrotenheerdtLatticeSearch:
     if orbits != n then None
     else Some((types, torusContentKey(pv, pw, origin, faces, verts)))
 
+  /** Combined-pass gate: accept the cell iff it is a Krotenheerdt tiling for SOME n ≤ `maxN` — i.e. its
+    * vertex ORBITS equal its type count (the A068600 condition: n-uniform with n vertex types). Returns that
+    * `n` and the canonical key, so one search bucketed by `n` yields the whole sequence at once.
+    */
+  private[dcel] def verifyContentAnyN(
+      v: BigPoint,
+      w: BigPoint,
+      origin: BigPoint,
+      faces: List[(Int, BigPoint)],
+      verts: List[(String, BigPoint)],
+      types: Set[VertexSignature],
+      maxN: Int
+  ): Option[(Int, String)] =
+    val n = types.size
+    if n > maxN then None
+    else
+      val (pv, pw) = primitiveBasis(v, w, origin, faces, verts)
+      val orbits   = vertexOrbits(pv, pw, faces, verts)
+      if orbits != n then None
+      else Some((n, torusContentKey(pv, pw, origin, faces, verts)))
+
   /** The primitive lattice of a cell's content, of any sublattice index. Candidate periods are the
     * differences of same-type face centroids AND same-type vertex positions (plus the candidate basis v0,
     * w0), kept iff they preserve BOTH the face and vertex content mod Λ; the two shortest independent ones,

@@ -236,7 +236,8 @@ object KrotenheerdtTorusSearch:
           perCap,
           grower,
           completion,
-          (t, key) => found.putIfAbsent(key, t): Unit
+          (f, v, w, o) => classify(f, v, w, o, n),
+          (_, t, key) => found.putIfAbsent(key, t): Unit
         )
       states.addAndGet(count)
       if wasCapped then capped.incrementAndGet()
@@ -256,18 +257,77 @@ object KrotenheerdtTorusSearch:
       )
     Outcome(found.asScala.toList.map((key, t) => (t, key)).sortBy(_._2), bases.size, states.get)
 
+  /** Combined all-n pass: one search over the candidate lattices that keeps EVERY Krotenheerdt tiling with
+    * `n ≤ maxN` (accepted via [[classifyAnyN]] when orbits = types), tagged by its `n`. Growth uses the loose
+    * `≤ maxN` type prune, so the expensive near-miss/lattice work is done ONCE instead of once per n — the
+    * lever for enumerating the whole A068600 table in a single sweep. Returns `(n, types, key)` per tiling.
+    */
+  def enumerateCombined(
+      maxN: Int,
+      k: Int,
+      maxCovolume: Double,
+      parallelism: Int = 1,
+      log: String => Unit = _ => ()
+  ): List[(Int, Set[VertexSignature], String)] =
+    import java.util.concurrent.ConcurrentHashMap
+    import java.util.concurrent.atomic.AtomicLong
+    import scala.jdk.CollectionConverters.*
+    val bases                                      = candidateBasesZeta(k, maxCovolume)
+    val found                                      = new ConcurrentHashMap[String, (Int, Set[VertexSignature])]()
+    val states                                     = new AtomicLong(0)
+    val done                                       = new AtomicLong(0)
+    val capped                                     = new AtomicLong(0)
+    val faceCap                                    = sys.props.get("krot.facecap").map(_.toInt).getOrElse(64)
+    val perCap                                     = sys.props.get("krot.percap").map(_.toLong).getOrElse(100000L)
+    val grower                                     = (f: List[FaceZ], v: BigPoint, w: BigPoint) => growByCompletion(f, v, w, maxN)
+    log(s"combined n≤$maxN k=$k maxCovol=$maxCovolume: ${bases.size} candidate lattices")
+    def runOne(vz: ZetaPoint, wz: ZetaPoint): Unit =
+      val (count, wasCapped) =
+        runLattice(
+          maxN,
+          vz,
+          wz,
+          faceCap,
+          perCap,
+          grower,
+          true,
+          (f, v, w, o) => classifyAnyN(f, v, w, o, maxN),
+          (nn, t, key) => found.putIfAbsent(key, (nn, t)): Unit
+        )
+      states.addAndGet(count)
+      if wasCapped then capped.incrementAndGet()
+      val d                  = done.incrementAndGet()
+      if d % 200 == 0 then
+        val byN = found.values.asScala.groupBy(_._1).view.mapValues(_.size).toList.sortBy(_._1)
+        log(
+          s"  lattices $d/${bases.size}, states=${states.get}, found=${found.size} $byN, capped=${capped.get}"
+        )
+    if parallelism <= 1 then bases.foreach((vz, wz) => runOne(vz, wz))
+    else
+      val pool = java.util.concurrent.Executors.newFixedThreadPool(parallelism)
+      try bases.foreach((vz, wz) => pool.submit(new Runnable { def run(): Unit = runOne(vz, wz) }))
+      finally
+        pool.shutdown()
+        pool.awaitTermination(7, java.util.concurrent.TimeUnit.DAYS)
+    if capped.get > 0 then
+      log(
+        s"  WARNING: ${capped.get} lattice(s) hit the ${perCap}-state cap (krot.percap) — completeness caveat"
+      )
+    found.asScala.toList.map((key, nt) => (nt._1, nt._2, key)).sortBy((nn, _, key) => (nn, key))
+
   /** Grow every Λ-consistent patch from each seed orientation; verify completed cells. Returns the state
     * count.
     */
   private def runLattice(
-      n: Int,
+      growthN: Int,
       vz: ZetaPoint,
       wz: ZetaPoint,
       faceCap: Int,
       perCap: Long,
       grower: (List[FaceZ], BigPoint, BigPoint) => List[List[FaceZ]],
       coronaSeed: Boolean,
-      emit: (Set[VertexSignature], String) => Unit
+      classifyFn: (List[FaceZ], BigPoint, BigPoint, BigPoint) => Verdict,
+      emit: (Int, Set[VertexSignature], String) => Unit
   ): (Long, Boolean) =
     val vB          = vz.toBigPoint
     val wB          = wz.toBigPoint
@@ -277,7 +337,7 @@ object KrotenheerdtTorusSearch:
     // Grow a branch only until its distinct content plus a thin verification corona is placed: an n-uniform
     // cell verifies once each of its ~n vertex orbits has a reconstructable fan (~n+2 cells of total area).
     // The generous old bound (×6) let high-covolume *spurious* (near-miss) lattices grow large before dying.
-    val growthCells = sys.props.get("krot.growcells").map(_.toDouble).getOrElse((n + 2).toDouble)
+    val growthCells = sys.props.get("krot.growcells").map(_.toDouble).getOrElse((growthN + 2).toDouble)
 
     val visited = mutable.HashSet.empty[Vector[Long]]
     val stack   = mutable.Stack.empty[List[FaceZ]]
@@ -314,12 +374,12 @@ object KrotenheerdtTorusSearch:
         val likelyField = faces.groupBy(_.size).valuesIterator.exists(_.sizeIs >= 8)
         val verdict     =
           if distinct >= covol - BigDecimal("1e-6") || likelyField || hasShortSubPeriod(faces, vB, wB) then
-            classify(faces, vB, wB, originB, n)
+            classifyFn(faces, vB, wB, originB)
           else Verdict.Grow
         verdict match
-          case Verdict.Emit(t, key) => emit(t, key)
-          case Verdict.Prune        => ()
-          case Verdict.Grow         =>
+          case Verdict.Emit(nn, t, key) => emit(nn, t, key)
+          case Verdict.Prune            => ()
+          case Verdict.Grow             =>
             if faces.sizeIs < faceCap && total < covol * growthCells then
               grower(faces, vB, wB).foreach: child =>
                 if visited.add(canonicalKey(child, autos)) then stack.push(child)
@@ -558,11 +618,22 @@ object KrotenheerdtTorusSearch:
 
   // ---- verification (reuses the DCEL engine's proven tail) --------------------------------------------
 
-  /** Outcome of classifying a grown patch against its own primitive period. */
+  /** Outcome of classifying a grown patch against its own primitive period. `Emit` carries the tiling's `n`.
+    */
   private enum Verdict:
-    case Emit(types: Set[VertexSignature], key: String)
+    case Emit(n: Int, types: Set[VertexSignature], key: String)
     case Prune
     case Grow
+
+  /** Dedup a patch's cell content by Double residue, then take the exact BigDecimal centroid only for the few
+    * distinct faces (≈ cell size).
+    */
+  private def distinctFacesOf(faces: List[FaceZ], aB: BigPoint, bB: BigPoint): List[(Int, BigPoint)] =
+    val ax  = aB.x.toDouble; val ay = aB.y.toDouble; val bx = bB.x.toDouble; val by = bB.y.toDouble
+    val det = ax * by - ay * bx
+    faces.distinctBy(f => (f.size, tkeyD(f.cD._1, f.cD._2, ax, ay, bx, by, det))).map(f =>
+      (f.size, f.centroid)
+    )
 
   /** Reconstruct each torus vertex's full fan (mod the basis aB, bB) by unioning the incident corners of all
     * its planar instances, keyed by angle — exactly `verifyTorus`'s union reconstruction, on ZetaPoints.
@@ -605,27 +676,70 @@ object KrotenheerdtTorusSearch:
     * engine.
     */
   private def classify(faces: List[FaceZ], vB: BigPoint, wB: BigPoint, originB: BigPoint, n: Int): Verdict =
-    // Dedup the cell content by Double residue first, so the exact BigDecimal `centroid` is computed only for
-    // the few distinct faces (≈ cell size), not for every face in the patch.
-    def distinctOf(aB: BigPoint, bB: BigPoint): List[(Int, BigPoint)] =
-      val ax  = aB.x.toDouble; val ay = aB.y.toDouble; val bx = bB.x.toDouble; val by = bB.y.toDouble
-      val det = ax * by - ay * bx
-      faces.distinctBy(f => (f.size, tkeyD(f.cD._1, f.cD._2, ax, ay, bx, by, det))).map(f =>
-        (f.size, f.centroid)
-      )
-    val distinctFaces                                                 = distinctOf(vB, wB)
-    val (pv, pw)                                                      = KrotenheerdtLatticeSearch.primitiveBasis(vB, wB, originB, distinctFaces, Nil)
-    val pcov                                                          = cross(pv, pw).abs
-    if distinctArea(faces, pv, pw) < pcov - BigDecimal("1e-6") then Verdict.Grow
+    cellData(faces, vB, wB, originB) match
+      case Left(verdict)                 => verdict
+      case Right((pv, pw, verts, types)) =>
+        if types.sizeIs != n then Verdict.Prune
+        else
+          KrotenheerdtLatticeSearch.verifyContent(
+            pv,
+            pw,
+            originB,
+            distinctFacesOf(faces, pv, pw),
+            verts,
+            types,
+            n
+          ) match
+            case Some((t, key)) => Verdict.Emit(n, t, key)
+            case None           => Verdict.Prune
+
+  /** The combined-pass classifier: accept the cell for SOME n ≤ `maxN` (its orbits equal its type count), so
+    * a single search bucketed by `n` yields the whole A068600 sequence — the expensive near-miss/lattice work
+    * is done once instead of once per n. Same primitive-period soundness as [[classify]].
+    */
+  private def classifyAnyN(
+      faces: List[FaceZ],
+      vB: BigPoint,
+      wB: BigPoint,
+      originB: BigPoint,
+      maxN: Int
+  ): Verdict =
+    cellData(faces, vB, wB, originB) match
+      case Left(verdict)                 => verdict
+      case Right((pv, pw, verts, types)) =>
+        if types.sizeIs > maxN then Verdict.Prune
+        else
+          KrotenheerdtLatticeSearch.verifyContentAnyN(
+            pv,
+            pw,
+            originB,
+            distinctFacesOf(faces, pv, pw),
+            verts,
+            types,
+            maxN
+          ) match
+            case Some((nn, key)) => Verdict.Emit(nn, types, key)
+            case None            => Verdict.Prune
+
+  /** Shared classify prefix: classify the patch at its own primitive period up to the completed-cell content.
+    * `Left(Grow)` if the cell is not yet covered or a fan is incomplete (a half-built big cell has incomplete
+    * boundary fans — the soundness guard); `Right((pv, pw, verts, types))` for a finished cell to be gated.
+    */
+  private def cellData(
+      faces: List[FaceZ],
+      vB: BigPoint,
+      wB: BigPoint,
+      originB: BigPoint
+  ): Either[Verdict, (BigPoint, BigPoint, List[(String, BigPoint)], Set[VertexSignature])] =
+    val (pv, pw) =
+      KrotenheerdtLatticeSearch.primitiveBasis(vB, wB, originB, distinctFacesOf(faces, vB, wB), Nil)
+    val pcov     = cross(pv, pw).abs
+    if distinctArea(faces, pv, pw) < pcov - BigDecimal("1e-6") then Left(Verdict.Grow)
     else
       val (byTorus, fans) = reconstructFans(faces, pv, pw, originB)
-      if fans.exists((_, f) => !fanComplete(f)) then Verdict.Grow
+      if fans.exists((_, f) => !fanComplete(f)) then Left(Verdict.Grow)
       else
         val sigs  = fans.view.mapValues(f => VertexTypes.normalize(f.toList.sortBy(_._1).map(_._2))).toMap
         val types = sigs.values.toSet
-        if types.sizeIs != n then Verdict.Prune
-        else
-          val verts = sigs.toList.map((tk, sig) => (sig.mkString("."), byTorus(tk).head._2.toBigPoint))
-          KrotenheerdtLatticeSearch.verifyContent(pv, pw, originB, distinctOf(pv, pw), verts, types, n) match
-            case Some((t, key)) => Verdict.Emit(t, key)
-            case None           => Verdict.Prune
+        val verts = sigs.toList.map((tk, sig) => (sig.mkString("."), byTorus(tk).head._2.toBigPoint))
+        Right((pv, pw, verts, types))

@@ -34,3 +34,13 @@ class KrotenheerdtTorusSearchSpec extends AnyFlatSpec with Matchers:
       .map(_._2)
       .toSet
     torusKeys shouldBe dcelKeys
+
+  it should "reproduce the per-n results in a single combined all-n pass (bucketed by n)" in:
+    // One search with the ≤maxN type prune must, bucketed by n, give exactly the same keys per n as the
+    // dedicated fixed-n runs — the property that lets one sweep produce the whole A068600 table.
+    val (k, covol, maxN) = (4, 6.0, 2)
+    val combined         = KrotenheerdtTorusSearch.enumerateCombined(maxN, k, covol, parallelism = 4)
+    for n <- 1 to maxN do
+      val fixedKeys    = KrotenheerdtTorusSearch.enumerate(n, k, covol, parallelism = 4).tilings.map(_._2).toSet
+      val combinedKeys = combined.collect { case (m, _, key) if m == n => key }.toSet
+      withClue(s"n=$n: ")(combinedKeys shouldBe fixedKeys)
