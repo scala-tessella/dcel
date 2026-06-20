@@ -1096,3 +1096,64 @@ object DelaneySymbols:
     val c0                                    = Array.fill(maxSize + 2)(0); c0(1) = 1
     go(DSet.empty1, c0)
     (nodes, regSeen.size.toLong)
+
+  // ---- ADR-0023 orbit-bounded enumeration: prune by CLOSED-vertex count (monotonic ⇒ fires early) -------
+
+  /** Number of fully-CLOSED 12-orbits (vertices) in `ds`. A closed 12-orbit can never merge with another as
+    * more chambers are added, so this count is MONOTONIC non-decreasing — making "≤ k vertices" a SOUND,
+    * EARLY-firing prune (it fires as the (k+1)-th vertex closes, long before completion), unlike the
+    * euclidean condition. The minimal symbol of an n-uniform tiling has exactly n such orbits.
+    */
+  private def closedVertexCount(ds: DSet): Int =
+    val seen  = Array.fill(ds.size + 1)(false)
+    var count = 0
+    var d     = 1
+    while d <= ds.size do
+      if !seen(d) then
+        var e = d; var k = 1; var closed = true; var go = true
+        while go do
+          if !seen(e) then seen(e) = true
+          val ek = ds.get(k, e)
+          if ek == 0 then { closed = false; go = false }
+          else { e = ek; k = 3 - k; if e == d && k == 1 then go = false }
+        if closed then count += 1
+      d += 1
+    count
+
+  /** Generate-all D-set enumeration ([[DSetGenerator]]'s structure) PLUS the monotonic `closedVertexCount ≤
+    * maxOrbits` prune — the orbit-bounded enumeration. Counts `(dsetsWalked, regularEuclideanTilings)` so it
+    * can be compared to [[generationStats]] (unbounded). The prune bounds the search by vertex-orbit count,
+    * not chamber count.
+    */
+  def orbitBoundedStats(maxN: Int, maxSize: Int): (Long, Long) =
+    var total                      = 0L
+    val regSeen                    = mutable.HashSet.empty[String]
+    def go(st: DSetGenState): Unit =
+      firstUndefined(st.ds) match
+        case None         =>
+          total += 1
+          if euclideanFeasible(st.ds) then
+            DSymGenerator(st.ds).foreach: dsym =>
+              if isEuclidean(dsym) then
+                regularPolygonVertices(dsym).foreach: sigs =>
+                  if sigs.length == sigs.toSet.size && sigs.length <= maxN && isMinimal(dsym) then
+                    regSeen.add(canonicalKey(dsym))
+        case Some((d, i)) =>
+          var e   = d
+          val cap = math.min(st.ds.size + 1, maxSize)
+          while e <= cap do
+            if st.ds.get(i, e) == 0 then
+              val isRemapStart         = st.isRemapStart.clone()
+              val dset                 = if e > st.ds.size then { isRemapStart(e) = true; st.ds.grown }
+              else st.ds.copy
+              dset.set(i, d, e)
+              val (head, tail, gap, k) = scan02Orbit(dset, d)
+              var ok                   = true
+              if gap == 1 then dset.set(k, head, tail)
+              else if gap == 0 && head != tail then ok = false
+              if ok && closedVertexCount(dset) <= maxN && regularFeasible(dset)
+                && checkCanonicity(dset, isRemapStart)
+              then go(DSetGenState(dset, isRemapStart))
+            e += 1
+    go(DSetGenState(DSet.empty1, Array.fill(maxSize + 1)(false)))
+    (total, regSeen.size.toLong)
