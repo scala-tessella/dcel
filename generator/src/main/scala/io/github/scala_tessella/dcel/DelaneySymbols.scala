@@ -819,33 +819,52 @@ object DelaneySymbols:
     * its mirror minimal symbol); the A068600 vertex-orbit count is then taken on the FULL [[minimalSymbol]]
     * (whose automorphisms include the orientation-reversing reflections), so nothing is lost.
     */
-  final private class OrientedDSetGenerator(maxSize: Int) extends BackTracker[DSet, DSetGenState]:
-    def root: DSetGenState = DSetGenState(DSet.empty1, Array.fill(maxSize + 1)(false))
+  /** Generator state carrying an incremental 2-colouring (`color(d) ∈ {+1,−1}`, 0 = uncoloured): every `σ_i`
+    * pairing must join opposite colours, so orientability is maintained in O(1) per added edge instead of an
+    * O(size) BFS per node — the bottleneck at scale.
+    */
+  final private case class OrientedGenState(ds: DSet, isRemapStart: Array[Boolean], color: Array[Int])
 
-    def extract(st: DSetGenState): Option[DSet] =
+  final private class OrientedDSetGenerator(maxSize: Int) extends BackTracker[DSet, OrientedGenState]:
+    def root: OrientedGenState =
+      val c = Array.fill(maxSize + 2)(0); c(1) = 1
+      OrientedGenState(DSet.empty1, Array.fill(maxSize + 1)(false), c)
+
+    // isWeaklyOriented/isLoopless are GUARANTEED by the incremental colouring + no-fixed-point construction;
+    // kept here only as a cheap correctness backstop on completed symbols.
+    def extract(st: OrientedGenState): Option[DSet] =
       if firstUndefined(st.ds).isEmpty && isLoopless(st.ds) && isWeaklyOriented(st.ds) then Some(st.ds)
       else None
 
-    def children(st: DSetGenState): List[DSetGenState] =
+    def children(st: OrientedGenState): List[OrientedGenState] =
       firstUndefined(st.ds) match
         case None         => Nil
         case Some((d, i)) =>
-          val out = List.newBuilder[DSetGenState]
-          var e   = d + 1 // NO fixed point: never pair a chamber with itself (that would be a mirror)
+          val out = List.newBuilder[OrientedGenState]
+          val cd  = st.color(d) // d is connected to chamber 1, hence already coloured
+          var e   = d + 1       // NO fixed point: never pair a chamber with itself (that would be a mirror)
           val cap = math.min(st.ds.size + 1, maxSize)
           while e <= cap do
-            if st.ds.get(i, e) == 0 then
+            // orientation prune (O(1)): a new chamber takes the opposite colour; an existing one must hold it
+            if st.ds.get(i, e) == 0 && (e > st.ds.size || st.color(e) == -cd) then
               val isRemapStart         = st.isRemapStart.clone()
               val dset                 = if e > st.ds.size then { isRemapStart(e) = true; st.ds.grown }
               else st.ds.copy
               dset.set(i, d, e)
+              val color                = st.color.clone()
+              color(e) = -cd
               val (head, tail, gap, k) = scan02Orbit(dset, d)
               var ok                   = true
-              if gap == 1 then { if head == tail then ok = false else dset.set(k, head, tail) }
+              if gap == 1 then
+                // the manifold-closure edge must also join opposite colours, else this is non-orientable
+                if head == tail || (color(head) != 0 && color(tail) != 0 && color(head) != -color(tail)) then
+                  ok = false
+                else
+                  dset.set(k, head, tail)
+                  if color(head) == 0 then color(head) = -color(tail) else color(tail) = -color(head)
               else if gap == 0 && head != tail then ok = false
-              if ok && isLoopless(dset) && regularFeasible(dset) && isWeaklyOriented(dset)
-                && checkCanonicity(dset, isRemapStart)
-              then out += DSetGenState(dset, isRemapStart)
+              if ok && regularFeasible(dset) && checkCanonicity(dset, isRemapStart) then
+                out += OrientedGenState(dset, isRemapStart, color)
             e += 1
           out.result()
 
@@ -888,3 +907,35 @@ object DelaneySymbols:
               if msigs.length == msigs.toSet.size && msigs.length <= maxN && seen.add(canonicalKey(mn)) then
                 reg += 1
     (total, eucl, reg)
+
+  /** Profiling breakdown of [[orientedRegularSymbols]] — prints where wall-clock goes (generation+euclidean
+    * gate vs `DSymGenerator` vs `minimalSymbol` vs `canonicalKey`) so the bottleneck is measured, not
+    * guessed.
+    */
+  def orientedProfile(maxN: Int, maxSize: Int): String =
+    var nDset    = 0L; var nEuc       = 0L; var nDsym = 0L; var nReg = 0L
+    var tEuc     = 0L; var tDsymBlock = 0L; var tBody = 0L
+    val seen     = mutable.Set.empty[String]
+    val t0       = System.nanoTime()
+    OrientedDSetGenerator(maxSize).foreach: dset =>
+      nDset += 1
+      val e0 = System.nanoTime(); val ef = euclideanFeasible(dset); tEuc += System.nanoTime() - e0
+      if ef then
+        nEuc += 1
+        val db = System.nanoTime()
+        DSymGenerator(dset).foreach: dsym =>
+          nDsym += 1
+          val b0 = System.nanoTime()
+          if isEuclidean(dsym) && regularPolygonVertices(dsym).isDefined then
+            nReg += 1
+            val mn = minimalSymbol(dsym)
+            regularPolygonVertices(mn).foreach: msigs =>
+              if msigs.length == msigs.toSet.size && msigs.length <= maxN then seen.add(canonicalKey(mn))
+          tBody += System.nanoTime() - b0
+        tDsymBlock += System.nanoTime() - db
+    val tot      = System.nanoTime() - t0
+    val tDsymGen = tDsymBlock - tBody
+    val tGen     = tot - tEuc - tDsymBlock
+    f"total ${tot / 1e9}%.1fs | dsets=$nDset euc=$nEuc dsym=$nDsym reg=$nReg | " +
+      f"generation=${tGen / 1e9}%.1fs euclFeasible=${tEuc / 1e9}%.1fs DSymGen=${tDsymGen /
+          1e9}%.1fs body=${tBody / 1e9}%.1fs"
