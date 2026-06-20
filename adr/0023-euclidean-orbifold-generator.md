@@ -222,21 +222,23 @@ in the project that is sound, complete-in-principle, AND escapes both walls (cov
 — because it is bounded by the SMALL oriented orbifold symbol, not the translation cell or the 2-manifold
 D-set count.
 
-**It CROSSES n = 3 — the project's first.** `OrbifoldPushProbe` at oriSize 32 (124 s):
+**It CROSSES n = 3 — the project's first.** `OrbifoldPushProbe`, counts (got / A068600) that GROW with the
+chamber budget:
 
-| n | got / A068600 |
-|---|---------------|
-| 1 | **11 / 11 COMPLETE** |
-| 2 | 19 / 20 |
-| 3 | 28 / 39 |
-| 4 | **3 / 33** |
-| 5 | **1 / 15** |
-| 6 | 0 / 10 |
-| 7 | 0 / 7 |
+| n | oriSize 32 (124 s) | oriSize 34 (286 s) |
+|---|--------------------|--------------------|
+| 1 | **11 / 11 ✓** | **11 / 11 ✓** |
+| 2 | 19 / 20 | 19 / 20 |
+| 3 | 28 / 39 | 29 / 39 |
+| 4 | **3 / 33** | **5 / 33** |
+| 5 | **1 / 15** | **1 / 15** |
+| 6 | 0 / 10 | 0 / 10 |
+| 7 | 0 / 7 | 0 / 7 |
 
 So it reaches **n = 4 and n = 5** — genuine 4- and 5-uniform tilings, which generate-all (n ≤ 3 wall) and the
-bounded-V assembler (covolume wall) both cannot produce. The counts are LOWER BOUNDS at this budget: a tiling
-appears once its oriented double fits in `oriSize`, and many n ≥ 3 doubles exceed 32 chambers.
+bounded-V assembler (covolume wall) both cannot produce — and the counts rise monotonically with budget
+(n = 4: 3 → 5 over +2 chambers). The counts are LOWER BOUNDS: a tiling appears once its oriented double fits
+`oriSize`, and the low-symmetry n ≥ 3 doubles exceed these budgets.
 
 **Status: Stage 1 oriented-slice BUILT, VALIDATED, and REACHING n = 4–5.**
 
