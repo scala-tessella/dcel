@@ -267,6 +267,30 @@ proper) after all, OR interleaving v-assignment with generation so the euclidean
 ~96 % non-euclidean D-sets during generation (the generation, not minimization, is the wall). The oriented
 generator stands as the validated engine that first crossed n = 3; the next build is halving the chamber count.
 
+### Interleaved euclidean prune — BUILT, validated, but NET-NEGATIVE (2026-06-20)
+
+Implemented the interleaved v-assignment as the exact **360° vertex prune** during generation
+(`vertexAngleFeasible` / `verticesAngleFeasible`): regular `{3,4,6,8,12}`-gon interior angles are integers
+(60/90/120/135/150), so when a vertex's corona of closed tiles can no longer sum to 360° for any valid degree,
+the partial map is provably hyperbolic and is dropped. SOUND (a real euclidean tiling always passes) and
+powerful at the OUTPUT: complete euclidean D-sets fall **52 835 → 517** at oriSize 28 (every generated D-set is
+now euclidean), with the tiling count unchanged (`reg` = 218) — it is even stronger than the curvature gate
+(517 < the 2 252 that pass `euclideanFeasible`).
+
+**But it does not speed generation — it is slightly SLOWER** (oriSize 28: 6.1 → 6.3 s; oriSize 34 push:
+286 → 326 s). Measured cause: with the chamber-by-chamber CANONICAL D-set order, a vertex corona only completes
+near full size, so the angle check fires too LATE to prune the upper partial tree — whose cost
+(`checkCanonicity`, O(size²) per node) is the true wall — while the check itself adds per-node cost. The
+"fires early on a partial corona" refinement did not help (coronas form late regardless of the check). So the
+prune is **left in the code but unwired** (a `NOTE` at the generator guard records this), available for a
+generation order where it WOULD pay off.
+
+**The firm conclusion:** the speed wall is the **canonical D-set enumeration order**, not the v-assignment.
+Breaking it requires a **corona-first / vertex-star generation** (build a whole valid 360° vertex before
+moving on, à la Galebach) so the euclidean constraint prunes from the top of the tree — a different generator,
+the genuine next build. The oriented generator + its 1.6× orientation optimization remain the validated state
+of the art here (first to cross n = 3; n = 4 = 5/33, n = 5 = 1/15, growing with budget).
+
 ## Validation ladder
 
 1. **Oracle cross-check:** the existing `DelaneySymbols` engine is correct through n = 3 — the new generator

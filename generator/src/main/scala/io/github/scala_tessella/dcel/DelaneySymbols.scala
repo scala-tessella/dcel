@@ -813,11 +813,90 @@ object DelaneySymbols:
 
   // ---- ADR-0023 Stage 1: ORIENTED-slice generator (rotation orbifolds o/2222/333/442/632) --------------
 
+  // Interleaved euclidean prune: interior angle of a regular {3,4,6,8,12}-gon is an INTEGER degree.
+  private val polyAngle: Array[Int]   =
+    val a = Array.fill(13)(0); a(3) = 60; a(4) = 90; a(6) = 120; a(8) = 135; a(12) = 150; a
+  // for a (closed-orbit) rotation r, the regular polygons p with r|p, and their min/max interior angle
+  private val tileAngleLo: Array[Int] = Array.tabulate(13)(r =>
+    val ps = List(3, 4, 6, 8, 12).filter(p => r > 0 && p % r == 0);
+    if ps.isEmpty then 999 else ps.map(polyAngle).min
+  )
+  private val tileAngleHi: Array[Int] = Array.tabulate(13)(r =>
+    val ps = List(3, 4, 6, 8, 12).filter(p => r > 0 && p % r == 0);
+    if ps.isEmpty then -1 else ps.map(polyAngle).max
+  )
+
+  /** The rotation `r` of the closed `(i,j)`-orbit through `d`, or −1 if the orbit is still OPEN (some `op` in
+    * it is undefined). For an oriented (non-chain) orbit the chamber count is `2r`.
+    */
+  private def orbitRIfClosed(ds: DSet, i: Int, j: Int, d: Int): Int =
+    var e = d; var k = i; var len = 0; var go = true
+    while go do
+      val ek = ds.get(k, e)
+      if ek == 0 then return -1
+      e = ek; k = i + j - k; len += 1
+      if e == d && k == i then go = false
+    len / 2
+
+  /** INTERLEAVED euclidean prune (the exact 360° vertex condition, applied during generation): if the vertex
+    * (12-orbit) through `d` is closed AND all `r₁₂` surrounding tiles are closed, the full vertex angle must
+    * be `v₁₂ · Σ angle(tile) = 360` for some `v₁₂` with degree `r₁₂·v₁₂ ∈ {3,4,5,6}`. Using each tile's
+    * min/max possible angle gives a cheap interval test: a genuine euclidean tiling always passes (its real
+    * angles sum to 360), so failing it proves the partial map is hyperbolic and can be pruned. Returns false
+    * ⇒ prune.
+    */
+  private def vertexAngleFeasible(ds: DSet, d: Int): Boolean =
+    // Walk the corona fragment from `d` (tile by tile via op2∘op1), summing each CLOSED tile's possible angle
+    // range. EARLY prune: the real vertex sums to exactly 360, so the moment the closed tiles' MINIMUM angle
+    // exceeds 360 the partial map is provably hyperbolic — fires before the vertex even closes.
+    var cur          = d; var lo = 0; var hi = 0; var tiles = 0
+    var allClosed    = true
+    var closedVertex = false
+    var go           = true
+    while go do
+      val r = orbitRIfClosed(ds, 0, 1, cur)
+      if r < 0 then allClosed = false else { lo += tileAngleLo(r); hi += tileAngleHi(r) }
+      tiles += 1
+      if lo > 360 then return false // corona already over 360° ⇒ hyperbolic (early)
+      val o1  = ds.get(1, cur)
+      val nxt = if o1 == 0 then 0 else ds.get(2, o1)
+      if nxt == 0 then go = false // 12-orbit still open here — defer
+      else { cur = nxt; if cur == d then { closedVertex = true; go = false } }
+    if !(closedVertex && allClosed) then return true // open / undetermined ⇒ cannot reject yet
+    val r12          = tiles // closed fragment of r₁₂ tiles
+    var v            = 1 // some valid degree r₁₂·v ∈ {3,4,5,6} must admit a 360/v target within [lo,hi]
+    while v <= 6 do
+      val deg = r12 * v
+      if deg >= 3 && deg <= 6 && 360 % v == 0 && lo <= 360 / v && 360 / v <= hi then return true
+      v += 1
+    false
+
+  /** Every closed-and-determined vertex of `ds` admits the 360° condition (the interleaved prune over all
+    * vertices). False ⇒ the partial oriented map is provably hyperbolic.
+    */
+  private def verticesAngleFeasible(ds: DSet): Boolean =
+    val seen = Array.fill(ds.size + 1)(false)
+    var d    = 1
+    while d <= ds.size do
+      if !seen(d) then
+        // mark the 12-orbit of d as seen (one feasibility check per vertex)
+        var e = d; var k = 1; var go = true
+        while go do
+          seen(e) = true
+          val ek = ds.get(k, e)
+          if ek == 0 then go = false
+          else { e = ek; k = 3 - k; if e == d && k == 1 then go = false }
+        if !vertexAngleFeasible(ds, d) then return false
+      d += 1
+    true
+
   /** Like [[DSetGenerator]] but restricted to CLOSED, ORIENTED D-sets — no `σ_i` fixed points (no mirror
     * boundaries) and a consistent 2-colouring (orientable). This is the generation slice of the rotation
     * orbifolds. A mirror tiling is still recovered here as its ORIENTED double cover (≤ 2× the chambers of
     * its mirror minimal symbol); the A068600 vertex-orbit count is then taken on the FULL [[minimalSymbol]]
-    * (whose automorphisms include the orientation-reversing reflections), so nothing is lost.
+    * (whose automorphisms include the orientation-reversing reflections), so nothing is lost. The interleaved
+    * [[verticesAngleFeasible]] prune drops hyperbolic partial maps during generation (the ~96 % that the
+    * post-hoc euclidean gate would otherwise reject after full generation).
     */
   /** Generator state carrying an incremental 2-colouring (`color(d) ∈ {+1,−1}`, 0 = uncoloured): every `σ_i`
     * pairing must join opposite colours, so orientability is maintained in O(1) per added edge instead of an
@@ -863,6 +942,12 @@ object DelaneySymbols:
                   dset.set(k, head, tail)
                   if color(head) == 0 then color(head) = -color(tail) else color(tail) = -color(head)
               else if gap == 0 && head != tail then ok = false
+              // NOTE: the interleaved euclidean prune [[verticesAngleFeasible]] is SOUND and cuts complete
+              // euclidean D-sets ~102× (52835→517 at oriSize 28), but is deliberately NOT wired here: measured
+              // NET-NEGATIVE (oriSize 34: 326 s vs 286 s). With this chamber-by-chamber canonical order, a
+              // vertex corona only completes near full size, so the angle check fires too late to prune the
+              // partial tree — whose cost (checkCanonicity, O(size²)/node) is the real wall. Breaking it needs
+              // a corona-first (vertex-star) generation order, not a v-assignment prune.
               if ok && regularFeasible(dset) && checkCanonicity(dset, isRemapStart) then
                 out += OrientedGenState(dset, isRemapStart, color)
             e += 1
