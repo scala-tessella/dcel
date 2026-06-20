@@ -626,6 +626,32 @@ object DelaneySymbols:
     val (orbs, index) = collectOrbits(ds)
     new DSymbol(ds, orbs, index, Array.fill(orbs.length)(1))
 
+  /** The combinatorial **incenter dual** `T → T*` of Taganap & De Las Peñas (Acta Cryst. A75, 2019, Thm
+    * 3.1/3.2): tiles ↔ vertices, vertices ↔ tiles, edges fixed. On a Delaney–Dress symbol this is exactly the
+    * **swap of indices 0 and 2** — `σ₀` (cross a vertex within a face) and `σ₂` (cross a face along an edge)
+    * exchange roles, `σ₁` (cross an edge) is fixed; correspondingly `m₀₁` (polygon side-count) and `m₁₂`
+    * (vertex degree) exchange. So a tile-`k`-transitive seed becomes a `k`-isocoronal tiling and vice versa,
+    * and a Laves seed (tangential regular-vertex tiles) dualizes to a regular-polygon (Archimedean / uniform)
+    * tiling. `dualSymbol` is an involution up to isomorphism (`canonicalKey ∘ dual ∘ dual = canonicalKey`).
+    */
+  def dualSymbol(ds: DSymbol): DSymbol =
+    val n             = ds.size
+    val a             = Array.ofDim[Int](n + 1, Dim + 1)
+    var d             = 1
+    while d <= n do
+      a(d)(0) = ds.get(2, d) // σ₀' = σ₂
+      a(d)(1) = ds.get(1, d) // σ₁' = σ₁
+      a(d)(2) = ds.get(0, d) // σ₂' = σ₀
+      d += 1
+    val dualDSet      = new DSet(a)
+    val (orbs, index) = collectOrbits(dualDSet)
+    // a dual (0,1)-orbit is the original (1,2)-orbit (⟨σ₂,σ₁⟩), so it inherits the original vertex degree's
+    // v-value; a dual (1,2)-orbit is the original (0,1)-orbit and inherits the polygon side-count's v-value.
+    val vs            = Array.tabulate(orbs.length): k =>
+      val rep = orbs(k).elements.head
+      if orbs(k).i == 0 then ds.v(1, 2, rep) else ds.v(0, 1, rep)
+    new DSymbol(dualDSet, orbs, index, vs)
+
   /** The MINIMAL (maximal-symmetry) Delaney–Dress symbol covered by `ds`: quotient by a proper m-preserving
     * op-congruence, iterated to a fixed point. Every torus cover of one tiling reduces to the SAME minimal
     * symbol (Delaney–Dress: it is a complete invariant), so it is the canonical identity for dedup, and its
