@@ -61,6 +61,37 @@ stays bounded (states do not blow up) while n ≤ 3 still reproduces the oracle 
 test of the growth path — if the growing-radius stabilization prune kills scatter, n ≤ 7 is in reach; if it
 doesn't, growth is walled too and we have a measured negative.
 
+## SPIKE RESULT (2026-06-20) — the corona growth gate is MARGINAL; growth scatter is 1D-periodic
+
+Implemented the corona-class growth gate as an off-by-default knob on `KrotenheerdtSearch`
+(`coronaGrowthGate`, reusing the already-present sound `TilingCertifier.tooManyWitnessedOrbits`, which
+refines witnessed coronae at growing depth 1..d). A/B at n=2, maxV=40, parallelism=4:
+
+| run | states | time | found | NoPeriodEvidence | WrongClassCount |
+|-----|-------:|-----:|------:|-----------------:|----------------:|
+| gate OFF (baseline) | 89 935 | 243 s | 7/20 | 7048 | 867 |
+| gate ON  (depth 3)  | 81 466 | 234 s | 7/20 | 6034 | 1481 |
+
+- **Sound** — identical found set (drops no valid tiling), as required.
+- **Marginal** — ~9% fewer states; it catches a few more aperiodic patches earlier (`WrongClassCount`
+  867→1481) but does NOT break the wall (`NoPeriodEvidence` only 7048→6034). Confirms the existing code
+  comment with numbers.
+- **The diagnosis (measured):** the dominant scatter is the `{3³.4²; 3².4.3.4}` family growing to v≈60–130
+  as **1D-periodic stackings at mismatched offsets** (`NoPeriodEvidence`). These have ≤ n orbits in their
+  *witnessed* core — the aperiodicity lives at seams that stay just outside it until the horizon — so an
+  orbit/corona prune (which needs witnessed coronae) structurally cannot catch them during growth. This is
+  ADR-0024's failure mode reconfirmed, and it is **inherent to free geometric growth**, not an
+  implementation gap.
+
+**Conclusion:** the Local-Theorem corona prune does not break the growth wall — the scatter that dominates
+is 1D-periodicity, not orbit-count explosion. Free geometric growth (`KrotenheerdtSearch`) is walled by 1D
+aperiodic stackings; symmetry-driven generation (commit to the full wallpaper group early — a SMALL orbifold
+fundamental domain, NOT a large translation cell) is the only lever that threads between the scatter horn and
+the covolume horn. **That lever already exists**: the ADR-0023 **oriented-slice / orbifold generator** (the
+measured best — first to cross n=3, reaches n=4 5/33, n=5 1/15). The data redirects effort there
+(optimise + parallelise, with `dualSymbol` as a fast classifier), the option deferred at the ADR-0027 fork.
+The `coronaGrowthGate` knob is kept (off by default, validated) as a documented measured option.
+
 ## Validation
 
 - n ≤ 3: exact, key-for-key vs the `DelaneySymbols` oracle.

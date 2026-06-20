@@ -36,6 +36,8 @@ object KrotenheerdtSearch:
       earlyTypeGate: Int = 60,
       typeBallRadius: Int = 5,
       parallelism: Int = 1,
+      coronaGrowthGate: Boolean = false,
+      coronaGateDepth: Int = 3,
       onFound: Certified => Unit = _ => (),
       log: String => Unit = _ => ()
   ): Outcome =
@@ -127,6 +129,9 @@ object KrotenheerdtSearch:
       def gateReason: Option[RejectReason] =
         if innerVertexTypes(patch).size < n || !typesLocallyComplete(patch, n, typeBallRadius) then
           Some(RejectReason.WrongTypeCount)
+        else if coronaGrowthGate &&
+          TilingCertifier.tooManyWitnessedOrbits(patch, n, coronaGateDepth, skipLargestGroup = true)
+        then Some(RejectReason.WrongClassCount)
         else None
 
       if patch.vertices.sizeIs < certifyAt then
