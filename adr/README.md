@@ -43,6 +43,7 @@ decision. Each file has:
 | 0021 | [Direct combinatorial torus-quotient enumeration (reaching n = 4–7)](0021-direct-torus-quotient-enumeration.md) | Accepted (goal); realization superseded by ADR-0022 |
 | 0022 | [Intrinsic combinatorial-map (Delaney–Dress) enumeration — soundness by construction](0022-intrinsic-combinatorial-map-enumeration.md) | Proposed (n ≤ 3 done) |
 | 0023 | [Euclidean wallpaper-orbifold generator (reaching n = 4–7)](0023-euclidean-orbifold-generator.md) | Proposed (scope) |
+| 0024 | [Isocoronal-prune vertex-star grower (the n = 4–7 anti-scatter lever)](0024-isocoronal-prune-grower.md) | Rejected (r=2 prune measured a no-op) |
 
 ## When to add an ADR
 
