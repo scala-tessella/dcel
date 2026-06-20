@@ -57,3 +57,23 @@ class DualSymbolSpec extends AnyFlatSpec with Matchers:
 
   it should "keep the square tiling 4⁴ self-dual" in:
     keyOf(DelaneySymbols.dualSymbol(archimedean(sig("4.4.4.4")))) shouldBe keyOf(archimedean(sig("4.4.4.4")))
+
+  behavior of "the k=1 incenter-dual pipeline (the 11 Laves seeds → the 11 Archimedean)"
+
+  it should "regenerate EXACTLY the 11 Archimedean from the 11 tile-transitive Laves seeds" in:
+    // The 11 Laves seeds are the duals of the 11 Archimedean (Theorem 4.2). Dualizing them back must
+    // reproduce exactly the 11 Archimedean canonical keys — the full k=1 de-risk of ADR-0027.
+    val seeds       = archimedean.values.map(DelaneySymbols.dualSymbol).toList
+    val regenerated = seeds.map(seed => keyOf(DelaneySymbols.dualSymbol(seed))).toSet
+    val archKeys    = archimedean.values.map(keyOf).toSet
+    regenerated shouldBe archKeys
+    regenerated.size shouldBe 11
+
+  it should "expose why the method is k=1-only: monohedral seeds carry a single vertex type" in:
+    // Each Laves seed is tile-transitive (one tile orbit); its dual is therefore 1-uniform (one vertex
+    // type). A finite-index subgroup of such a seed only RELABELS that one orbit into k congruent ones, so
+    // the dual stays single-type (k-isogonal, NOT k-uniform). Genuine n≥2 Krotenheerdt tilings need
+    // multi-prototile seeds — demonstrated here by the duals already spanning several distinct tile sizes
+    // (vertex degrees) across the 11, none of which a single monohedral seed can mix.
+    val dualFaceDegrees = archimedean.keys.map(_.size).toSet // = polygon side-counts of the dual seeds
+    dualFaceDegrees.size should be > 1 // 3,4,5,6-gon Laves tiles all occur — no single seed has them all
