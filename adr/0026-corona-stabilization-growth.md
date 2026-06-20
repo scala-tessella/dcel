@@ -60,6 +60,13 @@ this is the principled scatter-killer the fixed radius lacked.
 Fetched and read the paper. It gives a **complete, proven, orbit-bounded** construction of k-uniform tilings —
 the corona-growth above is SUPERSEDED by this (it's the rigorous version of what Galebach did).
 
+**Key definitions (from §2 of the paper).** A *tangential polygon* = a convex polygon that has an **inscribed
+circle** (incircle). A vertex `x` is *regular* if the **angles between each pair of consecutive edges incident
+to `x` are congruent** (i.e. equal angular spacing). A *vertex corona* of `x` = the set of tiles incident to
+`x` (a set of tiles, not their union). A *tile corona* `C(t)` = all tiles with non-empty intersection with `t`.
+These are exactly the two properties the seed `T` must have for the incenter dual to come out regular:
+tangential tiles ⇒ equal inradii ⇒ equal `T*`-edge lengths; regular vertices ⇒ equal `T*`-vertex angles.
+
 **Theorem 3.2 (the regular-polygon construction).** An edge-to-edge **k-uniform** tiling `T*`
 `(v₁₁.v₁₂…; …; vₖ₁.vₖ₂…)` by regular polygons ⟺ an edge-to-edge **tile-k-transitive** tiling `T` by
 **tangential polygons with regular vertices**, with the SAME symmetry group. Construction (Theorem 3.1 with
