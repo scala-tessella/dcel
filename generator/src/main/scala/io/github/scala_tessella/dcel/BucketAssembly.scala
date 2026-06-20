@@ -138,6 +138,30 @@ object BucketAssembly:
     private def sigmaNext(g: Int): Int = { val i = vertexOf(g); start(i) + (posOf(g) + 1) % deg(i) }
     private def sigmaPrev(g: Int): Int = { val i = vertexOf(g); start(i) + (posOf(g) + deg(i) - 1) % deg(i) }
 
+    // face perm φ = σ∘α and its inverse, evaluated on the CURRENT partial α (−1 where α is not yet decided).
+    private def phiOf(d: Int): Int    = { val a = alpha(d); if a >= 0 then sigmaNext(a) else -1 }
+    private def phiInvOf(d: Int): Int = alpha(sigmaPrev(d)) // φ⁻¹(d) = α(σ⁻¹(d)), or −1 if undecided
+
+    /** Fail-fast face check. Along a face the corner label `before` is INVARIANT — the ordered port match
+      * forces `before(φ(d)) == before(d)` — so a regular face must close at EXACTLY `before(d)` darts. Reject
+      * the moment the face fragment through `d` closes at the wrong length, or an open fragment overshoots.
+      */
+    private def faceOk(d: Int): Boolean =
+      val target = before(d)
+      var cur    = d
+      var back   = 0
+      var closed = false
+      var p      = phiInvOf(cur)
+      while p >= 0 && !closed do
+        cur = p; back += 1
+        if cur == d then closed = true else p = phiInvOf(cur)
+      if closed then back == target // a closed face must be a regular `target`-gon
+      else
+        var len = 1 // open fragment: count darts from the head `cur`, reject once it cannot be a `target`-gon
+        var f   = phiOf(cur)
+        while f >= 0 && len <= target do { cur = f; len += 1; f = phiOf(cur) }
+        len <= target
+
     // ORDERED antiparallel port match: gluing dart g to h identifies the face after g with the face before h
     // and vice versa, so a valid edge needs after(g)==before(h) && before(g)==after(h). Stronger than the
     // unordered pair (it also fixes orientation), so it prunes the matching far harder.
@@ -169,11 +193,11 @@ object BucketAssembly:
               if states > stateBudget then budgetHit = true
               else
                 alpha(g) = h; alpha(h) = g
-                // partial-map canonical dedup: recurse only into a partial matching whose isomorphism class
-                // has not been visited (the iso maps unmatched darts to unmatched darts, so every completion
-                // is found via the first-seen representative — sound for completeness). Collapses the waste of
-                // isomorphic partial matchings that ports cannot prune.
-                if seen.add(canonKey()) then { expanded += 1; matchFrom() }
+                // (1) fail-fast: the just-affected faces (through g and h) must stay able to close as regular
+                // polygons; (2) partial-map canonical dedup: recurse only into an isomorphism class not yet
+                // visited (the iso maps unmatched darts to unmatched, so every completion is found via the
+                // first-seen representative — sound for completeness).
+                if faceOk(g) && faceOk(h) && seen.add(canonKey()) then { expanded += 1; matchFrom() }
                 alpha(g) = -1; alpha(h) = -1
             h += 1
 

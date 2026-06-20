@@ -138,14 +138,49 @@ The decisive number: a real 2-uniform bucket now assembles in **~1 000 states �
 assembly + partial-map dedup is a *viable* engine for buckets whose minimal cell fits the `V` window — it does
 what growth could not (soundness + exact identity) at comparable cost.
 
-**Still open — the large-cell wall.** `{3⁶; 3⁴.6}` burns ≈ 2.3e6 states at `V ≤ 4` and finds nothing (its
-minimal cell needs `V ≥ 5`); triangle-rich, high-degree vertices give 20–24 darts whose partial-map
-iso-classes are themselves numerous. So the open risk is no longer "isomorphic redundancy" but the **raw count
-of non-isomorphic partial assemblies for big triangle-heavy cells**. Next levers, in order: (1) MRV /
-closure-directed dart ordering (match the most-constrained dart, fail fast on dead branches); (2) skip
-redundant higher-`V` layers (a tiling found at `V` need not be re-sought at multiples of its cell); (3) the
-outer-loop feasible-bucket prune (most `k`-type subsets die to port-consistency). The gate before n = 4–7:
-does a known 3-uniform bucket assemble in a tractable budget once its `Vmax` is reached.
+## Fail-fast face-closure prune — BUILT (2026-06-20). Verdict: the wall is INTRINSIC (V = covolume).
+
+Added `faceOk` to `BucketAssembly`: along a face the corner label `before` is INVARIANT (the ordered port
+match forces `before(φ(d)) == before(d)`), so a regular face must close at EXACTLY `before(d)` darts — reject
+the instant a face closes at the wrong length or an open fragment overshoots. Checked on the two faces touched
+by each new edge, before the (costlier) canonical dedup. Combined with dedup, per-`V` cost collapsed again
+(correctness unchanged — spec still green):
+
+| bucket | dedup only | + face-closure | mapsClosed |
+|--------|-----------|----------------|-----------|
+| `3⁶` | 1.9e3 | **197** | 2 |
+| `3.6.3.6` | 2.0e3 | **112** | 1 |
+| `3.4.6.4` | 1.6e4 | **168** | 1 |
+| `{4⁴; 3³.4²}` | 1.0e3 | **210** | 2 |
+
+`mapsClosed` ≈ the number of real tilings now — the search reaches almost only genuine closures. For a cell
+that FITS the `V` window the assembly is now genuinely tiny (hundreds of states), and the engine is **sound,
+complete and exactly-identified** — strictly better-behaved than every growth search.
+
+**But the cells we need are large-`V`, and that is the wall.** A scan of all 20 two-uniform buckets at `V ≤ 6`
+finds only **6** — the rest's searches COMPLETE (no budget hit) finding nothing, i.e. their minimal torus cell
+has `V > 6`. Escalation confirms this is a cell-size reality, NOT a bug: `{3⁶; 3².4.3.4}` is found at exactly
+`V = 7` (its minimal cell), and per-`V` cost grows ≈ 4–5× per +1 (`789 → 9.2e3 → 4.4e4 → 1.5e5` for
+`V = 4..7`). The `3.4.6.4`-rich and dodecagon (`4.6.12`, `3.12.12`) buckets need `V > 9`.
+
+The decisive realization: **the torus-cell vertex count `V` IS the covolume** (vertices per fundamental
+domain ∝ covolume). So bounded-`V` dart assembly, despite removing scatter and the spurious-lattice factor and
+gaining exact identity, hits **the SAME exponential-in-covolume wall as ADR-0020** — cost ≈ `c^V` with the
+cells of interest at large `V`. Pruning bought a large constant (≈ 100–1000×) and correctness, but not the
+asymptotics. n = 2 is reachable with patience (V up to ~10–12); **n = 4–7, whose cells are far larger, is
+not.** The earlier "next levers" (MRV, skip-higher-`V`-layers) are constant-factor tweaks on the same `c^V`
+and cannot change this.
+
+## Standing conclusion
+
+Bounded-`V` dart assembly is the **correct and complete** torus-quotient engine the project lacked — it
+retires soundness, identity and completeness, and is the right code to KEEP for low-`V` cells and as a
+cross-check. It does **not** break the covolume wall, because enumerating the full *translation* cell is
+inherently covolume-exponential no matter how cleanly. The only remaining structurally-different lever is the
+one still unbuilt: **enumerate the small euclidean ORBIFOLD quotient directly** (ADR-0023's wallpaper-orbifold
+generator — the minimal D-symbol is `cell / full symmetry group`, far smaller than the translation cell),
+rather than the translation cell (this engine) or all 2-manifold D-symbols (ADR-0022, hyperbolic-universe
+explosion). Absent that, the honest fallback is to ship the validated n ≤ 3 (`DelaneySymbols`).
 
 ## Validation ladder
 
