@@ -522,6 +522,111 @@ object KrotenheerdtTorusMapSearch:
           if visited.add(canonicalKey(child)) then stack.push(child)
     results.toList.map((key, nt) => (nt._1, nt._2, key)).sortBy((n, _, key) => (n, key))
 
+  // ======================================================================================================
+  // EARLY-GLUING CORE (ADR-0023). The interleaved extend-vs-glue map grower: develop one plane frame, and
+  // accumulate the deck lattice Λ by gluing antiparallel boundary half-edges — closing at ONE cell (no
+  // grow-cover scatter). The deck lattice is a search variable (rank 0→1→2), not a swept parameter.
+  // ======================================================================================================
+
+  /** The partial deck lattice — a rank-0/1/2 sublattice of ℤ[ζ₁₂] accumulated by gluing. */
+  enum Gens:
+    case Rank0
+    case Rank1(g: ZetaPoint)
+    case Rank2(g1: ZetaPoint, g2: ZetaPoint)
+
+    /** Incorporate a new deck vector `t`; `None` if it is inconsistent (a third independent period ⇒ the
+      * identification is not a discrete torus lattice).
+      */
+    def add(t: ZetaPoint): Option[Gens] = this match
+      case Rank0         => if t.isOrigin then Some(Rank0) else Some(Rank1(t))
+      case Rank1(g)      =>
+        if independentZ(g, t) then Some(Rank2(g, t))
+        else if isMultipleZ(t, g) then Some(Rank1(g))
+        else None
+      case Rank2(g1, g2) =>
+        if t.isOrigin || t.congruentMod(ZetaPoint.origin, g1, g2) then Some(Rank2(g1, g2)) else None
+
+  private def independentZ(a: ZetaPoint, b: ZetaPoint): Boolean =
+    val (ax, ay) = dxy(a); val (bx, by) = dxy(b)
+    math.abs(ax * by - ay * bx) > 1e-9
+
+  private def isMultipleZ(t: ZetaPoint, g: ZetaPoint): Boolean =
+    val gs = Array(g.a0, g.a1, g.a2, g.a3)
+    val ts = Array(t.a0, t.a1, t.a2, t.a3)
+    val i  = gs.indexWhere(_ != 0)
+    if i < 0 then t.isOrigin
+    else if ts(i) % gs(i) != 0 then false
+    else { val k = ts(i) / gs(i); (0 until 4).forall(j => ts(j) == k * gs(j)) }
+
+  /** Candidate single deck vectors: `t = p1 + step(b) − p2` for each antiparallel boundary half-edge pair
+    * `(p1,b)`, `(p2,b+6)`. Shortest few — each is one GLUE move (`gens.add(t)`).
+    */
+  private def candidateGlueVectors(faces: List[FaceZ]): List[ZetaPoint] =
+    val boundary = boundaryHalfEdges(faces)
+    (for
+      (p1, s1) <- boundary
+      (p2, s2) <- boundary
+      if s2 == (s1 + 6) % 12
+      t = p1 + ZetaPoint.step(s1) - p2
+      if !t.isOrigin
+    yield t).distinct.sortBy { t =>
+      val (x, y) = dxy(t); x * x + y * y
+    }.take(6)
+
+  /** Canonical visited key for a `(faces, gens)` state (faces key + a loose lattice tag; under-dedup only
+    * costs states, never drops cells).
+    */
+  private def stateKey(faces: List[FaceZ], gens: Gens): Vector[Long] =
+    def canon(z: ZetaPoint): Vector[Long] =
+      val (x, y) = dxy(z)
+      val zz     = if y > 1e-9 || (math.abs(y) <= 1e-9 && x > 0) then z else -z
+      Vector(zz.a0, zz.a1, zz.a2, zz.a3)
+    val tag                               = gens match
+      case Gens.Rank0         => Vector(0L)
+      case Gens.Rank1(g)      => 1L +: canon(g)
+      case Gens.Rank2(g1, g2) =>
+        2L +: List(canon(g1), canon(g2)).sortBy(v => (v(0), v(1), v(2), v(3))).flatten.toVector
+    canonicalKey(faces) ++ tag
+
+  /** Enumerate by the early-gluing core: seed coronas, interleave EXTEND (place faces at the MRV vertex) and
+    * GLUE (assert a deck vector), close each branch when the discovered rank-2 Λ makes [[verifyCell]] accept.
+    * Returns `(n, types, key)` per distinct tiling (bucketed by the verified `n ≤ maxN`).
+    */
+  def enumerateByGluing(maxN: Int, maxFaces: Int): List[(Int, Set[VertexSignature], String)] =
+    val results = mutable.Map.empty[String, (Int, Set[VertexSignature])]
+    val visited = mutable.HashSet.empty[Vector[Long]]
+    val stack   = mutable.Stack.empty[(List[FaceZ], Gens)]
+    for sig <- seedTypes do
+      val seed = coronaFaces(sig)
+      if isPlanarConsistent(seed) && isSound(seed, maxN) && visited.add(stateKey(seed, Gens.Rank0)) then
+        stack.push((seed, Gens.Rank0))
+    while stack.nonEmpty do
+      val (faces, gens) = stack.pop()
+      gens match
+        case Gens.Rank2(g1, g2) =>
+          // Λ discovered: only EXTEND, Λ-consistently, and close when the cell is filled. No more gluing.
+          val vB    = g1.toBigPoint
+          val wB    = g2.toBigPoint
+          val cov   = cross(vB, wB).abs
+          val close =
+            distinctArea(faces, vB, wB) >= cov - BigDecimal("1e-6") && // cheap gate before the costly verify
+              (verifyCell(faces, g1, g2, maxN) match
+                case Some((n, types, key, _)) => results.getOrElseUpdate(key, (n, types)); true
+                case None                     => false)
+          if !close && faces.sizeIs < maxFaces then
+            growByCompletionPlanar(faces, maxN).foreach: child =>
+              if isConsistentMod(child, vB, wB) && visited.add(stateKey(child, gens)) then
+                stack.push((child, gens))
+        case _                  =>
+          // Λ not yet rank-2: interleave GLUE (assert a deck vector) and EXTEND (place faces at the MRV vertex).
+          if faces.sizeIs < maxFaces then
+            candidateGlueVectors(faces).foreach: t =>
+              gens.add(t).foreach: g2 =>
+                if visited.add(stateKey(faces, g2)) then stack.push((faces, g2))
+            growByCompletionPlanar(faces, maxN).foreach: child =>
+              if visited.add(stateKey(child, gens)) then stack.push((child, gens))
+    results.toList.map((key, nt) => (nt._1, nt._2, key)).sortBy((n, _, key) => (n, key))
+
   // -- hand-built validation cells (rung 1): the single-face torus cells, for the spec ---------------------
 
   /** The single-square torus cell `4.4.4.4`: one unit square at the origin, deck lattice Λ = ((1,0), (0,1)),

@@ -69,6 +69,80 @@ vertex-completion, antiparallel-only gluings, canonical-map dedup of partial sta
 (states-per-cell must track cell SIZE, not blow up) before any high-n run. This is the genuine research
 unknown; everything else is engineering.
 
+## Measurement spike (2026-06-20) — GO, conditional
+
+Instrumented the existing geometric map grower (`KrotenheerdtTorusMapSearch`, vertex-completion + boundary
+gluing) to count search STATES per closed cell and the cell's face count:
+
+| run | states | cells | states/cell | closing-cell faces (min/avg/max) |
+|-----|--------|-------|-------------|----------------------------------|
+| n=1 covol≤2.6 | 81 | 4 | 20 | 3 / 4.5 / 6 |
+| n=1 covol≤6 | 99 | 6 | 17 | 3 / 5.0 / 8 |
+| n=2 covol≤2.6 | 525 | 4 | 131 | 3 / 4.5 / 6 |
+| n=2 covol≤4 | 884 | 7 | 126 | 3 / 4.9 / 8 |
+
+Findings:
+- **The fundamental cells are tiny** — 3–8 faces at BOTH n=1 and n=2. The target objects are small; size is not
+  the problem.
+- **states/cell is BOUNDED per n** (n=2: 126 vs 131 across covolumes ⇒ it tracks cell COUNT linearly, not
+  blowing up *within* a uniformity level). This is the gate's core property.
+- **CAVEAT:** the states/cell CONSTANT grows ~7× from n=1 (≈17) to n=2 (≈130). That growth is the *grow-cover
+  scatter* — aperiodic two-type patches grown to the face cap before being abandoned. Architecture A's
+  **early gluing closes at the first valid gluing and never grows those patches**, so the real constant should
+  be far smaller — but that is UNMEASURED (needs the early-gluing core).
+- The geometric engine's ~0.6 s/state (BigDecimal overlap check + closure attempt on every state) is a
+  geometric-engine artifact; architecture A (intrinsic D-symbol, no overlap test, cheap combinatorial ops) has
+  cheap per-state cost.
+
+**Verdict — GO, conditional.** The cells are small and the per-n branching is bounded, so the approach is
+sound to pursue. Proceed to build architecture A's early-gluing grower, then **re-run this exact measurement
+as a HARD gate**: if the early-gluing states/cell constant stays roughly flat across n (not ~7×/n), continue
+to n = 4–7; if it still grows multiplicatively, fall back to Galebach's vertex-star method.
+
+## Build plan — the early-gluing core (geometric realization)
+
+First realization is **geometric** (reuse `KrotenheerdtTorusMapSearch`'s `FaceZ` / `ZetaPoint` / `verifyCell`
+/ `boundaryHalfEdges` / `completions`), because the soundness hole that motivated the D-symbol pivot is
+already closed by `tilesWithoutOverlap` — and with EARLY gluing that overlap test runs only at *closure*
+(rare), not per state, so its cost is amortised away. The pure-intrinsic D-symbol form remains the fallback if
+per-state cost still dominates.
+
+- **State** `(faces: List[FaceZ], gens: Gens)` where `Gens = Rank0 | Rank1(g) | Rank2(g1,g2)` is the partial
+  deck lattice (ℤ[ζ₁₂] vectors), developed in ONE plane frame.
+- **Move EXTEND** — complete the most-constrained (MRV) boundary vertex by placing new faces
+  (`growByCompletionPlanar`), kept iff planar-consistent (rank 0/1) or residue-consistent mod Λ (rank 2) and
+  sound (`isSound`: every vertex a valid/extendable type, ≤ maxN completed types is NOT imposed — we bucket by
+  k after).
+- **Move GLUE** — at the MRV vertex, identify a boundary half-edge `(p1,b)` with an antiparallel one
+  `(p2,b+6)`; deck vector `t = p1 + step(b) − p2`. `gens.add(t)`: `Rank0+t→Rank1(t)`;
+  `Rank1(g)+t→Rank2(g,t)` if independent else require `t ∈ ⟨g⟩`; `Rank2+t→` keep iff
+  `t.congruentMod(0,g1,g2)` else PRUNE (a third independent period ⇒ not a torus). Antiparallel-only =
+  orientation-preserving (the ADR-0022 flatness condition); glue-at-MRV-only bounds the branch factor.
+- **Closure** — once `Rank2`, gate by `distinctArea ≈ covolume` then run `verifyCell` (which already does the
+  overlap test, fan/orbit checks, and the canonical key). `verifyCell = Some ⇒` emit and stop the branch.
+- **Dedup** — visited-set on `canonicalKey(faces)` augmented with the (canonicalised) `gens`.
+- **Re-measurement gate** — re-run the spike's states/cell measurement; proceed to n = 4–7 only if it stays
+  flat across n (vs the grow-cover ~7×/n).
+
+### Build outcome (2026-06-20) — geometric early-gluing BUILT, but the gate is NEGATIVE
+
+`KrotenheerdtTorusMapSearch.enumerateByGluing` implements the above (the `Gens` rank-0/1/2 lattice with the
+`congruentMod` prune, candidate glue vectors, Λ-consistent extend after rank-2, gated closure). It is
+FUNCTIONAL and SOUND for n = 1 (finds the cells, no 3.3.6.6). **But it is SLOWER than grow-cover** (n = 1
+mf = 16: ~43 s vs ~2 s) and shows the same residual issues (a non-primitive duplicate; `4.6.12` past the face
+cap). Root cause: **EXTEND *before* rank-2 grows the planar patch with no Λ constraint — the same scatter as
+grow-cover, now multiplied by the gluing branches.** Early gluing closes n = 1 cells from the corona, but
+reaching n ≥ 2 cells needs pre-Λ extension, which scatters; the deck lattice cannot constrain growth until it
+is discovered, and discovering it needs the growth. This is the genuine crux, and the geometric realization
+does NOT resolve it.
+
+**Revised recommendation:** switch the core to **Galebach's vertex-star gluing** (the proven 2002 method,
+which reached n ≤ 6). It avoids free planar growth entirely: it grows the tiling by attaching whole
+vertex-stars and tracking the symmetry orbits directly, so there is no aperiodic-patch scatter to prune. Keep
+`DelaneySymbols` as the canonical-key / minimal-image tail (soundness + dedup) and as the n ≤ 3 oracle; keep
+`enumerateByGluing` as a reference/cross-check at n = 1. The `o`-orbifold-via-minimization framing still holds;
+only the *grower* changes from free-planar-extend to vertex-star-attach.
+
 ## Validation ladder
 
 1. **Oracle cross-check:** the existing `DelaneySymbols` engine is correct through n = 3 — the new generator
