@@ -115,11 +115,37 @@ maps → 1 tiling), so the waste is **isomorphic partial matchings**, not genuin
 
 **Consequence — the ADR's "few assemblies per V" needs more than ports.** Bounding `V` removes the
 aperiodic/covolume scatter as promised, but raw port-matched perfect-matching introduces its own combinatorial
-blow-up. The next gate (before any n = 4–7 attempt) is the standard control the matching count points straight
-at: **canonical dedup of PARTIAL maps during the search** (prune isomorphic partials — would collapse the
-34k→1 waste), plus MRV vertex/dart ordering and stopping redundant higher-`V` layers. If partial-map
-canonicalization brings a 2-uniform bucket below ~850, the bucketed plan is alive; if not, bounded-V assembly
-is another dead end and the fallback (ship n ≤ 3) stands. That measurement is the immediate next step.
+blow-up, dominated by **isomorphic partial matchings**.
+
+## Partial-map canonical dedup — BUILT (2026-06-20). The bucketed plan is ALIVE for fitting cells.
+
+Added to `BucketAssembly`: at each search node, prune the partial matching unless its orientation-preserving
+canonical form (a sorted multiset of per-connected-component BFS-min strings, reflection excluded so chiral
+enantiomorphs are not merged) is new in a GLOBAL `seen` set. Sound for completeness — an isomorphism maps
+unmatched darts to unmatched darts, so every completion is reached via the first-seen representative; verified
+by the oracle key-equality tests still passing. Effect (correctness unchanged — keys still match the oracle,
+`{4⁴;3³.4²}` still multiplicity 2, soundness still holds):
+
+| bucket | states before | states after | factor |
+|--------|---------------|--------------|--------|
+| `3⁶` (V≤2) | 2.5e4 | 1.9e3 | 13× |
+| `3.6.3.6` (V≤4) | 1.1e5 | 2.0e3 | 57× |
+| `3.4.6.4` (V≤6) | 2.0e6 | 1.6e4 | 120× |
+| `{4⁴; 3³.4²}` (V≤4) | 2.2e4 | **1.0e3** | 22× |
+
+The decisive number: a real 2-uniform bucket now assembles in **~1 000 states — on par with patch-growth's
+~850, but SOUND and exactly identified** (the two distinct tilings, by canonical key). So bounded-V dart
+assembly + partial-map dedup is a *viable* engine for buckets whose minimal cell fits the `V` window — it does
+what growth could not (soundness + exact identity) at comparable cost.
+
+**Still open — the large-cell wall.** `{3⁶; 3⁴.6}` burns ≈ 2.3e6 states at `V ≤ 4` and finds nothing (its
+minimal cell needs `V ≥ 5`); triangle-rich, high-degree vertices give 20–24 darts whose partial-map
+iso-classes are themselves numerous. So the open risk is no longer "isomorphic redundancy" but the **raw count
+of non-isomorphic partial assemblies for big triangle-heavy cells**. Next levers, in order: (1) MRV /
+closure-directed dart ordering (match the most-constrained dart, fail fast on dead branches); (2) skip
+redundant higher-`V` layers (a tiling found at `V` need not be re-sought at multiples of its cell); (3) the
+outer-loop feasible-bucket prune (most `k`-type subsets die to port-consistency). The gate before n = 4–7:
+does a known 3-uniform bucket assemble in a tractable budget once its `Vmax` is reached.
 
 ## Validation ladder
 

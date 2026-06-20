@@ -21,7 +21,7 @@ object BucketAssemblyProbe:
       val r      = BucketAssembly.enumerateBucket(bucket, maxV, stateBudget = 5_000_000L)
       val ms     = (System.nanoTime() - t0) / 1000000
       println(
-        f"$name%-28s maxV=$maxV  tilings=${r.tilings.size}%2d  states=${r.states}%8d  mapsClosed=${r.mapsClosed}%7d  budgetHit=${r.budgetHit}  ${ms}ms"
+        f"$name%-28s maxV=$maxV  tilings=${r.tilings.size}%2d  states=${r.states}%9d  expanded=${r.expanded}%8d  mapsClosed=${r.mapsClosed}%7d  budgetHit=${r.budgetHit}  ${ms}ms"
       )
       r.tilings.foreach(f =>
         println(s"      n=${f.n} types=${f.types.map(_.mkString("."))} key=${f.key.take(40)}...")

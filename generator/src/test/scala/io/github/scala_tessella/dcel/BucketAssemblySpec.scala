@@ -13,13 +13,13 @@ import org.scalatest.matchers.should.Matchers
   *     `4.8.8` the ζ engines cannot represent — with minimal-symbol canonical keys that match the
   *     [[DelaneySymbols]] oracle KEY-FOR-KEY, and gives the 2-uniform `{4⁴; 3³.4²}` bucket its correct
   *     multiplicity (2 distinct tilings). So the map→D-symbol bridge + dedup is right.
-  *   - INNER-ASSEMBLY SIZE (the open risk — PARTIAL): with the ordered antiparallel port prune the search is
-  *     tiny for small-cell buckets (square/hexagonal/octagon: tens–hundreds of states) but the raw
-  *     port-matched perfect-matching enumeration still SCATTERS for triangle-rich / large-minimal-cell
-  *     buckets (`3.6.3.6` ~1e5, `3.4.6.4` ~2e6, `{3⁶;3⁴.6}` over budget). See the measurement test: states do
-  *     not yet cleanly track V, so the ADR's "few assemblies per V" needs the further controls (partial-map
-  *     canonical dedup, MRV) before n = 4–7 is reachable. The numbers here are the evidence for that next
-  *     decision.
+  *   - INNER-ASSEMBLY SIZE (much improved, not solved): the ordered antiparallel port prune + PARTIAL-MAP
+  *     CANONICAL DEDUP (prune isomorphic partial matchings) collapse the matching-scatter that ports alone
+  *     cannot — `3.6.3.6` fell 57× (1e5→2e3), `3.4.6.4` 120× (2e6→1.6e4), and the 2-uniform `{4⁴;3³.4²}`
+  *     lands at ~1e3 states, competitive with patch-growth's ~850 but SOUND and exactly identified. STILL
+  *     OPEN: triangle-rich, high-degree, large-minimal-cell buckets (`{3⁶;3⁴.6}` ≈ 2.3e6 states at V≤4, and
+  *     its cell needs V≥5) — the count of partial-map iso-classes is itself large there. Next levers: MRV /
+  *     closure-directed dart ordering and skipping redundant higher-V layers, before n = 4–7.
   */
 class BucketAssemblySpec extends AnyFlatSpec with Matchers:
 
@@ -55,6 +55,7 @@ class BucketAssemblySpec extends AnyFlatSpec with Matchers:
   reproducesK1("6.6.6", 3)       // hexagonal
   reproducesK1("4.8.8", 4)       // truncated square — the octagon the ζ engines cannot do
   reproducesK1("3.6.3.6", 4)     // trihexagonal
+  reproducesK1("3.4.6.4", 6)     // rhombitrihexagonal — larger cell (V≤6); tractable only with the dedup
 
   behavior of "BucketAssembly — k = 2 multiplicity"
 
@@ -65,12 +66,14 @@ class BucketAssemblySpec extends AnyFlatSpec with Matchers:
     every(r.tilings.map(_.types)) shouldBe Set(sig("4.4.4.4"), sig("3.3.3.4.4"))
     r.keys.size shouldBe 2 // two distinct adjacencies sharing the same vertex-type set
 
-  behavior of "BucketAssembly — inner-assembly SIZE measurement (the open risk)"
+  behavior of "BucketAssembly — inner-assembly SIZE with partial-map canonical dedup"
 
-  it should "be tiny for small-cell buckets but scatter for large/triangle-rich ones" in:
-    // small cells: the assembly is genuinely small — the ADR's hoped-for regime
-    BucketAssembly.enumerateBucket(Set(sig("4.4.4.4")), 2).states should be < 2000L
-    BucketAssembly.enumerateBucket(Set(sig("6.6.6")), 3).states should be < 200L
-    BucketAssembly.enumerateBucket(Set(sig("4.8.8")), 4).states should be < 2000L
-    // single-port triangle cell: ports cannot prune ⇒ the V-layer above the minimal cell already scatters
-    BucketAssembly.enumerateBucket(Set(sig("3.6.3.6")), 4).states should be > 10000L
+  // The dedup (prune isomorphic partial matchings) is what makes the assembly small: it collapses the
+  // matching-scatter that ports alone cannot (e.g. 3.6.3.6 fell 57×, 3.4.6.4 120×). For a real 2-uniform
+  // bucket it lands at ~1e3 states — competitive with patch-growth's ~850, but SOUND and exactly identified.
+  it should "stay small for buckets whose minimal cell fits, including a 2-uniform one" in:
+    BucketAssembly.enumerateBucket(Set(sig("4.4.4.4")), 2).states should be < 200L
+    BucketAssembly.enumerateBucket(Set(sig("6.6.6")), 3).states should be < 50L
+    BucketAssembly.enumerateBucket(Set(sig("4.8.8")), 4).states should be < 200L
+    BucketAssembly.enumerateBucket(Set(sig("3.6.3.6")), 4).states should be < 5000L
+    BucketAssembly.enumerateBucket(Set(sig("4.4.4.4"), sig("3.3.3.4.4")), 4).states should be < 2000L

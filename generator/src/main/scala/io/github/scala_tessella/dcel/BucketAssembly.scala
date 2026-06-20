@@ -39,6 +39,7 @@ object BucketAssembly:
   final case class BucketResult(
       tilings: List[Found],
       states: Long,
+      expanded: Long,
       mapsClosed: Long,
       budgetHit: Boolean
   ):
@@ -55,21 +56,25 @@ object BucketAssembly:
     val k          = bucket.size
     val typesList  = bucket.toVector.map(normalize)
     val results    = mutable.Map.empty[String, Found]
+    // GLOBAL canonical partial-map dedup set: prunes isomorphic partial matchings across every assignment.
+    val seen       = mutable.HashSet.empty[String]
     var states     = 0L
+    var expanded   = 0L
     var mapsClosed = 0L
     var budgetHit  = false
     var v          = k
     while v <= maxV && !budgetHit do
       for assignment <- orientedAssignments(typesList, v) if !budgetHit do
-        val asm = new Assembler(assignment, stateBudget - states)
+        val asm = new Assembler(assignment, stateBudget - states, seen)
         asm.run()
         states += asm.states
+        expanded += asm.expanded
         mapsClosed += asm.mapsClosed
         if asm.budgetHit then budgetHit = true
         for (key, f) <- asm.results do results.getOrElseUpdate(key, f)
       v += 1
     val tilings    = results.values.filter(f => f.n == k && f.types == bucket).toList
-    BucketResult(tilings, states, mapsClosed, budgetHit)
+    BucketResult(tilings, states, expanded, mapsClosed, budgetHit)
 
   // ---- assignment generation -------------------------------------------------------------------------
 
@@ -113,7 +118,7 @@ object BucketAssembly:
   /** Enumerates the port-matched perfect matchings of the darts of one oriented `V`-vertex assignment, and
     * collects the closed torus tilings. `types(i)` is vertex `i`'s oriented cyclic polygon sequence.
     */
-  final private class Assembler(types: Vector[Vector[Int]], stateBudget: Long):
+  final private class Assembler(types: Vector[Vector[Int]], stateBudget: Long, seen: mutable.HashSet[String]):
     private val nV    = types.size
     private val deg   = types.map(_.size).toArray
     private val start = deg.scanLeft(0)(_ + _) // start(i) = first dart of vertex i; start(nV) = D
@@ -141,6 +146,7 @@ object BucketAssembly:
 
     private val alpha = Array.fill(D)(-1)
     var states        = 0L
+    var expanded      = 0L
     var mapsClosed    = 0L
     var budgetHit     = false
     val results       = mutable.Map.empty[String, Found]
@@ -163,9 +169,65 @@ object BucketAssembly:
               if states > stateBudget then budgetHit = true
               else
                 alpha(g) = h; alpha(h) = g
-                matchFrom()
+                // partial-map canonical dedup: recurse only into a partial matching whose isomorphism class
+                // has not been visited (the iso maps unmatched darts to unmatched darts, so every completion
+                // is found via the first-seen representative — sound for completeness). Collapses the waste of
+                // isomorphic partial matchings that ports cannot prune.
+                if seen.add(canonKey()) then { expanded += 1; matchFrom() }
                 alpha(g) = -1; alpha(h) = -1
             h += 1
+
+    // ---- canonical form of the (possibly disconnected) partial map, orientation-preserving --------------
+    // Key = the SORTED multiset of per-component canonical strings, so isomorphic partial maps (under vertex
+    // relabeling + dart-cycle rotation, NOT reflection — chirality is preserved) collide. Reflection is
+    // excluded so the two enantiomorphs of a chiral tiling are not wrongly merged.
+
+    private def canonKey(): String =
+      val comp = Array.fill(D)(-1)
+      var c    = 0
+      var s    = 0
+      while s < D do
+        if comp(s) < 0 then
+          comp(s) = c
+          val st = mutable.Stack(s)
+          while st.nonEmpty do
+            val d = st.pop()
+            for nb <- Array(sigmaNext(d), sigmaPrev(d), alpha(d)) if nb >= 0 && comp(nb) < 0 do
+              comp(nb) = c; st.push(nb)
+          c += 1
+        s += 1
+      val keys = Array.fill(c)("")
+      var ci   = 0
+      while ci < c do
+        var best: String = null
+        var root         = 0
+        while root < D do
+          if comp(root) == ci then
+            val str = bfsString(root)
+            if best == null || str < best then best = str
+          root += 1
+        keys(ci) = best
+        ci += 1
+      keys.sorted.mkString("#")
+
+    /** Orientation-preserving BFS relabeling from `root` (follow σ then matched α), emitting per dart its
+      * corner labels and its neighbours' new labels — a string that is identical for σ/relabel-isomorphic
+      * components and distinct otherwise.
+      */
+    private def bfsString(root: Int): String =
+      val lab   = mutable.HashMap(root -> 0)
+      val order = mutable.ArrayBuffer(root)
+      var head  = 0
+      val sb    = new StringBuilder
+      while head < order.size do
+        val d  = order(head); head += 1
+        val sn = sigmaNext(d)
+        if !lab.contains(sn) then { lab(sn) = order.size; order += sn }
+        val am = alpha(d)
+        if am >= 0 && !lab.contains(am) then { lab(am) = order.size; order += am }
+        sb.append(after(d)).append('.').append(before(d)).append(':').append(lab(sn)).append(',')
+        sb.append(if am >= 0 then lab(am).toString else "x").append(';')
+      sb.toString
 
     private def onComplete(): Unit =
       if !connected() then return
