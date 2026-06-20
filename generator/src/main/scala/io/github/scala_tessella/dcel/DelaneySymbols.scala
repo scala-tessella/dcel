@@ -810,3 +810,81 @@ object DelaneySymbols:
     val cones12 = o12.toList.map(o => ds.v(1, 2, o.elements.head)).filter(_ > 1).sorted
     s"D=${ds.size} t=${o01.length} v=${o12.length} e=${o02.length} ori=$ori mir=$mir " +
       s"cone-tile=[${cones01.mkString(",")}] cone-vert=[${cones12.mkString(",")}]"
+
+  // ---- ADR-0023 Stage 1: ORIENTED-slice generator (rotation orbifolds o/2222/333/442/632) --------------
+
+  /** Like [[DSetGenerator]] but restricted to CLOSED, ORIENTED D-sets — no `σ_i` fixed points (no mirror
+    * boundaries) and a consistent 2-colouring (orientable). This is the generation slice of the rotation
+    * orbifolds. A mirror tiling is still recovered here as its ORIENTED double cover (≤ 2× the chambers of
+    * its mirror minimal symbol); the A068600 vertex-orbit count is then taken on the FULL [[minimalSymbol]]
+    * (whose automorphisms include the orientation-reversing reflections), so nothing is lost.
+    */
+  final private class OrientedDSetGenerator(maxSize: Int) extends BackTracker[DSet, DSetGenState]:
+    def root: DSetGenState = DSetGenState(DSet.empty1, Array.fill(maxSize + 1)(false))
+
+    def extract(st: DSetGenState): Option[DSet] =
+      if firstUndefined(st.ds).isEmpty && isLoopless(st.ds) && isWeaklyOriented(st.ds) then Some(st.ds)
+      else None
+
+    def children(st: DSetGenState): List[DSetGenState] =
+      firstUndefined(st.ds) match
+        case None         => Nil
+        case Some((d, i)) =>
+          val out = List.newBuilder[DSetGenState]
+          var e   = d + 1 // NO fixed point: never pair a chamber with itself (that would be a mirror)
+          val cap = math.min(st.ds.size + 1, maxSize)
+          while e <= cap do
+            if st.ds.get(i, e) == 0 then
+              val isRemapStart         = st.isRemapStart.clone()
+              val dset                 = if e > st.ds.size then { isRemapStart(e) = true; st.ds.grown }
+              else st.ds.copy
+              dset.set(i, d, e)
+              val (head, tail, gap, k) = scan02Orbit(dset, d)
+              var ok                   = true
+              if gap == 1 then { if head == tail then ok = false else dset.set(k, head, tail) }
+              else if gap == 0 && head != tail then ok = false
+              if ok && isLoopless(dset) && regularFeasible(dset) && isWeaklyOriented(dset)
+                && checkCanonicity(dset, isRemapStart)
+              then out += DSetGenState(dset, isRemapStart)
+            e += 1
+          out.result()
+
+  /** Enumerate the regular-polygon euclidean tilings via the ORIENTED slice (ADR-0023 Stage 1): generate
+    * oriented closed D-sets, assign euclidean v-values, keep regular `{3,4,6,8,12}`-gon tilings, then key and
+    * bucket by the FULL [[minimalSymbol]] (so `n` = vertex orbits under the complete symmetry, incl.
+    * mirrors). Deduped by minimal canonical key. Returns `(n, vertices, key)`.
+    */
+  def orientedRegularSymbols(maxN: Int, maxSize: Int): List[(Int, List[VertexSignature], String)] =
+    val out  = List.newBuilder[(Int, List[VertexSignature], String)]
+    val seen = mutable.Set.empty[String]
+    OrientedDSetGenerator(maxSize).foreach: dset =>
+      if euclideanFeasible(dset) then
+        DSymGenerator(dset).foreach: dsym =>
+          if isEuclidean(dsym) && regularPolygonVertices(dsym).isDefined then
+            val mn = minimalSymbol(dsym)
+            regularPolygonVertices(mn).foreach: msigs =>
+              if msigs.length == msigs.toSet.size && msigs.length <= maxN then
+                val key = canonicalKey(mn)
+                if seen.add(key) then out += ((msigs.length, msigs, key))
+    out.result()
+
+  /** Generation cost of the oriented slice: `(orientedDSets, euclideanFeasible, regularSymbols)` — to compare
+    * against [[generationStats]] (the generate-all tree) and see whether restricting to the oriented rotation
+    * orbifolds shrinks the search.
+    */
+  def orientedGenerationStats(maxN: Int, maxSize: Int): (Long, Long, Long) =
+    var total = 0L
+    var eucl  = 0L
+    var reg   = 0L
+    val seen  = mutable.Set.empty[String]
+    OrientedDSetGenerator(maxSize).foreach: dset =>
+      total += 1
+      if euclideanFeasible(dset) then
+        eucl += 1
+        DSymGenerator(dset).foreach: dsym =>
+          if isEuclidean(dsym) && regularPolygonVertices(dsym).isDefined then
+            val mn = minimalSymbol(dsym)
+            regularPolygonVertices(mn).foreach: msigs =>
+              if msigs.length == msigs.toSet.size && msigs.length <= maxN && seen.add(canonicalKey(mn)) then
+                reg += 1
+    (total, eucl, reg)
