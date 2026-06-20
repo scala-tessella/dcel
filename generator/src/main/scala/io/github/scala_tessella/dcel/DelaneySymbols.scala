@@ -605,3 +605,159 @@ object DelaneySymbols:
       result = result + Frac(if orb.isChain then 1 else 2, ds.v(orb.i, orb.j, orb.elements.head))
       idx += 1
     result.isZero
+
+  // ---- bridge for externally-built CLOSED maps (ADR-0025 bucketed-assembly verify / key / dedup) -------
+
+  /** Wrap the three chamber involutions of a CLOSED oriented 2-manifold map as a `v = 1` Delaney–Dress
+    * symbol. `op(d)` holds `(σ₀, σ₁, σ₂)` for chamber `d`; chambers are 1-based, `op(0)` is unused, and every
+    * involution must be total (a closed map has no boundary chambers). Because the map is the full
+    * barycentric subdivision (no symmetry quotient), each 01-orbit's `m₀₁` is directly the polygon side-count
+    * and each 12-orbit's `m₁₂` the vertex degree (`r·1`).
+    */
+  def closedMapSymbol(op: Array[Array[Int]]): DSymbol =
+    val n             = op.length - 1
+    val a             = Array.ofDim[Int](n + 1, Dim + 1)
+    var d             = 1
+    while d <= n do
+      var i = 0
+      while i <= Dim do { a(d)(i) = op(d)(i); i += 1 }
+      d += 1
+    val ds            = new DSet(a)
+    val (orbs, index) = collectOrbits(ds)
+    new DSymbol(ds, orbs, index, Array.fill(orbs.length)(1))
+
+  /** The MINIMAL (maximal-symmetry) Delaney–Dress symbol covered by `ds`: quotient by a proper m-preserving
+    * op-congruence, iterated to a fixed point. Every torus cover of one tiling reduces to the SAME minimal
+    * symbol (Delaney–Dress: it is a complete invariant), so it is the canonical identity for dedup, and its
+    * `n` vertex orbits / distinct types are the Krötenheerdt quantities — independent of the chosen cell.
+    */
+  def minimalSymbol(ds: DSymbol): DSymbol =
+    var cur  = ds
+    var step = reduceOnce(cur)
+    while step.isDefined do { cur = step.get; step = reduceOnce(cur) }
+    cur
+
+  /** One quotient step: the coarsest m-constant op-congruence identifying chamber 1 with some `d0`, or `None`
+    * if the symbol is already minimal. Mirrors [[isMinimal]] but BUILDS the quotient symbol.
+    */
+  private def reduceOnce(ds: DSymbol): Option[DSymbol] =
+    val n  = ds.size
+    var d0 = 2
+    while d0 <= n do
+      val parent                         = Array.tabulate(n + 1)(identity)
+      def find(x: Int): Int              = {
+        var r = x; while parent(r) != r do r = parent(r); var c = x;
+        while parent(c) != c do { val p = parent(c); parent(c) = r; c = p }; r
+      }
+      def union(a: Int, b: Int): Boolean =
+        val (ra, rb) = (find(a), find(b))
+        if ra == rb then false else { parent(ra) = rb; true }
+      val queue                          = mutable.Queue((1, d0))
+      union(1, d0)
+      while queue.nonEmpty do
+        val (a, b) = queue.dequeue()
+        var i      = 0
+        while i <= Dim do
+          val (ai, bi) = (ds.get(i, a), ds.get(i, b))
+          if union(ai, bi) then queue.enqueue((ai, bi))
+          i += 1
+      if (1 to n).map(find).toSet.size < n then
+        val m01 = Array.fill(n + 1)(-1)
+        val m12 = Array.fill(n + 1)(-1)
+        var ok  = true
+        var d   = 1
+        while d <= n && ok do
+          val rep = find(d)
+          if m01(rep) < 0 then { m01(rep) = ds.m(0, 1, d); m12(rep) = ds.m(1, 2, d) }
+          else if m01(rep) != ds.m(0, 1, d) || m12(rep) != ds.m(1, 2, d) then ok = false
+          d += 1
+        if ok then return Some(quotient(ds, Array.tabulate(n + 1)(find)))
+      d0 += 1
+    None
+
+  /** Quotient `ds` by the class map `cls` (an m-constant op-congruence). v-values are recomputed so the
+    * polygon side-counts and vertex degrees (`m₀₁`, `m₁₂`) are preserved: `v_new = m_original / r_new`.
+    */
+  private def quotient(ds: DSymbol, cls: Array[Int]): DSymbol =
+    val n             = ds.size
+    val label         = mutable.LinkedHashMap.empty[Int, Int] // class rep -> new 1-based label
+    val repOf         = mutable.ArrayBuffer(0)                // new label -> a representative original chamber
+    var d             = 1
+    while d <= n do
+      val r = cls(d)
+      if !label.contains(r) then { label(r) = label.size + 1; repOf += r }
+      d += 1
+    val c             = label.size
+    val a             = Array.ofDim[Int](c + 1, Dim + 1)
+    var lab           = 1
+    while lab <= c do
+      val orig = repOf(lab)
+      var i    = 0
+      while i <= Dim do { a(lab)(i) = label(cls(ds.get(i, orig))); i += 1 }
+      lab += 1
+    val qds           = new DSet(a)
+    val (orbs, index) = collectOrbits(qds)
+    val vs            = Array.tabulate(orbs.length): k =>
+      val orb   = orbs(k)
+      val mOrig =
+        if orb.i == 0 then ds.m(0, 1, repOf(orb.elements.head)) else ds.m(1, 2, repOf(orb.elements.head))
+      mOrig / orb.r
+    new DSymbol(qds, orbs, index, vs)
+
+  /** A canonical key for a CLOSED symbol: the lexicographically minimal BFS-renumbered trace of the three
+    * involutions plus `(m₀₁, m₁₂)` per chamber, over every start chamber. Two symbols are isomorphic iff
+    * their keys are equal — the coordinate-free dedup id ADR-0025 asks for.
+    */
+  def canonicalKey(ds: DSymbol): String =
+    val n            = ds.size
+    var best: String = null
+    var s            = 1
+    while s <= n do
+      val o2n   = Array.fill(n + 1)(0)
+      val n2o   = Array.fill(n + 1)(0)
+      o2n(s) = 1; n2o(1) = s
+      var next  = 2
+      val trace = new StringBuilder
+      var d     = 1
+      while d <= n do
+        val orig = n2o(d)
+        var i    = 0
+        while i <= Dim do
+          val ei = ds.get(i, orig)
+          if o2n(ei) == 0 then { o2n(ei) = next; n2o(next) = ei; next += 1 }
+          trace.append(o2n(ei)).append(',')
+          i += 1
+        trace.append(ds.m(0, 1, orig)).append('|').append(ds.m(1, 2, orig)).append(';')
+        d += 1
+      val t     = trace.toString
+      if best == null || t < best then best = t
+      s += 1
+    best
+
+  /** Classify a CLOSED oriented map (given its chamber involutions) as a regular-polygon torus tiling.
+    * `Some((n, vertices, key))` iff it is euclidean (curvature 0 — a torus, since the construction is
+    * orientable), a `{3,4,6,8,12}` regular-polygon tiling with valid 360° vertices: `n` = vertex orbits of
+    * the MINIMAL symbol, `vertices` their configs, `key` the minimal symbol's canonical key. The caller
+    * applies the Krötenheerdt condition (`n` orbits = `n` distinct types). No overlap test is needed — an
+    * intrinsic closed all-360° map is a genuine flat tiling (ADR-0022).
+    */
+  def classifyClosedMap(op: Array[Array[Int]]): Option[(Int, List[VertexSignature], String)] =
+    val full = closedMapSymbol(op)
+    if !isEuclidean(full) || regularPolygonVertices(full).isEmpty then None
+    else
+      val min = minimalSymbol(full)
+      regularPolygonVertices(min).map(sigs => (sigs.length, sigs, canonicalKey(min)))
+
+  /** [[enumerateDetailed]] augmented with each tiling's minimal-symbol canonical key, so an external
+    * enumerator (e.g. the ADR-0025 bucketed assembler) can be cross-checked key-for-key, not just by count.
+    */
+  def keyedTilings(maxN: Int, maxSize: Int): List[(Int, Set[VertexSignature], String)] =
+    val out = List.newBuilder[(Int, Set[VertexSignature], String)]
+    DSetGenerator(maxSize).foreach: dset =>
+      if euclideanFeasible(dset) then
+        DSymGenerator(dset).foreach: dsym =>
+          if isEuclidean(dsym) then
+            regularPolygonVertices(dsym).foreach: sigs =>
+              if sigs.length == sigs.toSet.size && sigs.length <= maxN && isMinimal(dsym) then
+                out += ((sigs.length, sigs.toSet, canonicalKey(dsym)))
+    out.result()

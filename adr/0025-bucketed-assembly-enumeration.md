@@ -77,13 +77,49 @@ bounded-V assembly** (enumerate ONLY complete `V`-vertex tori, never partial pat
 not build. The restricted-growth realization is rejected; the bounded-V assembly is unbuilt and is the real
 test.
 
-## The real spike (still to build): bounded-V dart assembly
+## The real spike: bounded-V dart assembly — BUILT (2026-06-20). Verdict: SOUND & CORRECT, but not yet small.
 
-Implement the port table + a **fixed-`V` combinatorial-map assembler** (darts/half-edges): take `V` typed
-vertices, enumerate the port-matched perfect matchings of their darts that close into a torus with all faces
-regular, for the one bucket `T`. Confirm it produces exactly that bucket's tilings with a state count that
-tracks `V` (not the patch-growth ~850). Only the *complete-torus* space is searched — there are no partial
-patches to scatter over. This is the genuine test of the ADR, and the genuine new code.
+Built as `BucketAssembly` (+ a `DelaneySymbols` bridge: `closedMapSymbol` / `minimalSymbol` / `canonicalKey` /
+`classifyClosedMap` / `keyedTilings`, validated by `BucketAssemblySpec`). The assembler lays out `V` typed
+vertices as darts, enumerates the **port-matched perfect matchings** of those darts (edge involution `α`; faces
+fall out as the cycles of `φ = σ∘α`), and hands each CLOSED connected genus-1 map to the oracle: bridged to its
+`v = 1` Delaney symbol, reduced to its minimal symbol, keyed canonically. Only complete-torus space is searched
+— no partial patches.
+
+**Two of the three risks are decisively retired:**
+- **Soundness (PASS).** The angle-valid non-tilings `3.3.6.6` and `3.4.4.6` assemble into ZERO tori — the
+  ADR-0022 win, now combinatorial, no overlap test. (`3.4.4.6` is killed at the port stage: 0 states.)
+- **Assembly correctness / identity (PASS).** Square, triangular, hexagonal, the octagon **`4.8.8`** (which the
+  ζ engines cannot represent), `3.6.3.6` and `3.4.6.4` all reproduce with minimal-symbol canonical keys that
+  match the `DelaneySymbols` oracle **key-for-key**; the 2-uniform `{4⁴; 3³.4²}` bucket yields its correct
+  **multiplicity of 2** distinct tilings. The dart bookkeeping, torus closure, and orbit counting are right.
+
+**The size risk (#1) MATERIALIZED — the raw enumeration is not small.** The decisive prune is the *ordered
+antiparallel* port match (`after(g)==before(h) && before(g)==after(h)`, validated correct by key-equality); it
+cut `3.6.3.6` 44× (4.9M → 111k states). But ports do nothing for single-port, triangle-rich vertices (every
+`3⁶` / `3.6.3.6` dart has the same port), so the perfect-matching enumeration still scatters:
+
+| bucket | minimal cell | states (maxV) | distinct tilings |
+|--------|--------------|---------------|------------------|
+| `4.4.4.4` | tiny | 258 (V≤2) | 1 |
+| `6.6.6` | tiny | 35 (V≤3) | 1 |
+| `4.8.8` | small | 270 (V≤4) | 1 |
+| `3.6.3.6` | medium | 1.1e5 (V≤4) | 1 |
+| `3.4.6.4` | large | 2.0e6 (V≤6) | 1 |
+| `{4⁴; 3³.4²}` | small | 2.2e4 (V≤4) | 2 |
+| `{3⁶; 3⁴.6}` | — | >5e6, **over budget** | (0 found) |
+
+So vs the patch-growth ~850 for a 2-uniform bucket, the bounded-V assembler is **worse** (2e4–5e6): it trades
+growth-scatter for **matching-scatter**. Note `mapsClosed` ≫ distinct tilings (e.g. `3.6.3.6`: 34 502 closed
+maps → 1 tiling), so the waste is **isomorphic partial matchings**, not genuine candidates.
+
+**Consequence — the ADR's "few assemblies per V" needs more than ports.** Bounding `V` removes the
+aperiodic/covolume scatter as promised, but raw port-matched perfect-matching introduces its own combinatorial
+blow-up. The next gate (before any n = 4–7 attempt) is the standard control the matching count points straight
+at: **canonical dedup of PARTIAL maps during the search** (prune isomorphic partials — would collapse the
+34k→1 waste), plus MRV vertex/dart ordering and stopping redundant higher-`V` layers. If partial-map
+canonicalization brings a 2-uniform bucket below ~850, the bucketed plan is alive; if not, bounded-V assembly
+is another dead end and the fallback (ship n ≤ 3) stands. That measurement is the immediate next step.
 
 ## Validation ladder
 
