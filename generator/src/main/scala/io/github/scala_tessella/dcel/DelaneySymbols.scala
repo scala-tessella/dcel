@@ -1024,3 +1024,75 @@ object DelaneySymbols:
     f"total ${tot / 1e9}%.1fs | dsets=$nDset euc=$nEuc dsym=$nDsym reg=$nReg | " +
       f"generation=${tGen / 1e9}%.1fs euclFeasible=${tEuc / 1e9}%.1fs DSymGen=${tDsymGen /
           1e9}%.1fs body=${tBody / 1e9}%.1fs"
+
+  // ---- ADR-0023 corona-first spike: does the 360° prune cut the PARTIAL tree, or only completed D-sets? ----
+
+  /** Canonical key of a (possibly partial) oriented D-set: lexicographically minimal BFS relabelling over all
+    * roots, undefined ops shown as `x`. Fill-order-independent, so it deduplicates isomorphic PARTIAL maps.
+    */
+  private def canonicalDSetKey(ds: DSet): String =
+    val n            = ds.size
+    var best: String = null
+    var s            = 1
+    while s <= n do
+      val o2n  = Array.fill(n + 1)(0); val n2o = Array.fill(n + 1)(0)
+      o2n(s) = 1; n2o(1) = s
+      var next = 2; val sb                     = new StringBuilder; var d = 1; var ok = true
+      while d <= n && ok do
+        val orig = n2o(d)
+        if orig == 0 then ok = false
+        else
+          var i = 0
+          while i <= Dim do
+            val ei = ds.get(i, orig)
+            if ei == 0 then sb.append('x')
+            else { if o2n(ei) == 0 then { o2n(ei) = next; n2o(next) = ei; next += 1 }; sb.append(o2n(ei)) }
+            sb.append(','); i += 1
+          d += 1
+      if ok then { val t = sb.toString; if best == null || t < best then best = t }
+      s += 1
+    best
+
+  /** Corona-first counterpart of [[orientedGenerationStats]] using VISITED-SET dedup (canonical partial key)
+    * instead of `checkCanonicity`, plus the early [[verticesAngleFeasible]] prune. Counts DISTINCT partial
+    * D-sets visited — which is fill-order-independent, so it directly measures whether the euclidean prune
+    * cuts the partial tree (corona-first's whole premise) or only completed symbols. Returns
+    * `(nodesVisited, reg)`.
+    */
+  def coronaStats(maxN: Int, maxSize: Int): (Long, Long) =
+    val seen                                  = mutable.HashSet.empty[String]
+    val regSeen                               = mutable.HashSet.empty[String]
+    var nodes                                 = 0L
+    def go(ds: DSet, color: Array[Int]): Unit =
+      firstUndefined(ds) match
+        case None         =>
+          // a complete oriented D-set — record its regular euclidean tilings, deduped by minimal key
+          if euclideanFeasible(ds) then
+            DSymGenerator(ds).foreach: dsym =>
+              if isEuclidean(dsym) && regularPolygonVertices(dsym).isDefined then
+                val mn = minimalSymbol(dsym)
+                regularPolygonVertices(mn).foreach: msigs =>
+                  if msigs.length == msigs.toSet.size && msigs.length <= maxN then
+                    regSeen.add(canonicalKey(mn))
+        case Some((d, i)) =>
+          val cd  = color(d)
+          var e   = d + 1
+          val cap = math.min(ds.size + 1, maxSize)
+          while e <= cap do
+            if ds.get(i, e) == 0 && (e > ds.size || color(e) == -cd) then
+              val child          = if e > ds.size then ds.grown else ds.copy
+              child.set(i, d, e)
+              val col            = color.clone(); col(e) = -cd
+              val (h, t, gap, k) = scan02Orbit(child, d)
+              var ok             = true
+              if gap == 1 then
+                if h == t || (col(h) != 0 && col(t) != 0 && col(h) != -col(t)) then ok = false
+                else { child.set(k, h, t); if col(h) == 0 then col(h) = -col(t) else col(t) = -col(h) }
+              else if gap == 0 && h != t then ok = false
+              if ok && regularFeasible(child) && verticesAngleFeasible(child) then
+                val key = canonicalDSetKey(child)
+                if seen.add(key) then { nodes += 1; go(child, col) }
+            e += 1
+    val c0                                    = Array.fill(maxSize + 2)(0); c0(1) = 1
+    go(DSet.empty1, c0)
+    (nodes, regSeen.size.toLong)

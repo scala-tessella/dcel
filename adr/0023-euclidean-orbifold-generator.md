@@ -291,6 +291,38 @@ moving on, à la Galebach) so the euclidean constraint prunes from the top of th
 the genuine next build. The oriented generator + its 1.6× orientation optimization remain the validated state
 of the art here (first to cross n = 3; n = 4 = 5/33, n = 5 = 1/15, growing with budget).
 
+### Corona-first generation — BUILT as a measurement spike, DECISIVE NEGATIVE (2026-06-20)
+
+Built `coronaStats` (+ `canonicalDSetKey`, probe `CoronaProbe`): the oriented D-set search with **visited-set
+dedup by canonical partial key** (fill-order-independent) and the **early** angle prune
+([[vertexAngleFeasible]] now firing on PARTIAL coronas). Because the deduped node count is order-independent,
+it measures the *corona-first premise directly*: does the euclidean prune cut the PARTIAL tree?
+
+It does NOT. The distinct partial D-sets that pass the early prune are FAR MORE numerous than the complete
+D-sets, and the ratio GROWS with size:
+
+| maxSize | oriented COMPLETE D-sets | corona PARTIAL nodes | ratio |
+|---------|--------------------------|----------------------|-------|
+| 16 | 260 | 5 541 | 21× |
+| 20 | 1 127 | 59 300 | 53× |
+| 24 | 8 366 | 758 471 | 91× |
+
+(The search is CORRECT — `reg` matches the oriented generator exactly at each size; it is only the *cost* that
+is worse.) **Root cause, now empirically confirmed:** a partial corona legitimately sums to LESS than 360° and
+only reaches/exceeds 360° AT CLOSURE, so the euclidean condition is a *closure* condition with no early-firing
+power — there is no order in which it prunes the partial tree from the top. This is exactly why D-symbol
+generation universally walls at Dress-complexity 24 (genDSyms/Tegula included): the partial tree is
+irreducible.
+
+**Decisive consequence.** The entire D-symbol *generation* family — generate-all (ADR-0022), oriented-slice,
+interleaved v-assignment, and corona-first — shares ONE wall: enumerating partial D-sets, which the euclidean
+constraint cannot prune. The **oriented-slice generator is the ceiling of this family** (167× over generate-all
+via the orbifold restriction; first to cross n = 3; reaches n = 4–5 partially). Completing n = 4–7 is not
+reachable by reordering or pruning D-symbol generation. Any further gain must come from OUTSIDE this family —
+e.g. the genDSyms Euclidean databases (≤ complexity 24 = our n ≤ 3 only) or a fundamentally different
+construction not yet identified. Pragmatic recommendation: ship the validated n ≤ 3 (`DelaneySymbols`) plus the
+oriented generator's partial n = 4–5 as the project's reach, and treat full n = 4–7 as open.
+
 ## Validation ladder
 
 1. **Oracle cross-check:** the existing `DelaneySymbols` engine is correct through n = 3 — the new generator

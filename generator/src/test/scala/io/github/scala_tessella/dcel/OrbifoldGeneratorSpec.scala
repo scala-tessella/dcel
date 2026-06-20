@@ -64,3 +64,16 @@ class OrbifoldGeneratorSpec extends AnyFlatSpec with Matchers:
     (oriTotal * 20) should be < allTotal
     // and far more efficient per tiling found (dsets per tiling), cross-multiplied to avoid floats
     (oriTotal * allReg) should be < (allTotal * oriReg)
+
+  behavior of "corona-first generation — the euclidean prune cannot cut the PARTIAL tree (negative result)"
+
+  // coronaStats walks DISTINCT partial oriented D-sets passing the early 360° angle prune. A partial corona is
+  // under-angle until it closes, so the euclidean condition has no early-firing power: the partial tree is far
+  // LARGER than the set of complete D-sets — confirming no generation order (corona-first included) breaks the
+  // D-symbol generation wall. The search is still CORRECT (same regular tilings as the oriented generator).
+  it should "find the same tilings but visit far MORE partial nodes than complete D-sets" in:
+    val (oriTotal, _, oriReg) = DelaneySymbols.orientedGenerationStats(3, 16)
+    val (nodes, reg)          = DelaneySymbols.coronaStats(3, 16)
+    reg shouldBe oriReg // correct: same regular tilings recovered
+    nodes should
+      be > (oriTotal * 5) // the partial tree is many× larger than the complete count (measured ~21×)
