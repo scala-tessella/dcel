@@ -238,11 +238,32 @@ So it reaches **n = 4 and n = 5** — genuine 4- and 5-uniform tilings, which ge
 bounded-V assembler (covolume wall) both cannot produce. The counts are LOWER BOUNDS at this budget: a tiling
 appears once its oriented double fits in `oriSize`, and many n ≥ 3 doubles exceed 32 chambers.
 
-**Status: Stage 1 oriented-slice BUILT, VALIDATED, and REACHING n = 4–5.** The two levers to complete the
-counts: (1) raise `oriSize` (the oriented tree is cheap — 167× smaller than generate-all and the ratio grows —
-so budget is affordable); (2) tame the per-symbol `minimalSymbol` cost (O(size²), iterated — it dominates the
-124 s, not the generation). With both, n = 4–7 is in reach. The full per-orbifold mirror generator
-(architecture B proper) is **not needed** — the oriented-double route already crosses the wall.
+**Status: Stage 1 oriented-slice BUILT, VALIDATED, and REACHING n = 4–5.**
+
+### Profiling + optimization (2026-06-20) — and a corrected diagnosis
+
+The earlier guess that `minimalSymbol` dominates was WRONG. `orientedProfile` (oriSize 28): of 9.4 s, the
+**GENERATION is 8.8 s (94 %)**; `minimalSymbol`/`canonicalKey`/`DSymGen` are ≈ 0. The per-child
+`isWeaklyOriented` was an O(size) BFS run on every node. Replaced with an **O(1) incremental 2-colouring**
+threaded through the generator state (each `σ_i` pairing must join opposite colours; the manifold-closure edge
+too), redundant per-child `isLoopless` dropped (kept only as a completed-symbol backstop). Result: generation
+**8.8 s → 5.5 s** at oriSize 28, identical 52 835-D-set search, validated (same results, 0 truly-spurious,
+n = 1 11/11).
+
+### The real scaling limit (measured)
+
+The oriented D-set tree grows ≈ 2.4× per +2 chambers, and ACCELERATES past that at larger sizes (oriSize 36
+did not finish in 12 min where ~5 was projected). Combined with the **2× chamber penalty of the oriented
+double** (a tiling's oriented symbol is up to twice its mirror minimal), this means: the oriented-double route
+gets the HIGH-symmetry n = 4–7 tilings cheaply, but the LOW-symmetry ones (large mirror symbols → ~60-chamber
+doubles) are out of budget. So it REACHES n = 4–7 with growing partial counts, but COMPLETING them this way is
+compute-bound.
+
+**Consequence for the plan.** To complete n = 4–7, the decisive remaining win is to drop the 2× penalty by
+generating the **mirror minimal symbols directly** — i.e. the per-orbifold mirror generator (architecture B
+proper) after all, OR interleaving v-assignment with generation so the euclidean/regular constraint prunes the
+~96 % non-euclidean D-sets during generation (the generation, not minimization, is the wall). The oriented
+generator stands as the validated engine that first crossed n = 3; the next build is halving the chamber count.
 
 ## Validation ladder
 
