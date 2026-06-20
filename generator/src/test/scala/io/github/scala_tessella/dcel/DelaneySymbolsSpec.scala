@@ -94,10 +94,30 @@ class DelaneySymbolsSpec extends AnyFlatSpec with Matchers:
     // and it has genuinely reached into the 2-uniform tilings (not vacuous)
     foundTypeSets should contain(Set(sig("3.3.3.4.4"), sig("4.4.4.4")))
 
-  behavior of "DelaneySymbols completeness (slow — run on demand)"
+  behavior of "DelaneySymbols completeness & element-for-element agreement (slow — run on demand)"
 
-  // ≈3 min at maxSize 22 (the D-set generation tree is the cost; see ADR-0022). Un-ignore to verify that the
-  // engine reproduces the FULL count, not just a subset — the decisive A068600(2) = 20 check.
-  ignore should "enumerate exactly the 20 two-uniform tilings (A068600(2)) at maxSize 22" in:
-    val twos = DelaneySymbols.enumerate(2, 22).count(_._1 == 2)
-    twos shouldBe TilingReference.counts(2) // 20
+  // parse the reference's compact Wikipedia notation: "3^2.4.3.4" -> 3.3.4.3.4, "3.4^2.6" -> 3.4.4.6, etc.
+  private def parseVertex(v: String): VertexSignature      =
+    normalize(v.trim.split('.').toList.flatMap { tok =>
+      tok.split('^') match
+        case Array(b)    => List(b.toInt)
+        case Array(b, e) => List.fill(e.toInt)(b.toInt)
+        case _           => Nil
+    })
+  private def parseTiling(t: String): Set[VertexSignature] = t.split(';').map(parseVertex).toSet
+
+  // ≈3 min at maxSize 22 (the D-set generation tree is the cost; see ADR-0022). Un-ignore to verify the engine
+  // reproduces the FULL count AND the exact vertex-type sets — not just a subset.
+  ignore should "agree element-for-element with the reference at n = 2 (exact) and n = 3 (no spurious)" in:
+    val found            = DelaneySymbols.enumerate(maxN = 3, maxSize = 22)
+    def distinct(n: Int) = found.filter(_._1 == n).map(_._2).toSet
+
+    // n = 2: exactly the 20 two-uniform tilings, and exactly the reference's distinct vertex-type sets.
+    found.count(_._1 == 2) shouldBe TilingReference.counts(2) // 20
+    distinct(2) shouldBe TilingReference.n2.toSet
+
+    // n = 3: every reference vertex-type set is found and none is spurious (the 38/39 gap is a geometric
+    // duplicate sharing a type-set, not a missing/wrong configuration).
+    val ref3 = TilingReference.rawWikipediaN3to5(3).map(parseTiling).toSet
+    withClue("spurious n=3 type-sets: ")((distinct(3) -- ref3) shouldBe empty)
+    withClue("missing n=3 type-sets: ")((ref3 -- distinct(3)) shouldBe empty)
