@@ -761,3 +761,52 @@ object DelaneySymbols:
               if sigs.length == sigs.toSet.size && sigs.length <= maxN && isMinimal(dsym) then
                 out += ((sigs.length, sigs.toSet, canonicalKey(dsym)))
     out.result()
+
+  /** [[enumerateDetailed]] returning the minimal Delaney SYMBOL itself (not just its type-set) — so an
+    * orbifold-directed enumerator can inspect the symbols it must reproduce.
+    */
+  def enumerateSymbols(maxN: Int, maxSize: Int): List[(Int, List[VertexSignature], DSymbol)] =
+    val out = List.newBuilder[(Int, List[VertexSignature], DSymbol)]
+    DSetGenerator(maxSize).foreach: dset =>
+      if euclideanFeasible(dset) then
+        DSymGenerator(dset).foreach: dsym =>
+          if isEuclidean(dsym) then
+            regularPolygonVertices(dsym).foreach: sigs =>
+              if sigs.length == sigs.toSet.size && sigs.length <= maxN && isMinimal(dsym) then
+                out += ((sigs.length, sigs, dsym))
+    out.result()
+
+  /** Quantifies the orbifold approach's potential: how many COMPLETE D-sets the generate-all generator walks
+    * vs how many are euclidean-feasible (curvature ≥ 0 achievable). The euclidean fraction is the slice an
+    * orbifold-directed generator would visit; `1 - fraction` is the hyperbolic universe it would skip.
+    * Returns `(totalDSets, euclideanFeasibleDSets, regularEuclideanSymbols)`.
+    */
+  def generationStats(maxN: Int, maxSize: Int): (Long, Long, Long) =
+    var total = 0L
+    var eucl  = 0L
+    var reg   = 0L
+    DSetGenerator(maxSize).foreach: dset =>
+      total += 1
+      if euclideanFeasible(dset) then
+        eucl += 1
+        DSymGenerator(dset).foreach: dsym =>
+          if isEuclidean(dsym) then
+            regularPolygonVertices(dsym).foreach: sigs =>
+              if sigs.length == sigs.toSet.size && sigs.length <= maxN && isMinimal(dsym) then reg += 1
+    (total, eucl, reg)
+
+  /** The orbifold "shape" of a minimal symbol — what an orbifold-directed generator would FIX before
+    * enumerating. `D` = chambers, `t/v/e` = number of tile / vertex / edge orbits, orientability, whether it
+    * has mirror boundaries (loops), and the cone/corner orders (orbit v-values > 1 = rotation orders). Two
+    * minimal symbols sharing this signature are triangulations of the same euclidean orbifold.
+    */
+  def orbifoldSignature(ds: DSymbol): String =
+    val o01     = orbits(ds.dset, 0, 1)
+    val o12     = orbits(ds.dset, 1, 2)
+    val o02     = orbits(ds.dset, 0, 2)
+    val ori     = isOriented(ds.dset)
+    val mir     = !isLoopless(ds.dset)
+    val cones01 = o01.toList.map(o => ds.v(0, 1, o.elements.head)).filter(_ > 1).sorted
+    val cones12 = o12.toList.map(o => ds.v(1, 2, o.elements.head)).filter(_ > 1).sorted
+    s"D=${ds.size} t=${o01.length} v=${o12.length} e=${o02.length} ori=$ori mir=$mir " +
+      s"cone-tile=[${cones01.mkString(",")}] cone-vert=[${cones12.mkString(",")}]"

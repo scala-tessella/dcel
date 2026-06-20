@@ -1,7 +1,9 @@
 # ADR-0023: Euclidean wallpaper-orbifold generator (reaching n = 4–7)
 
-- **Status:** Proposed — scope/design only. Extends ADR-0022's `DelaneySymbols` engine, which is correct and
-  complete through n = 3 but cannot reach n = 4–7 by generate-all-then-filter.
+- **Status:** Architecture A CLOSED OUT (= ADR-0025's bounded-V assembler, hits the covolume wall). Per-orbifold
+  route B: **Stage 0 (de-risk + infrastructure) BUILT and the premise CONFIRMED** (regular euclidean symbols
+  are few; generate-all is 99.96% hyperbolic waste at maxSize 18, growing); Stage 1 (the 17-orbifold
+  triangulation enumerator) is the substantial remaining build.
 - **Date:** 2026-06-20
 
 ## Context — where ADR-0022 lands and why it stops
@@ -142,6 +144,53 @@ vertex-stars and tracking the symmetry orbits directly, so there is no aperiodic
 `DelaneySymbols` as the canonical-key / minimal-image tail (soundness + dedup) and as the n ≤ 3 oracle; keep
 `enumerateByGluing` as a reference/cross-check at n = 1. The `o`-orbifold-via-minimization framing still holds;
 only the *grower* changes from free-planar-extend to vertex-star-attach.
+
+## Architecture A is now CLOSED OUT (ADR-0025): the per-orbifold route B is the remaining path
+
+Architecture A (torus map "o" + minimization) was built and pushed hard under ADR-0025 as the bounded-`V`
+dart assembler (intrinsic combinatorial map, sound, complete, exactly-identified, with ordered-port +
+partial-map-canonical + face-closure pruning). Verdict: it works and is cheap for cells that FIT, but the
+**torus-cell vertex count `V` IS the covolume**, so it hits the SAME exponential-in-covolume wall as the
+fixed-Λ engines — only 6 of 20 two-uniform cells fit `V ≤ 6`, cost ≈ `c^V`, n = 4–7 unreachable. So "o +
+minimization" is decided: NOT the route. **Architecture B (per-orbifold, small symmetric symbols) is what
+remains.**
+
+## Per-orbifold generator — STAGE 0 de-risk + infrastructure BUILT (2026-06-20)
+
+Before committing to the intricate 17-orbifold build, measured whether the premise holds — that the regular
+euclidean symbols are FEW and the generate-all engine wastes its effort on the hyperbolic universe (which the
+per-orbifold route skips by construction). New, validated infrastructure on `DelaneySymbols` (reuses its
+proven internals, so correct): `enumerateSymbols` (returns the minimal symbols), `orbifoldSignature` (the
+cone/mirror/orbit shape), `generationStats` (the generate-all waste). Probe `OrbifoldInventoryProbe`.
+
+**Finding 1 — the waste is huge and GROWS with size** (`generationStats`, n ≤ 3):
+
+| maxSize | total D-sets walked | euclidean-feasible | euclidean % | regular-euclidean symbols |
+|---------|--------------------|--------------------|-------------|---------------------------|
+| 10 | 809 | 327 | 40.4% | 31 |
+| 12 | 3 395 | 709 | 20.9% | 38 |
+| 14 | 10 716 | 1 482 | 13.8% | 44 |
+| 16 | 43 482 | 3 270 | 7.5% | 56 |
+| 18 | 172 218 | 7 407 | 4.3% | 62 |
+
+The total tree grows ≈ 4–5× per +2 chambers (the wall); the euclidean slice only ≈ 2×; the **regular**
+targets grow nearly linearly (31 → 62). At maxSize 18 generate-all walks 172 k D-sets to surface 62 regular
+tilings — **99.96 % waste, and the euclidean fraction keeps falling** (40 % → 4.3 %). At the ~30–60-chamber
+sizes n = 4–7 needs, the euclidean fraction is well under 1 %: an orbifold-directed generator that visits only
+the euclidean slice is the structural win, and it grows with n. **Premise CONFIRMED.**
+
+**Finding 2 — the orbifold structure (what B must build):** of the 65 regular symbols at n ≤ 3, **63 are
+mirror orbifolds** (`mir=true`) — only 2 are mirror-free — with cone/corner orders ∈ {2,3,4,6} (the
+crystallographic restriction), chamber sizes 1–20. So B is dominated by the MIRROR orbifolds (the `*XYZ`,
+`X*Y`, `XY*` families): place regular tiles in a fundamental polygon with mirror edges and cones of order
+{2,3,4,6}. The orbifold signatures are near-distinct per tiling (the regular + cone structure is what selects,
+not a few buckets each with many tilings) — so B enumerates each orbifold's regular triangulations, bounded by
+domain size, not by the hyperbolic D-set count.
+
+**Status: Stage 0 DONE (premise + infra + characterization). Stage 1 (the 17-orbifold triangulation
+enumerator) is the substantial next build** — intricate cone/mirror/chain bookkeeping per orbifold, validated
+against `enumerateSymbols` per orbifold. Estimated multi-day; correctness-risky; but it is the ONLY route left
+with a measured, structural case (the 99.96 % waste it removes).
 
 ## Validation ladder
 
