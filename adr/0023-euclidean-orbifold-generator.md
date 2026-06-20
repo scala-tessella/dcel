@@ -1,9 +1,10 @@
 # ADR-0023: Euclidean wallpaper-orbifold generator (reaching n = 4–7)
 
-- **Status:** Architecture A CLOSED OUT (= ADR-0025's bounded-V assembler, hits the covolume wall). Per-orbifold
-  route B: **Stage 0 (de-risk + infrastructure) BUILT and the premise CONFIRMED** (regular euclidean symbols
-  are few; generate-all is 99.96% hyperbolic waste at maxSize 18, growing); Stage 1 (the 17-orbifold
-  triangulation enumerator) is the substantial remaining build.
+- **Status:** Architecture A CLOSED OUT (= ADR-0025's bounded-V assembler, covolume wall). **Stage 1
+  ORIENTED-slice generator BUILT and VALIDATED SOUND** — restricts generation to the rotation orbifolds
+  (oriented closed D-sets), recovers mirror tilings as oriented doubles via `minimalSymbol`; generate tree is
+  32×→167× smaller than generate-all (gap growing), finds REAL tilings beyond the oracle's reach. Escapes both
+  walls (covolume + hyperbolic-universe). Remaining: push budget to n = 4–7 + tame `minimalSymbol` cost.
 - **Date:** 2026-06-20
 
 ## Context — where ADR-0022 lands and why it stops
@@ -187,10 +188,61 @@ crystallographic restriction), chamber sizes 1–20. So B is dominated by the MI
 not a few buckets each with many tilings) — so B enumerates each orbifold's regular triangulations, bounded by
 domain size, not by the hyperbolic D-set count.
 
-**Status: Stage 0 DONE (premise + infra + characterization). Stage 1 (the 17-orbifold triangulation
-enumerator) is the substantial next build** — intricate cone/mirror/chain bookkeeping per orbifold, validated
-against `enumerateSymbols` per orbifold. Estimated multi-day; correctness-risky; but it is the ONLY route left
-with a measured, structural case (the 99.96 % waste it removes).
+## Stage 1 — the ORIENTED-slice generator BUILT and VALIDATED (2026-06-20)
+
+Rather than encode 17 orbifolds with mirror/cone/chain bookkeeping, Stage 1 takes the **oriented slice** and
+lets minimization recover the rest. `OrientedDSetGenerator` (in `DelaneySymbols`) is `DSetGenerator` restricted
+to CLOSED, ORIENTED D-sets — no `σ_i` fixed points (no mirror boundaries), consistent 2-colouring — i.e. the
+rotation orbifolds `o/2222/333/442/632`. A mirror tiling is recovered as its **oriented double cover** (≤ 2×
+the chambers of its mirror minimal symbol); the A068600 `n` is then read off the FULL `minimalSymbol` (whose
+automorphisms include the orientation-reversing reflections), so the mirror symmetry is not lost — only the
+*generation* is restricted. `orientedRegularSymbols` runs the slice → euclidean v-values → regular filter →
+minimal key + dedup, reusing every validated downstream piece.
+
+**Validated SOUND.** Every result passes the same `isEuclidean` + `regularPolygonVertices` filters as the
+oracle and keys (via `minimalSymbol`) identically. Cross-check (`OrbifoldStage1Probe`): of the oriented results
+keyed by minimal symbol, **zero are truly spurious** — the 2 that were absent from the generate-all oracle at
+maxSize 18 are REAL tilings present at maxSize 24 (`{3⁶;3⁴.6}`, which is in `TilingReference.n2`, and a
+3-uniform `{3².4.3.4; 3³.4²; 4⁴}`). So the oriented generator finds real tilings BEYOND the generate-all
+oracle's reach — exactly the large-translation-cell / small-orbifold tilings the bounded-V assembler
+(ADR-0025) could not reach.
+
+**The structural win — the tree is far smaller and the gap grows:**
+
+| maxSize | generate-all D-sets | oriented D-sets | ratio |
+|---------|---------------------|-----------------|-------|
+| 10 | 809 | 25 | 32× |
+| 12 | 3 395 | 68 | 50× |
+| 14 | 10 716 | 103 | 104× |
+| 16 | 43 482 | 260 | **167×** |
+
+At oriSize 30 it recovers 11/11 (n=1), 18/19 (n=2), 21/35 (n=3) — the gap is purely budget (oriented doubles
+need ~2× chambers, affordable because the tree is 167× cheaper and the ratio rises). This is the first engine
+in the project that is sound, complete-in-principle, AND escapes both walls (covolume and hyperbolic-universe)
+— because it is bounded by the SMALL oriented orbifold symbol, not the translation cell or the 2-manifold
+D-set count.
+
+**It CROSSES n = 3 — the project's first.** `OrbifoldPushProbe` at oriSize 32 (124 s):
+
+| n | got / A068600 |
+|---|---------------|
+| 1 | **11 / 11 COMPLETE** |
+| 2 | 19 / 20 |
+| 3 | 28 / 39 |
+| 4 | **3 / 33** |
+| 5 | **1 / 15** |
+| 6 | 0 / 10 |
+| 7 | 0 / 7 |
+
+So it reaches **n = 4 and n = 5** — genuine 4- and 5-uniform tilings, which generate-all (n ≤ 3 wall) and the
+bounded-V assembler (covolume wall) both cannot produce. The counts are LOWER BOUNDS at this budget: a tiling
+appears once its oriented double fits in `oriSize`, and many n ≥ 3 doubles exceed 32 chambers.
+
+**Status: Stage 1 oriented-slice BUILT, VALIDATED, and REACHING n = 4–5.** The two levers to complete the
+counts: (1) raise `oriSize` (the oriented tree is cheap — 167× smaller than generate-all and the ratio grows —
+so budget is affordable); (2) tame the per-symbol `minimalSymbol` cost (O(size²), iterated — it dominates the
+124 s, not the generation). With both, n = 4–7 is in reach. The full per-orbifold mirror generator
+(architecture B proper) is **not needed** — the oriented-double route already crosses the wall.
 
 ## Validation ladder
 
