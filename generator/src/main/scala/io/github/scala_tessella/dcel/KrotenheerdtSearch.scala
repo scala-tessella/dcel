@@ -38,6 +38,7 @@ object KrotenheerdtSearch:
       parallelism: Int = 1,
       coronaGrowthGate: Boolean = false,
       coronaGateDepth: Int = 3,
+      coronaGateSkipLargest: Boolean = true,
       onFound: Certified => Unit = _ => (),
       log: String => Unit = _ => ()
   ): Outcome =
@@ -130,7 +131,7 @@ object KrotenheerdtSearch:
         if innerVertexTypes(patch).size < n || !typesLocallyComplete(patch, n, typeBallRadius) then
           Some(RejectReason.WrongTypeCount)
         else if coronaGrowthGate &&
-          TilingCertifier.tooManyWitnessedOrbits(patch, n, coronaGateDepth, skipLargestGroup = true)
+          TilingCertifier.tooManyWitnessedOrbits(patch, n, coronaGateDepth, coronaGateSkipLargest)
         then Some(RejectReason.WrongClassCount)
         else None
 

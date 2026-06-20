@@ -11,7 +11,8 @@ object KrotProbe:
     val parallel    = args.lift(5).map(_.toInt).getOrElse(1)
     val coronaGate  = args.lift(6).exists(s => s == "1" || s.equalsIgnoreCase("true"))
     val coronaDepth = args.lift(7).map(_.toInt).getOrElse(3)
-    println(s"[config] coronaGrowthGate=$coronaGate coronaGateDepth=$coronaDepth")
+    val skipLargest = !args.lift(8).contains("0") // arg8="0" ⇒ full refinement (no skip)
+    println(s"[config] coronaGrowthGate=$coronaGate coronaGateDepth=$coronaDepth skipLargest=$skipLargest")
     val out         =
       KrotenheerdtSearch.enumerate(
         n,
@@ -22,6 +23,7 @@ object KrotProbe:
         parallel,
         coronaGate,
         coronaDepth,
+        skipLargest,
         log = msg => { println(msg); System.out.flush() }
       )
     val secs        = (System.nanoTime - start) / 1e9

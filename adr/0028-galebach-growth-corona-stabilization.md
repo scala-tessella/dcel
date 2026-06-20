@@ -69,13 +69,16 @@ refines witnessed coronae at growing depth 1..d). A/B at n=2, maxV=40, paralleli
 
 | run | states | time | found | NoPeriodEvidence | WrongClassCount |
 |-----|-------:|-----:|------:|-----------------:|----------------:|
-| gate OFF (baseline) | 89 935 | 243 s | 7/20 | 7048 | 867 |
-| gate ON  (depth 3)  | 81 466 | 234 s | 7/20 | 6034 | 1481 |
+| gate OFF (baseline)            | 89 935 | 243 s | 7/20 | 7048 | 867 |
+| gate ON (depth 3, skip-largest)| 81 466 | 234 s | 7/20 | 6034 | 1481 |
+| gate ON (depth 3, FULL refine) | 82 946 | 255 s | 7/20 | **4850** | 2204 |
 
-- **Sound** — identical found set (drops no valid tiling), as required.
-- **Marginal** — ~9% fewer states; it catches a few more aperiodic patches earlier (`WrongClassCount`
-  867→1481) but does NOT break the wall (`NoPeriodEvidence` only 7048→6034). Confirms the existing code
-  comment with numbers.
+- **Sound** — identical found set (drops no valid tiling), as required, in every variant.
+- **Marginal even at full power** — the most powerful sound version (full orbit refinement, no skip) cuts the
+  1D-stacking scatter most (`NoPeriodEvidence` 7048→4850, −31%) but **4850 stackings still reach the horizon
+  unpruned**, and its per-state cost cancels the state savings (time unchanged). Raising the depth witnesses
+  *fewer* vertices (smaller interior core), so it cannot help further. The orbit-prune family tops out at a
+  ~10–31% dent, not the orders of magnitude needed.
 - **The diagnosis (measured):** the dominant scatter is the `{3³.4²; 3².4.3.4}` family growing to v≈60–130
   as **1D-periodic stackings at mismatched offsets** (`NoPeriodEvidence`). These have ≤ n orbits in their
   *witnessed* core — the aperiodicity lives at seams that stay just outside it until the horizon — so an
@@ -83,9 +86,18 @@ refines witnessed coronae at growing depth 1..d). A/B at n=2, maxV=40, paralleli
   ADR-0024's failure mode reconfirmed, and it is **inherent to free geometric growth**, not an
   implementation gap.
 
+**Why no targeted prune saves it (the deeper reason).** The other candidate — *early 1D-period commitment*
+(once a 1D period τ is witnessed, branch over a second period σ and grow only σ-consistent continuations) — is
+**unsound as an early prune and equals the covolume wall as a complete one**: a locally-valid aperiodic patch
+is indistinguishable from a sub-patch of a *large-cell* periodic tiling until growth passes the cell, and the
+cell covolume is **not bounded by n** (ADR-0020, measured exponential-ish). So any sound "reject if grown past
+size X without 2D closure" must take X = max covolume over the (unknown, large) target set = the covolume
+wall. The free-growth scatter horn and the fixed-Λ covolume horn are the **same obstruction** seen from two
+sides; nothing prunes between them without the point-group reduction that free growth does not exploit.
+
 **Conclusion:** the Local-Theorem corona prune does not break the growth wall — the scatter that dominates
-is 1D-periodicity, not orbit-count explosion. Free geometric growth (`KrotenheerdtSearch`) is walled by 1D
-aperiodic stackings; symmetry-driven generation (commit to the full wallpaper group early — a SMALL orbifold
+is 1D-periodicity, not orbit-count explosion, and it evades any witnessing-based prune. Free geometric growth
+(`KrotenheerdtSearch`) is walled by 1D aperiodic stackings; symmetry-driven generation (commit to the full wallpaper group early — a SMALL orbifold
 fundamental domain, NOT a large translation cell) is the only lever that threads between the scatter horn and
 the covolume horn. **That lever already exists**: the ADR-0023 **oriented-slice / orbifold generator** (the
 measured best — first to cross n=3, reaches n=4 5/33, n=5 1/15). The data redirects effort there
