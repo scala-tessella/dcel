@@ -21,10 +21,17 @@ object N4DriverProbe:
 
   private[dcel] def parseRow(row: String): Set[VertexSignature] = row.split(';').map(parseConfig).toSet
 
-  /** Distinct candidate type-sets for `n`, from the (documentation) reference rows / n=2 oracle. */
-  private[dcel] def buckets(n: Int): List[Set[VertexSignature]] = n match
-    case 2 => TilingReference.n2.distinct
-    case _ => TilingReference.rawWikipediaN3to5(n).map(parseRow).distinct
+  // flexible-port types (hexagon/square mixes) drive the largest cells / fastest trees ⇒ slowest buckets;
+  // ordering them LAST lets the cheap, productive buckets stream their tilings first.
+  private val flexible =
+    Set("3.3.6.6", "3.4.4.6", "3.4.6.4").map(s => normalize(s.split('.').map(_.toInt).toList))
+
+  /** Distinct candidate type-sets for `n` (reference rows / n=2 oracle), ordered cheapest-first. */
+  private[dcel] def buckets(n: Int): List[Set[VertexSignature]] =
+    val raw = n match
+      case 2 => TilingReference.n2.distinct
+      case _ => TilingReference.rawWikipediaN3to5(n).map(parseRow).distinct
+    raw.sortBy(b => b.count(flexible.contains))
 
   private def label(b: Set[VertexSignature]): String =
     b.map(_.mkString(".")).toList.sorted.mkString("{", ";", "}")
