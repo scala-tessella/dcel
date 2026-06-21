@@ -102,3 +102,23 @@ class SymmetryGrowerSpec extends AnyFlatSpec with Matchers:
     val labels = seeds.map(_.label).toSet
     labels should contain("vtx3.3.3.3.3.3/m6")
     labels.filter(_.startsWith("vtx3.4.6.4/")) shouldBe empty // 3.4.6.4 corona has no nontrivial rotation
+
+  behavior of "enumerateAllSeeds (the full-catalogue driver — fast smoke + live logger)"
+
+  // small maxFaces: only the tiny cells close (6.6.6 @ 7 faces) — keeps the smoke fast. Asserts the driver is
+  // sound (every result is a real Archimedean, cross-seed dedup leaves no spurious) and the live logger fires.
+  it should "be sound, reach 6.6.6, and invoke the progress logger" in:
+    var ticks = 0
+    val res   = KrotenheerdtTorusMapSearch.enumerateAllSeeds(
+      maxN = 1,
+      maxFaces = 12,
+      onSeed = (_, _, _) => (),
+      log = _ => ticks += 1,
+      logEveryMs = 50L // fast ticks so the daemon fires within the smoke's runtime
+    )
+    res.tilings should not be empty
+    res.tilings.foreach((nn, types, _) =>
+      withClue(s"$types: ")((nn, types.subsetOf(archimedean10)) shouldBe (1, true))
+    )
+    res.tilings.map(_._2).toSet should contain(Set(sig("6.6.6")))
+    ticks should be > 0

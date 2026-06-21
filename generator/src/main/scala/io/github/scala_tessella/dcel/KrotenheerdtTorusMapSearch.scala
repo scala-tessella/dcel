@@ -3,6 +3,7 @@ package io.github.scala_tessella.dcel
 import io.github.scala_tessella.dcel.VertexTypes.*
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint}
 
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong, AtomicReference}
 import scala.collection.mutable
 
 /** Direct combinatorial torus-quotient enumeration (ADR-0021) — the successor that targets the cells the
@@ -762,17 +763,66 @@ object KrotenheerdtTorusMapSearch:
       maxN: Int,
       maxFaces: Int,
       maxCovolume: Double = Double.MaxValue,
-      onSeed: (Seed, Long, Boolean) => Unit = (_, _, _) => ()
+      onSeed: (Seed, Long, Boolean) => Unit = (_, _, _) => (),
+      log: String => Unit = _ => (),
+      logEveryMs: Long = 10000L
   ): SymResult =
     val results      = mutable.Map.empty[String, (Int, Set[VertexSignature])]
     val visited      = mutable.HashSet.empty[Vector[Long]]
     var totalStates  = 0L
     var anyBudgetHit = false
-    for seed <- allSeeds do
-      val (states, hit) = enumerateFromSeed(seed, maxN, maxFaces, maxCovolume, results, visited, (_, _) => ())
-      totalStates += states
-      anyBudgetHit ||= hit
-      onSeed(seed, states, hit)
+    // LIVE telemetry (so long runs aren't blind waits): a daemon prints elapsed / current seed / states+rate /
+    // current+max patch face-count every `logEveryMs`. All shared counters are atomic; the search is
+    // single-threaded so only the daemon reads concurrently.
+    val seedList     = allSeeds
+    val statesA      = new AtomicLong(0)
+    val curFacesA    = new AtomicLong(0)
+    val maxFacesA    = new AtomicLong(0)
+    val tilingsA     = new AtomicLong(0)
+    val curSeed      = new AtomicReference("")
+    val seedIdx      = new AtomicLong(0)
+    val running      = new AtomicBoolean(true)
+    val t0           = System.nanoTime()
+    val logger       = new Thread(() =>
+      while running.get do
+        try Thread.sleep(logEveryMs)
+        catch case _: InterruptedException => ()
+        if running.get then
+          val secs = math.max(1e-3, (System.nanoTime() - t0) / 1e9)
+          val st   = statesA.get
+          log(
+            f"  [${secs}%5.0fs] seed ${seedIdx.get}%2d/${seedList.size} ${curSeed.get}%-22s" +
+              f" states=$st%-7d (${(st / secs).toLong}%d/s) faces=${curFacesA.get}/max${maxFacesA.get} tilings=${tilingsA.get}"
+          )
+    )
+    logger.setDaemon(true)
+    logger.start()
+    try
+      var i = 0
+      for seed <- seedList do
+        i += 1
+        curSeed.set(seed.label)
+        seedIdx.set(i)
+        val (states, hit) = enumerateFromSeed(
+          seed,
+          maxN,
+          maxFaces,
+          maxCovolume,
+          results,
+          visited,
+          (faces, _) =>
+            statesA.incrementAndGet()
+            val fc = faces.size
+            curFacesA.set(fc)
+            if fc > maxFacesA.get then maxFacesA.set(fc)
+        )
+        tilingsA.set(results.size)
+        totalStates += states
+        anyBudgetHit ||= hit
+        onSeed(seed, states, hit)
+    finally
+      running.set(false)
+      logger.interrupt()
     SymResult(
       results.toList.map((key, nt) => (nt._1, nt._2, key)).sortBy((n, _, key) => (n, key)),
       totalStates,
