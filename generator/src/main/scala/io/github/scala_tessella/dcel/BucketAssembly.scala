@@ -214,12 +214,20 @@ object BucketAssembly:
     private def compatible(g: Int, h: Int): Boolean =
       after(g) == before(h) && before(g) == after(h)
 
-    private val alpha = Array.fill(D)(-1)
-    var states        = 0L
-    var expanded      = 0L
-    var mapsClosed    = 0L
-    var budgetHit     = false
-    val results       = mutable.Map.empty[String, Found]
+    private val alpha    = Array.fill(D)(-1)
+    // reused scratch for canonKey/bfsString — the per-state hot path; avoids per-call HashMap/Stack/Array
+    // allocation (the GC-bound bottleneck). A stamp counter labels darts without clearing between BFS runs.
+    private val compBuf  = Array.ofDim[Int](D)
+    private val stackBuf = Array.ofDim[Int](D)
+    private val orderBuf = Array.ofDim[Int](D)
+    private val labStamp = Array.fill(D)(0)
+    private val labVal   = Array.ofDim[Int](D)
+    private var curStamp = 0
+    var states           = 0L
+    var expanded         = 0L
+    var mapsClosed       = 0L
+    var budgetHit        = false
+    val results          = mutable.Map.empty[String, Found]
 
     def run(): Unit = if D % 2 == 0 then matchFrom()
 
@@ -253,17 +261,21 @@ object BucketAssembly:
     // excluded so the two enantiomorphs of a chiral tiling are not wrongly merged.
 
     private def canonKey(): String =
-      val comp = Array.fill(D)(-1)
+      java.util.Arrays.fill(compBuf, -1)
       var c    = 0
       var s    = 0
       while s < D do
-        if comp(s) < 0 then
-          comp(s) = c
-          val st = mutable.Stack(s)
-          while st.nonEmpty do
-            val d = st.pop()
-            for nb <- Array(sigmaNext(d), sigmaPrev(d), alpha(d)) if nb >= 0 && comp(nb) < 0 do
-              comp(nb) = c; st.push(nb)
+        if compBuf(s) < 0 then
+          compBuf(s) = c
+          stackBuf(0) = s
+          var sp = 1
+          while sp > 0 do
+            sp -= 1
+            val d  = stackBuf(sp)
+            val n1 = sigmaNext(d); if compBuf(n1) < 0 then { compBuf(n1) = c; stackBuf(sp) = n1; sp += 1 }
+            val n2 = sigmaPrev(d); if compBuf(n2) < 0 then { compBuf(n2) = c; stackBuf(sp) = n2; sp += 1 }
+            val n3 = alpha(d);
+            if n3 >= 0 && compBuf(n3) < 0 then { compBuf(n3) = c; stackBuf(sp) = n3; sp += 1 }
           c += 1
         s += 1
       val keys = Array.fill(c)("")
@@ -272,7 +284,7 @@ object BucketAssembly:
         var best: String = null
         var root         = 0
         while root < D do
-          if comp(root) == ci then
+          if compBuf(root) == ci then
             val str = bfsString(root)
             if best == null || str < best then best = str
           root += 1
@@ -285,18 +297,23 @@ object BucketAssembly:
       * components and distinct otherwise.
       */
     private def bfsString(root: Int): String =
-      val lab   = mutable.HashMap(root -> 0)
-      val order = mutable.ArrayBuffer(root)
-      var head  = 0
-      val sb    = new StringBuilder
-      while head < order.size do
-        val d  = order(head); head += 1
+      curStamp += 1
+      labStamp(root) = curStamp; labVal(root) = 0
+      orderBuf(0) = root
+      var size = 1
+      var head = 0
+      val sb   = new StringBuilder
+      while head < size do
+        val d  = orderBuf(head); head += 1
         val sn = sigmaNext(d)
-        if !lab.contains(sn) then { lab(sn) = order.size; order += sn }
+        if labStamp(sn) != curStamp then {
+          labStamp(sn) = curStamp; labVal(sn) = size; orderBuf(size) = sn; size += 1
+        }
         val am = alpha(d)
-        if am >= 0 && !lab.contains(am) then { lab(am) = order.size; order += am }
-        sb.append(after(d)).append('.').append(before(d)).append(':').append(lab(sn)).append(',')
-        sb.append(if am >= 0 then lab(am).toString else "x").append(';')
+        if am >= 0 && labStamp(am) != curStamp then
+          labStamp(am) = curStamp; labVal(am) = size; orderBuf(size) = am; size += 1
+        sb.append(after(d)).append('.').append(before(d)).append(':').append(labVal(sn)).append(',')
+        sb.append(if am >= 0 then labVal(am).toString else "x").append(';')
       sb.toString
 
     private def onComplete(): Unit =
