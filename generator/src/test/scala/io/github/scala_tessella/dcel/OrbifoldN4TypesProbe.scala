@@ -11,9 +11,15 @@ object OrbifoldN4TypesProbe:
 
   def main(args: Array[String]): Unit =
     val oriSize = args.headOption.map(_.toInt).getOrElse(34)
-    println(s"orientedRegularSymbols(maxN=4, oriSize=$oriSize) ...")
+    val par     = args.lift(1).map(_.toInt).getOrElse(math.max(1, Runtime.getRuntime.availableProcessors - 1))
+    println(s"orientedRegularSymbolsParallel(maxN=4, oriSize=$oriSize, parallelism=$par) ...")
     val t0      = System.nanoTime()
-    val res     = DelaneySymbols.orientedRegularSymbols(maxN = 4, maxSize = oriSize)
+    val res     = DelaneySymbols.orientedRegularSymbolsParallel(
+      maxN = 4,
+      maxSize = oriSize,
+      parallelism = par,
+      log = msg => { println(msg); System.out.flush() }
+    )
     val ms      = (System.nanoTime() - t0) / 1000000
     val n4      = res.filter(_._1 == 4)
     println(s"n=4 reached ${n4.size}/33 in ${ms}ms")

@@ -121,3 +121,14 @@ class DelaneySymbolsSpec extends AnyFlatSpec with Matchers:
     val ref3 = TilingReference.rawWikipediaN3to5(3).map(parseTiling).toSet
     withClue("spurious n=3 type-sets: ")((distinct(3) -- ref3) shouldBe empty)
     withClue("missing n=3 type-sets: ")((ref3 -- distinct(3)) shouldBe empty)
+
+  behavior of "DelaneySymbols.orientedRegularSymbolsParallel (parallel == sequential)"
+
+  // Guards the parallel + instrumented oriented generator: it must return the SAME tilings as the sequential
+  // one (same canonical keys, same count — no race-duplicated or dropped symbols). oriSize 24 runs in ~1-2 s.
+  it should "return exactly the same tilings (keys, types, count) as the sequential generator" in:
+    val seq = DelaneySymbols.orientedRegularSymbols(maxN = 7, maxSize = 24)
+    val par = DelaneySymbols.orientedRegularSymbolsParallel(maxN = 7, maxSize = 24, parallelism = 4)
+    par.map(_._3).toSet shouldBe seq.map(_._3).toSet // identical canonical-key set
+    par.map(t => (t._1, t._2.toSet)).toSet shouldBe seq.map(t => (t._1, t._2.toSet)).toSet
+    par.size shouldBe seq.size // no duplicate inflation
