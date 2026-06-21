@@ -2,6 +2,8 @@ package io.github.scala_tessella.dcel
 
 import io.github.scala_tessella.dcel.VertexTypes.*
 
+import java.util.concurrent.{Callable, Executors}
+import java.util.concurrent.atomic.AtomicInteger
 import scala.collection.mutable
 
 /** ADR-0025 de-risking spike: BOUNDED-`V` dart assembly for a single vertex-type bucket.
@@ -75,6 +77,50 @@ object BucketAssembly:
       v += 1
     val tilings    = results.values.filter(f => f.n == k && f.types == bucket).toList
     BucketResult(tilings, states, expanded, mapsClosed, budgetHit)
+
+  /** Outcome of the multi-bucket completion driver: the globally-deduped tilings (by canonical key), the
+    * per-bucket results (for cost/coverage inspection), and whether ANY bucket exhausted its state budget (so
+    * the run may be incomplete — coverage is certified only when
+    * `tilings.size == TilingReference.counts(n)`).
+    */
+  final case class DriverResult(
+      byKey: Map[String, Found],
+      perBucket: List[(Set[VertexSignature], BucketResult)]
+  ):
+    def tilings: List[Found]  = byKey.values.toList
+    def count: Int            = byKey.size
+    def anyBudgetHit: Boolean = perBucket.exists(_._2.budgetHit)
+    def totalStates: Long     = perBucket.map(_._2.states).sum
+
+  /** The n-uniform completion driver (ADR-0030): assemble every `bucket` (a candidate n-distinct-type set) up
+    * to `maxV` with a per-bucket `stateBudget`, in parallel across buckets, and globally dedup the results by
+    * canonical key. Each [[enumerateBucket]] call is self-contained (its own `seen` set and counters), so
+    * across-bucket parallelism is sound. A sound, deduped total equal to `TilingReference.counts(n)` is the
+    * exact set (the project's validation principle). `onBucket` reports each bucket as it finishes
+    * (progress).
+    */
+  def enumerateBuckets(
+      buckets: List[Set[VertexSignature]],
+      maxV: Int,
+      stateBudget: Long = 50_000_000L,
+      parallelism: Int = math.max(1, Runtime.getRuntime.availableProcessors - 2),
+      onBucket: (Set[VertexSignature], BucketResult) => Unit = (_, _) => ()
+  ): DriverResult =
+    val pool = Executors.newFixedThreadPool(parallelism)
+    try
+      val done      = AtomicInteger(0)
+      val futures   = buckets.map: b =>
+        b -> pool.submit(new Callable[BucketResult]:
+          def call(): BucketResult =
+            val r = enumerateBucket(b, maxV, stateBudget)
+            done.incrementAndGet()
+            synchronized(onBucket(b, r))
+            r)
+      val perBucket = futures.map((b, f) => (b, f.get()))
+      val byKey     = mutable.LinkedHashMap.empty[String, Found]
+      for (_, r) <- perBucket; f <- r.tilings do byKey.getOrElseUpdate(f.key, f)
+      DriverResult(byKey.toMap, perBucket)
+    finally pool.shutdown()
 
   // ---- assignment generation -------------------------------------------------------------------------
 
