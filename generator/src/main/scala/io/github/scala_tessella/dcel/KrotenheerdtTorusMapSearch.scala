@@ -4,7 +4,7 @@ import io.github.scala_tessella.dcel.VertexTypes.*
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint}
 
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong, AtomicReference}
-import java.util.concurrent.{ConcurrentHashMap, Executors}
+import java.util.concurrent.{ConcurrentHashMap, Executors, ForkJoinPool, TimeUnit}
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.*
 
@@ -930,13 +930,13 @@ object KrotenheerdtTorusMapSearch:
       anyBudgetHit
     )
 
-  /** PARALLEL full enumeration: the seeds of [[allSeeds]] run concurrently on `parallelism` threads, sharing
-    * a thread-safe `results` (ConcurrentHashMap, cross-seed dedup by content key) and `visited`
-    * (ConcurrentHashMap key-set; `add` is atomic so each partial patch is explored once). The per-state work
-    * — `closeCell` (pure), `growBySymmetry` (pure), `canonicalKey` (pure) — is independent, so this is sound
-    * and complete: only WHICH thread explores a patch is nondeterministic; the result SET is identical to
-    * [[enumerateAllSeeds]] (validated in SymmetryGrowerSpec). Targets the measured bottleneck — the ~20
-    * independent `verifyCell` calls per state — across cores. Live daemon telemetry via `log` as before.
+  /** PARALLEL full enumeration with WORK-STEALING over patches: a `ForkJoinPool` runs one task per partial
+    * patch and submits each child as a new task, so the pool steals work BOTH across seeds and within a
+    * single heavy seed's subtree — no single-seed tail (the load imbalance a seed-per-task split had). Shares
+    * a thread-safe `results` (content-/D-symbol-key dedup) and `visited` (atomic `add` ⇒ each patch explored
+    * once). The per-patch work (`closeCell`/`growBySymmetry`/`canonicalKey`) is pure ⇒ sound + complete: only
+    * WHICH thread explores a patch is nondeterministic; the result SET is identical to [[enumerateAllSeeds]]
+    * (validated in SymmetryGrowerSpec). `awaitQuiescence` ends the run. Live daemon telemetry via `log`.
     */
   def enumerateAllSeedsParallel(
       maxN: Int,
@@ -946,18 +946,22 @@ object KrotenheerdtTorusMapSearch:
       log: String => Unit = _ => (),
       logEveryMs: Long = 10000L
   ): SymResult =
-    val results      = new ConcurrentHashMap[String, (Int, Set[VertexSignature])]()
-    val visited      = ConcurrentHashMap.newKeySet[Vector[Long]]()
-    val seedList     = allSeeds
-    val statesA      = new AtomicLong(0)
-    val curFacesA    = new AtomicLong(0)
-    val maxFacesA    = new AtomicLong(0)
-    val seedsDone    = new AtomicLong(0)
-    val anyBudgetHit = new AtomicBoolean(false)
-    val running      = new AtomicBoolean(true)
-    val t0           = System.nanoTime()
-    val cov          = BigDecimal(maxCovolume) + BigDecimal("1e-6")
-    val logger       = new Thread(() =>
+    val results                                                                   = new ConcurrentHashMap[String, (Int, Set[VertexSignature])]()
+    val visited                                                                   = ConcurrentHashMap.newKeySet[Vector[Long]]()
+    val statesA                                                                   = new AtomicLong(0)
+    val curFacesA                                                                 = new AtomicLong(0)
+    val maxFacesA                                                                 = new AtomicLong(0)
+    val anyBudgetHit                                                              = new AtomicBoolean(false)
+    val running                                                                   = new AtomicBoolean(true)
+    val t0                                                                        = System.nanoTime()
+    val cov                                                                       = BigDecimal(maxCovolume) + BigDecimal("1e-6")
+    // WORK-STEALING over PATCHES, not seeds: one ForkJoinPool task per partial patch, children submitted as new
+    // tasks. The pool steals across seeds AND within the heavy seed's subtree, so there is no single-seed tail
+    // (the load-imbalance the seed-per-task version had). The per-patch work is pure (closeCell/growBySymmetry/
+    // canonicalKey); shared `results`/`visited` are atomic ⇒ sound + complete, result-set-identical to
+    // sequential (validated). awaitQuiescence ends the run when no task is queued or running.
+    val pool                                                                      = new ForkJoinPool(parallelism)
+    val logger                                                                    = new Thread(() =>
       while running.get do
         try Thread.sleep(logEveryMs)
         catch case _: InterruptedException => ()
@@ -965,48 +969,42 @@ object KrotenheerdtTorusMapSearch:
           val secs = math.max(1e-3, (System.nanoTime() - t0) / 1e9)
           val st   = statesA.get
           log(
-            f"  [${secs}%5.0fs] seeds ${seedsDone.get}%2d/${seedList.size} done  states=$st%-7d (${(st / secs).toLong}%d/s)" +
+            f"  [${secs}%5.0fs] states=$st%-8d (${(st / secs).toLong}%d/s)  frontier~${pool.getQueuedTaskCount}" +
               f"  faces~${curFacesA.get}/max${maxFacesA.get} tilings=${results.size}"
           )
     )
     logger.setDaemon(true)
     logger.start()
-    val pool         = Executors.newFixedThreadPool(parallelism)
+    def submit(seed: Seed, seedCorners: Set[ZetaPoint], faces: List[FaceZ]): Unit =
+      pool.execute(() =>
+        statesA.incrementAndGet()
+        val fc        = faces.size
+        curFacesA.set(fc)
+        if fc > maxFacesA.get then maxFacesA.set(fc)
+        val committed = seedCorners.forall(p => coveredSlots(planarFan(faces, p)).sizeIs == 12)
+        val closed    = committed &&
+          (closeCell(faces, maxN) match
+            case Some((n, types, key, pcov)) =>
+              if pcov <= cov then results.putIfAbsent(key, (n, types))
+              true
+            case None                        => false)
+        if !closed then
+          if faces.sizeIs >= maxFaces then anyBudgetHit.set(true)
+          else
+            growBySymmetry(faces, maxN, seed.rot, seed.m).foreach: child =>
+              if visited.add(canonicalKey(child)) then submit(seed, seedCorners, child)
+      )
     try
-      val futures = seedList.map: seed =>
-        pool.submit(new Runnable:
-          def run(): Unit =
-            val stack                                        = mutable.Stack.empty[List[FaceZ]]
-            val seedCorners                                  = seed.faces.flatMap(_.corners).toSet
-            def coronaCommitted(faces: List[FaceZ]): Boolean =
-              seedCorners.forall(p => coveredSlots(planarFan(faces, p)).sizeIs == 12)
-            if isPlanarConsistent(seed.faces) && isSound(seed.faces, maxN) && visited.add(
-                canonicalKey(seed.faces)
-              )
-            then stack.push(seed.faces)
-            while stack.nonEmpty do
-              val faces  = stack.pop()
-              statesA.incrementAndGet()
-              val fc     = faces.size
-              curFacesA.set(fc)
-              if fc > maxFacesA.get then maxFacesA.set(fc)
-              val closed = coronaCommitted(faces) &&
-                (closeCell(faces, maxN) match
-                  case Some((n, types, key, pcov)) =>
-                    if pcov <= cov then results.putIfAbsent(key, (n, types))
-                    true
-                  case None                        => false)
-              if !closed then
-                if faces.sizeIs >= maxFaces then anyBudgetHit.set(true)
-                else
-                  growBySymmetry(faces, maxN, seed.rot, seed.m).foreach: child =>
-                    if visited.add(canonicalKey(child)) then stack.push(child)
-            seedsDone.incrementAndGet())
-      futures.foreach(_.get())
+      for seed <- allSeeds do
+        val seedCorners = seed.faces.flatMap(_.corners).toSet
+        if isPlanarConsistent(seed.faces) && isSound(seed.faces, maxN) &&
+          visited.add(canonicalKey(seed.faces))
+        then submit(seed, seedCorners, seed.faces)
+      pool.awaitQuiescence(Long.MaxValue, TimeUnit.DAYS)
     finally
-      pool.shutdown()
       running.set(false)
       logger.interrupt()
+      pool.shutdown()
     SymResult(
       results.asScala.toList.map((key, nt) => (nt._1, nt._2, key)).sortBy((n, _, key) => (n, key)),
       statesA.get,
