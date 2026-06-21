@@ -153,13 +153,29 @@ wall-clock, all in `verifyCell` (`primitiveBasis`, BigDecimal), ~20 candidate ba
 cells the patch overfills (gate passes) and are rejected deeper. So the per-state cost is **not** cheaply
 reducible; it is **embarrassingly parallel**.
 
-**Parallelism.** `enumerateAllSeedsParallel` runs the seeds on a thread pool sharing a concurrent `results`
-(content-key dedup) and `visited` (atomic add). The per-state work (`closeCell`/`growBySymmetry`/`canonicalKey`)
-is pure ⇒ sound + complete; validated **result-identical to sequential** (`SymmetryGrowerSpec`). ~**12×** peak
-throughput (15 vs 1.2 states/s) but ~**2.6×** wall-clock — **tail-limited**: the single heaviest seed runs
-single-threaded. Within-seed work-stealing (the `BackTracker.parallelForeach` pattern) is the next lever for
-n ≥ 3. NOTE: under `budgetHit` the partial set is exploration-order-dependent, so parallel (15) and sequential
-(14) differ — both are sound LOWER BOUNDS; a certified count needs a no-budget run.
+**Parallelism + key unification (the two follow-ups, both landed).**
+- **#1 D-symbol key unification.** `closeCell` keeps `verifyCell` as the SOUNDNESS gate (its
+  `tilesWithoutOverlap` rejects false-period non-tilings like `3.3.6.6` that the purely-combinatorial
+  classifier would accept) and then keys the confirmed cell via `torusMapClassify` — which builds the closed
+  cell's barycentric `op` (dart = `(vertexResidue mod Λ, outSlot)`; `α` = reverse half-edge, `σ` = rotation
+  CCW; same `op` as `BucketAssembly`) and calls `classifyClosedMap`. So the grower now dedups in the **shared
+  D-symbol key space** = the oracle's = the bounded-V assembler's. Validated key-for-key on 5 configs
+  (hand-built `4.4.4.4` + `3⁶`; grower `6.6.6`/`3.6.3.6`/`3.4.6.4`). This is the keystone for the Phase-3 union.
+- **#2 work-stealing.** `enumerateAllSeedsParallel` is a `ForkJoinPool` with **one task per patch** (children
+  submitted as tasks), stealing across seeds AND within the heavy seed's subtree — no single-seed tail. n=2
+  wall-clock: **266 s** (work-stealing) vs 458 s (seed-per-task) vs 1180 s (sequential) ≈ **4.4×**; rate holds
+  ~10–13/s through the middle (vs the seed-silo collapsing to 3/s), dipping to ~5/s only at the final
+  single-deep-branch tail.
+
+**Certified counts need a no-budget run (the operational rule).** Under `budgetHit`, a *budget-boundary*
+tiling — one whose closing patch is ≈ `maxFaces` — closes-before-the-cut only in some exploration orders, so
+parallel and sequential (and run-to-run) legitimately differ; both are sound LOWER BOUNDS. Concretely the
+`4.6.12` cell from the dodecagon seed needs `maxFaces ≥ ~44`: at `maxFaces=36` it is a boundary tiling, present
+in the seed-silo order but cut in the work-stealing order (n=1 = 9 vs 10) — **verified not a regression**: the
+dodecagon seed in isolation at `maxFaces=44` yields `{3.12.12, 4.6.12}` with `budgetHit=false`, both keyed to
+the oracle. So a count is only *certified* when the run reports `budgetHit=false` (or `maxFaces` is high enough
+that every reached cell closes with headroom); the equivalence test asserts only the order-INDEPENDENT
+invariants (both runs sound + find the budget-stable cheap core).
 
 **Live instrumentation.** A daemon heartbeat (elapsed / seeds-done / states + rate / faces / tilings, every
 10 s) so long runs report progress instead of waiting blind.
