@@ -51,7 +51,7 @@ decision. Each file has:
 | 0029 | [Oriented-slice profiled at n=4 — the covolume verdict](0029-oriented-slice-profiling-and-the-covolume-verdict.md) | Accepted (measured) |
 | 0030 | [Bounded-V at n=4 — feasibility verdict](0030-bounded-v-n4-feasibility-verdict.md) | Accepted (measured; partial ~25-28/33) |
 | 0031 | [Complementary engines + the both-walled n=4 tilings (~30/33)](0031-complementary-engines-and-the-both-walled-n4-tilings.md) | Accepted (measured) |
-| 0032 | [Symmetry-first geometric grower — the scatter wall falls](0032-symmetry-first-geometric-grower.md) | Proposed (spike GO; build-out) |
+| 0032 | [Symmetry-first geometric grower — the scatter wall falls](0032-symmetry-first-geometric-grower.md) | Accepted (n=1 complete, n=2 15/20; parallel) |
 
 ## When to add an ADR
 

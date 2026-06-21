@@ -1,7 +1,7 @@
 # ADR-0032: Symmetry-first geometric grower — the scatter wall falls (Phase 2 spike GO)
 
-- **Status:** Proposed (de-risk spike GO; build-out in progress)
-- **Date:** 2026-06-21
+- **Status:** Accepted (spike GO + build-out: n=1 complete in-scope, n=2 = 15/20; parallel; tested)
+- **Date:** 2026-06-21 (build-out 2026-06-22)
 
 ## Context — reopening the ~30/33 ceiling
 
@@ -114,6 +114,60 @@ tiling grown from different seeds/centres/orientations to one key with no human 
 This reframes the completeness argument the whole project rests on: *sound generation + algorithmic canonical
 dedup + count = A068600(n)* certifies the exact set, **regardless of how many seeds redundantly produce each
 tiling**.
+
+## Build-out results (2026-06-22)
+
+The full seed catalogue and a parallel driver were built on the spike; the grower now covers the rotational
+majority of n ≤ 2, the per-state cost is measured, and the complementary-coverage thesis is demonstrated (not
+just hypothesised). Commits `721c592`→`17df4f5`; `SymmetryGrowerSpec` 14 green.
+
+**Coverage (`enumerateAllSeedsParallel`, maxFaces 36):**
+
+| n | reached | notes |
+|---|---------|-------|
+| 1 | **10 / 10 in-scope** | only the octagon `4.8.8` out (needs ℤ[ζ₂₄]); incl. `4.6.12` / `3.12.12` from the dodecagon-centre seed |
+| 2 | **15 / 20** | the rotational majority — incl. every dodecagon/`4.6.12` tiling the old engines walled on |
+
+The 5 missing n = 2 split exactly as predicted: **1 budget gap** (`{3⁶; 3.3.4.12}`, dodecagon — `poly12` hit
+`maxFaces=36`) + **~4 low-symmetry siblings** (the multiplicity-2 reference sets whose **p1/pg partner has no
+rotation centre**, so no rotation seed can reach it — the bounded-V job). So:
+
+```
+symmetry-growth  =  rotational majority (cheap, incl. dodecagons)
+bounded-V        =  no-rotation-centre residual
+```
+
+**The seed catalogue + exact-affine rotation.** `allSeeds` enumerates polygon-centre (incl. dodecagon),
+vertex-centre (gated by an angular/slot `isCoronaSymmetric` check), and edge-midpoint (m=2) seeds over
+m ∈ {2,3,4,6}, each carrying its exact integer rotation `r(p)=ζ^(12/m)·p+t`. A regression asserts **every seed
+is C_m-invariant under its own rotation** (catches an `t` error for the dodecagon/vertex/edge cases before any
+grow), that the dodecagon centre is order 6 (not 12), and that the C₁ vertex `3.4.6.4` yields no vertex seed.
+
+**A closure-timing fix.** Closure is gated on the seed polygon's corona being committed — else a lone hexagon
+glues into `6.6.6` at face-count 1 and the branch stops; deferring forces the first ring (the neighbour choice)
+to branch, so `6³`/`3.6.3.6`/`3.4.6.4`/… all appear.
+
+**Per-state cost — measured, and the lever found.** `profileSeed`/`profileClose`: `tryClose` is 99.8 % of
+wall-clock, all in `verifyCell` (`primitiveBasis`, BigDecimal), ~20 candidate bases/state. A SOUND cheap gate
+(`tryCloseFast`: skip a candidate when `distinctArea < covolume`) bought only ~4 % — most candidates are small
+cells the patch overfills (gate passes) and are rejected deeper. So the per-state cost is **not** cheaply
+reducible; it is **embarrassingly parallel**.
+
+**Parallelism.** `enumerateAllSeedsParallel` runs the seeds on a thread pool sharing a concurrent `results`
+(content-key dedup) and `visited` (atomic add). The per-state work (`closeCell`/`growBySymmetry`/`canonicalKey`)
+is pure ⇒ sound + complete; validated **result-identical to sequential** (`SymmetryGrowerSpec`). ~**12×** peak
+throughput (15 vs 1.2 states/s) but ~**2.6×** wall-clock — **tail-limited**: the single heaviest seed runs
+single-threaded. Within-seed work-stealing (the `BackTracker.parallelForeach` pattern) is the next lever for
+n ≥ 3. NOTE: under `budgetHit` the partial set is exploration-order-dependent, so parallel (15) and sequential
+(14) differ — both are sound LOWER BOUNDS; a certified count needs a no-budget run.
+
+**Live instrumentation.** A daemon heartbeat (elapsed / seeds-done / states + rate / faces / tilings, every
+10 s) so long runs report progress instead of waiting blind.
+
+**Next (build-out → completion):** (1) **D-symbol key unification** — key the grower via `classifyClosedMap`
+(not the geometric content key) so it and bounded-V dedup in ONE space (ADR-0032's load-bearing step);
+(2) **within-seed work-stealing** for n ≥ 3 wall-clock; (3) the **Phase-3 union** with bounded-V (closes the
+no-rotation-centre residual) + a no-budget run to certify counts against `TilingReference`.
 
 ## Consequences
 
