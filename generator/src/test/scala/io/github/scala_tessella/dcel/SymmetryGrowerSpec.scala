@@ -122,3 +122,28 @@ class SymmetryGrowerSpec extends AnyFlatSpec with Matchers:
     )
     res.tilings.map(_._2).toSet should contain(Set(sig("6.6.6")))
     ticks should be > 0
+
+  behavior of
+    "profileSeed (per-state cost measurement — must match the real driver before we trust its numbers)"
+
+  it should "reproduce the seed's tilings (sound) and report a populated phase breakdown" in:
+    val (res, phases) =
+      KrotenheerdtTorusMapSearch.profileSeed(
+        KrotenheerdtTorusMapSearch.polygonCenterSeed(4, 4),
+        maxN = 1,
+        maxFaces = 16
+      )
+    res.tilings should not be empty
+    res.tilings.foreach((nn, types, _) =>
+      withClue(s"$types: ")((nn, types.subsetOf(archimedean10)) shouldBe (1, true))
+    )
+    res.tilings.map(_._2).toSet should contain(Set(sig("4.4.4.4"))) // square centre reaches the square tiling
+    phases.keySet shouldBe Set("corona", "tryClose", "grow", "canonicalKey")
+    phases.values.sum should be > 0L
+
+  it should "have profileClose mirror the same control flow (same state count as profileSeed)" in:
+    val seed     = KrotenheerdtTorusMapSearch.polygonCenterSeed(4, 4)
+    val (res, _) = KrotenheerdtTorusMapSearch.profileSeed(seed, maxN = 1, maxFaces = 16)
+    val close    = KrotenheerdtTorusMapSearch.profileClose(seed, maxN = 1, maxFaces = 16)
+    close("states") shouldBe res.states // identical DFS ⇒ identical state count
+    close("verifyCalls") should be > 0L

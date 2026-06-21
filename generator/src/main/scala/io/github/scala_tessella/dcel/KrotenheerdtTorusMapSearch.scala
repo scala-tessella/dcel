@@ -475,6 +475,34 @@ object KrotenheerdtTorusMapSearch:
       if pcov <= BigDecimal(maxCovolume) + BigDecimal("1e-6") then results.getOrElseUpdate(key, (n, types))
     best.isDefined
 
+  /** Faster closure for the symmetry grower — same as [[tryClose]] but with a CHEAP per-candidate gate that
+    * skips the expensive `verifyCell` (whose `primitiveBasis` is the measured 99.8% hotspot, BigDecimal) on
+    * candidate bases the patch cannot fill. Gate: `distinctArea(faces, g1, g2) ≥ |g1×g2|`. SOUND for
+    * completeness: `primitiveBasis` only shrinks a candidate when the patch has a true sub-period — i.e. it
+    * already contains a full cell and is closeable — and then the primitive period is itself one of the
+    * (shortest) boundary-glue candidates, which fills its own raw cell (`distinctArea == covolume`) and
+    * passes the gate. The gate skips only non-filling / coarse candidates, which would at best re-detect a
+    * cell `tryClose` discards as non-minimal anyway. Validated: n=1 stays 10/10 and the spec reproduces
+    * 6³/3.6.3.6/ 3.4.6.4 (SymmetryGrowerSpec) — the same set as the un-gated path.
+    */
+  private def tryCloseFast(
+      faces: List[FaceZ],
+      maxN: Int,
+      maxCovolume: Double,
+      results: mutable.Map[String, (Int, Set[VertexSignature])]
+  ): Boolean =
+    var best: Option[(Int, Set[VertexSignature], String, BigDecimal)] = None
+    boundaryGlueBases(faces).foreach: (g1, g2) =>
+      val vB   = g1.toBigPoint
+      val wB   = g2.toBigPoint
+      val cov0 = cross(vB, wB).abs
+      if cov0 > BigDecimal("1e-9") && distinctArea(faces, vB, wB) >= cov0 - BigDecimal("1e-6") then
+        verifyCell(faces, g1, g2, maxN).foreach: hit =>
+          if best.forall(hit._4 < _._4) then best = Some(hit)
+    best.foreach: (n, types, key, pcov) =>
+      if pcov <= BigDecimal(maxCovolume) + BigDecimal("1e-6") then results.getOrElseUpdate(key, (n, types))
+    best.isDefined
+
   /** Residue slot-consistency mod Λ — `KrotenheerdtTorusSearch.isConsistent` verbatim. Every torus vertex's
     * incident faces (grouped by position mod Λ, Double residue) occupy a conflict-free set of 30° slots. THIS
     * is the property that genuinely certifies a valid edge-to-edge tiling: if it holds and each
@@ -725,7 +753,7 @@ object KrotenheerdtTorusMapSearch:
     while stack.nonEmpty do
       val faces  = stack.pop()
       states += 1
-      val closed = coronaCommitted(faces) && tryClose(faces, maxN, maxCovolume, results)
+      val closed = coronaCommitted(faces) && tryCloseFast(faces, maxN, maxCovolume, results)
       onState(faces, closed)
       if !closed then
         if faces.sizeIs >= maxFaces then budgetHit = true
@@ -827,6 +855,114 @@ object KrotenheerdtTorusMapSearch:
       results.toList.map((key, nt) => (nt._1, nt._2, key)).sortBy((n, _, key) => (n, key)),
       totalStates,
       anyBudgetHit
+    )
+
+  /** Profiling variant of [[enumerateFromSeed]] (single seed, own results/visited): runs the SAME DFS but
+    * times each per-state phase — `coronaCommitted`, `tryClose`, `growBySymmetry`, the children's
+    * `canonicalKey` (visited dedup) — so the per-state-cost bottleneck is MEASURED, not guessed. Returns the
+    * tilings (must match the real driver — tested) plus the phase-time breakdown in milliseconds.
+    */
+  def profileSeed(
+      seed: Seed,
+      maxN: Int,
+      maxFaces: Int,
+      maxCovolume: Double = Double.MaxValue
+  ): (SymResult, Map[String, Long]) =
+    val results                                      = mutable.Map.empty[String, (Int, Set[VertexSignature])]
+    val visited                                      = mutable.HashSet.empty[Vector[Long]]
+    val stack                                        = mutable.Stack.empty[List[FaceZ]]
+    var states                                       = 0L
+    var budgetHit                                    = false
+    val seedCorners                                  = seed.faces.flatMap(_.corners).toSet
+    def coronaCommitted(faces: List[FaceZ]): Boolean =
+      seedCorners.forall(p => coveredSlots(planarFan(faces, p)).sizeIs == 12)
+    var tCorona                                      = 0L
+    var tClose                                       = 0L
+    var tGrow                                        = 0L
+    var tKey                                         = 0L
+    if isPlanarConsistent(seed.faces) && isSound(seed.faces, maxN) && visited.add(canonicalKey(seed.faces))
+    then stack.push(seed.faces)
+    while stack.nonEmpty do
+      val faces = stack.pop()
+      states += 1
+      val a0    = System.nanoTime(); val cc     = coronaCommitted(faces); tCorona += System.nanoTime() - a0
+      val a1    = System.nanoTime(); val closed = cc && tryCloseFast(faces, maxN, maxCovolume, results)
+      tClose += System.nanoTime() - a1
+      if !closed then
+        if faces.sizeIs >= maxFaces then budgetHit = true
+        else
+          val a2       = System.nanoTime()
+          val children = growBySymmetry(faces, maxN, seed.rot, seed.m)
+          tGrow += System.nanoTime() - a2
+          children.foreach: child =>
+            val a3 = System.nanoTime(); val k = canonicalKey(child); tKey += System.nanoTime() - a3
+            if visited.add(k) then stack.push(child)
+    val res                                          = SymResult(
+      results.toList.map((key, nt) => (nt._1, nt._2, key)).sortBy((n, _, key) => (n, key)),
+      states,
+      budgetHit
+    )
+    (
+      res,
+      Map(
+        "corona"       -> tCorona / 1000000,
+        "tryClose"     -> tClose / 1000000,
+        "grow"         -> tGrow / 1000000,
+        "canonicalKey" -> tKey / 1000000
+      )
+    )
+
+  /** Sub-profile of [[tryClose]] (the measured 99.8% hotspot): splits closure into `boundaryGlueBases` vs the
+    * per-candidate `verifyCell` loop, and counts candidate bases / verifyCell calls — to know which to cut.
+    * Mirrors [[enumerateFromSeed]]'s control flow exactly. Returns ms + counts.
+    */
+  def profileClose(
+      seed: Seed,
+      maxN: Int,
+      maxFaces: Int,
+      maxCovolume: Double = Double.MaxValue
+  ): Map[String, Long] =
+    val results                                      = mutable.Map.empty[String, (Int, Set[VertexSignature])]
+    val visited                                      = mutable.HashSet.empty[Vector[Long]]
+    val stack                                        = mutable.Stack.empty[List[FaceZ]]
+    val seedCorners                                  = seed.faces.flatMap(_.corners).toSet
+    def coronaCommitted(faces: List[FaceZ]): Boolean =
+      seedCorners.forall(p => coveredSlots(planarFan(faces, p)).sizeIs == 12)
+    var tBgb                                         = 0L
+    var tVerify                                      = 0L
+    var verifyCalls                                  = 0L
+    var states                                       = 0L
+    if isPlanarConsistent(seed.faces) && isSound(seed.faces, maxN) && visited.add(canonicalKey(seed.faces))
+    then stack.push(seed.faces)
+    while stack.nonEmpty do
+      val faces  = stack.pop()
+      states += 1
+      var closed = false
+      if coronaCommitted(faces) then
+        val b0                                                            = System.nanoTime(); val bases = boundaryGlueBases(faces); tBgb += System.nanoTime() - b0
+        var best: Option[(Int, Set[VertexSignature], String, BigDecimal)] = None
+        bases.foreach: (g1, g2) =>
+          val vB   = g1.toBigPoint
+          val wB   = g2.toBigPoint
+          val cov0 = cross(vB, wB).abs
+          if cov0 > BigDecimal("1e-9") && distinctArea(faces, vB, wB) >= cov0 - BigDecimal("1e-6") then
+            val v0 = System.nanoTime(); val hit = verifyCell(faces, g1, g2, maxN)
+            tVerify += System.nanoTime() - v0
+            verifyCalls += 1
+            hit.foreach(h => if best.forall(h._4 < _._4) then best = Some(h))
+        best.foreach((n, types, key, pcov) =>
+          if pcov <= BigDecimal(maxCovolume) + BigDecimal("1e-6") then
+            results.getOrElseUpdate(key, (n, types))
+        )
+        closed = best.isDefined
+      if !closed && faces.sizeIs < maxFaces then
+        growBySymmetry(faces, maxN, seed.rot, seed.m).foreach: child =>
+          if visited.add(canonicalKey(child)) then stack.push(child)
+    Map(
+      "boundaryGlueBases_ms" -> tBgb / 1000000,
+      "verifyCell_ms"        -> tVerify / 1000000,
+      "states"               -> states,
+      "verifyCalls"          -> verifyCalls
     )
 
   // ======================================================================================================
