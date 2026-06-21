@@ -252,6 +252,61 @@ object KrotenheerdtTorusMapSearch:
             .verifyContentAnyN(pv, pw, originB, pDistinct, verts, types, maxN)
             .map((nn, key) => (nn, types, key, pcov))
 
+  /** Classify a closed torus cell into the SHARED D-symbol key space (`DelaneySymbols.classifyClosedMap`),
+    * instead of the geometric content key. Builds the torus map's barycentric `op` array from the cell: a
+    * dart is `(vertexResidue mod Λ, outgoingSlot)`; `α(v,s) = (neighbour, s+6)` (the reverse half-edge),
+    * `σ(v,s) = (v, next outgoing slot CCW)` (the rotation system), and `op` is assembled exactly as
+    * `BucketAssembly` does (`φ = σ∘α`; chambers `a(g)=2g+1, b(g)=2g+2`). `op` alone encodes polygon sizes
+    * (chamber orbits), so this needs no vertex-type bookkeeping. `None` if the map is not cleanly closed (a
+    * missing α/σ partner). This is ADR-0032's key-unification step: the grower then dedups in the SAME space
+    * as the oracle and the bounded-V assembler, enabling the Phase-3 union and certified counts.
+    */
+  def torusMapClassify(
+      faces: List[FaceZ],
+      pvB: BigPoint,
+      pwB: BigPoint,
+      originB: BigPoint
+  ): Option[(Int, List[VertexSignature], String)] =
+    val (byTorus, _) = reconstructFans(faces, pvB, pwB, originB)
+    // outgoing slots (CCW-sorted) + a representative planar instance, per torus vertex
+    val outSlots     = byTorus.map((v, inc) => v -> inc.map((_, p, f) => outSlot(f, p)).distinct.sorted).toMap
+    val rep          = byTorus.map((v, inc) => v -> inc.head._2).toMap
+    val darts        = outSlots.toList.flatMap((v, ss) => ss.map(s => (v, s)))
+    val idx          = darts.zipWithIndex.toMap
+    val D            = darts.length
+    if D == 0 then None
+    else
+      def neighbour(v: (Long, Long), s: Int): (Long, Long) =
+        tkey((rep(v) + ZetaPoint.step(s)).toBigPoint, pvB, pwB, originB)
+      val alpha                                            = new Array[Int](D)
+      val sigmaNext                                        = new Array[Int](D)
+      var ok                                               = true
+      darts.foreach: (v, s) =>
+        val g  = idx((v, s))
+        val ss = outSlots(v)
+        val sn = idx.get((v, ss((ss.indexOf(s) + 1) % ss.length)))
+        val al = idx.get((neighbour(v, s), (s + 6) % 12))
+        (al, sn) match
+          case (Some(a), Some(n)) => alpha(g) = a; sigmaNext(g) = n
+          case _                  => ok = false
+      if !ok then None
+      else
+        val phi    = Array.tabulate(D)(g => sigmaNext(alpha(g))) // next dart around a face
+        val phiInv = Array.fill(D)(-1)
+        var g0     = 0
+        while g0 < D do { phiInv(phi(g0)) = g0; g0 += 1 }
+        val op     = Array.ofDim[Int](2 * D + 1, 3)
+        var g      = 0
+        while g < D do
+          val a = 2 * g + 1; val b = 2 * g + 2
+          op(a)(0) = b; op(b)(0) = a   // r0: a ↔ b (cross vertex)
+          op(a)(2) = 2 * alpha(g) + 2  // r2: cross face
+          op(b)(2) = 2 * alpha(g) + 1
+          op(a)(1) = 2 * phiInv(g) + 2 // r1: cross edge
+          op(b)(1) = 2 * phi(g) + 1
+          g += 1
+        DelaneySymbols.classifyClosedMap(op)
+
   // ======================================================================================================
   // The discovered-Λ propagation search (ADR-0021 step 1). We develop ONE planar patch per seed corona in the
   // universal-cover frame (exact ℤ[ζ₁₂]), growing it by MRV vertex completion under the same valid-vertex /
@@ -477,33 +532,36 @@ object KrotenheerdtTorusMapSearch:
       if pcov <= BigDecimal(maxCovolume) + BigDecimal("1e-6") then results.getOrElseUpdate(key, (n, types))
     best.isDefined
 
-  /** Faster closure for the symmetry grower — same as [[tryClose]] but with a CHEAP per-candidate gate that
-    * skips the expensive `verifyCell` (whose `primitiveBasis` is the measured 99.8% hotspot, BigDecimal) on
-    * candidate bases the patch cannot fill. Gate: `distinctArea(faces, g1, g2) ≥ |g1×g2|`. SOUND for
-    * completeness: `primitiveBasis` only shrinks a candidate when the patch has a true sub-period — i.e. it
-    * already contains a full cell and is closeable — and then the primitive period is itself one of the
-    * (shortest) boundary-glue candidates, which fills its own raw cell (`distinctArea == covolume`) and
-    * passes the gate. The gate skips only non-filling / coarse candidates, which would at best re-detect a
-    * cell `tryClose` discards as non-minimal anyway. Validated: n=1 stays 10/10 and the spec reproduces
-    * 6³/3.6.3.6/ 3.4.6.4 (SymmetryGrowerSpec) — the same set as the un-gated path.
-    */
   /** PURE closure: the min-covolume torus cell the patch closes into (or `None`), with the cheap
-    * per-candidate gate. No shared state ⇒ safe to call from any thread (the basis of the parallel driver).
-    * The covolume bound is applied by the caller (the branch stops whenever a cell is found, recorded only if
-    * within bound).
+    * per-candidate gate (`distinctArea ≥ covolume`, skipping the expensive `verifyCell`/`primitiveBasis` on
+    * candidates the patch cannot fill — the measured 99.8% hotspot). SOUND: `primitiveBasis` only shrinks a
+    * candidate when the patch already contains a full cell (closeable), and then the primitive period is
+    * itself a (shortest) boundary-glue candidate that fills its raw cell and passes the gate. The returned
+    * key is the SHARED D-symbol key ([[torusMapClassify]]), with `verifyCell` kept as the soundness gate. No
+    * shared state ⇒ safe to call from any thread (the basis of the parallel driver).
     */
   private def closeCell(
       faces: List[FaceZ],
       maxN: Int
   ): Option[(Int, Set[VertexSignature], String, BigDecimal)] =
+    val originB                                                       = BigPoint.origin
     var best: Option[(Int, Set[VertexSignature], String, BigDecimal)] = None
     boundaryGlueBases(faces).foreach: (g1, g2) =>
       val vB   = g1.toBigPoint
       val wB   = g2.toBigPoint
       val cov0 = cross(vB, wB).abs
       if cov0 > BigDecimal("1e-9") && distinctArea(faces, vB, wB) >= cov0 - BigDecimal("1e-6") then
-        verifyCell(faces, g1, g2, maxN).foreach: hit =>
-          if best.forall(hit._4 < _._4) then best = Some(hit)
+        // verifyCell is the SOUNDNESS gate (its tilesWithoutOverlap rejects false-period non-tilings like
+        // 3.3.6.6 / 3.4.4.6 that the purely-combinatorial classifyClosedMap would accept). Once it confirms a
+        // genuine tiling, key it in the SHARED D-symbol space via the barycentric op (torusMapClassify), so the
+        // grower dedups with the oracle and the bounded-V assembler (ADR-0032). primitiveBasis is recomputed
+        // (verifyCell uses it internally with the same Nil-verts call) — paid only on the rare closing candidate.
+        verifyCell(faces, g1, g2, maxN).foreach: (_, _, _, pcov) =>
+          if best.forall(pcov < _._4) then
+            val distinct = distinctFacesOf(faces, vB, wB)
+            val (pv, pw) = KrotenheerdtLatticeSearch.primitiveBasis(vB, wB, originB, distinct, Nil)
+            torusMapClassify(faces, pv, pw, originB).foreach: (n2, sigs2, dkey) =>
+              best = Some((n2, sigs2.toSet, dkey, pcov))
     best
 
   private def tryCloseFast(

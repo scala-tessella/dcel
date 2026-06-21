@@ -9,12 +9,11 @@ import org.scalatest.matchers.should.Matchers
   * ([[KrotenheerdtTorusMapSearch.enumerateBySymmetry]], m=6, central hexagon at the origin) on invariants
   * that hold regardless of exact counts.
   *
-  * NOTE on keys: like the other geometric torus engines, the grower closes via `verifyCell`, whose canonical
-  * key is the GEOMETRIC content key (`size:centroid`), NOT the `DelaneySymbols` D-symbol `canonicalKey`. That
-  * geometric key space is already cross-validated against the oracle (`KrotenheerdtTorusSearchSpec`:
-  * n=1=10/11, n=2=18/20 key-equivalent), so for the GATE we check by VERTEX-TYPE-SET (engine-independent) and
-  * soundness; unifying the grower's output into the shared D-symbol key space (build `op` →
-  * `classifyClosedMap`) is a Phase-3 dedup task, not needed to decide GO/NO-GO.
+  * NOTE on keys: the grower now keys in the SHARED D-symbol space — `closeCell` validates soundness via
+  * `verifyCell` (its `tilesWithoutOverlap` rejects false-period non-tilings the combinatorial classifier would
+  * accept) and then keys via `torusMapClassify` (build the barycentric `op` → `DelaneySymbols.classifyClosedMap`).
+  * So the grower's keys are IDENTICAL to the oracle's and the bounded-V assembler's (asserted below) — the
+  * ADR-0032 key-unification step that enables the Phase-3 union and certified counts.
   *
   * Gate: (1) SOUND — every n=1 tiling has exactly one vertex type, a real {3,4,6,12} Archimedean (no
   * false-period 3.3.6.6/3.4.4.6 leakage); (2) REPRODUCES the hexagon-centred m=6 Archimedean by type-set (6³
@@ -45,6 +44,22 @@ class SymmetryGrowerSpec extends AnyFlatSpec with Matchers:
     val foundTypeSets = m6n1.tilings.map(_._2).toSet
     List("6.6.6", "3.6.3.6", "3.4.6.4").foreach: t =>
       withClue(s"$t missing — found $foundTypeSets — ")(foundTypeSets should contain(Set(sig(t))))
+
+  // The key-unification payoff (ADR-0032): the grower now keys via torusMapClassify (the shared D-symbol
+  // space), so its keys must be IDENTICAL to the generate-all oracle's — the same key-for-key agreement the
+  // other engines have (CrossEngineSpec). This is what lets the grower + bounded-V dedup in one space.
+  it should "key the m=6 Archimedean identically to the DelaneySymbols oracle (shared key space)" in:
+    val oracle     = DelaneySymbols.keyedTilings(1, 12)
+    val oracleKey  = (t: String) => oracle.find(_._2 == Set(sig(t))).map(_._3).get
+    val foundKeys  = m6n1.tilings.map(_._3).toSet
+    List("6.6.6", "3.6.3.6", "3.4.6.4").foreach(t =>
+      withClue(s"$t key: ")(foundKeys should contain(oracleKey(t)))
+    )
+    // soundness in the shared space: every grower key is a real oracle tiling
+    val oracleKeys = oracle.map(_._3).toSet
+    m6n1.tilings.foreach((_, _, k) =>
+      withClue(s"grower key not in oracle: $k — ")(oracleKeys should contain(k))
+    )
 
   it should "be deterministic (same type-sets and states on re-run)" in:
     val again = KrotenheerdtTorusMapSearch.enumerateBySymmetry(m = 6, maxN = 1, maxFaces = maxFaces)
@@ -147,6 +162,36 @@ class SymmetryGrowerSpec extends AnyFlatSpec with Matchers:
     val close    = KrotenheerdtTorusMapSearch.profileClose(seed, maxN = 1, maxFaces = 16)
     close("states") shouldBe res.states // identical DFS ⇒ identical state count
     close("verifyCalls") should be > 0L
+
+  behavior of "torusMapClassify (D-symbol key unification — the ADR-0032 keystone for the Phase-3 union)"
+
+  // Hand-built closed torus cells with DIFFERENT polygons + lattices, each keyed IDENTICALLY to the oracle —
+  // proving the geometry→D-symbol bridge on more than one config (4.4.4.4 could pass by its square symmetry
+  // alone). The grower-based test below additionally exercises torusMapClassify on 6.6.6/3.6.3.6/3.4.6.4
+  // end-to-end ⇒ 5 distinct configs covered.
+  private val u                                                        = (k: Int) => ZetaPoint.unit(k)
+  private val originB                                                  = io.github.scala_tessella.dcel.geometry.BigPoint.origin
+  private def oracleKeyOf(t: String): String                           =
+    DelaneySymbols.keyedTilings(1, 12).find(_._2 == Set(sig(t))).map(_._3).get
+  private def classify(faces: List[FaceZ], a: ZetaPoint, b: ZetaPoint) =
+    KrotenheerdtTorusMapSearch.torusMapClassify(faces, a.toBigPoint, b.toBigPoint, originB)
+
+  it should "key the unit-square 4.4.4.4 cell identically to the oracle (V=1,E=2,F=1; Λ=ζ⁰,ζ³)" in:
+    val square = FaceZ(4, Vector(ZetaPoint.origin, u(0), u(0) + u(3), u(3)))
+    val res    = classify(List(square), u(0), u(3))
+    res.map(_._1) shouldBe Some(1)
+    res.map(_._2.toSet) shouldBe Some(Set(sig("4.4.4.4")))
+    res.map(_._3) shouldBe Some(oracleKeyOf("4.4.4.4"))
+
+  it should "key the two-triangle 3⁶ (triangular) cell identically to the oracle (V=1,E=3,F=2; Λ=ζ⁰,ζ²)" in:
+    // up [origin,ζ⁰,ζ²] + down [ζ⁰,origin,ζ¹⁰] share edge origin→ζ⁰; under Λ=(ζ⁰,ζ²) every corner ≡ origin
+    // (ζ¹⁰ = ζ⁰−ζ²) ⇒ one degree-6 torus vertex = 3⁶.
+    val up   = FaceZ(3, Vector(ZetaPoint.origin, u(0), u(2)))
+    val down = FaceZ(3, Vector(u(0), ZetaPoint.origin, u(10)))
+    val res  = classify(List(up, down), u(0), u(2))
+    res.map(_._1) shouldBe Some(1)
+    res.map(_._2.toSet) shouldBe Some(Set(sig("3.3.3.3.3.3")))
+    res.map(_._3) shouldBe Some(oracleKeyOf("3.3.3.3.3.3"))
 
   behavior of "enumerateAllSeedsParallel (parallel == sequential result set)"
 
