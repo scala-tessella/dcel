@@ -2,7 +2,7 @@ package io.github.scala_tessella.dcel
 
 import io.github.scala_tessella.dcel.VertexTypes.*
 
-import java.util.concurrent.{ConcurrentHashMap, ConcurrentLinkedQueue, Executors}
+import java.util.concurrent.{ConcurrentHashMap, ConcurrentLinkedQueue, ForkJoinPool, RecursiveAction}
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong}
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.*
@@ -177,39 +177,27 @@ object DelaneySymbols:
         children(st).foreach(go)
       go(root)
 
-    /** Parallel DFS. BFS-expands the root into a frontier of ≥ `parallelism·16` independent subtree-roots,
-      * then runs each subtree's sequential DFS on a fixed thread pool. `f` MUST be thread-safe — the caller's
-      * shared state (dedup set, output) has to be concurrent. `onProgress(done, total)` fires once at the
-      * start (`done = 0`) and after each subtree completes, for a (rough — subtrees are uneven) progress %.
-      *
-      * Sound because only LEAF states yield a result here (`extract` of an internal/incomplete state is
-      * `None`), so expanding internal nodes into the frontier loses nothing; every leaf is still reached by
-      * exactly one subtree's `goSeq`.
+    /** Parallel DFS via **work-stealing** (ForkJoin): each node computes its result and forks its child
+      * subtrees as tasks, computing the first child inline. Idle workers steal pending sibling tasks — so
+      * even a single giant subtree gets distributed across all cores, with no slow single-threaded tail (the
+      * flaw of a fixed up-front frontier split). `f` MUST be thread-safe (the caller's dedup set / output
+      * must be concurrent); `children`/`extract` are pure on their inputs, so this is sound. Long
+      * single-child chains fork nothing (empty tail), so task count tracks branch points, not total nodes.
       */
-    def parallelForeach(
-        parallelism: Int,
-        f: R => Unit,
-        onProgress: (Long, Int) => Unit = (_, _) => ()
-    ): Unit =
-      // split well past `parallelism` so big subtrees subdivide too (else the tail is one giant subtree); each
-      // frontier node is shallow and cheap to reach, so over-splitting costs little.
-      var frontier           = Vector(root)
-      while frontier.sizeIs < parallelism * 48 && frontier.exists(st => children(st).nonEmpty) do
-        frontier = frontier.flatMap: st =>
-          val ch = children(st); if ch.isEmpty then Vector(st) else ch.toVector
-      val total              = frontier.size
-      onProgress(0L, total)
-      val done               = new AtomicLong(0)
-      val pool               = Executors.newFixedThreadPool(parallelism)
-      def goSeq(st: S): Unit = { extract(st).foreach(f); children(st).foreach(goSeq) }
-      try
-        frontier
-          .map(st =>
-            pool.submit(new Runnable {
-              def run(): Unit = { goSeq(st); onProgress(done.incrementAndGet(), total) }
-            })
-          )
-          .foreach(_.get())
+    def parallelForeach(parallelism: Int, f: R => Unit): Unit =
+      val pool = new ForkJoinPool(parallelism)
+      final class Task(st: S) extends RecursiveAction:
+        def compute(): Unit =
+          extract(st).foreach(f)
+          children(st) match
+            case Nil          => ()
+            case head :: tail =>
+              val forked = tail.map { c =>
+                val t = new Task(c); t.fork(); t
+              }
+              new Task(head).compute()
+              forked.foreach(_.join())
+      try pool.invoke(new Task(root))
       finally pool.shutdown()
 
   // ---- D-SET generator (enumerate the involution structures up to maxSize chambers) -------------------
@@ -1037,9 +1025,10 @@ object DelaneySymbols:
     out.result()
 
   /** Parallel, instrumented [[orientedRegularSymbols]]: same result SET (deduped by canonical key), but the
-    * generation tree is split across `parallelism` threads and a daemon logger prints throughput every 15 s
-    * (elapsed, dsets and dsets/s, regular symbols found, subtrees done/total) so long runs report progress
-    * and estimates self-calibrate. Result-identical to the sequential version (see `DelaneySymbolsSpec`).
+    * generation tree is run work-stealing across `parallelism` threads (so no slow single-threaded tail) and
+    * a daemon logger prints throughput every 15 s (elapsed, dsets and dsets/s, regular symbols found) so long
+    * runs report progress and estimates self-calibrate. Result-identical to the sequential version (see
+    * `DelaneySymbolsSpec`).
     */
   def orientedRegularSymbolsParallel(
       maxN: Int,
@@ -1047,13 +1036,11 @@ object DelaneySymbols:
       parallelism: Int = math.max(1, Runtime.getRuntime.availableProcessors - 1),
       log: String => Unit = _ => ()
   ): List[(Int, List[VertexSignature], String)] =
-    val seen     = ConcurrentHashMap.newKeySet[String]()
-    val out      = new ConcurrentLinkedQueue[(Int, List[VertexSignature], String)]()
-    val dsets    = new AtomicLong(0)
-    val reg      = new AtomicLong(0)
-    val subDone  = new AtomicLong(0)
-    val subTotal = new AtomicLong(0)
-    val t0       = System.nanoTime()
+    val seen  = ConcurrentHashMap.newKeySet[String]()
+    val out   = new ConcurrentLinkedQueue[(Int, List[VertexSignature], String)]()
+    val dsets = new AtomicLong(0)
+    val reg   = new AtomicLong(0)
+    val t0    = System.nanoTime()
 
     // thread-safe per-dset processing: euclidean gate → DSymGenerator → regular check → minimal key (the
     // downstream functions are pure on their inputs; only `seen`/`out` are shared and concurrent).
@@ -1076,18 +1063,11 @@ object DelaneySymbols:
         if running.get then
           val secs = math.max(1e-3, (System.nanoTime() - t0) / 1e9)
           val d    = dsets.get
-          log(
-            f"  [oriSize=$maxSize] ${secs}%.0fs  dsets=$d (${(d / secs).toLong}/s)  reg=${reg.get}  " +
-              f"subtrees=${subDone.get}/${subTotal.get}"
-          )
+          log(f"  [oriSize=$maxSize] ${secs}%.0fs  dsets=$d (${(d / secs).toLong}/s)  reg=${reg.get}")
     )
     logger.setDaemon(true)
     logger.start()
-    OrientedDSetGenerator(maxSize).parallelForeach(
-      parallelism,
-      process,
-      (done, total) => { subTotal.set(total); subDone.set(done) }
-    )
+    OrientedDSetGenerator(maxSize).parallelForeach(parallelism, process)
     running.set(false)
     logger.interrupt()
     out.iterator.asScala.toList
