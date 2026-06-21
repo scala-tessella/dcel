@@ -95,6 +95,28 @@ Remaining: escalate the V≥12 (3.3.6.6/3.4.4.6-rich) buckets to confirm found-v
 rows may be artifacts), and run all `C(15,4)` subsets (not just the 21 Wikipedia sets) for
 reference-independent completeness.
 
+## FINAL n=4 VERDICT (2026-06-21, after the chirality fix + cell-V pin)
+
+Two corrections landed:
+1. **Chirality BUG (fixed).** `orientedAssignments` used the bracelet (reflection-folding) normal form to
+   decide both-orientation placement, so oriented-chiral types (`4.6.12`, `3.4.4.6`, `3.3.4.12`) were placed
+   forward-only and assembled **0 tori**. Fixed (`isRotation`, rotation-only); all 11 Archimedean now
+   reproduce key-for-key + a multi-type chiral bucket (`{3.4².6;3.6.3.6}`) gives its multiplicity 2. **24
+   tests.** This invalidated the earlier "closed=0 ⇒ V>20 wall" reading.
+2. **Cell-V PIN (the real wall).** With the fix, the heavy `{3³.4²;3².6²;3.4².6;4.6.12}` bucket (Galebach n=4
+   #10) was searched exhaustively through **V=18 (568M states, closed=0)** ⇒ its cell is **V≥19**. And V=19 is
+   the memory ceiling: the `seen` dedup set ≈ 1.3B entries ≈ 34 GB > 31 GB RAM. So the cell is genuinely large
+   (sparse dodecagons) AND beyond exhaustive bounded-V reach.
+
+**⇒ bounded-V reaches n=4 only PARTIALLY** (~25–28/33, the cells ≤ V16); the `4.6.12`/dodecagon-mixed buckets
+(cells V≥19) are the real covolume wall (ADR-0029), now correctly attributed.
+
+**Complementary-engines hypothesis (the promising lever).** bounded-V walls on LARGE CELLS; the oriented-slice
+generator (ADR-0023) walls on LOW SYMMETRY (large minimal symbol). These are *different* axes — a
+large-cell-but-HIGH-symmetry tiling (4.6.12-mixed is typically p6m) has a SMALL minimal symbol, so it should be
+CHEAP for oriented-slice. So the two engines may have **complementary coverage that together spans n=4**. Next:
+test whether the oriented-slice generator reaches exactly the large-cell buckets bounded-V misses.
+
 ## Keepers
 
 - `BucketAssembly` (ADR-0025) — sound, exact, and now the **leading** engine for n=4. `BucketN4Probe` — the
