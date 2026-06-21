@@ -45,6 +45,13 @@ decision. Each file has:
 | 0023 | [Euclidean wallpaper-orbifold generator (reaching n = 4–7)](0023-euclidean-orbifold-generator.md) | Proposed (scope) |
 | 0024 | [Isocoronal-prune vertex-star grower (the n = 4–7 anti-scatter lever)](0024-isocoronal-prune-grower.md) | Rejected (r=2 prune measured a no-op) |
 | 0025 | [Bucketed assembly — vertex-type-set × bounded fundamental domain](0025-bucketed-assembly-enumeration.md) | Proposed (the new plan) |
+| 0026 | [Corona-stabilization growth (Local Theorem)](0026-corona-stabilization-growth.md) | Superseded by ADR-0028 |
+| 0027 | [Incenter dual — Taganap method is k=1-only](0027-incenter-dual-and-the-k1-only-wall.md) | Rejected (k≥2 re-enters covolume) |
+| 0028 | [Galebach free-growth via corona-stabilization](0028-galebach-growth-corona-stabilization.md) | Rejected (1D-stacking scatter = covolume) |
+| 0029 | [Oriented-slice profiled at n=4 — the covolume verdict](0029-oriented-slice-profiling-and-the-covolume-verdict.md) | Accepted (measured) |
+| 0030 | [Bounded-V at n=4 — feasibility verdict](0030-bounded-v-n4-feasibility-verdict.md) | Accepted (measured; partial ~25-28/33) |
+| 0031 | [Complementary engines + the both-walled n=4 tilings (~30/33)](0031-complementary-engines-and-the-both-walled-n4-tilings.md) | Accepted (measured) |
+| 0032 | [Symmetry-first geometric grower — the scatter wall falls](0032-symmetry-first-geometric-grower.md) | Proposed (spike GO; build-out) |
 
 ## When to add an ADR
 
