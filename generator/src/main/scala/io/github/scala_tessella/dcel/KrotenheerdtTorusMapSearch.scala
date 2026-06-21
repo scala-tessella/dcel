@@ -566,6 +566,70 @@ object KrotenheerdtTorusMapSearch:
   private def centeredHexagon: FaceZ =
     FaceZ(6, Vector(0, 2, 4, 6, 8, 10).map(ZetaPoint.unit))
 
+  /** A symmetric central SEED: the placed faces, the exact order-`m` rotation about its centre (an integer
+    * ℤ[ζ₁₂] affine map — the centre's irrational coordinates are never needed), and a human label. The grower
+    * commits to this rotation and keeps the patch invariant under it.
+    */
+  final case class Seed(faces: List[FaceZ], rot: ZetaPoint => ZetaPoint, m: Int, label: String)
+
+  /** POLYGON-CENTRE seed: a `p`-gon placed corner-first at the origin, with the exact order-`m` rotation
+    * about its centre. The rotation by `360/m` maps corner `0` to corner `p/m` (CCW), so as an affine map
+    * `r(z) = ζ^(12/m)·z + t` with `t = corner_{p/m} − ζ^(12/m)·corner_0 = corner_{p/m}` (corner_0 = origin).
+    * Integral throughout, though the geometric centre is not. Requires `m | p` and `m ≤ 6`.
+    */
+  def polygonCenterSeed(p: Int, m: Int): Seed =
+    require(p % m == 0 && m <= 6, s"polygonCenterSeed: need m|p and m<=6, got p=$p m=$m")
+    val corners                      = polygon(ZetaPoint.origin, 0, p)
+    val k                            = 12 / m
+    val t                            = corners(p / m)
+    def rot(z: ZetaPoint): ZetaPoint =
+      var r = z; var i = 0; while i < k do { r = r.timesZeta; i += 1 }; r + t
+    Seed(List(FaceZ(p, corners)), rot, m, s"poly$p/m$m")
+
+  /** VERTEX-CENTRE seed: the corona of vertex type `typeSizes` around the origin VERTEX, with the pure
+    * `ζ^(12/m)` rotation about the origin (`t = 0`). Valid only when the corona is genuinely C_m-symmetric
+    * (the cyclic type's rotational order is a multiple of `m`) — caller/test must check.
+    */
+  def vertexCenterSeed(typeSizes: List[Int], m: Int): Seed =
+    Seed(coronaFaces(typeSizes), rotateBy(m), m, s"vtx${typeSizes.mkString(".")}/m$m")
+
+  /** EDGE-MIDPOINT seed (m = 2): two congruent `p`-gons sharing the edge `origin → ζ^0`, swapped by the 180°
+    * rotation about the edge midpoint, `r(z) = ζ^0 − z` (= `ζ^6·z + ζ^0`, exact).
+    */
+  def edgeMidSeed(p: Int): Seed =
+    val a                            = FaceZ(p, polygon(ZetaPoint.origin, 0, p))
+    val t                            = ZetaPoint.unit(0)
+    def rot(z: ZetaPoint): ZetaPoint = t - z
+    Seed(List(a, FaceZ(p, a.corners.map(rot))), rot, 2, s"edge$p")
+
+  /** The full enumerable seed catalogue over m ∈ {2,3,4,6}: every polygon-centre (`m | p`), every
+    * vertex-centre whose corona is C_m-symmetric, and the edge-midpoint dominoes (m = 2). The same tiling is
+    * reached from several of these (it has several inequivalent rotation centres); the cross-seed dedup is
+    * the canonical key (see ADR-0032).
+    */
+  def allSeeds: List[Seed] =
+    val polys = for p <- sides; m <- List(6, 4, 3, 2) if p % m == 0 yield polygonCenterSeed(p, m)
+    val edges = sides.map(edgeMidSeed)
+    // vertex-centre seeds: each valid {3,4,6,12} vertex type, at each rotation order its corona admits
+    val verts =
+      for
+        sig <- seedTypes
+        m   <- List(6, 4, 3, 2)
+        if isCoronaSymmetric(sig, m)
+      yield vertexCenterSeed(sig, m)
+    (polys ++ verts ++ edges).distinctBy(_.label)
+
+  /** True iff the vertex corona `sig` is C_m-symmetric — invariant under rotation by `360/m` (= `12/m` slots)
+    * about the vertex. Polygons subtend UNEQUAL angles, so this is an ANGULAR (slot) check, not a
+    * rotate-the-sequence-by-k-positions check: each polygon sits at a cumulative start slot, and the corona
+    * is C_m-symmetric iff the `(startSlot, size)` set maps onto itself under `+12/m`.
+    */
+  private def isCoronaSymmetric(sig: List[Int], m: Int): Boolean =
+    val shift   = 12 / m
+    val starts  = sig.scanLeft(0)((acc, p) => acc + gSlots(p)).init // cumulative start slot of each polygon
+    val polySet = starts.zip(sig).map((s, size) => (s % 12, size)).toSet
+    polySet.forall((s, size) => polySet.contains(((s + shift) % 12, size)))
+
   /** One symmetric growth step: place a SINGLE next polygon at the most-constrained (MRV) incomplete vertex's
     * open arc, plus its full C_m orbit (the same face rotated by `360/m` about the centre, `m` copies), so
     * the patch stays C_m-symmetric. Single-tile (not whole-vertex) placement is the fix for the
@@ -632,32 +696,31 @@ object KrotenheerdtTorusMapSearch:
       budgetHit: Boolean
   )
 
-  /** Symmetry-first enumeration: grow the C_m-symmetric patch from the central hexagon, closing each branch
-    * the moment a discovered rank-2 lattice makes [[verifyCell]] accept. The de-risk spike for Phase 2.
+  /** Grow ONE seed into its tilings, writing into the SHARED `results` (cross-seed dedup by geometric content
+    * key) and `visited` (cross-seed dedup of isometric partial patches — `canonicalKey` is frame-invariant).
+    * Returns `(statesPopped, budgetHit)`. Closure is GATED on the seed's own corners all being 360°-complete:
+    * else a lone hexagon glues into the 6.6.6 cell at face-count 1 and the branch stops, but the centre is
+    * the order-m centre of MANY tilings, so deferring closure forces the first ring (neighbour choice) to
+    * branch.
     */
-  def enumerateBySymmetry(
-      m: Int,
+  private def enumerateFromSeed(
+      seed: Seed,
       maxN: Int,
       maxFaces: Int,
-      maxCovolume: Double = Double.MaxValue,
-      onState: (List[FaceZ], Boolean) => Unit = (_, _) => ()
-  ): SymResult =
-    val rot                                          = rotateBy(m)
-    val results                                      = mutable.Map.empty[String, (Int, Set[VertexSignature])]
-    val visited                                      = mutable.HashSet.empty[Vector[Long]]
+      maxCovolume: Double,
+      results: mutable.Map[String, (Int, Set[VertexSignature])],
+      visited: mutable.HashSet[Vector[Long]],
+      onState: (List[FaceZ], Boolean) => Unit
+  ): (Long, Boolean) =
     val stack                                        = mutable.Stack.empty[List[FaceZ]]
     var states                                       = 0L
     var budgetHit                                    = false
-    val seed                                         = List(centeredHexagon)
-    // The seed polygon's own vertices: closure is GATED on these all being 360°-complete. Otherwise a lone
-    // hexagon glues into the 6.6.6 cell at face-count 1 and the branch stops — but the central polygon is the
-    // order-m centre of MANY tilings (6³, 3.6.3.6, 3.4.6.4, 4.6.12, …); deferring closure until its corona is
-    // committed forces the first ring (the neighbour choice) to branch, so each tiling is reached.
-    val seedCorners                                  = centeredHexagon.corners.toSet
+    val seedCorners                                  = seed.faces.flatMap(_.corners).toSet
     def coronaCommitted(faces: List[FaceZ]): Boolean =
       seedCorners.forall(p => coveredSlots(planarFan(faces, p)).sizeIs == 12)
-    if isPlanarConsistent(seed) && isSound(seed, maxN) && visited.add(canonicalKey(seed)) then
-      stack.push(seed)
+    if isPlanarConsistent(seed.faces) && isSound(seed.faces, maxN) && visited.add(canonicalKey(seed.faces))
+    then
+      stack.push(seed.faces)
     while stack.nonEmpty do
       val faces  = stack.pop()
       states += 1
@@ -666,12 +729,54 @@ object KrotenheerdtTorusMapSearch:
       if !closed then
         if faces.sizeIs >= maxFaces then budgetHit = true
         else
-          growBySymmetry(faces, maxN, rot, m).foreach: child =>
+          growBySymmetry(faces, maxN, seed.rot, seed.m).foreach: child =>
             if visited.add(canonicalKey(child)) then stack.push(child)
+    (states, budgetHit)
+
+  /** Symmetry-first enumeration from the central HEXAGON (the m∈{2,3,6} polygon-centre spike seed). Kept as a
+    * focused entry point (and the de-risk spike's). The de-risk GO is recorded in ADR-0032.
+    */
+  def enumerateBySymmetry(
+      m: Int,
+      maxN: Int,
+      maxFaces: Int,
+      maxCovolume: Double = Double.MaxValue,
+      onState: (List[FaceZ], Boolean) => Unit = (_, _) => ()
+  ): SymResult =
+    val results             = mutable.Map.empty[String, (Int, Set[VertexSignature])]
+    val visited             = mutable.HashSet.empty[Vector[Long]]
+    val seed                = Seed(List(centeredHexagon), rotateBy(m), m, s"hex/m$m")
+    val (states, budgetHit) = enumerateFromSeed(seed, maxN, maxFaces, maxCovolume, results, visited, onState)
     SymResult(
       results.toList.map((key, nt) => (nt._1, nt._2, key)).sortBy((n, _, key) => (n, key)),
       states,
       budgetHit
+    )
+
+  /** The FULL symmetry-first enumeration: run every seed in [[allSeeds]] through [[enumerateFromSeed]],
+    * sharing ONE `results` (so the same tiling reached from several rotation-centre seeds dedups by canonical
+    * content key — the algorithmic cross-seed dedup of ADR-0032's hypothesis) and ONE `visited`. Per-seed
+    * cost is reported via `onSeed` for coverage/cost inspection.
+    */
+  def enumerateAllSeeds(
+      maxN: Int,
+      maxFaces: Int,
+      maxCovolume: Double = Double.MaxValue,
+      onSeed: (Seed, Long, Boolean) => Unit = (_, _, _) => ()
+  ): SymResult =
+    val results      = mutable.Map.empty[String, (Int, Set[VertexSignature])]
+    val visited      = mutable.HashSet.empty[Vector[Long]]
+    var totalStates  = 0L
+    var anyBudgetHit = false
+    for seed <- allSeeds do
+      val (states, hit) = enumerateFromSeed(seed, maxN, maxFaces, maxCovolume, results, visited, (_, _) => ())
+      totalStates += states
+      anyBudgetHit ||= hit
+      onSeed(seed, states, hit)
+    SymResult(
+      results.toList.map((key, nt) => (nt._1, nt._2, key)).sortBy((n, _, key) => (n, key)),
+      totalStates,
+      anyBudgetHit
     )
 
   // ======================================================================================================

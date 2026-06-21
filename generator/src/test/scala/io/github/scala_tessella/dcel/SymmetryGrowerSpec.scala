@@ -70,3 +70,35 @@ class SymmetryGrowerSpec extends AnyFlatSpec with Matchers:
 
   it should "detect the 3⁶ vertex when six triangles fan the origin" in:
     KrotenheerdtTorusMapSearch.completeVertexTypes(sixTriangles) shouldBe Set(sig("3.3.3.3.3.3"))
+
+  behavior of "seed catalogue + exact-affine rotation (the new methods — tested before any enumeration probe)"
+
+  private lazy val seeds = KrotenheerdtTorusMapSearch.allSeeds
+
+  // THE critical invariant for the exact-affine rotation r(p)=ζ^(12/m)p+t: each seed must be genuinely
+  // C_m-INVARIANT under its own rotation, i.e. rot maps every seed face onto another seed face (same size +
+  // same corner SET). If t is wrong (the dodecagon/vertex/edge cases), this fails — before we ever grow.
+  it should "produce only seeds that are C_m-invariant under their own rotation" in:
+    seeds should not be empty
+    seeds.foreach: s =>
+      val faceSets = s.faces.map(f => (f.size, f.corners.toSet)).toSet
+      s.faces.foreach: f =>
+        val rotated = (f.size, f.corners.map(s.rot).toSet)
+        withClue(s"seed ${s.label}: rot does not preserve face $f — ")(faceSets should contain(rotated))
+
+  it should "include the key polygon-centre seeds — incl. the DODECAGON centre at order 6" in:
+    val labels = seeds.map(_.label).toSet
+    labels should contain("poly12/m6") // dodecagon centre, m=6 (the 4.6.12 / 3.12.12 enabler)
+    labels should contain("poly4/m4")  // square centre, m=4
+    labels should contain("poly3/m3")  // triangle centre, m=3
+    labels should contain("edge4") // two-squares domino, m=2
+
+  it should "give the dodecagon an order-6 (not 12) centre — crystallographic restriction" in:
+    val dodecOrders = seeds.collect { case s if s.label.startsWith("poly12/") => s.m }.toSet
+    dodecOrders should contain(6)
+    dodecOrders should not contain 12 // never order 12 in a periodic tiling
+
+  it should "admit a 3⁶ vertex-centre at m=6 but NO vertex-centre for the C₁ vertex 3.4.6.4" in:
+    val labels = seeds.map(_.label).toSet
+    labels should contain("vtx3.3.3.3.3.3/m6")
+    labels.filter(_.startsWith("vtx3.4.6.4/")) shouldBe empty // 3.4.6.4 corona has no nontrivial rotation
