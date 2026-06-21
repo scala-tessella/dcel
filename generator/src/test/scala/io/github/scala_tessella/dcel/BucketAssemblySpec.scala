@@ -57,6 +57,32 @@ class BucketAssemblySpec extends AnyFlatSpec with Matchers:
   reproducesK1("4.8.8", 4)       // truncated square — the octagon the ζ engines cannot do
   reproducesK1("3.6.3.6", 4)     // trihexagonal
   reproducesK1("3.4.6.4", 6)     // rhombitrihexagonal — larger cell (V≤6); tractable only with the dedup
+  reproducesK1("3.3.3.4.4", 4)   // elongated triangular
+  reproducesK1("3.3.4.3.4", 5)   // snub square (chiral tiling, achiral vertex)
+  reproducesK1("3.3.3.3.6", 7)   // snub hexagonal (chiral tiling, achiral vertex)
+  reproducesK1("3.12.12", 6)     // truncated hexagonal — dodecagon, achiral (control for 4.6.12)
+  // truncated trihexagonal — the ONLY oriented-CHIRAL Archimedean ([4,6,12]'s reverse is not a rotation of
+  // it). REGRESSION: the chirality test used the bracelet (reflection-folding) normal form, wrongly calling
+  // it achiral, so only the forward reading was placed and its darts had no antiparallel partner ⇒ the bucket
+  // assembled ZERO tori. This is the test that was missing — the spec covered only the 6 achiral Archimedean.
+  reproducesK1("4.6.12", 12)     // cell = 12 vertices (Euler: 1 dodecagon + 2 hexagons + 3 squares per cell)
+
+  behavior of "BucketAssembly.isRotation (the oriented-chirality test for both-orientation placement)"
+
+  // The bug was using the BRACELET normal form (reflection-folding) instead of a rotation-only test, which
+  // wrongly classified the oriented-chiral types as achiral ⇒ placed only one reading ⇒ no antiparallel dart
+  // partners ⇒ 0 tori. A type needs BOTH readings iff its reverse is NOT a rotation of it.
+  private def chiralNeedsBoth(name: String): Boolean =
+    val t = sig(name); !BucketAssembly.isRotation(t.reverse, t)
+
+  it should "classify the oriented-CHIRAL vertex types (reverse not a rotation) as needing both readings" in:
+    chiralNeedsBoth("4.6.12") shouldBe true  // [4,6,12] — the bug's poster child
+    chiralNeedsBoth("3.4.4.6") shouldBe true // appears in the heavy n=4 buckets
+    chiralNeedsBoth("3.3.4.12") shouldBe true
+
+  it should "classify the achiral vertex types (reverse is a rotation) as single-reading" in:
+    List("4.4.4.4", "3.3.3.3.3.3", "6.6.6", "4.8.8", "3.6.3.6", "3.4.6.4", "3.12.12", "3.4.3.12")
+      .foreach(n => withClue(s"$n: ")(chiralNeedsBoth(n) shouldBe false))
 
   behavior of "BucketAssembly — k = 2 multiplicity"
 

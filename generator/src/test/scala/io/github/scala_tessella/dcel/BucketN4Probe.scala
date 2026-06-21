@@ -23,7 +23,15 @@ object BucketN4Probe:
     "tri/sq {3^6;3^3.4^2;3^2.4.3.4;4^4}"       ->
       Set("3.3.3.3.3.3", "3.3.3.4.4", "3.3.4.3.4", "4.4.4.4"),
     "dodec {3^2.4.12;3.4.3.12;3.4.6.4;4.6.12}" ->
-      Set("3.3.4.12", "3.4.3.12", "3.4.6.4", "4.6.12")
+      Set("3.3.4.12", "3.4.3.12", "3.4.6.4", "4.6.12"),
+    // a representative HEAVY bucket (hexagon/square mix) that budget-hit found=0 at 120-200M in the driver
+    "heavy {3^3.4^2;3^2.6^2;3.4^2.6;4.6.12}"   ->
+      Set("3.3.3.4.4", "3.3.6.6", "3.4.4.6", "4.6.12"),
+    // SANITY: the k=1 dodecagon tilings — does the assembler close 12-gon cells AT ALL?
+    "k1 4.6.12"                                ->
+      Set("4.6.12"),
+    "k1 3.12.12"                               ->
+      Set("3.12.12")
   )
 
   def main(args: Array[String]): Unit =

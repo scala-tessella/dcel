@@ -136,13 +136,22 @@ object BucketAssembly:
     * to the forward reading to drop the global mirror duplicate. Achiral types (the common case here) add no
     * branching, keeping `states` a clean measurement.
     */
+  /** True iff `a` is a rotation of `b` (cyclic, NO reflection) — `a` appears as a contiguous slice of `b·b`.
+    */
+  private[dcel] def isRotation(a: Seq[Int], b: Seq[Int]): Boolean =
+    a.length == b.length && (b ++ b).containsSlice(a)
+
   private def orientedAssignments(types: Vector[VertexSignature], v: Int): List[Vector[Vector[Int]]] =
     // reps(t) = the distinct oriented readings of type t
     val reps: Map[VertexSignature, Vector[Vector[Int]]]                   =
       types.map { t =>
         val fwd = t.toVector
         val rev = t.reverse.toVector
-        t -> (if normalize(t.reverse) == normalize(t) then Vector(fwd) else Vector(fwd, rev))
+        // A type needs BOTH oriented readings iff its reverse is not a ROTATION of itself (oriented-chiral):
+        // the dart ports come from the ORIENTED cycle, so a forward-only `4.6.12`/`3.4.4.6`/`3.3.4.12` has no
+        // antiparallel partner and cannot glue any edge. (Must NOT use the bracelet/`normalize`, which folds
+        // in reflection and wrongly calls these achiral — the bug that made those buckets assemble 0 tori.)
+        t -> (if isRotation(rev, fwd) then Vector(fwd) else Vector(fwd, rev))
       }.toMap
     val out                                                               = List.newBuilder[Vector[Vector[Int]]]
     // surjective count-vectors (c_0..c_{k-1}), each ≥ 1, summing to v
