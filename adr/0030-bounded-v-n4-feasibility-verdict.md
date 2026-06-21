@@ -82,12 +82,18 @@ buckets are worse than V≈11. The hexagon/square-mix sets containing `{3.3.6.6,
 memory-bound parallel=3 these dominate wall-clock (~18 min each at 90M), so a flat parallel-across-buckets
 pass churns ~2 h and still leaves that tail short.
 
-**Path to complete n=4 — WITHIN-bucket parallelism.** Parallelise the dart-matching DFS so each bucket uses
-all 16 cores, and run buckets **sequentially** (one `LongFpSet` live at a time ⇒ bounded memory, a 375M-state
-bucket ≈ 9 GB fits the 24 GB heap; ~16× faster ⇒ ~5 min). Then escalate the expensive buckets to V≈13–14 to
-confirm found-vs-truly-empty (some Wikipedia rows may be transcription artifacts), and finally run all
-`C(15,4)` subsets (not just the 21 Wikipedia sets) so completeness doesn't depend on the unverified reference.
-This is the next build.
+**Path to complete n=4 — WITHIN-bucket parallelism (BUILT 2026-06-21).** Parallelised inside a bucket across
+its independent oriented **assignments** (a V-layer has hundreds), sharing only a thread-safe striped
+fingerprint set (`LongFpSet`) and a shared `Budget` (atomic spent + volatile hit, batched per 1024 states);
+buckets now run **sequentially** so one fingerprint set is live ⇒ bounded memory (a 500M-state bucket ≈ 12 GB
+fits the 24 GB heap). Result-invariant (tests: `LongFpSet` dedup/resize/8-thread-concurrent, `Budget` latch,
+parallelism=1-vs-8 same keys). **Speedup measured: only ~2.4× — load-imbalance-limited** (one assignment
+dominates a layer; finer within-assignment DFS splitting would scale better but is a larger change). Still
+enough for a few-hour full n=4 run.
+
+Remaining: escalate the V≥12 (3.3.6.6/3.4.4.6-rich) buckets to confirm found-vs-truly-empty (some Wikipedia
+rows may be artifacts), and run all `C(15,4)` subsets (not just the 21 Wikipedia sets) for
+reference-independent completeness.
 
 ## Keepers
 
