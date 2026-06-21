@@ -4,7 +4,9 @@ import io.github.scala_tessella.dcel.VertexTypes.*
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint}
 
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong, AtomicReference}
+import java.util.concurrent.{ConcurrentHashMap, Executors}
 import scala.collection.mutable
+import scala.jdk.CollectionConverters.*
 
 /** Direct combinatorial torus-quotient enumeration (ADR-0021) — the successor that targets the cells the
   * fixed-Λ engines cannot reach (ADR-0020's covolume-exponential wall: n = 4–7 and the dodecagon types).
@@ -485,12 +487,15 @@ object KrotenheerdtTorusMapSearch:
     * cell `tryClose` discards as non-minimal anyway. Validated: n=1 stays 10/10 and the spec reproduces
     * 6³/3.6.3.6/ 3.4.6.4 (SymmetryGrowerSpec) — the same set as the un-gated path.
     */
-  private def tryCloseFast(
+  /** PURE closure: the min-covolume torus cell the patch closes into (or `None`), with the cheap
+    * per-candidate gate. No shared state ⇒ safe to call from any thread (the basis of the parallel driver).
+    * The covolume bound is applied by the caller (the branch stops whenever a cell is found, recorded only if
+    * within bound).
+    */
+  private def closeCell(
       faces: List[FaceZ],
-      maxN: Int,
-      maxCovolume: Double,
-      results: mutable.Map[String, (Int, Set[VertexSignature])]
-  ): Boolean =
+      maxN: Int
+  ): Option[(Int, Set[VertexSignature], String, BigDecimal)] =
     var best: Option[(Int, Set[VertexSignature], String, BigDecimal)] = None
     boundaryGlueBases(faces).foreach: (g1, g2) =>
       val vB   = g1.toBigPoint
@@ -499,9 +504,19 @@ object KrotenheerdtTorusMapSearch:
       if cov0 > BigDecimal("1e-9") && distinctArea(faces, vB, wB) >= cov0 - BigDecimal("1e-6") then
         verifyCell(faces, g1, g2, maxN).foreach: hit =>
           if best.forall(hit._4 < _._4) then best = Some(hit)
-    best.foreach: (n, types, key, pcov) =>
-      if pcov <= BigDecimal(maxCovolume) + BigDecimal("1e-6") then results.getOrElseUpdate(key, (n, types))
-    best.isDefined
+    best
+
+  private def tryCloseFast(
+      faces: List[FaceZ],
+      maxN: Int,
+      maxCovolume: Double,
+      results: mutable.Map[String, (Int, Set[VertexSignature])]
+  ): Boolean =
+    closeCell(faces, maxN) match
+      case Some((n, types, key, pcov)) =>
+        if pcov <= BigDecimal(maxCovolume) + BigDecimal("1e-6") then results.getOrElseUpdate(key, (n, types))
+        true
+      case None                        => false
 
   /** Residue slot-consistency mod Λ — `KrotenheerdtTorusSearch.isConsistent` verbatim. Every torus vertex's
     * incident faces (grouped by position mod Λ, Double residue) occupy a conflict-free set of 30° slots. THIS
@@ -855,6 +870,89 @@ object KrotenheerdtTorusMapSearch:
       results.toList.map((key, nt) => (nt._1, nt._2, key)).sortBy((n, _, key) => (n, key)),
       totalStates,
       anyBudgetHit
+    )
+
+  /** PARALLEL full enumeration: the seeds of [[allSeeds]] run concurrently on `parallelism` threads, sharing
+    * a thread-safe `results` (ConcurrentHashMap, cross-seed dedup by content key) and `visited`
+    * (ConcurrentHashMap key-set; `add` is atomic so each partial patch is explored once). The per-state work
+    * — `closeCell` (pure), `growBySymmetry` (pure), `canonicalKey` (pure) — is independent, so this is sound
+    * and complete: only WHICH thread explores a patch is nondeterministic; the result SET is identical to
+    * [[enumerateAllSeeds]] (validated in SymmetryGrowerSpec). Targets the measured bottleneck — the ~20
+    * independent `verifyCell` calls per state — across cores. Live daemon telemetry via `log` as before.
+    */
+  def enumerateAllSeedsParallel(
+      maxN: Int,
+      maxFaces: Int,
+      maxCovolume: Double = Double.MaxValue,
+      parallelism: Int = math.max(1, Runtime.getRuntime.availableProcessors - 1),
+      log: String => Unit = _ => (),
+      logEveryMs: Long = 10000L
+  ): SymResult =
+    val results      = new ConcurrentHashMap[String, (Int, Set[VertexSignature])]()
+    val visited      = ConcurrentHashMap.newKeySet[Vector[Long]]()
+    val seedList     = allSeeds
+    val statesA      = new AtomicLong(0)
+    val curFacesA    = new AtomicLong(0)
+    val maxFacesA    = new AtomicLong(0)
+    val seedsDone    = new AtomicLong(0)
+    val anyBudgetHit = new AtomicBoolean(false)
+    val running      = new AtomicBoolean(true)
+    val t0           = System.nanoTime()
+    val cov          = BigDecimal(maxCovolume) + BigDecimal("1e-6")
+    val logger       = new Thread(() =>
+      while running.get do
+        try Thread.sleep(logEveryMs)
+        catch case _: InterruptedException => ()
+        if running.get then
+          val secs = math.max(1e-3, (System.nanoTime() - t0) / 1e9)
+          val st   = statesA.get
+          log(
+            f"  [${secs}%5.0fs] seeds ${seedsDone.get}%2d/${seedList.size} done  states=$st%-7d (${(st / secs).toLong}%d/s)" +
+              f"  faces~${curFacesA.get}/max${maxFacesA.get} tilings=${results.size}"
+          )
+    )
+    logger.setDaemon(true)
+    logger.start()
+    val pool         = Executors.newFixedThreadPool(parallelism)
+    try
+      val futures = seedList.map: seed =>
+        pool.submit(new Runnable:
+          def run(): Unit =
+            val stack                                        = mutable.Stack.empty[List[FaceZ]]
+            val seedCorners                                  = seed.faces.flatMap(_.corners).toSet
+            def coronaCommitted(faces: List[FaceZ]): Boolean =
+              seedCorners.forall(p => coveredSlots(planarFan(faces, p)).sizeIs == 12)
+            if isPlanarConsistent(seed.faces) && isSound(seed.faces, maxN) && visited.add(
+                canonicalKey(seed.faces)
+              )
+            then stack.push(seed.faces)
+            while stack.nonEmpty do
+              val faces  = stack.pop()
+              statesA.incrementAndGet()
+              val fc     = faces.size
+              curFacesA.set(fc)
+              if fc > maxFacesA.get then maxFacesA.set(fc)
+              val closed = coronaCommitted(faces) &&
+                (closeCell(faces, maxN) match
+                  case Some((n, types, key, pcov)) =>
+                    if pcov <= cov then results.putIfAbsent(key, (n, types))
+                    true
+                  case None                        => false)
+              if !closed then
+                if faces.sizeIs >= maxFaces then anyBudgetHit.set(true)
+                else
+                  growBySymmetry(faces, maxN, seed.rot, seed.m).foreach: child =>
+                    if visited.add(canonicalKey(child)) then stack.push(child)
+            seedsDone.incrementAndGet())
+      futures.foreach(_.get())
+    finally
+      pool.shutdown()
+      running.set(false)
+      logger.interrupt()
+    SymResult(
+      results.asScala.toList.map((key, nt) => (nt._1, nt._2, key)).sortBy((n, _, key) => (n, key)),
+      statesA.get,
+      anyBudgetHit.get
     )
 
   /** Profiling variant of [[enumerateFromSeed]] (single seed, own results/visited): runs the SAME DFS but

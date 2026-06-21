@@ -13,15 +13,17 @@ object SymmetryCoverageProbe:
   def main(args: Array[String]): Unit =
     val maxN     = args.headOption.map(_.toInt).getOrElse(1)
     val maxFaces = args.lift(1).map(_.toInt).getOrElse(40)
-    println(s"enumerateAllSeeds(maxN=$maxN, maxFaces=$maxFaces) over the full seed catalogue ...")
+    val par      = args.lift(2).map(_.toInt).getOrElse(math.max(1, Runtime.getRuntime.availableProcessors - 1))
+    println(
+      s"enumerateAllSeedsParallel(maxN=$maxN, maxFaces=$maxFaces, par=$par) over the full seed catalogue ..."
+    )
 
     val t0   = System.nanoTime()
-    val res  = KrotenheerdtTorusMapSearch.enumerateAllSeeds(
+    val res  = KrotenheerdtTorusMapSearch.enumerateAllSeedsParallel(
       maxN = maxN,
       maxFaces = maxFaces,
-      onSeed = (seed, states, hit) =>
-        println(f"  DONE seed ${seed.label}%-22s states=$states%-7d budgetHit=$hit"),
-      log = println, // live daemon heartbeat every 10s: elapsed / seed / states+rate / faces / tilings
+      parallelism = par,
+      log = println, // live daemon heartbeat every 10s: elapsed / seeds-done / states+rate / faces / tilings
       logEveryMs = 10000L
     )
     val secs = (System.nanoTime() - t0) / 1e9

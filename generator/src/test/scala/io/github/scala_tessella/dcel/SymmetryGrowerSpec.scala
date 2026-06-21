@@ -147,3 +147,14 @@ class SymmetryGrowerSpec extends AnyFlatSpec with Matchers:
     val close    = KrotenheerdtTorusMapSearch.profileClose(seed, maxN = 1, maxFaces = 16)
     close("states") shouldBe res.states // identical DFS ⇒ identical state count
     close("verifyCalls") should be > 0L
+
+  behavior of "enumerateAllSeedsParallel (parallel == sequential result set)"
+
+  // The parallel driver shares concurrent results+visited; only WHICH thread explores a patch is
+  // nondeterministic, so the TILING SET must equal the sequential driver's (the established seq/parallel
+  // validation). Small maxFaces keeps it fast.
+  it should "return the same tiling type-sets and keys as the sequential enumerateAllSeeds" in:
+    val seq = KrotenheerdtTorusMapSearch.enumerateAllSeeds(maxN = 1, maxFaces = 14)
+    val par = KrotenheerdtTorusMapSearch.enumerateAllSeedsParallel(maxN = 1, maxFaces = 14, parallelism = 8)
+    par.tilings.map(t => (t._1, t._2)).toSet shouldBe seq.tilings.map(t => (t._1, t._2)).toSet
+    par.tilings.map(_._3).toSet shouldBe seq.tilings.map(_._3).toSet
