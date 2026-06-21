@@ -523,6 +523,158 @@ object KrotenheerdtTorusMapSearch:
     results.toList.map((key, nt) => (nt._1, nt._2, key)).sortBy((n, _, key) => (n, key))
 
   // ======================================================================================================
+  // SYMMETRY-FIRST GROWER (Phase 2 / ADR-0023 architecture B, the never-built one). The free planar grower
+  // [[enumerate]] scatters (ADR-0028: aperiodic 1-D stackings grow to the face cap before Λ is found). The fix
+  // is to COMMIT to a rotation symmetry up front: seed a configuration with a C_m centre at the origin and, at
+  // every growth step, place the FULL C_m orbit of each completion. The patch is then symmetric (hence
+  // periodic-by-construction) and grows as a compact disk whose deck lattice is discovered fast — no scatter.
+  // The branch factor is cut by ~m (only fundamental-sector choices branch). It is euclidean-by-construction
+  // (regular tiles only ⇒ none of the oriented-slice's 98% non-euclidean D-set waste). Bounded by the
+  // FUNDAMENTAL DOMAIN, not the covolume nor the D-set tree.
+  //
+  // De-risk spike (m=6): the only exact-arithmetic central config that needs no half-integer centre is a
+  // HEXAGON centred at the origin — its 6 corners are ζ^0,ζ²,…,ζ^10 (unit vectors, integral ℤ[ζ₁₂]) and the
+  // 60° rotation about the origin is exactly `timesZeta²`. It seeds 6³, 3.6.3.6, 3.4.6.4 and the both-walled
+  // 4.6.12. GATE: reproduce the m=6 n≤3 tilings exactly (key-for-key vs the oracle) with states bounded by
+  // domain size, and reach 4.6.12 cheaply. (Other m / face-centred configs follow only if the gate is GO.)
+  // ======================================================================================================
+
+  /** Rotation by `360/m` degrees about the ORIGIN (the C_m centre), exact: `m` divides 12 so the turn is a
+    * whole number `12/m` of 30°-slots, i.e. `timesZeta` applied `12/m` times.
+    */
+  private def rotateBy(m: Int): ZetaPoint => ZetaPoint =
+    val k = 12 / m
+    (z: ZetaPoint) =>
+      var p = z
+      var i = 0
+      while i < k do { p = p.timesZeta; i += 1 }
+      p
+
+  private def rotateFace(rot: ZetaPoint => ZetaPoint, f: FaceZ): FaceZ =
+    FaceZ(f.size, f.corners.map(rot))
+
+  /** Drop geometric duplicates (same size + same corner SET — a face placed from two orbit elements that
+    * share it has two corner orderings but one geometry); keeps boundary-edge bookkeeping correct.
+    */
+  private def dedupFaces(faces: List[FaceZ]): List[FaceZ] =
+    val seen = mutable.HashSet.empty[(Int, Set[ZetaPoint])]
+    faces.filter(f => seen.add((f.size, f.corners.toSet)))
+
+  /** The hexagon centred at the origin — corners ζ^0,ζ²,…,ζ^10 (each a unit ℤ[ζ₁₂] vector; adjacent corners
+    * differ by a unit step, so all the slot/boundary machinery applies). The m∈{2,3,6} central seed.
+    */
+  private def centeredHexagon: FaceZ =
+    FaceZ(6, Vector(0, 2, 4, 6, 8, 10).map(ZetaPoint.unit))
+
+  /** One symmetric growth step: place a SINGLE next polygon at the most-constrained (MRV) incomplete vertex's
+    * open arc, plus its full C_m orbit (the same face rotated by `360/m` about the centre, `m` copies), so
+    * the patch stays C_m-symmetric. Single-tile (not whole-vertex) placement is the fix for the
+    * wedge-boundary clash: a face shared between adjacent fundamental sectors is then placed ONCE and
+    * deduped, instead of two whole-vertex completions disagreeing on it. Branches over the polygon size; kept
+    * iff the extended fan is a valid (complete or extendable) vertex AND the orbit-augmented patch is
+    * planar-consistent and sound.
+    */
+  private def growBySymmetry(
+      faces: List[FaceZ],
+      n: Int,
+      rot: ZetaPoint => ZetaPoint,
+      m: Int
+  ): List[List[FaceZ]] =
+    val centroid   = faces.flatMap(_.corners).distinct.map(_.toBigPoint).centroid
+    val incomplete = faces.flatMap(_.corners).distinct.flatMap: p =>
+      val fan     = planarFan(faces, p)
+      val covered = coveredSlots(fan)
+      Option.when(covered.sizeIs < 12):
+        val free     = 12 - covered.size
+        val b        = (0 until 12).find(s => covered((s + 11) % 12) && !covered(s)).getOrElse(0)
+        val arcStart = (b + free) % 12
+        val ordered  = fan.sortBy((start, _) => (start - arcStart + 12) % 12).map(_._2)
+        (p, b, free, ordered)
+    if incomplete.isEmpty then Nil
+    else
+      val (p, b, free, ordered) =
+        incomplete.minBy((p, _, free, _) => (free, p.toBigPoint.distanceTo(centroid), p.a0, p.a1, p.a2, p.a3))
+      sides.flatMap: mm =>
+        val g = gSlots(mm)
+        if g > free then Nil
+        else
+          val extended = ordered :+ mm
+          val ok       = if g == free then isCompleteVertex(extended) else isExtendableFan(extended)
+          if !ok then Nil
+          else
+            // the single new face at the open arc start, plus its C_m orbit (rotate 360/m, m copies)
+            val orbit = mutable.ListBuffer.empty[FaceZ]
+            var acc   = List(FaceZ(mm, polygon(p, b, mm)))
+            var i     = 0
+            while i < m do { orbit ++= acc; acc = acc.map(f => rotateFace(rot, f)); i += 1 }
+            val next  = dedupFaces(orbit.toList ++ faces)
+            Option.when(isPlanarConsistent(next) && isSound(next, n))(next)
+
+  /** Diagnostic: the distinct COMPLETE vertex types (360°-covered) present in a patch — to see, during a
+    * symmetric grow, which vertex configurations are actually forming.
+    */
+  def completeVertexTypes(faces: List[FaceZ]): Set[VertexSignature] =
+    faces
+      .flatMap(_.corners)
+      .distinct
+      .iterator
+      .map(p => planarFan(faces, p))
+      .filter(fan => coveredSlots(fan).sizeIs == 12)
+      .map(fan => VertexTypes.normalize(fan.map(_._2)))
+      .toSet
+
+  /** Outcome of [[enumerateBySymmetry]]: the distinct tilings found, plus the search cost (`states` = patches
+    * popped) and whether the face budget was hit on any branch (⇒ coverage may be partial).
+    */
+  final case class SymResult(
+      tilings: List[(Int, Set[VertexSignature], String)],
+      states: Long,
+      budgetHit: Boolean
+  )
+
+  /** Symmetry-first enumeration: grow the C_m-symmetric patch from the central hexagon, closing each branch
+    * the moment a discovered rank-2 lattice makes [[verifyCell]] accept. The de-risk spike for Phase 2.
+    */
+  def enumerateBySymmetry(
+      m: Int,
+      maxN: Int,
+      maxFaces: Int,
+      maxCovolume: Double = Double.MaxValue,
+      onState: (List[FaceZ], Boolean) => Unit = (_, _) => ()
+  ): SymResult =
+    val rot                                          = rotateBy(m)
+    val results                                      = mutable.Map.empty[String, (Int, Set[VertexSignature])]
+    val visited                                      = mutable.HashSet.empty[Vector[Long]]
+    val stack                                        = mutable.Stack.empty[List[FaceZ]]
+    var states                                       = 0L
+    var budgetHit                                    = false
+    val seed                                         = List(centeredHexagon)
+    // The seed polygon's own vertices: closure is GATED on these all being 360°-complete. Otherwise a lone
+    // hexagon glues into the 6.6.6 cell at face-count 1 and the branch stops — but the central polygon is the
+    // order-m centre of MANY tilings (6³, 3.6.3.6, 3.4.6.4, 4.6.12, …); deferring closure until its corona is
+    // committed forces the first ring (the neighbour choice) to branch, so each tiling is reached.
+    val seedCorners                                  = centeredHexagon.corners.toSet
+    def coronaCommitted(faces: List[FaceZ]): Boolean =
+      seedCorners.forall(p => coveredSlots(planarFan(faces, p)).sizeIs == 12)
+    if isPlanarConsistent(seed) && isSound(seed, maxN) && visited.add(canonicalKey(seed)) then
+      stack.push(seed)
+    while stack.nonEmpty do
+      val faces  = stack.pop()
+      states += 1
+      val closed = coronaCommitted(faces) && tryClose(faces, maxN, maxCovolume, results)
+      onState(faces, closed)
+      if !closed then
+        if faces.sizeIs >= maxFaces then budgetHit = true
+        else
+          growBySymmetry(faces, maxN, rot, m).foreach: child =>
+            if visited.add(canonicalKey(child)) then stack.push(child)
+    SymResult(
+      results.toList.map((key, nt) => (nt._1, nt._2, key)).sortBy((n, _, key) => (n, key)),
+      states,
+      budgetHit
+    )
+
+  // ======================================================================================================
   // EARLY-GLUING CORE (ADR-0023). The interleaved extend-vs-glue map grower: develop one plane frame, and
   // accumulate the deck lattice Λ by gluing antiparallel boundary half-edges — closing at ONE cell (no
   // grow-cover scatter). The deck lattice is a search variable (rank 0→1→2), not a swept parameter.
