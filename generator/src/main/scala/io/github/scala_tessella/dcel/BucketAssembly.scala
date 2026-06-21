@@ -59,7 +59,7 @@ object BucketAssembly:
     val typesList  = bucket.toVector.map(normalize)
     val results    = mutable.Map.empty[String, Found]
     // GLOBAL canonical partial-map dedup set: prunes isomorphic partial matchings across every assignment.
-    val seen       = mutable.HashSet.empty[String]
+    val seen       = new LongFpSet
     var states     = 0L
     var expanded   = 0L
     var mapsClosed = 0L
@@ -161,10 +161,46 @@ object BucketAssembly:
 
   // ---- the fixed-V dart assembler --------------------------------------------------------------------
 
+  /** Memory-compact dedup set for partial-map canonical forms: stores a 128-bit fingerprint per entry in
+    * open-addressing `long` arrays (no boxing, no retained strings), so the per-bucket `seen` set scales to
+    * ~10⁸ states without the heap exhaustion the full-string `HashSet` caused. Collision probability at 128
+    * bits over 10⁸ entries is ~10⁻²³. Single-threaded use only (one Assembler chain at a time per bucket).
+    */
+  final private[dcel] class LongFpSet:
+    private var cap  = 1 << 16
+    private var mask = cap - 1
+    private var hi   = new Array[Long](cap)
+    private var lo   = new Array[Long](cap)
+    private var full = new Array[Boolean](cap)
+    private var size = 0
+
+    /** Add the fingerprint `(h, l)`; returns true iff it was not already present. */
+    def add(h: Long, l: Long): Boolean =
+      var i = (mix(h, l) & mask).toInt
+      while full(i) do
+        if hi(i) == h && lo(i) == l then return false
+        i = (i + 1) & mask
+      hi(i) = h; lo(i) = l; full(i) = true; size += 1
+      if size * 3 >= cap * 2 then resize()
+      true
+
+    private def mix(h: Long, l: Long): Long =
+      var x = h * 0x9e3779b97f4a7c15L + l
+      x = (x ^ (x >>> 30)) * 0xbf58476d1ce4e5b9L
+      x = (x ^ (x >>> 27)) * 0x94d049bb133111ebL
+      x ^ (x >>> 31)
+
+    private def resize(): Unit =
+      val (oHi, oLo, oFull) = (hi, lo, full)
+      cap <<= 1; mask = cap - 1
+      hi = new Array[Long](cap); lo = new Array[Long](cap); full = new Array[Boolean](cap); size = 0
+      var j                 = 0
+      while j < oFull.length do { if oFull(j) then add(oHi(j), oLo(j)); j += 1 }
+
   /** Enumerates the port-matched perfect matchings of the darts of one oriented `V`-vertex assignment, and
     * collects the closed torus tilings. `types(i)` is vertex `i`'s oriented cyclic polygon sequence.
     */
-  final private class Assembler(types: Vector[Vector[Int]], stateBudget: Long, seen: mutable.HashSet[String]):
+  final private class Assembler(types: Vector[Vector[Int]], stateBudget: Long, seen: LongFpSet):
     private val nV    = types.size
     private val deg   = types.map(_.size).toArray
     private val start = deg.scanLeft(0)(_ + _) // start(i) = first dart of vertex i; start(nV) = D
@@ -251,7 +287,7 @@ object BucketAssembly:
                 // polygons; (2) partial-map canonical dedup: recurse only into an isomorphism class not yet
                 // visited (the iso maps unmatched darts to unmatched, so every completion is found via the
                 // first-seen representative — sound for completeness).
-                if faceOk(g) && faceOk(h) && seen.add(canonKey()) then { expanded += 1; matchFrom() }
+                if faceOk(g) && faceOk(h) && seenAddKey() then { expanded += 1; matchFrom() }
                 alpha(g) = -1; alpha(h) = -1
             h += 1
 
@@ -259,6 +295,22 @@ object BucketAssembly:
     // Key = the SORTED multiset of per-component canonical strings, so isomorphic partial maps (under vertex
     // relabeling + dart-cycle rotation, NOT reflection — chirality is preserved) collide. Reflection is
     // excluded so the two enantiomorphs of a chiral tiling are not wrongly merged.
+
+    /** Fingerprint the partial-map canonical form and add it to `seen`; true iff newly seen. Hashes the
+      * canonical string into 128 bits (two independent rolling hashes) so the dedup set stays compact.
+      */
+    private def seenAddKey(): Boolean =
+      val s = canonKey()
+      var h = 1125899906842597L
+      var l = 0xcbf29ce484222325L // FNV-1a 64-bit offset
+      var i = 0
+      val n = s.length
+      while i < n do
+        val c = s.charAt(i).toLong
+        h = h * 31 + c
+        l = (l ^ c) * 0x100000001b3L // FNV-1a 64-bit prime
+        i += 1
+      seen.add(h, l)
 
     private def canonKey(): String =
       java.util.Arrays.fill(compBuf, -1)
