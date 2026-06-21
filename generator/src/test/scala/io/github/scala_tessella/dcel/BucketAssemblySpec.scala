@@ -89,3 +89,56 @@ class BucketAssemblySpec extends AnyFlatSpec with Matchers:
     r.tilings.size shouldBe 1
     every(r.tilings.map(_.types)) shouldBe Set(sig("3.3.3.3.3.3"), sig("3.3.4.3.4"))
     every(r.tilings.map(_.n)) shouldBe 2
+
+  behavior of "BucketAssembly.LongFpSet (compact, thread-safe 128-bit fingerprint dedup)"
+
+  it should "report each fingerprint as new exactly once and dups as not-new (incl. the zero key)" in:
+    val s = new BucketAssembly.LongFpSet
+    s.add(1L, 2L) shouldBe true
+    s.add(1L, 2L) shouldBe false
+    s.add(2L, 1L) shouldBe true // order within the pair matters
+    s.add(0L, 0L) shouldBe true // zero fingerprint is a real key, not "empty"
+    s.add(0L, 0L) shouldBe false
+
+  it should "stay correct across segment resizes with many distinct keys" in:
+    val s = new BucketAssembly.LongFpSet
+    val n = 200_000
+    (0 until n).count(i => s.add(i.toLong, (i.toLong << 20) ^ 0x5L)) shouldBe n // all distinct ⇒ all new
+    (0 until n).count(i => s.add(i.toLong, (i.toLong << 20) ^ 0x5L)) shouldBe 0 // all now present
+
+  it should "add each key exactly once under concurrent contention" in:
+    val s       = new BucketAssembly.LongFpSet
+    val n       = 100_000
+    val threads = 8
+    val counts  = Array.fill(threads)(0)
+    val ts      = (0 until threads).map: t =>
+      val th = new Thread(() =>
+        var c = 0; var i = 0
+        while i < n do { if s.add(i.toLong, 7L) then c += 1; i += 1 }
+        counts(t) = c
+      )
+      th.start(); th
+    ts.foreach(_.join())
+    counts.sum shouldBe n // every distinct key claimed as "new" by exactly one thread
+
+  behavior of "BucketAssembly.Budget (shared state cap)"
+
+  it should "latch hit once cumulative spend reaches the cap" in:
+    val b = new BucketAssembly.Budget(1000L)
+    b.hit shouldBe false
+    b.add(400L); b.hit shouldBe false
+    b.add(400L); b.hit shouldBe false
+    b.add(400L); b.hit shouldBe true // 1200 ≥ 1000
+    b.spent shouldBe 1200L
+
+  behavior of "BucketAssembly — within-bucket parallelism is result-invariant"
+
+  it should "find the same tilings and keys regardless of thread count" in:
+    // the result SET is invariant; raw counts (states/mapsClosed) may differ slightly as concurrent workers
+    // can briefly explore an iso partial both miss in `seen`'s race window — sound, just not bit-identical.
+    val bucket = Set(sig("4.4.4.4"), sig("3.3.3.4.4"))
+    val seq    = BucketAssembly.enumerateBucket(bucket, maxV = 4, parallelism = 1)
+    val par    = BucketAssembly.enumerateBucket(bucket, maxV = 4, parallelism = 8)
+    par.keys shouldBe seq.keys
+    par.keys.size shouldBe 2
+    par.tilings.map(_.types).toSet shouldBe seq.tilings.map(_.types).toSet

@@ -2,9 +2,10 @@ package io.github.scala_tessella.dcel
 
 import io.github.scala_tessella.dcel.VertexTypes.*
 
-import java.util.concurrent.{Callable, Executors}
-import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.{ConcurrentHashMap, Executors}
+import java.util.concurrent.atomic.AtomicLong
 import scala.collection.mutable
+import scala.jdk.CollectionConverters.*
 
 /** ADR-0025 de-risking spike: BOUNDED-`V` dart assembly for a single vertex-type bucket.
   *
@@ -53,30 +54,40 @@ object BucketAssembly:
   def enumerateBucket(
       bucket: Set[VertexSignature],
       maxV: Int,
-      stateBudget: Long = 20_000_000L
+      stateBudget: Long = 20_000_000L,
+      parallelism: Int = math.max(1, Runtime.getRuntime.availableProcessors - 1)
   ): BucketResult =
-    val k          = bucket.size
-    val typesList  = bucket.toVector.map(normalize)
-    val results    = mutable.Map.empty[String, Found]
-    // GLOBAL canonical partial-map dedup set: prunes isomorphic partial matchings across every assignment.
-    val seen       = new LongFpSet
-    var states     = 0L
-    var expanded   = 0L
-    var mapsClosed = 0L
-    var budgetHit  = false
-    var v          = k
-    while v <= maxV && !budgetHit do
-      for assignment <- orientedAssignments(typesList, v) if !budgetHit do
-        val asm = new Assembler(assignment, stateBudget - states, seen)
-        asm.run()
-        states += asm.states
-        expanded += asm.expanded
-        mapsClosed += asm.mapsClosed
-        if asm.budgetHit then budgetHit = true
-        for (key, f) <- asm.results do results.getOrElseUpdate(key, f)
-      v += 1
-    val tilings    = results.values.filter(f => f.n == k && f.types == bucket).toList
-    BucketResult(tilings, states, expanded, mapsClosed, budgetHit)
+    val k           = bucket.size
+    val typesList   = bucket.toVector.map(normalize)
+    // GLOBAL thread-safe partial-map dedup set + state budget, shared across the (independent) assignments.
+    val seen        = new LongFpSet
+    val budget      = new Budget(stateBudget)
+    val results     = new ConcurrentHashMap[String, Found]()
+    val statesA     = new AtomicLong(0)
+    val expandedA   = new AtomicLong(0)
+    val mapsClosedA = new AtomicLong(0)
+    val pool        = Executors.newFixedThreadPool(parallelism)
+    try
+      var v = k
+      // Each oriented assignment is an INDEPENDENT search sharing only `seen` + `budget`, so a V-layer's
+      // hundreds of assignments parallelise cleanly; layers stay sequential (the cell appears at one V).
+      while v <= maxV && !budget.hit do
+        val futures = orientedAssignments(typesList, v).map: a =>
+          pool.submit(new Runnable:
+            def run(): Unit =
+              if !budget.hit then
+                val asm = new Assembler(a, budget, seen)
+                asm.run()
+                statesA.addAndGet(asm.states)
+                expandedA.addAndGet(asm.expanded)
+                mapsClosedA.addAndGet(asm.mapsClosed)
+                val it  = asm.results.iterator
+                while it.hasNext do { val (key, f) = it.next(); results.putIfAbsent(key, f) })
+        futures.foreach(_.get())
+        v += 1
+    finally pool.shutdown()
+    val tilings     = results.values.asScala.filter(f => f.n == k && f.types == bucket).toList
+    BucketResult(tilings, statesA.get, expandedA.get, mapsClosedA.get, budget.hit)
 
   /** Outcome of the multi-bucket completion driver: the globally-deduped tilings (by canonical key), the
     * per-bucket results (for cost/coverage inspection), and whether ANY bucket exhausted its state budget (so
@@ -93,34 +104,29 @@ object BucketAssembly:
     def totalStates: Long     = perBucket.map(_._2.states).sum
 
   /** The n-uniform completion driver (ADR-0030): assemble every `bucket` (a candidate n-distinct-type set) up
-    * to `maxV` with a per-bucket `stateBudget`, in parallel across buckets, and globally dedup the results by
-    * canonical key. Each [[enumerateBucket]] call is self-contained (its own `seen` set and counters), so
-    * across-bucket parallelism is sound. A sound, deduped total equal to `TilingReference.counts(n)` is the
-    * exact set (the project's validation principle). `onBucket` reports each bucket as it finishes
-    * (progress).
+    * to `maxV` with a per-bucket `stateBudget`, and globally dedup the results by canonical key. Buckets run
+    * SEQUENTIALLY while each [[enumerateBucket]] parallelises internally across its assignments
+    * (`parallelism` threads), so memory stays bounded (one `seen` set live). A sound, deduped total equal to
+    * `TilingReference.counts(n)` is the exact set (the project's validation principle). `onBucket` reports
+    * each bucket as it finishes (progress).
     */
   def enumerateBuckets(
       buckets: List[Set[VertexSignature]],
       maxV: Int,
       stateBudget: Long = 50_000_000L,
-      parallelism: Int = math.max(1, Runtime.getRuntime.availableProcessors - 2),
+      parallelism: Int = math.max(1, Runtime.getRuntime.availableProcessors - 1),
       onBucket: (Set[VertexSignature], BucketResult) => Unit = (_, _) => ()
   ): DriverResult =
-    val pool = Executors.newFixedThreadPool(parallelism)
-    try
-      val done      = AtomicInteger(0)
-      val futures   = buckets.map: b =>
-        b -> pool.submit(new Callable[BucketResult]:
-          def call(): BucketResult =
-            val r = enumerateBucket(b, maxV, stateBudget)
-            done.incrementAndGet()
-            synchronized(onBucket(b, r))
-            r)
-      val perBucket = futures.map((b, f) => (b, f.get()))
-      val byKey     = mutable.LinkedHashMap.empty[String, Found]
-      for (_, r) <- perBucket; f <- r.tilings do byKey.getOrElseUpdate(f.key, f)
-      DriverResult(byKey.toMap, perBucket)
-    finally pool.shutdown()
+    // Buckets run SEQUENTIALLY — each [[enumerateBucket]] now parallelises internally across its assignments,
+    // so only one bucket's `seen` fingerprint set is live at a time (bounded memory; the prior across-bucket
+    // fan-out OOM'd with several large sets concurrent).
+    val byKey     = mutable.LinkedHashMap.empty[String, Found]
+    val perBucket = buckets.map: b =>
+      val r = enumerateBucket(b, maxV, stateBudget, parallelism)
+      onBucket(b, r)
+      for f <- r.tilings do byKey.getOrElseUpdate(f.key, f)
+      (b, r)
+    DriverResult(byKey.toMap, perBucket)
 
   // ---- assignment generation -------------------------------------------------------------------------
 
@@ -161,28 +167,32 @@ object BucketAssembly:
 
   // ---- the fixed-V dart assembler --------------------------------------------------------------------
 
-  /** Memory-compact dedup set for partial-map canonical forms: stores a 128-bit fingerprint per entry in
-    * open-addressing `long` arrays (no boxing, no retained strings), so the per-bucket `seen` set scales to
-    * ~10⁸ states without the heap exhaustion the full-string `HashSet` caused. Collision probability at 128
-    * bits over 10⁸ entries is ~10⁻²³. Single-threaded use only (one Assembler chain at a time per bucket).
+  /** Shared state budget for a parallel bucket search: a single atomic spent-counter against `cap`, with a
+    * volatile `hit` flag every worker polls. Workers contribute states in batches (not per state) to keep the
+    * atomic uncontended. Once spent ≥ cap, `hit` latches and all workers wind down.
     */
-  final private[dcel] class LongFpSet:
-    private var cap  = 1 << 16
-    private var mask = cap - 1
-    private var hi   = new Array[Long](cap)
-    private var lo   = new Array[Long](cap)
-    private var full = new Array[Boolean](cap)
-    private var size = 0
+  final private[dcel] class Budget(cap: Long):
+    private val spentA         = java.util.concurrent.atomic.AtomicLong(0)
+    @volatile var hit: Boolean = false
+    def add(n: Long): Unit     = if n > 0 && spentA.addAndGet(n) >= cap then hit = true
+    def spent: Long            = spentA.get
 
-    /** Add the fingerprint `(h, l)`; returns true iff it was not already present. */
-    def add(h: Long, l: Long): Boolean =
-      var i = (mix(h, l) & mask).toInt
-      while full(i) do
-        if hi(i) == h && lo(i) == l then return false
-        i = (i + 1) & mask
-      hi(i) = h; lo(i) = l; full(i) = true; size += 1
-      if size * 3 >= cap * 2 then resize()
-      true
+  /** Memory-compact, thread-safe dedup set for partial-map canonical forms: a 128-bit fingerprint per entry
+    * in open-addressing `long` arrays (no boxing, no retained strings), so the per-bucket `seen` set scales
+    * to ~10⁸ states without the heap exhaustion the full-string `HashSet` caused (collision ~10⁻²³ at 128
+    * bits). Striped into `1<<segBits` independently-locked segments so the parallel assignment workers
+    * contend only when two fingerprints land in the same segment.
+    */
+  final private[dcel] class LongFpSet(segBits: Int = 8):
+    private val nSeg    = 1 << segBits
+    private val segMask = nSeg - 1
+    private val locks   = Array.fill(nSeg)(new Object)
+    private val caps    = Array.fill(nSeg)(1 << 10)
+    private val masks   = Array.fill(nSeg)((1 << 10) - 1)
+    private val his     = Array.fill(nSeg)(new Array[Long](1 << 10))
+    private val los     = Array.fill(nSeg)(new Array[Long](1 << 10))
+    private val fulls   = Array.fill(nSeg)(new Array[Boolean](1 << 10))
+    private val sizes   = Array.fill(nSeg)(0)
 
     private def mix(h: Long, l: Long): Long =
       var x = h * 0x9e3779b97f4a7c15L + l
@@ -190,17 +200,44 @@ object BucketAssembly:
       x = (x ^ (x >>> 27)) * 0x94d049bb133111ebL
       x ^ (x >>> 31)
 
-    private def resize(): Unit =
-      val (oHi, oLo, oFull) = (hi, lo, full)
-      cap <<= 1; mask = cap - 1
-      hi = new Array[Long](cap); lo = new Array[Long](cap); full = new Array[Boolean](cap); size = 0
+    /** Add the fingerprint `(h, l)`; returns true iff it was not already present. */
+    def add(h: Long, l: Long): Boolean =
+      val m   = mix(h, l)
+      val seg = ((m >>> 40) & segMask).toInt
+      locks(seg).synchronized:
+        var hi       = his(seg); var lo = los(seg); var full = fulls(seg); var mask = masks(seg)
+        var i        = (m & mask).toInt
+        var found    = false
+        var inserted = false
+        while !found && !inserted do
+          if !full(i) then
+            hi(i) = h; lo(i) = l; full(i) = true
+            sizes(seg) += 1
+            if sizes(seg) * 3 >= caps(seg) * 2 then resize(seg)
+            inserted = true
+          else if hi(i) == h && lo(i) == l then found = true
+          else i = (i + 1) & mask
+        !found
+
+    // caller holds locks(seg)
+    private def resize(seg: Int): Unit =
+      val (oHi, oLo, oFull) = (his(seg), los(seg), fulls(seg))
+      val cap               = caps(seg) << 1
+      val mask              = cap - 1
+      val hi                = new Array[Long](cap); val lo = new Array[Long](cap); val full = new Array[Boolean](cap)
       var j                 = 0
-      while j < oFull.length do { if oFull(j) then add(oHi(j), oLo(j)); j += 1 }
+      while j < oFull.length do
+        if oFull(j) then
+          var i = (mix(oHi(j), oLo(j)) & mask).toInt
+          while full(i) do i = (i + 1) & mask
+          hi(i) = oHi(j); lo(i) = oLo(j); full(i) = true
+        j += 1
+      his(seg) = hi; los(seg) = lo; fulls(seg) = full; caps(seg) = cap; masks(seg) = mask
 
   /** Enumerates the port-matched perfect matchings of the darts of one oriented `V`-vertex assignment, and
     * collects the closed torus tilings. `types(i)` is vertex `i`'s oriented cyclic polygon sequence.
     */
-  final private class Assembler(types: Vector[Vector[Int]], stateBudget: Long, seen: LongFpSet):
+  final private class Assembler(types: Vector[Vector[Int]], budget: Budget, seen: LongFpSet):
     private val nV    = types.size
     private val deg   = types.map(_.size).toArray
     private val start = deg.scanLeft(0)(_ + _) // start(i) = first dart of vertex i; start(nV) = D
@@ -265,7 +302,7 @@ object BucketAssembly:
     var budgetHit        = false
     val results          = mutable.Map.empty[String, Found]
 
-    def run(): Unit = if D % 2 == 0 then matchFrom()
+    def run(): Unit = if D % 2 == 0 then { matchFrom(); budget.add(states & 1023L) }
 
     private def firstUnmatched(): Int =
       var g = 0; while g < D && alpha(g) >= 0 do g += 1; if g < D then g else -1
@@ -280,8 +317,8 @@ object BucketAssembly:
           while h < D && !budgetHit do
             if alpha(h) < 0 && compatible(g, h) then
               states += 1
-              if states > stateBudget then budgetHit = true
-              else
+              if (states & 1023L) == 0L then { budget.add(1024L); if budget.hit then budgetHit = true }
+              if !budgetHit then
                 alpha(g) = h; alpha(h) = g
                 // (1) fail-fast: the just-affected faces (through g and h) must stay able to close as regular
                 // polygons; (2) partial-map canonical dedup: recurse only into an isomorphism class not yet
