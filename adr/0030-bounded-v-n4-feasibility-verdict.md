@@ -63,6 +63,32 @@ escalating V (parallel across buckets and within), dedup by canonical key, and s
 Optimise the per-state keying first (the measured bottleneck). This is the concrete path to the **first new
 exact count beyond the n≤3 oracle**.
 
+## Build status (2026-06-21) — driver built; first n=4 pass corrects the cost estimate
+
+Built `BucketAssembly.enumerateBuckets` (parallel multi-bucket fan-out + global canonical-key dedup,
+`DriverResult`) + `N4DriverProbe` (Wikipedia compact-notation parser → 21 distinct n=4 type-sets) +
+`BucketDriverSpec` (parser + fan-out/dedup guards). Two optimisations to the validated `Assembler`, both
+behaviour-preserving (all 15 BucketAssembly/Driver tests green):
+1. **Keying — 2.1×.** Reused scratch buffers + int-array labelling stamp eliminate the per-state HashMap /
+   StringBuilder / Stack / Array allocation (was GC-bound). tri/hex V=8 identical 2.96M states, 73 s → 35 s.
+2. **Memory — `LongFpSet`.** The per-bucket `seen` dedup stored full canonical strings and OOM'd at scale.
+   Replaced with an open-addressing 128-bit fingerprint set (~24 B/entry, no boxing, no retained strings;
+   collision ~10⁻²³).
+
+**First n=4 pass (24 GB heap, parallel=3, 90M budget) corrects the §verdict's optimism:** the cost-driver
+buckets are worse than V≈11. The hexagon/square-mix sets containing `{3.3.6.6, 3.4.4.6}` (e.g.
+`{3³.4²;3².6²;3.4².6;4.6.12}`) budget-hit at 90M with **found=0** — their cells are **V≥12 (~375M states,
+~9 GB fingerprint memory each)**, the flexible-port (fast-tree) regime at a larger cell than tri/sq. At a
+memory-bound parallel=3 these dominate wall-clock (~18 min each at 90M), so a flat parallel-across-buckets
+pass churns ~2 h and still leaves that tail short.
+
+**Path to complete n=4 — WITHIN-bucket parallelism.** Parallelise the dart-matching DFS so each bucket uses
+all 16 cores, and run buckets **sequentially** (one `LongFpSet` live at a time ⇒ bounded memory, a 375M-state
+bucket ≈ 9 GB fits the 24 GB heap; ~16× faster ⇒ ~5 min). Then escalate the expensive buckets to V≈13–14 to
+confirm found-vs-truly-empty (some Wikipedia rows may be transcription artifacts), and finally run all
+`C(15,4)` subsets (not just the 21 Wikipedia sets) so completeness doesn't depend on the unverified reference.
+This is the next build.
+
 ## Keepers
 
 - `BucketAssembly` (ADR-0025) — sound, exact, and now the **leading** engine for n=4. `BucketN4Probe` — the
