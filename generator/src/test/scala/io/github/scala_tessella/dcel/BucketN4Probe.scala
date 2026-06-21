@@ -31,7 +31,10 @@ object BucketN4Probe:
     "k1 4.6.12"                                ->
       Set("4.6.12"),
     "k1 3.12.12"                               ->
-      Set("3.12.12")
+      Set("3.12.12"),
+    // SANITY: a MULTI-type bucket with a chiral type (3.4.4.6) — does the chirality fix let it close?
+    "k2 {3.4^2.6;3.6.3.6}"                     ->
+      Set("3.4.4.6", "3.6.3.6")
   )
 
   def main(args: Array[String]): Unit =

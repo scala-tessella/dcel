@@ -93,6 +93,16 @@ class BucketAssemblySpec extends AnyFlatSpec with Matchers:
     every(r.tilings.map(_.types)) shouldBe Set(sig("4.4.4.4"), sig("3.3.3.4.4"))
     r.keys.size shouldBe 2 // two distinct adjacencies sharing the same vertex-type set
 
+  it should "assemble both {3.4².6; 3.6.3.6} tilings — a multi-type bucket with a CHIRAL type (3.4.4.6)" in:
+    // end-to-end regression for the oriented-chirality fix in the MULTI-type setting (k=1 4.6.12 covers the
+    // single-type case): 3.4.4.6's reverse is not a rotation of it, so forward-only placement assembled 0
+    // tori. Both A068600 tilings of this set close at the V=5 cell (TilingReference.n2 lists it twice).
+    val r = BucketAssembly.enumerateBucket(Set(sig("3.4.4.6"), sig("3.6.3.6")), maxV = 6)
+    r.budgetHit shouldBe false
+    every(r.tilings.map(_.types)) shouldBe Set(sig("3.4.4.6"), sig("3.6.3.6"))
+    every(r.tilings.map(_.n)) shouldBe 2
+    r.keys.size shouldBe 2
+
   behavior of "BucketAssembly — fail-fast pruning makes a FITTING cell tiny"
 
   // ordered ports + partial-map dedup + face-closure: a cell that fits the V window costs only hundreds of
