@@ -38,6 +38,34 @@ object UnionDriver:
   def boundedVKeys(typeSets: List[Set[VertexSignature]], maxV: Int, budget: Long = 20_000_000L): Set[String] =
     typeSets.flatMap(ts => BucketAssembly.enumerateBucket(ts, maxV, budget).tilings.map(_.key)).toSet
 
+  /** GROUND-TRUTH rotation-symmetry table for level `n`: per distinct tiling (D-symbol key), its vertex-type
+    * set and its [[KrotenheerdtTorusMapSearch.rotationCenters]] — obtained engine-independently by assembling
+    * each candidate type-set with bounded-V, exposing the torus op, and realizing it geometrically
+    * (`realizeCell`). Bounded-V reaches the n=2 cells (dodecagon cells are large-V but cheap-tree), so this
+    * covers all the multiplicity siblings the growers individually miss/capture.
+    */
+  /** The reference multiplicity of a type-set (how many distinct tilings share it). */
+  def multiplicity(n: Int, ts: Set[VertexSignature]): Int = n match
+    case 1 => 1
+    case 2 => TilingReference.n2.count(_ == ts)
+    case k => TilingReference.rawWikipediaN3to5.getOrElse(k, Nil).map(parseTiling).count(_ == ts)
+
+  def rotationTable(
+      n: Int,
+      maxV: Int,
+      budget: Long = 200_000_000L
+  ): Map[String, (Set[VertexSignature], Set[(String, Int)])] =
+    candidateTypeSets(n).flatMap { ts =>
+      // stop each bucket once its known multiplicity is found ⇒ cheap-tree large-V cells (dodecagons) can go
+      // high while square-rich cells halt at their small V before the expensive layers.
+      val r = BucketAssembly.enumerateBucket(ts, maxV, budget, targetCount = multiplicity(n, ts))
+      r.keys.toList.flatMap { key =>
+        KrotenheerdtTorusMapSearch
+          .realizeCell(r.ops(key))
+          .map((faces, pv, pw) => key -> (ts, KrotenheerdtTorusMapSearch.rotationCenters(faces, pv, pw)))
+      }
+    }.toMap
+
   /** Symmetry-grower D-symbol keys, grouped by uniformity `n`. */
   def growerKeysByN(
       maxN: Int,

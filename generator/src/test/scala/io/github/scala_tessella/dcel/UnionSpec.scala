@@ -37,6 +37,21 @@ class UnionSpec extends AnyFlatSpec with Matchers:
     val octKey = DelaneySymbols.keyedTilings(1, 12).find(_._2 == Set(sig("4.8.8"))).map(_._3).get
     keys should contain(octKey)
 
+  behavior of "rotationTable (the n=2 rotation-symmetry reference, via bounded-V + realizeCell)"
+
+  // Small maxV (fast) reaches the small-cell n=2 — incl. the multiplicity-2 {4⁴;3³.4²} (BOTH siblings). Each
+  // entry must be a valid 2-type set with NON-EMPTY centres of valid orders (soundness via realizeCell is
+  // already tested). The full 20-row table is RotationTableProbe (run on demand at higher maxV).
+  it should "report sound rotation centres for the small-cell n=2 (incl both {4⁴;3³.4²} siblings)" in:
+    val table = UnionDriver.rotationTable(n = 2, maxV = 6)
+    table should not be empty
+    table.values.foreach: (types, centres) =>
+      types.size shouldBe 2
+      centres should not be empty
+      centres.foreach((kind, order) => withClue(s"($kind,$order): ")(Set(2, 3, 4, 6) should contain(order)))
+    // {4⁴;3³.4²} is multiplicity 2 and small-cell ⇒ both siblings present with their (distinct) centres
+    table.values.count(_._1 == Set(sig("4.4.4.4"), sig("3.3.3.4.4"))) shouldBe 2
+
   behavior of "the union operator (set union of two sound key sets, deduped)"
 
   it should "be the deduped union and never exceed soundness (⊆ oracle at n=1)" in:

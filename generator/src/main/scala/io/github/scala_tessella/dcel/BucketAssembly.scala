@@ -56,7 +56,10 @@ object BucketAssembly:
       bucket: Set[VertexSignature],
       maxV: Int,
       stateBudget: Long = 20_000_000L,
-      parallelism: Int = math.max(1, Runtime.getRuntime.availableProcessors - 1)
+      parallelism: Int = math.max(1, Runtime.getRuntime.availableProcessors - 1),
+      targetCount: Int = Int.MaxValue // stop escalating V once this many bucket tilings are found (the known
+      //                                 multiplicity) — lets cheap-tree large-V cells (dodecagons) go high while
+      //                                 square-rich cells stop at their small V before the expensive layers
   ): BucketResult =
     val k           = bucket.size
     val typesList   = bucket.toVector.map(normalize)
@@ -70,10 +73,11 @@ object BucketAssembly:
     val mapsClosedA = new AtomicLong(0)
     val pool        = Executors.newFixedThreadPool(parallelism)
     try
-      var v = k
+      var v                = k
+      def bucketCount: Int = results.values.asScala.count(f => f.n == k && f.types == bucket)
       // Each oriented assignment is an INDEPENDENT search sharing only `seen` + `budget`, so a V-layer's
       // hundreds of assignments parallelise cleanly; layers stay sequential (the cell appears at one V).
-      while v <= maxV && !budget.hit do
+      while v <= maxV && !budget.hit && bucketCount < targetCount do
         val futures = orientedAssignments(typesList, v).map: a =>
           pool.submit(new Runnable:
             def run(): Unit =
