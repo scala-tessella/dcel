@@ -199,15 +199,34 @@ class SymmetryGrowerSpec extends AnyFlatSpec with Matchers:
   // 4⁴ (p4m, rotation orbifold 442): order-4 at the square centre AND at the vertex, order-2 at the edge mid.
   it should "give 442 for the unit-square 4.4.4.4 cell (face4, vertex4, edge2)" in:
     val square = FaceZ(4, Vector(ZetaPoint.origin, u(0), u(0) + u(3), u(3)))
-    KrotenheerdtTorusMapSearch.rotationCenters(List(square), u(0), u(3)) shouldBe
+    KrotenheerdtTorusMapSearch.rotationCenters(List(square), u(0).toBigPoint, u(3).toBigPoint) shouldBe
       Set(("face", 4), ("vertex", 4), ("edge", 2))
 
   // 3⁶ (p6m, rotation orbifold 632): order-6 at the vertex, order-3 at the triangle centre, order-2 at edge.
   it should "give 632 for the two-triangle 3⁶ cell (vertex6, face3, edge2)" in:
     val up   = FaceZ(3, Vector(ZetaPoint.origin, u(0), u(2)))
     val down = FaceZ(3, Vector(u(0), ZetaPoint.origin, u(10)))
-    KrotenheerdtTorusMapSearch.rotationCenters(List(up, down), u(0), u(2)) shouldBe
+    KrotenheerdtTorusMapSearch.rotationCenters(List(up, down), u(0).toBigPoint, u(2).toBigPoint) shouldBe
       Set(("vertex", 6), ("face", 3), ("edge", 2))
+
+  behavior of "rotation-symmetry reference methods (free + symmetry grower)"
+
+  // The free grower reaches the small n=1 cells; this validates BOTH the reference method AND rotationCenters
+  // on real grower cells across all needed (type,order) combos — notably 6.6.6 → face-order-6, which the
+  // hand-built cases above don't cover.
+  it should "report correct rotation centres for the small n=1 tilings (freeGrowerRotationReference)" in:
+    val ref                  = KrotenheerdtTorusMapSearch.freeGrowerRotationReference(maxN = 1, maxFaces = 16)
+    def centresOf(t: String) = ref.values.find(_._1 == Set(sig(t))).map(_._2)
+    centresOf("4.4.4.4") shouldBe Some(Set(("face", 4), ("vertex", 4), ("edge", 2)))     // 442
+    centresOf("3.3.3.3.3.3") shouldBe Some(Set(("vertex", 6), ("face", 3), ("edge", 2))) // 632
+    centresOf("6.6.6") shouldBe Some(Set(("face", 6), ("vertex", 3), ("edge", 2))) // 632 (face-6)
+
+  // The symmetry grower's reference must agree on centres for a tiling it reaches, and tag the seed that did.
+  it should "agree on 6.6.6's centres and record the reaching seed (symmetryRotationReference)" in:
+    val ref = KrotenheerdtTorusMapSearch.symmetryRotationReference(maxN = 1, maxFaces = 16)
+    val hex = ref.values.find(_._1 == Set(sig("6.6.6")))
+    hex.map(_._2) shouldBe Some(Set(("face", 6), ("vertex", 3), ("edge", 2)))
+    hex.map(_._3) should not be empty // a seed label (which seed reached it)
 
   behavior of "enumerateAllSeedsParallel (work-stealing — sound, finds the budget-stable core)"
 

@@ -315,9 +315,7 @@ object KrotenheerdtTorusMapSearch:
     * can reach a tiling (face↔polygon-centre seed, vertex↔vertex seed, edge↔edge-midpoint seed), and the
     * decisive datum for whether the symmetry engine can reach a tiling at all (and from which centre).
     */
-  def rotationCenters(faces: List[FaceZ], pv: ZetaPoint, pw: ZetaPoint): Set[(String, Int)] =
-    val pvB                                         = pv.toBigPoint
-    val pwB                                         = pw.toBigPoint
+  def rotationCenters(faces: List[FaceZ], pvB: BigPoint, pwB: BigPoint): Set[(String, Int)] =
     val originB                                     = BigPoint.origin
     def rkey(z: ZetaPoint): (Long, Long)            = tkey(z.toBigPoint, pvB, pwB, originB)
     def fkey(f: FaceZ): (Int, Vector[(Long, Long)]) = (f.size, f.corners.map(rkey).sorted)
@@ -353,6 +351,91 @@ object KrotenheerdtTorusMapSearch:
     for (a, b) <- edges do
       if isSym(z => rot0(z, 6) + (a + b)) then out += (("edge", 2))
     out.toSet
+
+  /** Rotation-symmetry REFERENCE over the symmetry grower's reachable tilings: for each tiling it closes,
+    * record (D-symbol key → (types, its [[rotationCenters]], the seed label that first reached it)).
+    * Validates the capture hypothesis (a reached tiling's centres include the seed-type that reached it) and
+    * gives the ground-truth rotation structure per tiling. Self-contained (per-seed DFS, like the production
+    * grower).
+    */
+  def symmetryRotationReference(
+      maxN: Int,
+      maxFaces: Int
+  ): Map[String, (Set[VertexSignature], Set[(String, Int)], String)] =
+    val originB = BigPoint.origin
+    val out     = mutable.Map.empty[String, (Set[VertexSignature], Set[(String, Int)], String)]
+    for seed <- allSeeds do
+      val visited                                      = mutable.HashSet.empty[Vector[Long]]
+      val stack                                        = mutable.Stack.empty[List[FaceZ]]
+      val seedCorners                                  = seed.faces.flatMap(_.corners).toSet
+      def coronaCommitted(faces: List[FaceZ]): Boolean =
+        seedCorners.forall(p => coveredSlots(planarFan(faces, p)).sizeIs == 12)
+      if isPlanarConsistent(seed.faces) && isSound(seed.faces, maxN) && visited.add(canonicalKey(seed.faces))
+      then stack.push(seed.faces)
+      while stack.nonEmpty do
+        val faces  = stack.pop()
+        var closed = false
+        if coronaCommitted(faces) then
+          var best: Option[(ZetaPoint, ZetaPoint, BigDecimal)] = None
+          boundaryGlueBases(faces).foreach: (g1, g2) =>
+            val vB   = g1.toBigPoint
+            val wB   = g2.toBigPoint
+            val cov0 = cross(vB, wB).abs
+            if cov0 > BigDecimal("1e-9") && distinctArea(faces, vB, wB) >= cov0 - BigDecimal("1e-6") then
+              verifyCell(faces, g1, g2, maxN).foreach((_, _, _, pcov) =>
+                if best.forall(pcov < _._3) then best = Some((g1, g2, pcov))
+              )
+          best.foreach: (g1, g2, _) =>
+            val distinct   = distinctFacesOf(faces, g1.toBigPoint, g2.toBigPoint)
+            val (pvB, pwB) =
+              KrotenheerdtLatticeSearch.primitiveBasis(g1.toBigPoint, g2.toBigPoint, originB, distinct, Nil)
+            torusMapClassify(faces, pvB, pwB, originB).foreach: (_, sigs, dkey) =>
+              out.getOrElseUpdate(dkey, (sigs.toSet, rotationCenters(faces, pvB, pwB), seed.label))
+            closed = true
+        if !closed && faces.sizeIs < maxFaces then
+          growBySymmetry(faces, maxN, seed.rot, seed.m).foreach: child =>
+            if visited.add(canonicalKey(child)) then stack.push(child)
+    out.toMap
+
+  /** Rotation-symmetry reference via the FREE grower (vertex-corona seeds + free planar growth,
+    * seed-INDEPENDENT so `visited` is safely shared). It reaches the SMALL cells — including the ones the
+    * symmetry grower's close-and-stop captures away — so it supplies the rotation centres of those (e.g. the
+    * square-centred {4⁴;3³.4²}). Returns D-symbol key → (types, [[rotationCenters]]). `maxFaces` bounds the
+    * (scatter-prone) growth; small cells close well within a modest bound.
+    */
+  def freeGrowerRotationReference(
+      maxN: Int,
+      maxFaces: Int
+  ): Map[String, (Set[VertexSignature], Set[(String, Int)])] =
+    val originB = BigPoint.origin
+    val out     = mutable.Map.empty[String, (Set[VertexSignature], Set[(String, Int)])]
+    val visited = mutable.HashSet.empty[Vector[Long]]
+    val stack   = mutable.Stack.empty[List[FaceZ]]
+    for sig <- seedTypes do
+      val seed = coronaFaces(sig)
+      if isPlanarConsistent(seed) && isSound(seed, maxN) && visited.add(canonicalKey(seed)) then
+        stack.push(seed)
+    while stack.nonEmpty do
+      val faces                                            = stack.pop()
+      var best: Option[(ZetaPoint, ZetaPoint, BigDecimal)] = None
+      boundaryGlueBases(faces).foreach: (g1, g2) =>
+        val vB   = g1.toBigPoint
+        val wB   = g2.toBigPoint
+        val cov0 = cross(vB, wB).abs
+        if cov0 > BigDecimal("1e-9") && distinctArea(faces, vB, wB) >= cov0 - BigDecimal("1e-6") then
+          verifyCell(faces, g1, g2, maxN).foreach((_, _, _, pcov) =>
+            if best.forall(pcov < _._3) then best = Some((g1, g2, pcov))
+          )
+      best.foreach: (g1, g2, _) =>
+        val distinct   = distinctFacesOf(faces, g1.toBigPoint, g2.toBigPoint)
+        val (pvB, pwB) =
+          KrotenheerdtLatticeSearch.primitiveBasis(g1.toBigPoint, g2.toBigPoint, originB, distinct, Nil)
+        torusMapClassify(faces, pvB, pwB, originB).foreach: (_, sigs, dkey) =>
+          out.getOrElseUpdate(dkey, (sigs.toSet, rotationCenters(faces, pvB, pwB)))
+      if best.isEmpty && faces.sizeIs < maxFaces then
+        growByCompletionPlanar(faces, maxN).foreach: child =>
+          if visited.add(canonicalKey(child)) then stack.push(child)
+    out.toMap
 
   // ======================================================================================================
   // The discovered-Λ propagation search (ADR-0021 step 1). We develop ONE planar patch per seed corona in the
