@@ -604,7 +604,7 @@ object KrotenheerdtTorusMapSearch:
     * two chiral/rotated developments) reaching the same patch collapse to one visited entry. (The ADR's
     * flag/dart canonical labelling, realised on the exact integer coordinates.)
     */
-  private def canonicalKey(faces: List[FaceZ]): Vector[Long] =
+  private def canonicalKeyVec(faces: List[FaceZ]): Vector[Long] =
     import scala.math.Ordering.Implicits.seqOrdering
     groupMaps.iterator.map: g =>
       val tf     = faces.map(f => (f.size, f.corners.map(g)))
@@ -615,6 +615,27 @@ object KrotenheerdtTorusMapSearch:
         .flatten
         .toVector
     .min
+
+  /** The visited-set key: a 128-bit hash of [[canonicalKeyVec]] as a 2-element `Vector[Long]`. The full
+    * canonical vector is ~faces×corners×4 longs (≈30 KB for an 80-face patch); the `visited` set retains ONE
+    * per state and never shrinks, so storing the full vector exhausts the heap at n≥4 high maxFaces (the
+    * measured OOM). Hashing collapses each retained entry to 16 bytes (≈1000× less) — so `visited` stays flat
+    * (tens of MB) into the tens of millions of states, letting the grower run for hours. Two independent
+    * 64-bit rolling hashes (poly + FNV-1a) ⇒ 128-bit: at ~10⁷ states the birthday collision probability is
+    * ~10¹⁴/2¹²⁹ ≈ 10⁻²⁵, far below any other failure mode, so dedup stays exact in practice. Same value type
+    * as the old key (`Vector[Long]`), so every `visited` declaration and `.add(canonicalKey(..))` is
+    * unchanged.
+    */
+  private def canonicalKey(faces: List[FaceZ]): Vector[Long] =
+    val vec = canonicalKeyVec(faces)
+    var h1  = 1125899906842597L     // odd prime seed (polynomial rolling hash, ×31)
+    var h2  = -3750763034362895579L // FNV-1a 64-bit offset basis (14695981039346656037 as signed Long)
+    val it  = vec.iterator
+    while it.hasNext do
+      val x = it.next()
+      h1 = h1 * 31L + x
+      h2 = (h2 ^ x) * 1099511628211L // FNV-1a 64-bit prime
+    Vector(h1, h2)
 
   /** Planar fan at vertex `p`: incident faces' `(startSlot, size)`, by ascending start slot. */
   private def planarFan(faces: List[FaceZ], p: ZetaPoint): List[(Int, Int)] =
