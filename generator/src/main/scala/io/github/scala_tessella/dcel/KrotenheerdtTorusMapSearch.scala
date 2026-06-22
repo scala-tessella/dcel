@@ -461,11 +461,13 @@ object KrotenheerdtTorusMapSearch:
     */
   def symmetryRotationReference(
       maxN: Int,
-      maxFaces: Int
+      maxFaces: Int,
+      log: String => Unit = _ => ()
   ): Map[String, (Set[VertexSignature], Set[(String, Int)], String)] =
     val originB = BigPoint.origin
     val out     = mutable.Map.empty[String, (Set[VertexSignature], Set[(String, Int)], String)]
-    for seed <- allSeeds do
+    val seeds   = allSeeds
+    for (seed, si) <- seeds.zipWithIndex do
       val visited                                      = mutable.HashSet.empty[Vector[Long]]
       val stack                                        = mutable.Stack.empty[List[FaceZ]]
       val seedCorners                                  = seed.faces.flatMap(_.corners).toSet
@@ -496,6 +498,7 @@ object KrotenheerdtTorusMapSearch:
         if !closed && faces.sizeIs < maxFaces then
           growBySymmetry(faces, maxN, seed.rot, seed.m).foreach: child =>
             if visited.add(canonicalKey(child)) then stack.push(child)
+      log(s"seed ${si + 1}/${seeds.size} '${seed.label}' done — keys so far: ${out.size}")
     out.toMap
 
   /** Rotation-symmetry reference via the FREE grower (vertex-corona seeds + free planar growth,
