@@ -22,13 +22,15 @@ object UnionRotationTableProbe:
     ts.map(_.mkString(".")).toList.sorted.mkString("; ")
 
   def main(args: Array[String]): Unit =
-    val n        = args.headOption.map(_.toInt).getOrElse(2)
-    val maxV     = args.lift(1).map(_.toInt).getOrElse(20)
-    val maxFaces = args.lift(2).map(_.toInt).getOrElse(52)
-    val t0       = System.nanoTime()
-    def secs     = (System.nanoTime() - t0) / 1e9
+    val n         = args.headOption.map(_.toInt).getOrElse(2)
+    val maxV      = args.lift(1).map(_.toInt).getOrElse(20)
+    val maxFaces  = args.lift(2).map(_.toInt).getOrElse(52)
+    val growerMin =
+      args.lift(3).map(_.toLong).getOrElse(Long.MaxValue) // grower-phase wall-clock cap (minutes)
+    val t0    = System.nanoTime()
+    def secs  = (System.nanoTime() - t0) / 1e9
     // key -> (type-set, centres, source)
-    val table    =
+    val table =
       scala.collection.mutable.LinkedHashMap.empty[String, (Set[VertexSignature], Set[(String, Int)], String)]
 
     // ---- Phase A: bounded-V over each candidate type-set (reduced budget; doomed buckets fail fast) ----
@@ -60,6 +62,7 @@ object UnionRotationTableProbe:
     val grower = KrotenheerdtTorusMapSearch.symmetryRotationReferenceParallel(
       maxN = n,
       maxFaces = maxFaces,
+      maxMillis = if growerMin == Long.MaxValue then Long.MaxValue else growerMin * 60000L,
       log = msg => println(s"  $msg")
     )
     grower.foreach { case (key, (types, centres)) =>
@@ -67,20 +70,40 @@ object UnionRotationTableProbe:
     }
     println(f"  grower added ${table.size - before} new tilings (had ${grower.size} keys) (${secs}%.0fs)")
 
-    // ---- the table ----
+    // ---- the table (only the n-uniform rows: an n-uniform tiling has exactly n distinct vertex types; the
+    // grower run at maxN=n also re-derives lower-n tilings, which we drop here) ----
     val expected = TilingReference.counts(n)
-    println(f"\n=== n=$n rotation-symmetry table: ${table.size}/$expected tilings, ${secs}%.0fs ===")
-    println(f"${"vertex-type set"}%-40s | rotation centres (centre-type : angle)            | src")
-    println("-" * 110)
-    table.toList
-      .map((_, v) => (label(v._1), v._2, v._3))
+    val rows     = table.toList.collect {
+      case (_, (types, centres, src)) if types.size == n => (label(types), centres, src)
+    }
+    println(f"\n=== n=$n rotation-symmetry table: ${rows.size}/$expected tilings, ${secs}%.0fs ===")
+    println(f"${"vertex-type set"}%-46s | rotation centres (centre-type : angle)            | src")
+    println("-" * 116)
+    rows
       .sortBy(t => (t._1, t._2.toString))
       .foreach: (lbl, centres, src) =>
         val cs = centres.toList
           .sortBy((kind, ord) => (kind, -ord))
           .map((kind, ord) => s"$kind ${angle.getOrElse(ord, s"$ord?")}")
           .mkString(", ")
-        println(f"$lbl%-40s | $cs%-48s | $src")
-    if expected - table.size > 0 then
-      println(s"\n(NOTE: ${expected - table.size} short of the reference at maxV=$maxV maxFaces=$maxFaces)")
+        println(f"$lbl%-46s | $cs%-48s | $src")
+    if expected - rows.size > 0 then
+      println(
+        s"\n(NOTE: ${expected - rows.size} short of the reference at maxV=$maxV maxFaces=$maxFaces — LOWER BOUND)"
+      )
+
+    // ---- POINT-GROUP SUMMARY (the strategic number: how many tilings are C2-ONLY = the hard p2/cmm zone where
+    // reflections could earn a further 2x; max rotation order 3/4/6 ⇒ rotation-only is already >=3x and optimal
+    // for the chiral groups) ----
+    val byOrder = rows.map((_, centres, _) => if centres.isEmpty then 0 else centres.map(_._2).max)
+    println(s"\n=== point-group summary over the ${rows.size} reached n=$n tilings ===")
+    List(6, 4, 3, 2, 0).foreach: m =>
+      val c   = byOrder.count(_ == m)
+      val lbl = if m == 0 then "NO rotation (rotation-free!)" else s"max rotation order $m (${angle(m)})"
+      if c > 0 || m == 0 then println(f"  $lbl%-34s : $c%2d")
+    val c2only  = rows.filter((_, centres, _) => centres.nonEmpty && centres.map(_._2).max == 2)
+    println(f"\n  C2-ONLY (the reflection-question zone): ${c2only.size}/${rows.size}")
+    c2only.sortBy(_._1).foreach((lbl, centres, _) =>
+      println(s"    $lbl  [${centres.toList.sorted.map((k, o) => s"$k$o").mkString(",")}]")
+    )
     println("\n[done]")
