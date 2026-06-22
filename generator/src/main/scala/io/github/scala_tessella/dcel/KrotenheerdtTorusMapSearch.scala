@@ -307,6 +307,53 @@ object KrotenheerdtTorusMapSearch:
           g += 1
         DelaneySymbols.classifyClosedMap(op)
 
+  /** GROUND-TRUTH rotational-symmetry reference for a closed torus cell (faces + lattice Λ = (pv, pw)): the
+    * set of `(centre-type, order)` rotation centres, type ∈ {"face","vertex","edge"} (polygon-centre / vertex
+    * / edge-midpoint) and order ∈ {2,3,4,6}. A centre passes iff the EXACT integer rotation about it (`r(z) =
+    * ζ^(12/m)·z + t`, exact since a tiling-preserving rotation maps lattice points to lattice points) maps
+    * the face-set onto itself mod Λ. Per centre the MAX order is kept. This is the reference for which SEEDS
+    * can reach a tiling (face↔polygon-centre seed, vertex↔vertex seed, edge↔edge-midpoint seed), and the
+    * decisive datum for whether the symmetry engine can reach a tiling at all (and from which centre).
+    */
+  def rotationCenters(faces: List[FaceZ], pv: ZetaPoint, pw: ZetaPoint): Set[(String, Int)] =
+    val pvB                                         = pv.toBigPoint
+    val pwB                                         = pw.toBigPoint
+    val originB                                     = BigPoint.origin
+    def rkey(z: ZetaPoint): (Long, Long)            = tkey(z.toBigPoint, pvB, pwB, originB)
+    def fkey(f: FaceZ): (Int, Vector[(Long, Long)]) = (f.size, f.corners.map(rkey).sorted)
+    val faceSet                                     = faces.map(fkey).toSet
+    def rot0(z: ZetaPoint, k: Int): ZetaPoint       =
+      var p = z; var i = 0; while i < k do { p = p.timesZeta; i += 1 }; p
+    // r is a symmetry iff it maps every face to a face mod Λ (finite + injective ⇒ a bijection of the cell)
+    def isSym(r: ZetaPoint => ZetaPoint): Boolean   =
+      faces.forall(f => faceSet.contains((f.size, f.corners.map(z => rkey(r(z))).sorted)))
+    val out                                         = mutable.Set.empty[(String, Int)]
+    val orders                                      = List(6, 4, 3, 2)
+    // FACE centres (rotation 360/m about a p-gon centre needs m | p): max order per distinct face mod Λ
+    for f <- faces.groupBy(fkey).values.map(_.head) do
+      val passing = orders.filter(m =>
+        f.size % m == 0 && {
+          val k = 12 / m; val t = f.corners(f.size / m) - rot0(f.corners.head, k)
+          isSym(z => rot0(z, k) + t)
+        }
+      )
+      if passing.nonEmpty then out += (("face", passing.max))
+    // VERTEX centres: max order per distinct vertex mod Λ
+    for v <- faces.flatMap(_.corners).groupBy(rkey).values.map(_.head) do
+      val passing = orders.filter { m =>
+        val k = 12 / m; isSym(z => rot0(z, k) + (v - rot0(v, k)))
+      }
+      if passing.nonEmpty then out += (("vertex", passing.max))
+    // EDGE midpoints (order 2 only): 180° about (a+b)/2 ⇒ r(z) = (a+b) − z
+    val edges                                       = faces
+      .flatMap(f => f.corners.indices.map(i => (f.corners(i), f.corners((i + 1) % f.size))))
+      .groupBy((a, b) => Set(rkey(a), rkey(b)))
+      .values
+      .map(_.head)
+    for (a, b) <- edges do
+      if isSym(z => rot0(z, 6) + (a + b)) then out += (("edge", 2))
+    out.toSet
+
   // ======================================================================================================
   // The discovered-Λ propagation search (ADR-0021 step 1). We develop ONE planar patch per seed corona in the
   // universal-cover frame (exact ℤ[ζ₁₂]), growing it by MRV vertex completion under the same valid-vertex /

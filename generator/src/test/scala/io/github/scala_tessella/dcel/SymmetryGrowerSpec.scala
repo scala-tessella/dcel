@@ -194,6 +194,21 @@ class SymmetryGrowerSpec extends AnyFlatSpec with Matchers:
     res.map(_._2.toSet) shouldBe Some(Set(sig("3.3.3.3.3.3")))
     res.map(_._3) shouldBe Some(oracleKeyOf("3.3.3.3.3.3"))
 
+  behavior of "rotationCenters (ground-truth rotational symmetry — validated on known orbifolds)"
+
+  // 4⁴ (p4m, rotation orbifold 442): order-4 at the square centre AND at the vertex, order-2 at the edge mid.
+  it should "give 442 for the unit-square 4.4.4.4 cell (face4, vertex4, edge2)" in:
+    val square = FaceZ(4, Vector(ZetaPoint.origin, u(0), u(0) + u(3), u(3)))
+    KrotenheerdtTorusMapSearch.rotationCenters(List(square), u(0), u(3)) shouldBe
+      Set(("face", 4), ("vertex", 4), ("edge", 2))
+
+  // 3⁶ (p6m, rotation orbifold 632): order-6 at the vertex, order-3 at the triangle centre, order-2 at edge.
+  it should "give 632 for the two-triangle 3⁶ cell (vertex6, face3, edge2)" in:
+    val up   = FaceZ(3, Vector(ZetaPoint.origin, u(0), u(2)))
+    val down = FaceZ(3, Vector(u(0), ZetaPoint.origin, u(10)))
+    KrotenheerdtTorusMapSearch.rotationCenters(List(up, down), u(0), u(2)) shouldBe
+      Set(("vertex", 6), ("face", 3), ("edge", 2))
+
   behavior of "enumerateAllSeedsParallel (work-stealing — sound, finds the budget-stable core)"
 
   // CONCURRENCY correctness, budget-robust. Exact parallel==sequential equality holds only for BUDGET-COMPLETE
