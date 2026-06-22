@@ -330,31 +330,45 @@ object KrotenheerdtTorusMapSearch:
     val D = (op.length - 1) / 2
     if D <= 0 then None
     else
-      def alpha(g: Int): Int                                      = (op(2 * g + 1)(2) - 2) / 2
-      def phi(g: Int): Int                                        = (op(2 * g + 2)(1) - 1) / 2
-      // face = φ-orbit of darts (cyclic CCW order); its length = polygon side-count
-      val faceOf                                                  = Array.fill(D)(-1)
-      val faceDarts                                               = mutable.ArrayBuffer.empty[Vector[Int]]
-      var g0                                                      = 0
-      while g0 < D do
-        if faceOf(g0) < 0 then
-          val orbit = mutable.ArrayBuffer(g0)
-          faceOf(g0) = faceDarts.length
-          var h     = phi(g0)
-          while h != g0 do { faceOf(h) = faceDarts.length; orbit += h; h = phi(h) }
-          faceDarts += orbit.toVector
-        g0 += 1
-      // develop: each dart gets a directed edge (tail, slot); each face its CCW corners
-      val tail                                                    = new Array[ZetaPoint](D)
-      val slotA                                                   = new Array[Int](D)
-      val placed                                                  = Array.fill(D)(false)
-      val faceCorners                                             = Array.fill(faceDarts.length)(Vector.empty[ZetaPoint])
-      val queue                                                   = mutable.Queue.empty[Int]
-      def placeFace(startDart: Int, t0: ZetaPoint, s0: Int): Unit =
-        val fi      = faceOf(startDart)
+      def alpha(g: Int): Int = (op(2 * g + 1)(2) - 2) / 2
+      val phi                = Array.tabulate(D)(g => (op(2 * g + 2)(1) - 1) / 2)
+      val phiInv             = Array.fill(D)(-1)
+      for g <- 0 until D do phiInv(phi(g)) = g
+      // The op's orientation may be CW or CCW relative to the CCW `polygon` placement; try the face cycle in
+      // both directions (φ and φ⁻¹) and keep whichever develops consistently.
+      develop(op, D, alpha, phi, maxN).orElse(develop(op, D, alpha, phiInv, maxN))
+
+  /** One development attempt of [[realizeCell]] with a given face-successor (`succ` = φ or φ⁻¹). */
+  private def develop(
+      op: Array[Array[Int]],
+      D: Int,
+      alpha: Int => Int,
+      succ: Array[Int],
+      maxN: Int
+  ): Option[(List[FaceZ], BigPoint, BigPoint)] =
+    val faceOf                                                  = Array.fill(D)(-1)
+    val faceDarts                                               = mutable.ArrayBuffer.empty[Vector[Int]]
+    var g0                                                      = 0
+    while g0 < D do
+      if faceOf(g0) < 0 then
+        val orbit = mutable.ArrayBuffer(g0)
+        faceOf(g0) = faceDarts.length
+        var h     = succ(g0)
+        while h != g0 do { faceOf(h) = faceDarts.length; orbit += h; h = succ(h) }
+        faceDarts += orbit.toVector
+      g0 += 1
+    val tail                                                    = new Array[ZetaPoint](D)
+    val slotA                                                   = new Array[Int](D)
+    val placed                                                  = Array.fill(D)(false)
+    val faceCorners                                             = Array.fill(faceDarts.length)(Vector.empty[ZetaPoint])
+    val queue                                                   = mutable.Queue.empty[Int]
+    def placeFace(startDart: Int, t0: ZetaPoint, s0: Int): Unit =
+      val fi = faceOf(startDart)
+      if faceCorners(fi).nonEmpty then () // already placed (reached via another dart)
+      else
         val orbit   = faceDarts(fi)
         val k       = orbit.indexOf(startDart)
-        val ord     = orbit.drop(k) ++ orbit.take(k) // start the CCW cycle at startDart
+        val ord     = orbit.drop(k) ++ orbit.take(k) // start the cycle at startDart
         val size    = ord.length
         val corners = polygon(t0, s0, size)
         var i       = 0
@@ -364,27 +378,35 @@ object KrotenheerdtTorusMapSearch:
           queue.enqueue(d)
           i += 1
         faceCorners(fi) = corners
-      placeFace(0, ZetaPoint.origin, 0)
-      while queue.nonEmpty do
-        val g  = queue.dequeue()
-        val ag = alpha(g)
-        if !placed(ag) then
-          val v = tail(g) + ZetaPoint.step(slotA(g)) // head of g's edge = tail of α(g)'s (reversed) edge
-          placeFace(ag, v, (slotA(g) + 6) % 12)
-      if placed.exists(!_) then None // map not connected / not cleanly developed
+    // EXACT deck vectors: at a NON-tree edge (α(g)'s partner already placed at a translated position), the
+    // identification translation t = v − tail(α(g)) is a genuine deck vector. These (not boundaryGlueBases'
+    // heuristic shortest-pairs, which a spanning-tree patch's irregular boundary defeats) generate Λ exactly.
+    val deck                                                    = mutable.ListBuffer.empty[ZetaPoint]
+    placeFace(0, ZetaPoint.origin, 0)
+    while queue.nonEmpty do
+      val g  = queue.dequeue()
+      val ag = alpha(g)
+      val v  = tail(g) + ZetaPoint.step(slotA(g)) // head of g's edge = tail of α(g)'s (reversed) edge
+      if !placed(ag) then placeFace(ag, v, (slotA(g) + 6) % 12)
       else
-        val faces                                            = faceCorners.toList.map(cs => FaceZ(cs.length, cs))
-        val originB                                          = BigPoint.origin
-        var best: Option[(ZetaPoint, ZetaPoint, BigDecimal)] = None
-        boundaryGlueBases(faces).foreach: (g1, g2) =>
-          verifyCell(faces, g1, g2, maxN).foreach((_, _, _, pcov) =>
-            if best.forall(pcov < _._3) then best = Some((g1, g2, pcov))
-          )
-        best.map: (g1, g2, _) =>
-          val distinct   = distinctFacesOf(faces, g1.toBigPoint, g2.toBigPoint)
-          val (pvB, pwB) =
-            KrotenheerdtLatticeSearch.primitiveBasis(g1.toBigPoint, g2.toBigPoint, originB, distinct, Nil)
-          (faces, pvB, pwB)
+        val t = v - tail(ag)
+        if !t.isOrigin then deck += t
+    if placed.exists(!_) then None
+    else
+      val faces                                          = faceCorners.toList.map(cs => FaceZ(cs.length, cs))
+      val originB                                        = BigPoint.origin
+      // Λ = the rank-2 lattice the deck vectors generate; the cell FILLS it (distinctArea == covolume) and
+      // tiles without overlap (a wrong orientation overlaps ⇒ rejected ⇒ the other orientation closes).
+      var best: Option[(BigPoint, BigPoint, BigDecimal)] = None
+      bases(deck.distinct.toList).foreach: (g1, g2) =>
+        val distinct   = distinctFacesOf(faces, g1.toBigPoint, g2.toBigPoint)
+        val (pvB, pwB) =
+          KrotenheerdtLatticeSearch.primitiveBasis(g1.toBigPoint, g2.toBigPoint, originB, distinct, Nil)
+        val pcov       = cross(pvB, pwB).abs
+        if pcov > BigDecimal("1e-9") && distinctArea(faces, pvB, pwB) >= pcov - BigDecimal("1e-6")
+          && tilesWithoutOverlap(faces, g1, g2)
+        then if best.forall(pcov < _._3) then best = Some((pvB, pwB, pcov))
+      best.map((pvB, pwB, _) => (faces, pvB, pwB))
 
   /** GROUND-TRUTH rotational-symmetry reference for a closed torus cell (faces + lattice Λ = (pv, pw)): the
     * set of `(centre-type, order)` rotation centres, type ∈ {"face","vertex","edge"} (polygon-centre / vertex

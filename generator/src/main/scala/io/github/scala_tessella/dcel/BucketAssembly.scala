@@ -44,7 +44,8 @@ object BucketAssembly:
       states: Long,
       expanded: Long,
       mapsClosed: Long,
-      budgetHit: Boolean
+      budgetHit: Boolean,
+      ops: Map[String, Array[Array[Int]]] = Map.empty // torus `op` per tiling key (for geometric realization)
   ):
     def keys: Set[String] = tilings.map(_.key).toSet
 
@@ -63,6 +64,7 @@ object BucketAssembly:
     val seen        = new LongFpSet
     val budget      = new Budget(stateBudget)
     val results     = new ConcurrentHashMap[String, Found]()
+    val opsAcc      = new ConcurrentHashMap[String, Array[Array[Int]]]()
     val statesA     = new AtomicLong(0)
     val expandedA   = new AtomicLong(0)
     val mapsClosedA = new AtomicLong(0)
@@ -82,12 +84,13 @@ object BucketAssembly:
                 expandedA.addAndGet(asm.expanded)
                 mapsClosedA.addAndGet(asm.mapsClosed)
                 val it  = asm.results.iterator
-                while it.hasNext do { val (key, f) = it.next(); results.putIfAbsent(key, f) })
+                while it.hasNext do { val (key, f) = it.next(); results.putIfAbsent(key, f) }
+                asm.ops.foreach((key, op) => opsAcc.putIfAbsent(key, op)))
         futures.foreach(_.get())
         v += 1
     finally pool.shutdown()
     val tilings     = results.values.asScala.filter(f => f.n == k && f.types == bucket).toList
-    BucketResult(tilings, statesA.get, expandedA.get, mapsClosedA.get, budget.hit)
+    BucketResult(tilings, statesA.get, expandedA.get, mapsClosedA.get, budget.hit, opsAcc.asScala.toMap)
 
   /** Outcome of the multi-bucket completion driver: the globally-deduped tilings (by canonical key), the
     * per-bucket results (for cost/coverage inspection), and whether ANY bucket exhausted its state budget (so
@@ -310,6 +313,7 @@ object BucketAssembly:
     var mapsClosed       = 0L
     var budgetHit        = false
     val results          = mutable.Map.empty[String, Found]
+    val ops              = mutable.Map.empty[String, Array[Array[Int]]]
 
     def run(): Unit = if D % 2 == 0 then { matchFrom(); budget.add(states & 1023L) }
 
@@ -434,6 +438,7 @@ object BucketAssembly:
         g += 1
       DelaneySymbols.classifyClosedMap(op).foreach { (n, sigs, key) =>
         results.getOrElseUpdate(key, Found(n, sigs.toSet, key))
+        ops.getOrElseUpdate(key, op) // keep the torus op per tiling (for geometric realization)
       }
 
     /** The whole map is one component (else χ = 0 could be two disjoint tori, not a single tiling). */

@@ -233,6 +233,21 @@ class SymmetryGrowerSpec extends AnyFlatSpec with Matchers:
       Set(("vertex", 6), ("face", 3), ("edge", 2))
     KrotenheerdtTorusMapSearch.torusMapClassify(faces2, pv2, pw2, originB).map(_._3) shouldBe Some(origKey)
 
+  behavior of "bounded-V op exposure → realizeCell (the missed-sibling path)"
+
+  // bounded-V reaches the small cells the symmetry grower captures away; it now exposes the torus `op` per
+  // tiling, which realizeCell turns into a geometric cell. Validate FAITHFULNESS on the multiplicity-2
+  // {4⁴;3³.4²} (both siblings): each exposed op realizes back to its own D-symbol key.
+  it should "expose ops that realizeCell reproduces faithfully ({4⁴;3³.4²}, both siblings)" in:
+    val r = BucketAssembly.enumerateBucket(Set(sig("4.4.4.4"), sig("3.3.3.4.4")), maxV = 5)
+    r.keys should have size 2 // multiplicity 2
+    r.keys.subsetOf(r.ops.keySet) shouldBe true
+    r.keys.foreach: key =>
+      val (faces, pv, pw) = KrotenheerdtTorusMapSearch.realizeCell(r.ops(key)).get
+      withClue(s"realized op for $key did not classify back: ")(
+        KrotenheerdtTorusMapSearch.torusMapClassify(faces, pv, pw, originB).map(_._3) shouldBe Some(key)
+      )
+
   behavior of "rotation-symmetry reference methods (free + symmetry grower)"
 
   // The free grower reaches the small n=1 cells; this validates BOTH the reference method AND rotationCenters
