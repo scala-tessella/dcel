@@ -24,7 +24,7 @@ object UnionRotationTableProbe:
   def main(args: Array[String]): Unit =
     val n        = args.headOption.map(_.toInt).getOrElse(2)
     val maxV     = args.lift(1).map(_.toInt).getOrElse(20)
-    val maxFaces = args.lift(2).map(_.toInt).getOrElse(80)
+    val maxFaces = args.lift(2).map(_.toInt).getOrElse(52)
     val t0       = System.nanoTime()
     def secs     = (System.nanoTime() - t0) / 1e9
     // key -> (type-set, centres, source)
@@ -54,16 +54,16 @@ object UnionRotationTableProbe:
       )
     println(f"  bounded-V reached ${table.size} distinct tilings (${secs}%.0fs)")
 
-    // ---- Phase B: symmetry grower (fills the large rotational cells bounded-V missed) ----
-    println(s"--- phase B: symmetry grower (maxFaces=$maxFaces) ---")
+    // ---- Phase B: parallel symmetry grower (fills the large rotational cells bounded-V missed) ----
+    println(s"--- phase B: parallel symmetry grower (maxFaces=$maxFaces) ---")
     val before = table.size
-    val grower = KrotenheerdtTorusMapSearch.symmetryRotationReference(
+    val grower = KrotenheerdtTorusMapSearch.symmetryRotationReferenceParallel(
       maxN = n,
       maxFaces = maxFaces,
-      log = msg => println(f"  [${secs}%5.0fs] $msg")
+      log = msg => println(s"  $msg")
     )
-    grower.foreach { case (key, (types, centres, seed)) =>
-      table.getOrElseUpdate(key, (types, centres, s"grower:$seed"))
+    grower.foreach { case (key, (types, centres)) =>
+      table.getOrElseUpdate(key, (types, centres, "grower"))
     }
     println(f"  grower added ${table.size - before} new tilings (had ${grower.size} keys) (${secs}%.0fs)")
 

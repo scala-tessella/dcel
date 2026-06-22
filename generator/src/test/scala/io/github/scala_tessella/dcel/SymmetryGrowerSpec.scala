@@ -267,6 +267,27 @@ class SymmetryGrowerSpec extends AnyFlatSpec with Matchers:
     hex.map(_._2) shouldBe Some(Set(("face", 6), ("vertex", 3), ("edge", 2)))
     hex.map(_._3) should not be empty // a seed label (which seed reached it)
 
+  // The PARALLEL reference is the work-stealing twin used for the large rotational n=2 cells the single-threaded
+  // version is too slow for. Per the documented boundary effect (exact parallel==sequential holds only for
+  // budget-COMPLETE runs; near maxFaces, which cell closes first is exploration-order-dependent), assert the
+  // ORDER-INDEPENDENT invariant: AGREES with the single-threaded reference on every SHARED key (types + centres
+  // identical — the centre computation is what matters), is SOUND, and centres the stable cheap core canonically.
+  it should "agree on shared keys + centre the cheap core canonically (symmetryRotationReferenceParallel)" in:
+    val seq                  = KrotenheerdtTorusMapSearch.symmetryRotationReference(maxN = 1, maxFaces = 16)
+    val par                  =
+      KrotenheerdtTorusMapSearch.symmetryRotationReferenceParallel(maxN = 1, maxFaces = 16, parallelism = 4)
+    val shared               = par.keySet intersect seq.keySet
+    shared should not be empty
+    shared.foreach(k => withClue(s"key $k: ")(par(k) shouldBe (seq(k)._1, seq(k)._2)))
+    par.values.foreach((_, centres) =>
+      withClue(s"$centres: ")(centres should not be empty)
+      centres.foreach((_, o) => withClue(s"order $o: ")(Set(2, 3, 4, 6) should contain(o)))
+    )
+    def centresOf(t: String) = par.values.find(_._1 == Set(sig(t))).map(_._2)
+    centresOf("6.6.6") shouldBe Some(Set(("face", 6), ("vertex", 3), ("edge", 2)))
+    centresOf("4.4.4.4") shouldBe Some(Set(("face", 4), ("vertex", 4), ("edge", 2)))
+    centresOf("3.3.3.3.3.3") shouldBe Some(Set(("vertex", 6), ("face", 3), ("edge", 2)))
+
   behavior of "enumerateAllSeedsParallel (work-stealing — sound, finds the budget-stable core)"
 
   // CONCURRENCY correctness, budget-robust. Exact parallel==sequential equality holds only for BUDGET-COMPLETE

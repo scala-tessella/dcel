@@ -798,6 +798,31 @@ object KrotenheerdtTorusMapSearch:
               best = Some((n2, sigs2.toSet, dkey, pcov))
     best
 
+  /** Like [[closeCell]] but also returns the closed cell's [[rotationCenters]] (computed once, on the chosen
+    * minimal-covolume basis). The basis for the cheap parallel rotation-symmetry reference driver
+    * ([[symmetryRotationReferenceParallel]]) — same soundness gate (`verifyCell`) + same D-symbol key
+    * (`torusMapClassify`), so its results dedup in the shared space.
+    */
+  private def closeCellWithCentres(
+      faces: List[FaceZ],
+      maxN: Int
+  ): Option[(Int, Set[VertexSignature], String, Set[(String, Int)], BigDecimal)] =
+    val originB                                                                           = BigPoint.origin
+    var best: Option[(Int, Set[VertexSignature], String, BigPoint, BigPoint, BigDecimal)] = None
+    boundaryGlueBases(faces).foreach: (g1, g2) =>
+      val vB   = g1.toBigPoint
+      val wB   = g2.toBigPoint
+      val cov0 = cross(vB, wB).abs
+      if cov0 > BigDecimal("1e-9") && distinctArea(faces, vB, wB) >= cov0 - BigDecimal("1e-6") then
+        verifyCell(faces, g1, g2, maxN).foreach: (_, _, _, pcov) =>
+          if best.forall(pcov < _._6) then
+            val distinct = distinctFacesOf(faces, vB, wB)
+            val (pv, pw) = KrotenheerdtLatticeSearch.primitiveBasis(vB, wB, originB, distinct, Nil)
+            torusMapClassify(faces, pv, pw, originB).foreach: (n2, sigs2, dkey) =>
+              best = Some((n2, sigs2.toSet, dkey, pv, pw, pcov))
+    best.map: (n, types, dkey, pv, pw, pcov) =>
+      (n, types, dkey, rotationCenters(faces, pv, pw), pcov)
+
   private def tryCloseFast(
       faces: List[FaceZ],
       maxN: Int,
@@ -1258,6 +1283,78 @@ object KrotenheerdtTorusMapSearch:
       statesA.get,
       anyBudgetHit.get
     )
+
+  /** PARALLEL rotation-symmetry reference: the work-stealing twin of [[symmetryRotationReference]] (and the
+    * centre-capturing twin of [[enumerateAllSeedsParallel]]). Per closed tiling it records (D-symbol key →
+    * (types, [[rotationCenters]])), keyed in the shared D-symbol space. Same ForkJoinPool / per-seed
+    * `visited` / deadline machinery as the production driver, so it reaches the large rotational cells
+    * (dodecagons) at a generous maxFaces in minutes, not the single-threaded reference's hours. Live
+    * telemetry via `log`.
+    */
+  def symmetryRotationReferenceParallel(
+      maxN: Int,
+      maxFaces: Int,
+      maxCovolume: Double = Double.MaxValue,
+      parallelism: Int = math.max(1, Runtime.getRuntime.availableProcessors - 1),
+      log: String => Unit = _ => (),
+      logEveryMs: Long = 10000L,
+      maxMillis: Long = Long.MaxValue
+  ): Map[String, (Set[VertexSignature], Set[(String, Int)])] =
+    val deadlineNanos                                                                           =
+      val now = System.nanoTime()
+      if maxMillis >= Long.MaxValue / 2000000L then Long.MaxValue else now + maxMillis * 1000000L
+    val results                                                                                 = new ConcurrentHashMap[String, (Set[VertexSignature], Set[(String, Int)])]()
+    val visited                                                                                 = ConcurrentHashMap.newKeySet[(Int, Vector[Long])]()
+    val statesA                                                                                 = new AtomicLong(0)
+    val curFacesA                                                                               = new AtomicLong(0)
+    val maxFacesA                                                                               = new AtomicLong(0)
+    val running                                                                                 = new AtomicBoolean(true)
+    val t0                                                                                      = System.nanoTime()
+    val cov                                                                                     = BigDecimal(maxCovolume) + BigDecimal("1e-6")
+    val pool                                                                                    = new ForkJoinPool(parallelism)
+    val logger                                                                                  = new Thread(() =>
+      while running.get do
+        try Thread.sleep(logEveryMs)
+        catch case _: InterruptedException => ()
+        if running.get then
+          val secs = math.max(1e-3, (System.nanoTime() - t0) / 1e9)
+          val st   = statesA.get
+          log(
+            f"  [${secs}%5.0fs] states=$st%-8d (${(st / secs).toLong}%d/s)  frontier~${pool.getQueuedTaskCount}" +
+              f"  faces~${curFacesA.get}/max${maxFacesA.get} tilings=${results.size}"
+          )
+    )
+    logger.setDaemon(true)
+    logger.start()
+    def submit(seedIdx: Int, seed: Seed, seedCorners: Set[ZetaPoint], faces: List[FaceZ]): Unit =
+      pool.execute(() =>
+        statesA.incrementAndGet()
+        val fc        = faces.size
+        curFacesA.set(fc)
+        if fc > maxFacesA.get then maxFacesA.set(fc)
+        val committed = seedCorners.forall(p => coveredSlots(planarFan(faces, p)).sizeIs == 12)
+        val closed    = committed &&
+          (closeCellWithCentres(faces, maxN) match
+            case Some((_, types, key, centres, pcov)) =>
+              if pcov <= cov then results.putIfAbsent(key, (types, centres))
+              true
+            case None                                 => false)
+        if !closed && faces.sizeIs < maxFaces && System.nanoTime() < deadlineNanos then
+          growBySymmetry(faces, maxN, seed.rot, seed.m).foreach: child =>
+            if visited.add((seedIdx, canonicalKey(child))) then submit(seedIdx, seed, seedCorners, child)
+      )
+    try
+      for (seed, seedIdx) <- allSeeds.zipWithIndex do
+        val seedCorners = seed.faces.flatMap(_.corners).toSet
+        if isPlanarConsistent(seed.faces) && isSound(seed.faces, maxN) &&
+          visited.add((seedIdx, canonicalKey(seed.faces)))
+        then submit(seedIdx, seed, seedCorners, seed.faces)
+      pool.awaitQuiescence(Long.MaxValue, TimeUnit.DAYS)
+    finally
+      running.set(false)
+      logger.interrupt()
+      pool.shutdown()
+    results.asScala.toMap
 
   /** Profiling variant of [[enumerateFromSeed]] (single seed, own results/visited): runs the SAME DFS but
     * times each per-state phase — `coronaCommitted`, `tryClose`, `growBySymmetry`, the children's
