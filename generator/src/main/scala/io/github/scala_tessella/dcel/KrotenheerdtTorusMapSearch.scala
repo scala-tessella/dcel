@@ -944,8 +944,16 @@ object KrotenheerdtTorusMapSearch:
       maxCovolume: Double = Double.MaxValue,
       parallelism: Int = math.max(1, Runtime.getRuntime.availableProcessors - 1),
       log: String => Unit = _ => (),
-      logEveryMs: Long = 10000L
+      logEveryMs: Long = 10000L,
+      maxMillis: Long = Long.MaxValue
   ): SymResult =
+    // wall-clock cap (for long unattended runs): past the deadline, tasks stop GROWING (treated as budget hit)
+    // but still finish their closeCell, so the frontier drains and awaitQuiescence returns ~promptly. Lets us
+    // set maxFaces generously (so n≥3 cells close) while TIME bounds the run — and it can't run away / OOM.
+    val deadlineNanos                                                             = {
+      val now = System.nanoTime()
+      if maxMillis >= Long.MaxValue / 2000000L then Long.MaxValue else now + maxMillis * 1000000L
+    }
     val results                                                                   = new ConcurrentHashMap[String, (Int, Set[VertexSignature])]()
     val visited                                                                   = ConcurrentHashMap.newKeySet[Vector[Long]]()
     val statesA                                                                   = new AtomicLong(0)
@@ -989,7 +997,7 @@ object KrotenheerdtTorusMapSearch:
               true
             case None                        => false)
         if !closed then
-          if faces.sizeIs >= maxFaces then anyBudgetHit.set(true)
+          if faces.sizeIs >= maxFaces || System.nanoTime() >= deadlineNanos then anyBudgetHit.set(true)
           else
             growBySymmetry(faces, maxN, seed.rot, seed.m).foreach: child =>
               if visited.add(canonicalKey(child)) then submit(seed, seedCorners, child)

@@ -220,3 +220,19 @@ class SymmetryGrowerSpec extends AnyFlatSpec with Matchers:
     withClue(
       s"sequential core: ${seq.tilings.map(_._2).toSet} — "
     )(core.subsetOf(seq.tilings.map(_._2).toSet) shouldBe true)
+
+  // The wall-clock cap (for long unattended runs) must terminate promptly and NEVER emit a garbage key — a
+  // partial (capped) run is a sound LOWER BOUND, so every key it emits is still a real oracle tiling.
+  it should "stay sound under an early wall-clock cutoff (maxMillis)" in:
+    val oracle = DelaneySymbols.keyedTilings(1, 12).map(_._3).toSet
+    val capped =
+      KrotenheerdtTorusMapSearch.enumerateAllSeedsParallel(
+        maxN = 1,
+        maxFaces = 40,
+        parallelism = 8,
+        maxMillis = 1L
+      )
+    capped.budgetHit shouldBe true // cut early by the deadline
+    capped.tilings.foreach((_, _, k) =>
+      withClue(s"capped run emitted non-oracle key $k — ")(oracle should contain(k))
+    )
