@@ -366,3 +366,30 @@ for hours within a modest heap — and the box's free RAM, not the search, sets 
 now `maxFaces = 80` to quiescence under a multi-hour cap (the probe still reports a sound lower bound if the
 cap is hit). A later throughput refinement: fold the 128-bit hash directly into `canonicalKeyVec`'s
 construction so the big vector is never even materialised per state.
+
+## Update (2026-06-22): n=5 diagnostic — the gap is fundamental-domain DEPTH (cell/m), not seeds
+
+To find what the grower's misses have in common, n=5 is the ideal probe: only 15 tilings / 12 type-sets, and
+**10 of the 12 type-sets contain `3.4.4.6`** (= 3.4².6, a chiral C₁ vertex), the other two a snub / `3.3.4.12`.
+The n=5 union table (`UnionRotationTableProbe 5 12 64 60`, memory-safe) **QUIESCED at 5/15** (bounded-V = 0 —
+every n=5 cell is too large for it; the grower carries the level).
+
+The 5 reached vs 10 missed split cleanly by **rotation order**, i.e. by fundamental-domain size:
+- **reached:** the 2 non-`3.4.4.6` type-sets, plus the 3 `3.4.4.6` tilings that carry a **C₃ or C₆ centre**
+  (`face 120°`, `vertex 60°`) — small fundamental domain (cell/3, cell/6);
+- **missed:** all 10 are **C₂-only AND `3.4.4.6`-rich** — domain = cell/2, and `3.4.4.6`-rich cells are large,
+  so cell/2 exceeds `maxFaces = 64`.
+
+Because the grower's closing patch *is* the fundamental domain = **cell / m**, the rule is simply
+**reached ⟺ cell/m ≤ maxFaces**: C₆/C₃ tilings (cell/6, cell/3) fit and are always found; C₂-only large cells
+(cell/2) need a bigger `maxFaces`. This matches n=4 exactly (the 7 missing are C₂-only `3.4.4.6`-rich) and n=3
+(the 6 missing were the largest cells). So the residual is **pure depth**, and notably:
+- it is **not a seed gap** — the catalogue (22 seeds: 10 polygon-centre, 4 edge-midpoint, 8 vertex-centre,
+  `SeedCatalogueProbe`) covers every C₂-centre type and every sub-rotation m | p of each high-symmetry centre
+  (e.g. a square centre is tried at C₄ *and* C₂); and
+- it is **not a growth-path bug** — reach correlates perfectly with cell/m, not with any branch choice.
+
+The visited-hash memory fix is what makes the cure affordable: raise `maxFaces` past the C₂ half-cell sizes
+(estimated 80–120 faces for `3.4.4.6`-rich n ≥ 4 cells) and the missing cells close, within a bounded heap.
+The deep runs get long (the patch space grows fast with `maxFaces`) but no longer crash; a multi-hour capped
+run reports a sound lower bound at worst. Next: a long deep n=4 run at `maxFaces ≈ 96` toward the full 33/33.
