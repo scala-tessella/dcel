@@ -207,3 +207,59 @@ no-rotation-centre residual) + a no-budget run to certify counts against `Tiling
   showed their union cannot pass ~30/33; rejected as the path to *complete* n = 4.
 - **Construct the both-walled tilings from Galebach's PNG data** — completes the count but uses the known
   answer; kept only as a last-resort cross-check, not the engine.
+
+## Update (2026-06-22): rotation-symmetry REFERENCE — n=2 = 20/20, every tiling is rotational
+
+To test the load-bearing hypothesis of this ADR — *that the Krötenheerdt tilings can be reached purely by
+rotation seeds* — we built a D-symbol→geometry realizer and measured the rotation symmetry of **every** n=2
+tiling directly, as a visually-checkable artifact.
+
+**Method (all tested before any probe, `SymmetryGrowerSpec`):**
+- `realizeCell(op)` — BFS-develops a closed torus `op` to exact ℤ[ζ₁₂] faces + lattice Λ (the inverse of
+  `cellToOp`; round-trips on 4⁴/3⁶, and faithfully realizes bounded-V ops).
+- `rotationCenters(faces, pvB, pwB)` — geometric: tests every face-centre / vertex / edge-midpoint for exact
+  C_m invariance mod Λ, returns `{(centre-kind, max order)}`. Validated on known orbifolds: unit-square 4⁴ →
+  442 (face 4, vertex 4, edge 2); two-triangle 3⁶ → 632 (vertex 6, face 3, edge 2).
+- `symmetryRotationReferenceParallel` — the work-stealing twin of `enumerateAllSeedsParallel`
+  (`closeCellWithCentres` = `closeCell` + `rotationCenters` on the chosen minimal-covolume basis), so the
+  large rotational cells (dodecagons) are reached in minutes, keyed in the shared D-symbol space.
+- `UnionRotationTableProbe` — union of bounded-V (small cells) ∪ parallel grower (large rotational cells);
+  both phases instrumented. Run: `generator/Test/runMain …UnionRotationTableProbe 2 20 52` (~34 min).
+
+**Result — the complete n=2 rotation-symmetry table (centre-kind : angle, where order m ↦ 360/m°):**
+
+| vertex-type set | rotation centres | by |
+|---|---|---|
+| 3.12.12; 3.4.3.12 | edge 180°, face 90° | bounded-V |
+| 3⁶; 3.3.3.3.6 | edge 180°, face 60°, vertex 120° | grower |
+| 3⁶; 3.3.3.3.6 | edge 180°, face 60°, face 120° | grower |
+| 3⁶; 3.3.3.4.4 | edge 180°, face 180° | bounded-V |
+| 3⁶; 3.3.3.4.4 | edge 180°, face 180°, vertex 180° | bounded-V |
+| 3⁶; 3.3.4.12 | face 60°, face 180°, vertex 120° | grower |
+| 3⁶; 3.3.4.3.4 | face 120°, face 180°, vertex 60° | bounded-V |
+| 3⁶; 3.3.6.6 | edge 180°, face 120°, vertex 60° | bounded-V |
+| 3.3.3.3.6; 3.3.6.6 | edge 180°, face 180° | bounded-V |
+| 3.3.3.4.4; 3.3.4.3.4 | edge 180° | bounded-V |
+| 3.3.3.4.4; 3.3.4.3.4 | edge 180°, face 90° | grower |
+| 3.3.3.4.4; 3.4.6.4 | edge 180°, face 60°, face 120° | bounded-V |
+| 3.3.3.4.4; 4.4.4.4 | edge 180°, face 180° | bounded-V |
+| 3.3.3.4.4; 4.4.4.4 | edge 180°, vertex 180° | bounded-V |
+| 3.3.4.3.4; 3.4.6.4 | edge 180°, face 60°, face 120° | bounded-V |
+| 3.3.6.6; 3.6.3.6 | edge 180°, face 120°, vertex 120°, vertex 180° | bounded-V |
+| 3.4.4.6; 3.4.6.4 | face 60°, face 120°, face 180° | grower |
+| 3.4.4.6; 3.6.3.6 | edge 180°, face 180°, vertex 180° | bounded-V |
+| 3.4.4.6; 3.6.3.6 | face 180°, vertex 180° | bounded-V |
+| 3.4.6.4; 4.6.12 | face 60°, face 120°, face 180° | bounded-V |
+
+15 distinct type-sets, multiplicities summing to **20 = A068600(2)** ✓ (5 mult-2 sets appear as 2 siblings
+with *different* centre signatures — distinct D-symbol keys; e.g. the {3³.4²;3².4.3.4} pair differs by a
+square-centre C₄ axis, the {4⁴;3³.4²} pair by edge-vs-vertex C₂).
+
+**VERDICT: every one of the 20 n=2 tilings has ≥ 1 rotation centre — ZERO are rotation-free.** The minimum is
+a C₂ (`edge 180°`) on a shared edge-midpoint (the "mid-edge of two squares / two triangles" axis). This
+*confirms the hypothesis for n=2*: a rotation-seeded grower can in principle reach all of them. It also
+**corrects** the earlier inference (ADR-0030/0031 era) that 2 of the n=2 tilings were rotation-free — that was
+read off the grower's *failure to reach* the {4⁴;3³.4²}/{3⁶;3³.4²} second siblings, but the failure was a
+seed/closure gap (the m=2 edge-mid axis), not absence of symmetry: bounded-V realizes those siblings and they
+*do* have C₂ centres. The grower supplied exactly the 4 cells bounded-V could not afford within budget (the
+dodecagon {3⁶;3.3.4.12}, the hexagon {3.4.4.6;3.4.6.4}, and the {3⁶;3⁴.6} / {3³.4²;3².4.3.4} siblings).
