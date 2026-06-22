@@ -323,3 +323,20 @@ throughput ~4 → ~380 states/s (~95× on the parallel driver). The distribution
 short are the largest cells (need `maxFaces > 58`) plus any low-symmetry small residual for bounded-V. With the
 grower this fast, pushing to the n = 4 table and to certified counts (the union sized against
 `TilingReference`) becomes tractable.
+
+## Update (2026-06-22): n=4 table — the grower runs to completion at the WALLED level
+
+n=4 is where the older engines stalled: ADR-0031 records their union unable to pass ~30/33, and crucially none
+ran to *completion* at n=4 in reasonable time. With the per-state win the symmetry grower now does:
+`UnionRotationTableProbe 4 12 64 60` **QUIESCED at 2039 s (34 min total, NOT the 60-min cap)** — i.e. it
+exhausted `maxFaces = 64` and reported its true reach, **26/33**, at ~470 states/s. bounded-V contributed only
+9 (n=4 cells are mostly too large for it); the grower carried the level (71 of 75 n ≤ 4 keys).
+
+Point-group distribution over the 26: order-6 = 8, order-4 = 2, order-3 = 1, **C₂-only = 15, rotation-free = 0**.
+**Zero rotation-free at n=4 too** — now consistent across n = 2/3/4 (0/20, 0/33, 0/26), so rotation-first stays
+complete at the walled level. C₂-only ≈ 58%, the same character as n = 3.
+
+The 26 is a quiesced **lower bound**: because the run reached quiescence (not the time cap), the 7 short are
+the *largest* cells, which need patches deeper than `maxFaces = 64` — not a timeout. Since the grower
+terminates rather than running away, raising `maxFaces` is the direct lever to push 26 → 33. Next: re-run at
+`maxFaces ≈ 80`.
