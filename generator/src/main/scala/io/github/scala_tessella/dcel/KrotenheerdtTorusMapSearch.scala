@@ -257,27 +257,32 @@ object KrotenheerdtTorusMapSearch:
       g2: ZetaPoint,
       maxN: Int
   ): Option[(Int, Set[VertexSignature], String, BigDecimal)] =
-    val vB       = g1.toBigPoint
-    val wB       = g2.toBigPoint
-    val originB  = BigPoint.origin
-    val distinct = distinctFacesOf(faces, vB, wB)
-    val (pv, pw) = KrotenheerdtLatticeSearch.primitiveBasis(vB, wB, originB, distinct, Nil)
-    val pcov     = cross(pv, pw).abs
-    if distinctArea(faces, pv, pw) < pcov - BigDecimal("1e-6") then None // Λ-cell not yet filled
-    else if !tilesWithoutOverlap(faces, g1, g2) then None                // false period (rotational holonomy)
+    // tilesWithoutOverlap is now exact-integer + spatially pruned (~0.3ms), so run it FIRST: a non-period's
+    // Λ-translates overlap, rejecting it before the (BigDecimal, O(F²)) primitiveBasis — which is then paid only
+    // on candidates that genuinely tile (≈ only on closing states), not on every committed patch's ~20
+    // boundary-glue candidates. Same conjunction of necessary conditions, reordered ⇒ identical accept/reject.
+    if !tilesWithoutOverlap(faces, g1, g2) then None // false period (rotational holonomy) / not yet tiling
     else
-      val (byTorus, fans) = reconstructFans(faces, pv, pw, originB)
-      if fans.exists((_, f) => !fanComplete(f)) then None // a torus fan still incomplete
+      val vB       = g1.toBigPoint
+      val wB       = g2.toBigPoint
+      val originB  = BigPoint.origin
+      val distinct = distinctFacesOf(faces, vB, wB)
+      val (pv, pw) = KrotenheerdtLatticeSearch.primitiveBasis(vB, wB, originB, distinct, Nil)
+      val pcov     = cross(pv, pw).abs
+      if distinctArea(faces, pv, pw) < pcov - BigDecimal("1e-6") then None // Λ-cell not yet filled
       else
-        val sigs  = fans.view.mapValues(f => VertexTypes.normalize(f.toList.sortBy(_._1).map(_._2))).toMap
-        val types = sigs.values.toSet
-        if types.sizeIs > maxN then None
+        val (byTorus, fans) = reconstructFans(faces, pv, pw, originB)
+        if fans.exists((_, f) => !fanComplete(f)) then None // a torus fan still incomplete
         else
-          val pDistinct = distinctFacesOf(faces, pv, pw)
-          val verts     = sigs.toList.map((tk, sig) => (sig.mkString("."), byTorus(tk).head._2.toBigPoint))
-          KrotenheerdtLatticeSearch
-            .verifyContentAnyN(pv, pw, originB, pDistinct, verts, types, maxN)
-            .map((nn, key) => (nn, types, key, pcov))
+          val sigs  = fans.view.mapValues(f => VertexTypes.normalize(f.toList.sortBy(_._1).map(_._2))).toMap
+          val types = sigs.values.toSet
+          if types.sizeIs > maxN then None
+          else
+            val pDistinct = distinctFacesOf(faces, pv, pw)
+            val verts     = sigs.toList.map((tk, sig) => (sig.mkString("."), byTorus(tk).head._2.toBigPoint))
+            KrotenheerdtLatticeSearch
+              .verifyContentAnyN(pv, pw, originB, pDistinct, verts, types, maxN)
+              .map((nn, key) => (nn, types, key, pcov))
 
   /** Classify a closed torus cell into the SHARED D-symbol key space (`DelaneySymbols.classifyClosedMap`),
     * instead of the geometric content key. Builds the torus map's barycentric `op` array from the cell: a
@@ -783,15 +788,17 @@ object KrotenheerdtTorusMapSearch:
     // (a sublattice) is the same tiling seen through an m-times-larger torus and must NOT be recorded as a
     // separate cell. (`primitiveBasis` reduces a sublattice basis derived from a full cell, but a patch that
     // fills only the coarse cell has no finer content to reduce from — so we pick the minimal cell here.)
-    var best: Option[(Int, Set[VertexSignature], String, BigDecimal)] = None
-    boundaryGlueBases(faces).foreach: (g1, g2) =>
-      verifyCell(faces, g1, g2, maxN).foreach: hit =>
-        if best.forall(hit._4 < _._4) then best = Some(hit)
-    best.foreach: (n, types, key, pcov) =>
+    // SHORT-CIRCUIT: candidates are covolume-ascending and every verifying candidate reduces (primitiveBasis)
+    // to the SAME unique period Λ — so the FIRST that verifies is the primitive cell and has minimal pcov.
+    // Stop there instead of running the (now-cheaper but still non-trivial) verifyCell on all ~20 candidates.
+    val hit = boundaryGlueBases(faces).iterator.flatMap { case (g1, g2) =>
+      verifyCell(faces, g1, g2, maxN)
+    }.nextOption()
+    hit.foreach: (n, types, key, pcov) =>
       // Closed into a genuine torus cell ⇒ caller stops growing this branch (further growth only replicates
       // it); record only cells within the covolume bound (the search's analogue of the fixed-Λ covol cap).
       if pcov <= BigDecimal(maxCovolume) + BigDecimal("1e-6") then results.getOrElseUpdate(key, (n, types))
-    best.isDefined
+    hit.isDefined
 
   /** PURE closure: the min-covolume torus cell the patch closes into (or `None`), with the cheap
     * per-candidate gate (`distinctArea ≥ covolume`, skipping the expensive `verifyCell`/`primitiveBasis` on
@@ -805,9 +812,10 @@ object KrotenheerdtTorusMapSearch:
       faces: List[FaceZ],
       maxN: Int
   ): Option[(Int, Set[VertexSignature], String, BigDecimal)] =
-    val originB                                                       = BigPoint.origin
-    var best: Option[(Int, Set[VertexSignature], String, BigDecimal)] = None
-    boundaryGlueBases(faces).foreach: (g1, g2) =>
+    val originB = BigPoint.origin
+    // SHORT-CIRCUIT at the first verifying candidate (covolume-ascending ⇒ primitive ⇒ minimal pcov). The cheap
+    // raw-area gate still skips candidates the patch cannot fill before the (now overlap-first) verifyCell.
+    boundaryGlueBases(faces).iterator.flatMap { case (g1, g2) =>
       val vB   = g1.toBigPoint
       val wB   = g2.toBigPoint
       val cov0 = cross(vB, wB).abs
@@ -815,15 +823,13 @@ object KrotenheerdtTorusMapSearch:
         // verifyCell is the SOUNDNESS gate (its tilesWithoutOverlap rejects false-period non-tilings like
         // 3.3.6.6 / 3.4.4.6 that the purely-combinatorial classifyClosedMap would accept). Once it confirms a
         // genuine tiling, key it in the SHARED D-symbol space via the barycentric op (torusMapClassify), so the
-        // grower dedups with the oracle and the bounded-V assembler (ADR-0032). primitiveBasis is recomputed
-        // (verifyCell uses it internally with the same Nil-verts call) — paid only on the rare closing candidate.
-        verifyCell(faces, g1, g2, maxN).foreach: (_, _, _, pcov) =>
-          if best.forall(pcov < _._4) then
-            val distinct = distinctFacesOf(faces, vB, wB)
-            val (pv, pw) = KrotenheerdtLatticeSearch.primitiveBasis(vB, wB, originB, distinct, Nil)
-            torusMapClassify(faces, pv, pw, originB).foreach: (n2, sigs2, dkey) =>
-              best = Some((n2, sigs2.toSet, dkey, pcov))
-    best
+        // grower dedups with the oracle and the bounded-V assembler (ADR-0032).
+        verifyCell(faces, g1, g2, maxN).flatMap: (_, _, _, pcov) =>
+          val distinct = distinctFacesOf(faces, vB, wB)
+          val (pv, pw) = KrotenheerdtLatticeSearch.primitiveBasis(vB, wB, originB, distinct, Nil)
+          torusMapClassify(faces, pv, pw, originB).map((n2, sigs2, dkey) => (n2, sigs2.toSet, dkey, pcov))
+      else None
+    }.nextOption()
 
   /** Like [[closeCell]] but also returns the closed cell's [[rotationCenters]] (computed once, on the chosen
     * minimal-covolume basis). The basis for the cheap parallel rotation-symmetry reference driver
@@ -834,21 +840,20 @@ object KrotenheerdtTorusMapSearch:
       faces: List[FaceZ],
       maxN: Int
   ): Option[(Int, Set[VertexSignature], String, Set[(String, Int)], BigDecimal)] =
-    val originB                                                                           = BigPoint.origin
-    var best: Option[(Int, Set[VertexSignature], String, BigPoint, BigPoint, BigDecimal)] = None
-    boundaryGlueBases(faces).foreach: (g1, g2) =>
+    val originB = BigPoint.origin
+    // SHORT-CIRCUIT at the first verifying candidate (covolume-ascending ⇒ primitive), then read its centres.
+    boundaryGlueBases(faces).iterator.flatMap { case (g1, g2) =>
       val vB   = g1.toBigPoint
       val wB   = g2.toBigPoint
       val cov0 = cross(vB, wB).abs
       if cov0 > BigDecimal("1e-9") && distinctArea(faces, vB, wB) >= cov0 - BigDecimal("1e-6") then
-        verifyCell(faces, g1, g2, maxN).foreach: (_, _, _, pcov) =>
-          if best.forall(pcov < _._6) then
-            val distinct = distinctFacesOf(faces, vB, wB)
-            val (pv, pw) = KrotenheerdtLatticeSearch.primitiveBasis(vB, wB, originB, distinct, Nil)
-            torusMapClassify(faces, pv, pw, originB).foreach: (n2, sigs2, dkey) =>
-              best = Some((n2, sigs2.toSet, dkey, pv, pw, pcov))
-    best.map: (n, types, dkey, pv, pw, pcov) =>
-      (n, types, dkey, rotationCenters(faces, pv, pw), pcov)
+        verifyCell(faces, g1, g2, maxN).flatMap: (_, _, _, pcov) =>
+          val distinct = distinctFacesOf(faces, vB, wB)
+          val (pv, pw) = KrotenheerdtLatticeSearch.primitiveBasis(vB, wB, originB, distinct, Nil)
+          torusMapClassify(faces, pv, pw, originB).map: (n2, sigs2, dkey) =>
+            (n2, sigs2.toSet, dkey, rotationCenters(faces, pv, pw), pcov)
+      else None
+    }.nextOption()
 
   private def tryCloseFast(
       faces: List[FaceZ],
