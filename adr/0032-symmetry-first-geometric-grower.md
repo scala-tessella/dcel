@@ -263,3 +263,51 @@ read off the grower's *failure to reach* the {4⁴;3³.4²}/{3⁶;3³.4²} secon
 seed/closure gap (the m=2 edge-mid axis), not absence of symmetry: bounded-V realizes those siblings and they
 *do* have C₂ centres. The grower supplied exactly the 4 cells bounded-V could not afford within budget (the
 dodecagon {3⁶;3.3.4.12}, the hexagon {3.4.4.6;3.4.6.4}, and the {3⁶;3⁴.6} / {3³.4²;3².4.3.4} siblings).
+
+## Update (2026-06-22): n=3 rotation table + the rotation-only strategic verdict
+
+Ran the same union rotation table at n=3 (`UnionRotationTableProbe 3 12 58 40`, 40-min grower cap):
+**28/39 reached** (a LOWER BOUND — the 11 unreached are budget/time-capped LARGE cells, not rotation-free).
+Point-group distribution over the 28: order-6 = 8, order-4 = 1, order-3 = 1, **C₂-only = 18, rotation-free = 0**.
+
+Two findings settle the "is rotation enough, or do we need another isometry" question:
+
+1. **ZERO rotation-free at n=3 too** (as at n=2). So a rotation-seeded grower is **complete** — it can reach
+   every Krötenheerdt tiling. **Translations are not a growth lever**: the translation lattice *is* the cell we
+   are trying not to brute-force (the covolume wall), so "use translation" = the baseline we already beat.
+2. **~64% (18/28) are C₂-only** — for the majority, rotation buys only a 2× domain cut, so cell size dominates.
+   The only *additional* isometry lever is the **mirror** (a further 2×), and it is **situational, not general**:
+   many C₂-only tilings are CHIRAL (they carry the snub motif 3.3.3.3.6, which has no mirror by construction —
+   e.g. Galebach n=3 t=3 = {6.6.6; 3.3.3.3.6; 3.3.6.6}, a single edge-midpoint C₂ axis, zero reflection). A
+   mirror can only ever help the *achiral-with-mirror* subset.
+
+**Strategic decision: rotation-first is the engine (complete + optimal for the chiral/high-order majority);
+reflections are a later, situational add-on for the achiral-mirror subset; the general lever for the C₂-only
+majority is per-state cost.** Commit the grower to each tiling's *maximal* point group — chiral ⇒ Cₘ only
+(reflection seeds never fire, no waste), achiral-with-mirror ⇒ + reflection (the bonus 2×).
+
+## Update (2026-06-22): per-state cost — ~35-50× faster grower (the C₂-majority lever)
+
+Profiling (`SymmetryProfileProbe` + a temporary in-`verifyCell` breakdown) pinned the per-state hotspot
+exactly: `tryClose` = 99.8% of grower time; within it `verifyCell` (~15-21 calls/state, ~50 ms each) split as
+**`tilesWithoutOverlap` 80-87%** (an O((9F)²) BigDecimal cross-product overlap test), `primitiveBasis` 11-19%,
+everything else < 2%. Three correctness-preserving changes (each measured, all 31 `SymmetryGrowerSpec` +
+`UnionSpec` tests green — soundness gate, reproduction, centres, union all intact):
+
+1. **Exact-integer orientation** (`ZetaPoint.crossSign`): the cross product of two ℤ[ζ₁₂] points is `(A+B√3)/4`
+   with integer `A, B`, so its *sign* is a pure `Long`/`BigInt` computation — the exact predicate the BigDecimal
+   `> 1e-9` test was approximating (no epsilon). Tested vs BigDecimal on 5000 random triples + explicit cases.
+2. **Spatial pruning** of the overlap test: unit polygons overlap only within centroid distance R₁+R₂ ≤ 3.87
+   (dodecagon circumradius), so bucket faces on a size-4 grid and test only 3×3 neighbour buckets — the O(F²)
+   far pairs (the majority) are skipped; every truly-overlapping pair shares a neighbour bucket.
+3. **`verifyCell` overlap-first reorder + `closeCell` short-circuit**: run the now-cheap (~0.3 ms)
+   `tilesWithoutOverlap` FIRST so a non-period is rejected before the BigDecimal O(F²) `primitiveBasis` (which
+   is then paid only on candidates that genuinely tile ≈ closing states, not every patch's ~20 candidates); and
+   stop `closeCell`/`closeCellWithCentres`/`tryClose` at the first verifying candidate (covolume-ascending ⇒
+   first verify = primitive = the unique answer). This cuts `primitiveBasis`'s call-count by *avoidance* — no
+   rewrite of it needed.
+
+**Measured (identical states + tilings throughout):** `tilesWithoutOverlap` 76 350 → 618 ms (123×) / 51 011 →
+310 ms (164×); `verifyCell` 5-7×; **end-to-end grower `profileSeed`: poly6/m6 59.1 s → 1.7 s (35×, 0.8 → 26.7
+states/s), edge4 86.8 s → 1.7 s (51×)**. This directly accelerates the C₂-only majority (the cost-bound zone),
+and makes pushing the grower to n = 3/4 counts far more tractable.
