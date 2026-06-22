@@ -311,3 +311,15 @@ everything else < 2%. Three correctness-preserving changes (each measured, all 3
 310 ms (164×); `verifyCell` 5-7×; **end-to-end grower `profileSeed`: poly6/m6 59.1 s → 1.7 s (35×, 0.8 → 26.7
 states/s), edge4 86.8 s → 1.7 s (51×)**. This directly accelerates the C₂-only majority (the cost-bound zone),
 and makes pushing the grower to n = 3/4 counts far more tractable.
+
+### Validation: the speedup re-run of the n=3 table
+
+Re-running the n=3 union table after the per-state win (`UnionRotationTableProbe 3 12 58 40`) confirms the
+end-to-end effect: **total wall-clock 46 min → 6 min 17 s (~7×)**, and — decisively — the grower phase now
+**quiesces in 374 s** where before it was *capped* at the 40-min wall-clock limit and still running. So the
+result is the grower's true reach at `maxFaces = 58`, not a timeout: **33/39 reached** (up from 28/39), grower
+throughput ~4 → ~380 states/s (~95× on the parallel driver). The distribution is unchanged in character —
+**zero rotation-free, 18/33 C₂-only** — corroborating the rotation-first verdict with more data. The 6 still
+short are the largest cells (need `maxFaces > 58`) plus any low-symmetry small residual for bounded-V. With the
+grower this fast, pushing to the n = 4 table and to certified counts (the union sized against
+`TilingReference`) becomes tractable.
