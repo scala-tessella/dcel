@@ -340,3 +340,29 @@ The 26 is a quiesced **lower bound**: because the run reached quiescence (not th
 the *largest* cells, which need patches deeper than `maxFaces = 64` — not a timeout. Since the grower
 terminates rather than running away, raising `maxFaces` is the direct lever to push 26 → 33. Next: re-run at
 `maxFaces ≈ 80`.
+
+## Update (2026-06-22): deeper n=4 — the memory wall and its fix (grower can now run for hours)
+
+Pushing n=4 to the full 33 means deeper patches (the 7 missing cells exceed `maxFaces = 64`). A first attempt
+at `maxFaces = 80` **OOM'd the 16g heap into 100% swap** (~60 min, never quiesced, and — telling — it reached
+only 74 n ≤ 4 keys, *fewer* than maxFaces = 64's quiesced 75, because the bigger frontier hadn't even re-found
+the small cells yet). So brute-raising `maxFaces` was the wrong first move, and it exposed a real scaling wall.
+
+**Root cause — the `visited` set, not the live patches.** `canonicalKey` is a `Vector[Long]` of length
+≈ faces × corners × 4 (≈ 30 KB for an 80-face patch), and `visited` retains ONE per state and never shrinks.
+At > 1M states that is tens of GB. The live frontier (~30-100 patches) is negligible by comparison.
+
+**Fix — hash the visited key.** Split `canonicalKey` into `canonicalKeyVec` (the full canonical vector,
+unchanged) plus a new `canonicalKey` that returns its **128-bit hash** as a 2-element `Vector[Long]` (two
+independent 64-bit rolling hashes, polynomial + FNV-1a). Same value *type*, so every `visited` declaration and
+`.add(canonicalKey(..))` call site is untouched; the retained entry shrinks ~1000× (16 bytes), so `visited`
+stays flat (tens of MB) into the tens of millions of states. Birthday collision probability at ~10⁷ states is
+~10⁻²⁵ — far below any other failure mode, so dedup stays exact in practice. All 31 `SymmetryGrowerSpec` +
+`UnionSpec` tests green (reproduction, soundness, parallel equivalence, centres) ⇒ the hash does not change
+which tilings are found. (Committed `afe5112`.)
+
+With `visited` flat, the grower's footprint is bounded (visited hashes + a small live frontier), so it can run
+for hours within a modest heap — and the box's free RAM, not the search, sets the heap. The deep n = 4 run is
+now `maxFaces = 80` to quiescence under a multi-hour cap (the probe still reports a sound lower bound if the
+cap is hit). A later throughput refinement: fold the 128-bit hash directly into `canonicalKeyVec`'s
+construction so the big vector is never even materialised per state.
