@@ -209,6 +209,30 @@ class SymmetryGrowerSpec extends AnyFlatSpec with Matchers:
     KrotenheerdtTorusMapSearch.rotationCenters(List(up, down), u(0).toBigPoint, u(2).toBigPoint) shouldBe
       Set(("vertex", 6), ("face", 3), ("edge", 2))
 
+  behavior of "realizeCell (D-symbol → geometry, the inverse of cellToOp — round-trip)"
+
+  // square 4.4.4.4 and two-triangle 3⁶ cells, round-tripped through op: the realized cell must have the SAME
+  // rotation centres AND classify back to the SAME D-symbol key (a faithful geometric realization).
+  it should "round-trip the 4.4.4.4 cell (op → realizeCell → same centres + same key)" in:
+    val square             = FaceZ(4, Vector(ZetaPoint.origin, u(0), u(0) + u(3), u(3)))
+    val op                 = KrotenheerdtTorusMapSearch.cellToOp(List(square), u(0).toBigPoint, u(3).toBigPoint, originB).get
+    val origKey            = DelaneySymbols.classifyClosedMap(op).get._3
+    val (faces2, pv2, pw2) = KrotenheerdtTorusMapSearch.realizeCell(op).get
+    KrotenheerdtTorusMapSearch.rotationCenters(faces2, pv2, pw2) shouldBe
+      Set(("face", 4), ("vertex", 4), ("edge", 2))
+    KrotenheerdtTorusMapSearch.torusMapClassify(faces2, pv2, pw2, originB).map(_._3) shouldBe Some(origKey)
+
+  it should "round-trip the 3⁶ cell (op → realizeCell → same centres + same key)" in:
+    val up                 = FaceZ(3, Vector(ZetaPoint.origin, u(0), u(2)))
+    val down               = FaceZ(3, Vector(u(0), ZetaPoint.origin, u(10)))
+    val op                 =
+      KrotenheerdtTorusMapSearch.cellToOp(List(up, down), u(0).toBigPoint, u(2).toBigPoint, originB).get
+    val origKey            = DelaneySymbols.classifyClosedMap(op).get._3
+    val (faces2, pv2, pw2) = KrotenheerdtTorusMapSearch.realizeCell(op).get
+    KrotenheerdtTorusMapSearch.rotationCenters(faces2, pv2, pw2) shouldBe
+      Set(("vertex", 6), ("face", 3), ("edge", 2))
+    KrotenheerdtTorusMapSearch.torusMapClassify(faces2, pv2, pw2, originB).map(_._3) shouldBe Some(origKey)
+
   behavior of "rotation-symmetry reference methods (free + symmetry grower)"
 
   // The free grower reaches the small n=1 cells; this validates BOTH the reference method AND rotationCenters

@@ -267,8 +267,19 @@ object KrotenheerdtTorusMapSearch:
       pwB: BigPoint,
       originB: BigPoint
   ): Option[(Int, List[VertexSignature], String)] =
+    cellToOp(faces, pvB, pwB, originB).flatMap(DelaneySymbols.classifyClosedMap)
+
+  /** The barycentric Delaney `op` array of a closed torus cell (faces + Λ): a dart is `(vertexResidue mod Λ,
+    * outgoingSlot)`, `α` the reverse half-edge, `σ` the rotation CCW; chambers `a(g)=2g+1, b(g)=2g+2`. The
+    * inverse direction is [[realizeCell]]. `None` if the map is not cleanly closed (a missing α/σ partner).
+    */
+  def cellToOp(
+      faces: List[FaceZ],
+      pvB: BigPoint,
+      pwB: BigPoint,
+      originB: BigPoint
+  ): Option[Array[Array[Int]]] =
     val (byTorus, _) = reconstructFans(faces, pvB, pwB, originB)
-    // outgoing slots (CCW-sorted) + a representative planar instance, per torus vertex
     val outSlots     = byTorus.map((v, inc) => v -> inc.map((_, p, f) => outSlot(f, p)).distinct.sorted).toMap
     val rep          = byTorus.map((v, inc) => v -> inc.head._2).toMap
     val darts        = outSlots.toList.flatMap((v, ss) => ss.map(s => (v, s)))
@@ -305,7 +316,75 @@ object KrotenheerdtTorusMapSearch:
           op(a)(1) = 2 * phiInv(g) + 2 // r1: cross edge
           op(b)(1) = 2 * phi(g) + 1
           g += 1
-        DelaneySymbols.classifyClosedMap(op)
+        Some(op)
+
+  /** D-SYMBOL → GEOMETRY: realize a closed torus map (`op`) as an exact ℤ[ζ₁₂] cell (faces + primitive
+    * lattice Λ), the inverse of [[cellToOp]]. Develops the map by BFS: place one face as a regular polygon,
+    * then place each α-neighbour as a regular polygon sharing the (reversed) edge — deterministic, no search
+    * (the map dictates every gluing). Λ is then read off the developed patch via [[boundaryGlueBases]] +
+    * [[verifyCell]]. Lets us obtain a geometric cell — and hence [[rotationCenters]] — for ANY tiling given
+    * its D-symbol/op (e.g. the small-cell tilings the symmetry grower captures away), independent of either
+    * grower's reach.
+    */
+  def realizeCell(op: Array[Array[Int]], maxN: Int = 7): Option[(List[FaceZ], BigPoint, BigPoint)] =
+    val D = (op.length - 1) / 2
+    if D <= 0 then None
+    else
+      def alpha(g: Int): Int                                      = (op(2 * g + 1)(2) - 2) / 2
+      def phi(g: Int): Int                                        = (op(2 * g + 2)(1) - 1) / 2
+      // face = φ-orbit of darts (cyclic CCW order); its length = polygon side-count
+      val faceOf                                                  = Array.fill(D)(-1)
+      val faceDarts                                               = mutable.ArrayBuffer.empty[Vector[Int]]
+      var g0                                                      = 0
+      while g0 < D do
+        if faceOf(g0) < 0 then
+          val orbit = mutable.ArrayBuffer(g0)
+          faceOf(g0) = faceDarts.length
+          var h     = phi(g0)
+          while h != g0 do { faceOf(h) = faceDarts.length; orbit += h; h = phi(h) }
+          faceDarts += orbit.toVector
+        g0 += 1
+      // develop: each dart gets a directed edge (tail, slot); each face its CCW corners
+      val tail                                                    = new Array[ZetaPoint](D)
+      val slotA                                                   = new Array[Int](D)
+      val placed                                                  = Array.fill(D)(false)
+      val faceCorners                                             = Array.fill(faceDarts.length)(Vector.empty[ZetaPoint])
+      val queue                                                   = mutable.Queue.empty[Int]
+      def placeFace(startDart: Int, t0: ZetaPoint, s0: Int): Unit =
+        val fi      = faceOf(startDart)
+        val orbit   = faceDarts(fi)
+        val k       = orbit.indexOf(startDart)
+        val ord     = orbit.drop(k) ++ orbit.take(k) // start the CCW cycle at startDart
+        val size    = ord.length
+        val corners = polygon(t0, s0, size)
+        var i       = 0
+        while i < size do
+          val d = ord(i)
+          tail(d) = corners(i); slotA(d) = (s0 + i * delta(size)) % 12; placed(d) = true
+          queue.enqueue(d)
+          i += 1
+        faceCorners(fi) = corners
+      placeFace(0, ZetaPoint.origin, 0)
+      while queue.nonEmpty do
+        val g  = queue.dequeue()
+        val ag = alpha(g)
+        if !placed(ag) then
+          val v = tail(g) + ZetaPoint.step(slotA(g)) // head of g's edge = tail of α(g)'s (reversed) edge
+          placeFace(ag, v, (slotA(g) + 6) % 12)
+      if placed.exists(!_) then None // map not connected / not cleanly developed
+      else
+        val faces                                            = faceCorners.toList.map(cs => FaceZ(cs.length, cs))
+        val originB                                          = BigPoint.origin
+        var best: Option[(ZetaPoint, ZetaPoint, BigDecimal)] = None
+        boundaryGlueBases(faces).foreach: (g1, g2) =>
+          verifyCell(faces, g1, g2, maxN).foreach((_, _, _, pcov) =>
+            if best.forall(pcov < _._3) then best = Some((g1, g2, pcov))
+          )
+        best.map: (g1, g2, _) =>
+          val distinct   = distinctFacesOf(faces, g1.toBigPoint, g2.toBigPoint)
+          val (pvB, pwB) =
+            KrotenheerdtLatticeSearch.primitiveBasis(g1.toBigPoint, g2.toBigPoint, originB, distinct, Nil)
+          (faces, pvB, pwB)
 
   /** GROUND-TRUTH rotational-symmetry reference for a closed torus cell (faces + lattice Λ = (pv, pw)): the
     * set of `(centre-type, order)` rotation centres, type ∈ {"face","vertex","edge"} (polygon-centre / vertex
