@@ -200,20 +200,47 @@ object KrotenheerdtTorusMapSearch:
     val cell                                                            =
       faces.groupBy(f => (f.size, tkeyD(f.cD._1, f.cD._2, vx, vy, wx, wy, det))).values.map(_.head).toList
     val tiled                                                           =
-      for f <- cell; i <- -1 to 1; j <- -1 to 1
-      yield FaceZ(f.size, f.corners.map(_ + scale(pv, i) + scale(pw, j)))
-    // point STRICTLY left of every CCW edge ⇔ strictly inside the convex polygon (a corner on an edge gives a
-    // zero cross product, not strictly inside — so shared edges/corners are allowed, only true overlap fails).
+      (for f <- cell; i <- -1 to 1; j <- -1 to 1
+      yield FaceZ(f.size, f.corners.map(_ + scale(pv, i) + scale(pw, j)))).toVector
+    // point STRICTLY left of every CCW edge ⇔ strictly inside the convex polygon (a corner ON an edge gives a
+    // zero cross, NOT strictly inside — shared edges/corners allowed, only true overlap fails). EXACT integer
+    // orientation (ZetaPoint.crossSign): the predicate the BigDecimal `> 1e-9` approximated, ~10× faster, no ε.
     def strictlyInside(poly: Vector[ZetaPoint], pt: ZetaPoint): Boolean =
-      val pts = poly.map(_.toBigPoint)
-      val p   = pt.toBigPoint
-      val n   = pts.size
-      (0 until n).forall: i =>
-        val a = pts(i); val b = pts((i + 1) % n)
-        (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x) > BigDecimal("1e-9")
-    tiled.forall: fa =>
-      tiled.forall: fb =>
-        (fa.corners == fb.corners) || fb.corners.forall(c => !strictlyInside(fa.corners, c))
+      val n = poly.size
+      var i = 0
+      while i < n do
+        if ZetaPoint.crossSign(poly(i), poly((i + 1) % n), pt) <= 0 then return false
+        i += 1
+      true
+    // SPATIAL PRUNING: two unit polygons overlap only if their centroids are within R₁+R₂ ≤ 3.87 (dodecagon
+    // circumradius ≈ 1.93), so bucket faces on a size-4 Double grid and test only the 3×3 neighbour buckets —
+    // every truly-overlapping pair shares a neighbour bucket; the far pairs (the O(F²) majority) are skipped.
+    val cents                                                           = tiled.map: f =>
+      var sx = 0.0; var sy = 0.0
+      f.corners.foreach: c =>
+        val (x, y) = dxy(c); sx += x; sy += y
+      (sx / f.corners.size, sy / f.corners.size)
+    def bkey(i: Int)                                                    =
+      (math.floor(cents(i)._1 / 4.0).toInt, math.floor(cents(i)._2 / 4.0).toInt)
+    val buckets                                                         = mutable.HashMap.empty[(Int, Int), mutable.ArrayBuffer[Int]]
+    tiled.indices.foreach(i => buckets.getOrElseUpdate(bkey(i), mutable.ArrayBuffer.empty) += i)
+    tiled.indices.forall: ia =>
+      val fa       = tiled(ia)
+      val (bx, by) = bkey(ia)
+      var ok       = true
+      var di       = -1
+      while di <= 1 && ok do
+        var dj = -1
+        while dj <= 1 && ok do
+          buckets.get((bx + di, by + dj)).foreach: bucket =>
+            val it = bucket.iterator
+            while it.hasNext && ok do
+              val fb = tiled(it.next())
+              if fa.corners != fb.corners then
+                if fb.corners.exists(c => strictlyInside(fa.corners, c)) then ok = false
+          dj += 1
+        di += 1
+      ok
 
   /** Verify a developed, closed torus cell: faces placed in the plane frame plus the two derived deck vectors
     * `g1, g2` (the discovered lattice Λ). This is `KrotenheerdtTorusSearch.cellData` → `classifyAnyN`

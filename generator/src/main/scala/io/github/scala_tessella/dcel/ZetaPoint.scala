@@ -41,6 +41,32 @@ object ZetaPoint:
 
   val origin: ZetaPoint = ZetaPoint(0, 0, 0, 0)
 
+  /** Exact sign of `A + B·√3` (√3 irrational ⇒ zero iff A = B = 0). Used by the integer orientation test. */
+  private def signAplusBsqrt3(a: Long, b: Long): Int =
+    if a == 0 && b == 0 then 0
+    else if a >= 0 && b >= 0 then 1
+    else if a <= 0 && b <= 0 then -1
+    else
+      // opposite signs: compare A² vs 3B² in BigInt (overflow-proof). a>0,b<0: A+B√3>0 ⟺ A²>3B²; a<0,b>0: ⟺ 3B²>A².
+      val cmp = (BigInt(a) * a).compare(BigInt(3) * b * b)
+      if a > 0 then if cmp > 0 then 1 else if cmp < 0 then -1 else 0
+      else if cmp < 0 then 1 else if cmp > 0 then -1 else 0
+
+  /** EXACT sign of the 2D cross product `(b − a) × (p − a)` for ℤ[ζ₁₂] points: `> 0` left turn (p strictly
+    * left of a→b), `0` collinear, `< 0` right. Pure-integer (`Long`/`BigInt`) — the exact predicate the
+    * BigDecimal `> 1e-9` orientation test was approximating, ~10× faster and with no epsilon. Embedding:
+    * `2x = (2a₀+a₂) + a₁√3`, `2y = (2a₃+a₁) + a₂√3`, so `4·cross = A + B√3` with integer `A, B`.
+    */
+  def crossSign(a: ZetaPoint, b: ZetaPoint, p: ZetaPoint): Int =
+    val u   = b - a; val w             = p - a
+    // 2·(real)=X+XS√3, 2·(imag)=Y+YS√3
+    val uX  = 2 * u.a0 + u.a2; val uXS = u.a1; val uY = 2 * u.a3 + u.a1; val uYS = u.a2
+    val wX  = 2 * w.a0 + w.a2; val wXS = w.a1; val wY = 2 * w.a3 + w.a1; val wYS = w.a2
+    // cross = u.x·w.y − u.y·w.x ; 4·cross = A + B√3
+    val a64 = uX.toLong * wY + 3L * uXS * wYS - (uY.toLong * wX + 3L * uYS * wXS)
+    val b64 = uX.toLong * wYS + uXS.toLong * wY - (uY.toLong * wXS + uYS.toLong * wX)
+    signAplusBsqrt3(a64, b64)
+
   /** Lexicographic order on the integer coordinates — a canonical, trig-free tie-break for canonical keys. */
   given Ordering[ZetaPoint] =
     Ordering.by(z => (z.a0, z.a1, z.a2, z.a3))
