@@ -221,6 +221,23 @@ class SymmetryGrowerSpec extends AnyFlatSpec with Matchers:
       s"sequential core: ${seq.tilings.map(_._2).toSet} — "
     )(core.subsetOf(seq.tilings.map(_._2).toSet) shouldBe true)
 
+  // REGRESSION (the n=3 4-hour run's finding): `visited` was shared across seeds keyed by canonicalKey alone,
+  // but growBySymmetry depends on the seed's (rot, m) — so an earlier seed claiming an isometric partial patch
+  // pruned a LATER seed's path to its OWN tiling (e.g. 4.6.12 from the dodecagon seed), an order-dependent
+  // COMPLETENESS bug (it made n=1 = 9 not 10). Per-seed visited fixes it: at maxFaces=44 every n=1 cell is
+  // budget-complete, so the engine reaches all 10 in-scope Archimedean (4.8.8 octagon aside) key-for-key,
+  // deterministically — a certified n=1 = 10/10 (in-scope) by the symmetry engine alone.
+  it should "reach all 10 in-scope Archimedean at n=1 incl 4.6.12 (no cross-seed pruning)" in:
+    val res       = KrotenheerdtTorusMapSearch.enumerateAllSeedsParallel(maxN = 1, maxFaces = 44, parallelism = 8)
+    val oracle    = DelaneySymbols.keyedTilings(1, 12)
+    val foundKeys = res.tilings.filter(_._1 == 1).map(_._3).toSet
+    TilingReference.n1NoOctagon.foreach: ts =>
+      withClue(s"$ts missing (cross-seed pruning?) — ")(foundKeys should
+        contain(oracle.find(_._2 == Set(ts)).map(_._3).get))
+    withClue("4.6.12 — the cross-seed-pruning poster child — ")(
+      foundKeys should contain(oracle.find(_._2 == Set(sig("4.6.12"))).map(_._3).get)
+    )
+
   // The wall-clock cap (for long unattended runs) must terminate promptly and NEVER emit a garbage key — a
   // partial (capped) run is a sound LOWER BOUND, so every key it emits is still a real oracle tiling.
   it should "stay sound under an early wall-clock cutoff (maxMillis)" in:

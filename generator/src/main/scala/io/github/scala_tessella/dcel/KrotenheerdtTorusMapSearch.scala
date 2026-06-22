@@ -869,7 +869,6 @@ object KrotenheerdtTorusMapSearch:
       logEveryMs: Long = 10000L
   ): SymResult =
     val results      = mutable.Map.empty[String, (Int, Set[VertexSignature])]
-    val visited      = mutable.HashSet.empty[Vector[Long]]
     var totalStates  = 0L
     var anyBudgetHit = false
     // LIVE telemetry (so long runs aren't blind waits): a daemon prints elapsed / current seed / states+rate /
@@ -904,13 +903,15 @@ object KrotenheerdtTorusMapSearch:
         i += 1
         curSeed.set(seed.label)
         seedIdx.set(i)
+        // PER-SEED visited (growBySymmetry depends on the seed's (rot, m), so partial-patch dedup must NOT be
+        // shared across seeds — else a seed's path to its own tiling is pruned; see enumerateAllSeedsParallel).
         val (states, hit) = enumerateFromSeed(
           seed,
           maxN,
           maxFaces,
           maxCovolume,
           results,
-          visited,
+          mutable.HashSet.empty[Vector[Long]],
           (faces, _) =>
             statesA.incrementAndGet()
             val fc = faces.size
@@ -950,26 +951,31 @@ object KrotenheerdtTorusMapSearch:
     // wall-clock cap (for long unattended runs): past the deadline, tasks stop GROWING (treated as budget hit)
     // but still finish their closeCell, so the frontier drains and awaitQuiescence returns ~promptly. Lets us
     // set maxFaces generously (so n≥3 cells close) while TIME bounds the run — and it can't run away / OOM.
-    val deadlineNanos                                                             = {
+    val deadlineNanos                                                                           = {
       val now = System.nanoTime()
       if maxMillis >= Long.MaxValue / 2000000L then Long.MaxValue else now + maxMillis * 1000000L
     }
-    val results                                                                   = new ConcurrentHashMap[String, (Int, Set[VertexSignature])]()
-    val visited                                                                   = ConcurrentHashMap.newKeySet[Vector[Long]]()
-    val statesA                                                                   = new AtomicLong(0)
-    val curFacesA                                                                 = new AtomicLong(0)
-    val maxFacesA                                                                 = new AtomicLong(0)
-    val anyBudgetHit                                                              = new AtomicBoolean(false)
-    val running                                                                   = new AtomicBoolean(true)
-    val t0                                                                        = System.nanoTime()
-    val cov                                                                       = BigDecimal(maxCovolume) + BigDecimal("1e-6")
+    val results                                                                                 = new ConcurrentHashMap[String, (Int, Set[VertexSignature])]()
+    // PER-SEED partial-patch dedup (keyed by seed index): growBySymmetry depends on the seed's (rot, m), so a
+    // patch grown under one seed's symmetry differs from the same patch under another's — sharing `visited`
+    // across seeds would prune a seed's path to its own tiling (e.g. 4.6.12 from the dodecagon seed, pruned by
+    // an earlier seed reaching an isometric partial patch first), an order-dependent COMPLETENESS bug. Results
+    // (tilings) stay shared — cross-seed dedup by D-symbol key is correct.
+    val visited                                                                                 = ConcurrentHashMap.newKeySet[(Int, Vector[Long])]()
+    val statesA                                                                                 = new AtomicLong(0)
+    val curFacesA                                                                               = new AtomicLong(0)
+    val maxFacesA                                                                               = new AtomicLong(0)
+    val anyBudgetHit                                                                            = new AtomicBoolean(false)
+    val running                                                                                 = new AtomicBoolean(true)
+    val t0                                                                                      = System.nanoTime()
+    val cov                                                                                     = BigDecimal(maxCovolume) + BigDecimal("1e-6")
     // WORK-STEALING over PATCHES, not seeds: one ForkJoinPool task per partial patch, children submitted as new
     // tasks. The pool steals across seeds AND within the heavy seed's subtree, so there is no single-seed tail
     // (the load-imbalance the seed-per-task version had). The per-patch work is pure (closeCell/growBySymmetry/
     // canonicalKey); shared `results`/`visited` are atomic ⇒ sound + complete, result-set-identical to
     // sequential (validated). awaitQuiescence ends the run when no task is queued or running.
-    val pool                                                                      = new ForkJoinPool(parallelism)
-    val logger                                                                    = new Thread(() =>
+    val pool                                                                                    = new ForkJoinPool(parallelism)
+    val logger                                                                                  = new Thread(() =>
       while running.get do
         try Thread.sleep(logEveryMs)
         catch case _: InterruptedException => ()
@@ -983,7 +989,7 @@ object KrotenheerdtTorusMapSearch:
     )
     logger.setDaemon(true)
     logger.start()
-    def submit(seed: Seed, seedCorners: Set[ZetaPoint], faces: List[FaceZ]): Unit =
+    def submit(seedIdx: Int, seed: Seed, seedCorners: Set[ZetaPoint], faces: List[FaceZ]): Unit =
       pool.execute(() =>
         statesA.incrementAndGet()
         val fc        = faces.size
@@ -1000,14 +1006,14 @@ object KrotenheerdtTorusMapSearch:
           if faces.sizeIs >= maxFaces || System.nanoTime() >= deadlineNanos then anyBudgetHit.set(true)
           else
             growBySymmetry(faces, maxN, seed.rot, seed.m).foreach: child =>
-              if visited.add(canonicalKey(child)) then submit(seed, seedCorners, child)
+              if visited.add((seedIdx, canonicalKey(child))) then submit(seedIdx, seed, seedCorners, child)
       )
     try
-      for seed <- allSeeds do
+      for (seed, seedIdx) <- allSeeds.zipWithIndex do
         val seedCorners = seed.faces.flatMap(_.corners).toSet
         if isPlanarConsistent(seed.faces) && isSound(seed.faces, maxN) &&
-          visited.add(canonicalKey(seed.faces))
-        then submit(seed, seedCorners, seed.faces)
+          visited.add((seedIdx, canonicalKey(seed.faces)))
+        then submit(seedIdx, seed, seedCorners, seed.faces)
       pool.awaitQuiescence(Long.MaxValue, TimeUnit.DAYS)
     finally
       running.set(false)
