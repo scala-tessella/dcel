@@ -455,3 +455,27 @@ constrained-growth, centres, bounded-states). **Recovered cells on re-run: n=2 =
 holds. The residual (4 short at n=3) is now *cleanly* genuine depth (domain > maxFaces), no longer confounded
 by the dedup artifact. ⇒ all prior grower/union counts were under-counts of this bug; re-running recovers them,
 and the depth-limited stragglers are best closed with the now-sound type-set-**constrained** grower.
+
+## Update (2026-06-23): recovery scorecard + the residual is now purely DEPTH
+
+Re-running with the fixed `canonicalKey` (sound, deterministic) recovers the silently-lost cells:
+
+| level | pre-fix (quiesced) | post-fix (quiesced) |
+|------:|:------------------:|:-------------------:|
+| n=2   | 20/20              | 20/20               |
+| n=3 (maxFaces=58) | 33/39  | **35/39** (+2)      |
+| n=4 (maxFaces=64) | 26/33  | **27/33** (+1)      |
+
+The n=4 re-run explored 1.34M states / 81 n≤4 keys (vs pre-fix 790K / 75) — the reach the over-pruning had
+hidden — and the lost `{3².4.3.4; 3².6²; 3.4².6; 6³}` now appears. With the dedup artifact and the
+non-determinism both gone, the residual at every level is now a **single, clean cause: genuine
+fundamental-domain depth** — each short cell is a `3.4.4.6`/snub-rich C₂ tiling whose domain (cell/2) exceeds
+the `maxFaces` used (>58 at n=3: 4 short; >64 at n=4: 6 short). Zero rotation-free still holds throughout, so
+the rotation-only thesis stands (every tiling is in principle reachable).
+
+**Plan to close the residual — the now-sound CONSTRAINED grower at depth.** For each deficit type-set, run
+`symmetryRotationReferenceParallel(targetTypes = ts)` at high `maxFaces` (≈96-120): the type-set constraint
+keeps each per-target search small even at depth (a child completing an off-target vertex is pruned at once),
+and the `canonicalKey` fix makes it correct, so we can afford the depth needed for the large C₂ domains —
+*without* the global brute-`maxFaces` explosion that the 7-hour run showed. `UnionConstrainedProbe` does this
+per type-set, union with bounded-V. Next: the n=3 constrained deep sweep (maxFaces≈96) → target 39/39.
