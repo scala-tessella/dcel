@@ -393,3 +393,32 @@ The visited-hash memory fix is what makes the cure affordable: raise `maxFaces` 
 (estimated 80–120 faces for `3.4.4.6`-rich n ≥ 4 cells) and the missing cells close, within a bounded heap.
 The deep runs get long (the patch space grows fast with `maxFaces`) but no longer crash; a multi-hour capped
 run reports a sound lower bound at worst. Next: a long deep n=4 run at `maxFaces ≈ 96` toward the full 33/33.
+
+## Update (2026-06-23): brute maxFaces does NOT scale — pivot to TYPE-SET-CONSTRAINED growth
+
+The depth diagnosis (missing cells have fundamental domain > 64 faces) is correct, but raising `maxFaces`
+globally is the wrong cure. A 7-hour deep n=4 run (`UnionRotationTableProbe 4 12 96 420`) **hit the deadline
+without quiescing** — 11.2M states — and reached **25/33, one *below* the maxFaces=64 *quiesced* 26/33**. At
+maxFaces=96 the growth branches so combinatorially that 7 h could not even re-cover the depth-≤64 set; the
+budget was spent on a vast haystack of large patches that **never close**. So "more depth + more time" is
+exponential and counterproductive; the complete, quiesced depth-≤64 answer stays **26/33** (34 min).
+
+**Root inefficiency:** the grower explores *every* growth path up to `maxFaces`, type-set-agnostic. The missing
+cells are not unreachable — they are buried among exponentially many doomed large patches.
+
+**The fix — grow toward the known targets.** The deficit diff gives the missing **type-sets**. So run the
+symmetry grower **constrained to place only faces whose completed vertices stay within a target type-set** —
+the same pruning bounded-V uses, but keeping the grower's cell/m fundamental-domain advantage and rotation
+seeds. This composes the two engines' strengths:
+- symmetry grower alone: small domain (cell/m) but unconstrained ⇒ exponential tree at high `maxFaces`;
+- bounded-V alone: type-set-pruned (small tree) but no symmetry ⇒ enumerates the whole cell (c^V), dies on
+  these large cells;
+- **constrained symmetry growth: type-set pruning × cell/m domain ⇒ per-target search is tiny** — a patch that
+  completes a vertex outside the target's ≤4 allowed types is pruned at once, collapsing the haystack to just
+  the paths that can build *that* tiling.
+
+Implementation: a `targetTypes: Set[VertexSignature]` filter in `growBySymmetry` (drop a child whose
+`completeVertexTypes` leaves the set — sound, since a valid tiling of that type-set never does), plus a driver
+that runs each missing type-set's seeds under the constraint. Tested: it reproduces a type-set's already-reached
+cells identically (no valid loss) and never returns off-target tilings, before being pointed at the missing
+ones. Brute high-`maxFaces` runs are abandoned.
