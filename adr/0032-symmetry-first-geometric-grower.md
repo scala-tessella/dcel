@@ -422,3 +422,36 @@ Implementation: a `targetTypes: Set[VertexSignature]` filter in `growBySymmetry`
 that runs each missing type-set's seeds under the constraint. Tested: it reproduces a type-set's already-reached
 cells identically (no valid loss) and never returns off-target tilings, before being pointed at the missing
 ones. Brute high-`maxFaces` runs are abandoned.
+
+## Update (2026-06-23): the `canonicalKey` over-pruning bug — found, fixed, cells recovered
+
+The constrained sweep's reach turned out to be **non-deterministic**, which exposed a foundational bug — and
+it had been silently undercounting every grower run.
+
+**Symptom (`DeterminismProbe`, the suspicious type-set `{3².4.3.4;3².6²;3.4².6;6³}`):** parallel runs gave
+0 *or* 1 for the *same* config (maxFaces=80 → {1,0,0}; 96 → {1,0,1}), while sequential (parallelism=1)
+deterministically gave **0** — i.e. the deterministic `visited` dedup *prunes the only path* to a reachable
+tiling, and the parallel race occasionally evades it.
+
+**Root cause:** `canonicalKey` keyed `visited` by the patch quotiented under the **full 24-element ℤ[ζ₁₂]
+module group + translation**. But the grower's growth is **anchored** — it rotates about a *fixed* centre
+(origin) by the seed's *fixed* `rot`, so it is equivariant only under the seed's own Cₘ (which keeps the patch
+invariant ⇒ already a dedup fixed-point), **not** under arbitrary rigid motions. Two patches differing by a
+*non-seed* isometry therefore got the **same key yet grow differently** under the fixed `rot`, so one was
+wrongly pruned — silently dropping valid growth paths. (Not the 128-bit hash: collision at ~10⁷ states is
+~10⁻²⁵; the *vector itself* over-collapsed.) This one flaw explains all the prior puzzles: the "missing" cells,
+the non-monotonic reach (more maxFaces finding *fewer*), and the fragile lower-bound counts.
+
+**Fix:** `canonicalKey` is now an **exact face-set fingerprint** — per face `(size, its corner coords sorted)`,
+faces sorted, 128-bit hashed; position- and orientation-**sensitive**, no isometry quotient. It dedups *only*
+genuinely-identical patches (the same faces reached via a different growth **order**), never distinct ones —
+the sound dedup for an anchored grower. (Dead `canonicalKeyVec` + `groupMaps` removed.) Trade-off: less
+collapse ⇒ more states per run (slower), but correct and deterministic; memory stays hashed-flat.
+
+**Validated:** `DeterminismProbe` now deterministic (parallelism 1 ≡ 15, maxFaces 80 ≡ 96, all reached=1); all
+38 `ZetaPointSpec`+`SymmetryGrowerSpec`+`UnionSpec` tests green (reproduction, soundness, parallel-equivalence,
+constrained-growth, centres, bounded-states). **Recovered cells on re-run: n=2 = 20/20 (unchanged), n=3 =
+35/39 — up from 33/39, quiesced.** Every reached tiling is real and deterministic; zero rotation-free still
+holds. The residual (4 short at n=3) is now *cleanly* genuine depth (domain > maxFaces), no longer confounded
+by the dedup artifact. ⇒ all prior grower/union counts were under-counts of this bug; re-running recovers them,
+and the depth-limited stragglers are best closed with the now-sound type-set-**constrained** grower.
