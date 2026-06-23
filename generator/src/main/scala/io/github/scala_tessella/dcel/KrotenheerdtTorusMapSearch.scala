@@ -583,54 +583,27 @@ object KrotenheerdtTorusMapSearch:
   // lattice sweep ⇒ no covolume-exponential; the cost is the bounded planar growth, gated by face count.
   // ======================================================================================================
 
-  /** The 24 isometries of ℤ[ζ₁₂] (dihedral order 24): rotations `ζ^k` and their conjugate-reflections, as
-    * exact integer maps. The full module group (not just a lattice's point group) — the partial map carries
-    * no fixed Λ, so the canonical visited-set must be invariant under every rigid motion of the developed
-    * patch.
-    */
-  private val groupMaps: List[ZetaPoint => ZetaPoint] =
-    for
-      reflect <- List(false, true)
-      k       <- (0 until 12).toList
-    yield (z: ZetaPoint) =>
-      var p = if reflect then z.conjugate else z
-      var i = 0
-      while i < k do { p = p.timesZeta; i += 1 }
-      p
-
-  /** Geometry-free canonical key of a developed patch, invariant under the module group + translation: for
-    * each isometry `g`, transform corners, translation-anchor on the lexicographically minimal corner, sort
-    * faces and corners, and take the min over all `g`. The trig-free dedup that makes two growth orders (or
-    * two chiral/rotated developments) reaching the same patch collapse to one visited entry. (The ADR's
-    * flag/dart canonical labelling, realised on the exact integer coordinates.)
-    */
-  private def canonicalKeyVec(faces: List[FaceZ]): Vector[Long] =
-    import scala.math.Ordering.Implicits.seqOrdering
-    groupMaps.iterator.map: g =>
-      val tf     = faces.map(f => (f.size, f.corners.map(g)))
-      val anchor = tf.iterator.flatMap(_._2).min
-      tf.map: (s, cs) =>
-        s.toLong +: cs.map(_ - anchor).sorted.flatMap(z => Vector(z.a0, z.a1, z.a2, z.a3))
-      .sorted
-        .flatten
-        .toVector
-    .min
-
-  /** The visited-set key: a 128-bit hash of [[canonicalKeyVec]] as a 2-element `Vector[Long]`. The full
-    * canonical vector is ~faces×corners×4 longs (≈30 KB for an 80-face patch); the `visited` set retains ONE
-    * per state and never shrinks, so storing the full vector exhausts the heap at n≥4 high maxFaces (the
-    * measured OOM). Hashing collapses each retained entry to 16 bytes (≈1000× less) — so `visited` stays flat
-    * (tens of MB) into the tens of millions of states, letting the grower run for hours. Two independent
-    * 64-bit rolling hashes (poly + FNV-1a) ⇒ 128-bit: at ~10⁷ states the birthday collision probability is
-    * ~10¹⁴/2¹²⁹ ≈ 10⁻²⁵, far below any other failure mode, so dedup stays exact in practice. Same value type
-    * as the old key (`Vector[Long]`), so every `visited` declaration and `.add(canonicalKey(..))` is
-    * unchanged.
+  /** The visited-set key: an EXACT face-set fingerprint (128-bit hash), position- and orientation-SENSITIVE —
+    * NOT quotiented by any isometry. The grower's growth is ANCHORED: it rotates about a FIXED centre
+    * (origin) by the seed's FIXED `rot`, so it is equivariant only under the seed's own C_m (which keeps the
+    * patch invariant ⇒ already a fixed-point of the dedup), NOT under arbitrary rigid motions. The old key
+    * quotiented by the full 24-element module group + translation, which OVER-collapsed distinct anchored
+    * patches (two patches differing by a non-seed isometry got the same key yet grow differently under the
+    * fixed `rot`), silently pruning valid growth paths — a non-deterministic completeness bug
+    * (DeterminismProbe: sequential lost a reachable tiling; parallel found it racily). Keying on the literal
+    * face set fixes that: it dedups ONLY genuinely-identical patches (the same faces reached via a different
+    * growth ORDER), never different ones. Each face is `(size, its corner coords sorted)`; faces sorted;
+    * flattened; hashed to 128 bits (so `visited` stays flat in memory — birthday collision at ~10⁷ states ≈
+    * 10⁻²⁵).
     */
   private def canonicalKey(faces: List[FaceZ]): Vector[Long] =
-    val vec = canonicalKeyVec(faces)
-    var h1  = 1125899906842597L     // odd prime seed (polynomial rolling hash, ×31)
-    var h2  = -3750763034362895579L // FNV-1a 64-bit offset basis (14695981039346656037 as signed Long)
-    val it  = vec.iterator
+    import scala.math.Ordering.Implicits.seqOrdering
+    val perFace: List[Vector[Long]] = faces.map: f =>
+      val cs = f.corners.toList.map(z => Vector(z.a0, z.a1, z.a2, z.a3)).sorted // corner SET, canonical order
+      (f.size.toLong +: cs.flatten).toVector
+    var h1                          = 1125899906842597L               // odd prime seed (polynomial rolling hash, ×31)
+    var h2                          = -3750763034362895579L           // FNV-1a 64-bit offset basis (14695981039346656037 as signed Long)
+    val it                          = perFace.sorted.iterator.flatten // faces in canonical order
     while it.hasNext do
       val x = it.next()
       h1 = h1 * 31L + x
