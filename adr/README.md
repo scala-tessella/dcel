@@ -52,7 +52,8 @@ decision. Each file has:
 | 0030 | [Bounded-V at n=4 — feasibility verdict](0030-bounded-v-n4-feasibility-verdict.md) | Accepted (measured; partial ~25-28/33) |
 | 0031 | [Complementary engines + the both-walled n=4 tilings (~30/33)](0031-complementary-engines-and-the-both-walled-n4-tilings.md) | Accepted (measured) |
 | 0032 | [Symmetry-first geometric grower — the scatter wall falls](0032-symmetry-first-geometric-grower.md) | Accepted (n=1 complete, n=2 15/20; parallel) |
-| 0033 | [Closing the depth residual — n≤7 feasibility + speed levers](0033-closing-the-depth-residual-feasibility-and-speed-levers.md) | Accepted (decision: build partial-fan arc constraint) |
+| 0033 | [Closing the depth residual — n≤7 feasibility + speed levers](0033-closing-the-depth-residual-feasibility-and-speed-levers.md) | Accepted (arc-prune lever built + measured ineffective, rejected) |
+| 0034 | [Fairness principle — Galebach is a validation oracle, not a source](0034-fair-enumeration-principle-and-closure-directed-growth.md) | Accepted (sound enumeration; build closure-directed growth) |
 
 ## When to add an ADR
 
