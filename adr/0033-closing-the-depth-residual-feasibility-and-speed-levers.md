@@ -85,3 +85,28 @@ distribution (#5). Levers #2–#4 are follow-ups that compose on top.
 - **Negative / risk:** a subtle bug in the arc test could silently prune valid paths — mitigated by the
   no-valid-loss regression (constrained ⊇ unconstrained-on-target) before any deep run; and the arc test adds
   per-growth-step cost (must stay cheap relative to the branching it saves).
+
+## MEASURED OUTCOME (2026-06-23): the partial-fan arc constraint did NOT help — lever rejected
+
+Built the partial-fan arc constraint (sound: constrained-growth "no valid loss" test green; deterministic:
+`DeterminismProbe` reached=1 across par=1/15, maxFaces 80/96; no regression: 32 tests green). Then ran the
+apples-to-apples payoff test — the n=3 constrained deep sweep at maxFaces=96, same config as the pre-prune run.
+
+**Result: 36/39 in 54 min — IDENTICAL to the pre-prune 36/39 in 55 min**, same three deficit cells
+(`{3².6²;3.4².6;3.6.3.6}` 2/3, `{3².6²;3.6.3.6;6³}` 1/2, `{3⁶;3.3.3.3.6;3².6²}` 2/3), per-set times unchanged.
+
+**Diagnosis — the prune barely fires.** For n=3 the target vertex figures share many common sub-arcs (lots of
+3s and 6s), so almost every partial fan that already passes `isExtendableFan` is *also* a contiguous arc of
+some target ⇒ the arc constraint rarely prunes. The per-vertex polygon branching it targets was already
+well-constrained; the actual cost is **reaching and verifying the deep (>96-face) patches**, which the prune
+does not touch. So lever #1 is **sound but practically ineffective** for this problem — rejected as a speed
+lever (kept in the code, harmless, may help type-sets with more dissimilar vertex figures).
+
+**Revised verdict on n≤7 in ≤1 week:** more doubtful. The biggest hoped-for algorithmic lever failed, so the
+deep-cell cost stands. Honest standing: the SCIENCE is solid (rotation-only thesis confirmed; engine sound +
+deterministic; residual is pure fundamental-domain depth; zero rotation-free at every n), and the counts are
+sound LOWER BOUNDS (n=2 20/20, n=3 36/39, n=4 27/33). Closing the *full* counts for n=6-7 within a week is
+unlikely without either (a) a genuinely different growth strategy — **closure-directed / best-first** growth
+(reach the closing patch via the shortest path, not breadth — the remaining untested algorithmic idea), or
+(b) **distribution** across machines (brute compute on the embarrassingly-parallel per-type-set sweeps). The
+per-vertex-constraint family is exhausted.
