@@ -479,3 +479,32 @@ keeps each per-target search small even at depth (a child completing an off-targ
 and the `canonicalKey` fix makes it correct, so we can afford the depth needed for the large C₂ domains —
 *without* the global brute-`maxFaces` explosion that the 7-hour run showed. `UnionConstrainedProbe` does this
 per type-set, union with bounded-V. Next: the n=3 constrained deep sweep (maxFaces≈96) → target 39/39.
+
+## Update (2026-06-23): n=3 constrained deep sweep → 36/39; the residual cost curve
+
+`UnionConstrainedProbe 3 12 96 10min/set` (bounded-V ∪ now-sound constrained grower, maxFaces=96): **36/39**,
+up from 35 at maxFaces=58. `{3⁶;3.3.3.3.6;3.6.3.6}` reached 3/3 at depth 96. Progression: **33 (buggy) → 35
+(fixed @58) → 36 (fixed @96)** — each depth bump recovers the next-deepest cell. 3 still short, the deepest C₂
+domains (>96 faces, or cap-limited — some sets hit the 10-min/set cap): `{3².6²;3.4².6;3.6.3.6}` 2/3,
+`{3².6²;3.6.3.6;6³}` 1/2, `{3⁶;3.3.3.3.6;3².6²}` 2/3.
+
+**Net standing (sound, deterministic, rotation-only, zero rotation-free): n=2 20/20, n=3 36/39, n=4 27/33.**
+The residual is exclusively fundamental-domain DEPTH, and the cost curve is **diminishing returns** — each
+deeper push (more maxFaces + longer caps) recovers ~1 cell at ~linear-to-exponential cost, because the last
+few cells per level have very large C₂ domains (cell/2). This raises two strategic questions for the n≤7 goal:
+*(a) does this path finish n≤7 in ≤1 week?* and *(b) where is the next big speed lever?*
+
+**Feasibility (honest):** n≤4 is closable in days by targeted deep sweeps on the deficit type-sets. n=5-7 is
+UNCERTAIN with the current *completion-only* constraint — the deepest cells' domains grow with n, and the
+per-cell search, though bounded per type-set, still grows with depth. The rotation-only thesis is SOUND (every
+tiling reachable in principle, zero rotation-free observed at every n), so this is a compute/algorithm
+question, not correctness.
+
+**Biggest remaining speed lever — STRONGER constraint (partial-fan arc pruning).** Today the type-set
+constraint prunes only when a vertex *completes* off-target; a partial fan can branch over all of {3,4,6,12}
+first. Pruning a partial fan that cannot be a contiguous ARC of any target vertex figure would cut the per-step
+branching from ~4 to ~1-2, an exponential reduction in tree size at depth — directly making the deep C₂ cells
+affordable. Secondary levers: closure-directed (best-first) growth order; grower `targetCount` early-stop once
+a type-set's multiplicity is union-reached; exact-integer `primitiveBasis` (now only on closing candidates);
+distribution across machines. The partial-fan constraint is the one most likely to decide whether n=5-7 fits
+in the week.
