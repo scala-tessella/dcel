@@ -1017,6 +1017,19 @@ object KrotenheerdtTorusMapSearch:
     val polySet = starts.zip(sig).map((s, size) => (s % 12, size)).toSet
     polySet.forall((s, size) => polySet.contains(((s + shift) % 12, size)))
 
+  /** True iff the partial fan `arc` (polygon sizes in arc order around a vertex) can still be completed
+    * within `targets`: it occurs as a contiguous cyclic arc of some target vertex figure, in either
+    * orientation. SOUND prune for the constrained grower — a valid `targets`-tiling's every partial vertex
+    * fan IS a contiguous arc of one of its (∈ targets) figures, so this never removes a path to such a
+    * tiling. Empty targets ⇒ unconstrained (always true).
+    */
+  private def isArcOfSomeTarget(arc: List[Int], targets: Set[VertexSignature]): Boolean =
+    targets.isEmpty || arc.isEmpty || targets.exists: t =>
+      arc.lengthIs <= t.length && {
+        val n = arc.length
+        (t ++ t).sliding(n).exists(_ == arc) || (t.reverse ++ t.reverse).sliding(n).exists(_ == arc)
+      }
+
   /** One symmetric growth step: place a SINGLE next polygon at the most-constrained (MRV) incomplete vertex's
     * open arc, plus its full C_m orbit (the same face rotated by `360/m` about the centre, `m` copies), so
     * the patch stays C_m-symmetric. Single-tile (not whole-vertex) placement is the fix for the
@@ -1051,7 +1064,16 @@ object KrotenheerdtTorusMapSearch:
         if g > free then Nil
         else
           val extended = ordered :+ mm
-          val ok       = if g == free then isCompleteVertex(extended) else isExtendableFan(extended)
+          // PARTIAL-FAN ARC PRUNE (ADR-0033): besides the generic extendable/complete check, when constrained
+          // require the fan being built at the MRV vertex to stay a contiguous ARC of some TARGET vertex figure
+          // (or, on completion, BE a target type). Cuts the per-step branching over {3,4,6,12} from ~4 to ~1-2
+          // — exponential tree shrink at depth — at the SOURCE (before building the orbit). Sound: a valid
+          // T-tiling's every partial vertex fan is an arc of one of its (∈T) figures, so no valid path is lost.
+          val ok       =
+            if g == free then
+              isCompleteVertex(extended) &&
+              (targetTypes.isEmpty || targetTypes.contains(VertexTypes.normalize(extended)))
+            else isExtendableFan(extended) && isArcOfSomeTarget(extended, targetTypes)
           if !ok then Nil
           else
             // the single new face at the open arc start, plus its C_m orbit (rotate 360/m, m copies)
