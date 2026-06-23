@@ -94,6 +94,36 @@ class DelaneySymbolsSpec extends AnyFlatSpec with Matchers:
     // and it has genuinely reached into the 2-uniform tilings (not vacuous)
     foundTypeSets should contain(Set(sig("3.3.3.4.4"), sig("4.4.4.4")))
 
+  behavior of "DelaneySymbols.hasRotation — Conjecture R (no rotation-free Krötenheerdt tiling)"
+
+  private def distinctSyms(maxN: Int, sz: Int): List[(Int, List[VertexSignature], DelaneySymbols.DSymbol)] =
+    DelaneySymbols.enumerateSymbols(
+      maxN,
+      sz
+    ).groupBy(t => DelaneySymbols.canonicalKey(t._3)).values.map(_.head).toList
+
+  // FAST: every n=1 tiling (complete at maxSize 12) has a rotation — validates hasRotation on real complete data.
+  it should "find a rotation in every n=1 tiling" in:
+    val d1 = distinctSyms(1, 12)
+    d1 should have size 11
+    all(d1.map(t => DelaneySymbols.hasRotation(t._3))) shouldBe true
+
+  // ON DEMAND (~minutes, maxSize 24): the FULL discharge of Conjecture R for n ≤ 3. The rotation-AGNOSTIC
+  // generate-all oracle reproduces the complete 11/20/39 (counts stable at maxSize 24 = 26 ⇒ complete; also
+  // matches A068600) AND every tiling has a rotation. 4 of them are rotation-bearing ONLY via an edge-midpoint
+  // C₂ — proving the (0,2) term is load-bearing and hasRotation is discriminating. (See DischargeRProbe.)
+  ignore should "discharge R for n ≤ 3: complete oracle, every tiling rotation-bearing" in:
+    val d = distinctSyms(3, 24)
+    for (n, exp) <- List(1 -> 11, 2 -> 20, 3 -> 39) do
+      val ts = d.filter(_._1 == n)
+      withClue(s"n=$n count: ")(ts should have size exp)
+      withClue(s"n=$n has a rotation-free tiling: ")(all(ts.map(t =>
+        DelaneySymbols.hasRotation(t._3)
+      )) shouldBe true)
+    withClue("edge-only rotation cases (method must be discriminating): ")(
+      d.count(t => DelaneySymbols.edgeMidpointRotationOnly(t._3)) should be > 0
+    )
+
   behavior of "DelaneySymbols completeness & element-for-element agreement (slow — run on demand)"
 
   // parse the reference's compact Wikipedia notation: "3^2.4.3.4" -> 3.3.4.3.4, "3.4^2.6" -> 3.4.4.6, etc.

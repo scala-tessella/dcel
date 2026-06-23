@@ -863,6 +863,31 @@ object DelaneySymbols:
     s"D=${ds.size} t=${o01.length} v=${o12.length} e=${o02.length} ori=$ori mir=$mir " +
       s"cone-tile=[${cones01.mkString(",")}] cone-vert=[${cones12.mkString(",")}]"
 
+  /** True iff the tiling's symmetry group contains a ROTATION — i.e. its euclidean orbifold has a cone/corner
+    * point of order ≥ 2. The cone orders are exactly the v-values > 1 across ALL THREE orbit types: faces
+    * `(0,1)`, vertices `(1,2)`, and edge-midpoints `(0,2)`. Equivalently `false` ⟺ orbifold ∈ {o, ××, **, *×}
+    * ⟺ wallpaper group ∈ {p1, pg, pm, cm} (the rotation-free groups). This is the EXACT symmetry read
+    * straight from the (minimal) D-symbol — not a geometric measurement — so it discharges Conjecture R
+    * rigorously wherever the generate-all oracle is complete (n ≤ 3). The `(0,2)` edge term is essential: a
+    * tiling whose only rotation is a 2-fold at an edge midpoint has v=1 on every face/vertex orbit and
+    * v(0,2)=2 on an edge.
+    */
+  def hasRotation(ds: DSymbol): Boolean =
+    orbits(ds.dset, 0, 1).exists(o => ds.v(0, 1, o.elements.head) > 1) ||
+      orbits(ds.dset, 1, 2).exists(o => ds.v(1, 2, o.elements.head) > 1) ||
+      orbits(ds.dset, 0, 2).exists(o => ds.v(0, 2, o.elements.head) > 1)
+
+  /** True iff the tiling has a rotation but ONLY via an edge-midpoint 2-fold (a `(0,2)`-orbit cone), with no
+    * face `(0,1)` or vertex `(1,2)` cone. These are exactly the cells a face/vertex-only test (reading only
+    * [[orbifoldSignature]]'s cone-tile/cone-vert) would misclassify as rotation-free — so a non-zero count
+    * proves the `(0,2)` term in [[hasRotation]] is load-bearing and the rotation test is discriminating.
+    */
+  def edgeMidpointRotationOnly(ds: DSymbol): Boolean =
+    val faceOrVert =
+      orbits(ds.dset, 0, 1).exists(o => ds.v(0, 1, o.elements.head) > 1) ||
+        orbits(ds.dset, 1, 2).exists(o => ds.v(1, 2, o.elements.head) > 1)
+    !faceOrVert && orbits(ds.dset, 0, 2).exists(o => ds.v(0, 2, o.elements.head) > 1)
+
   // ---- ADR-0023 Stage 1: ORIENTED-slice generator (rotation orbifolds o/2222/333/442/632) --------------
 
   // Interleaved euclidean prune: interior angle of a regular {3,4,6,8,12}-gon is an INTEGER degree.
