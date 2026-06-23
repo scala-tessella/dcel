@@ -86,3 +86,23 @@ far fewer states. This is ADR-0033 lever #2, now promoted after lever #1 (arc pr
   "this family needs more raw compute (distribution, ADR-0033 #5)", **not** a thumb on the scale.
 - **On the ≤1-week goal:** unchanged and honest — if neither closure-directed growth nor feasible distribution
   closes n=6-7 in the week, we report sound lower bounds + the structural diagnosis, never a transcribed count.
+
+## DISCHARGED for n ≤ 3 (2026-06-24): R is a theorem there, not a conjecture
+
+Conjecture R is now **proven for n ≤ 3** — fairly, with no appeal to Galebach as a source. Method
+(`DelaneySymbols.hasRotation`, `DischargeRProbe`, `DelaneySymbolsSpec`):
+
+- The **generate-all oracle** (`enumerateSymbols`) is **rotation-agnostic** — it enumerates *all* euclidean
+  minimal D-symbols up to a chamber budget, making no symmetry assumption. At `maxSize = 24` it yields the
+  complete **11 / 20 / 39**, and the count is **stable** (identical at `maxSize = 26`) ⇒ complete by stability,
+  not by trusting the published total (which it also matches — a fair cross-check, ADR-0034 §1).
+- `hasRotation(ds)` reads the **exact** symmetry from the minimal symbol: a rotation exists iff the orbifold
+  has a cone of order > 1 on some orbit — faces (0,1), vertices (1,2), **or edge-midpoints (0,2)**. Every one
+  of the 70 tilings (n ≤ 3) passes ⇒ **no rotation-free Krötenheerdt tiling exists for n ≤ 3.**
+- The method is **discriminating, not vacuous**: 4 of the tilings are rotation-bearing *only* via an
+  edge-midpoint C₂ (the (0,2) term) — a face/vertex-only test would have wrongly called them rotation-free.
+  These are exactly the hard-cell family. So the test can fail, and doesn't.
+
+**Consequence:** the rotation-only grower is now **UNCONDITIONALLY complete for n ≤ 3** (R holds there). For
+**n = 4–7, R remains open** — discharging it needs the same rotation-agnostic oracle pushed that far (the
+generate-all chamber-tree wall) or a proof. Until then, n ≥ 4 rotation-only results stay "complete modulo R".
