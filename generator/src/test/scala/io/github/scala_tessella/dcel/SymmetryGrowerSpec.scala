@@ -288,6 +288,32 @@ class SymmetryGrowerSpec extends AnyFlatSpec with Matchers:
     centresOf("4.4.4.4") shouldBe Some(Set(("face", 4), ("vertex", 4), ("edge", 2)))
     centresOf("3.3.3.3.3.3") shouldBe Some(Set(("vertex", 6), ("face", 3), ("edge", 2)))
 
+  // TYPE-SET-CONSTRAINED growth (the depth-pivot): growing only toward a target type-set must (a) NEVER return
+  // an off-target tiling — every result's types ⊆ target (the pruning is exactly this); and (b) LOSE NO valid
+  // tiling — a valid T-tiling's growth path never completes an off-T vertex, so the constrained run reaches a
+  // SUPERSET of the unconstrained run's T-tilings (it can also reach MORE, since pruning lets it explore the
+  // on-target paths further within the same maxFaces). Asserted on the small-cell n=2 {4⁴;3³.4²} target.
+  it should "constrain growth to a target type-set: no off-target leakage, no valid loss" in:
+    val target        = Set(sig("4.4.4.4"), sig("3.3.3.4.4"))
+    val unconstrained =
+      KrotenheerdtTorusMapSearch.symmetryRotationReferenceParallel(maxN = 2, maxFaces = 28, parallelism = 4)
+    val constrained   =
+      KrotenheerdtTorusMapSearch.symmetryRotationReferenceParallel(
+        maxN = 2,
+        maxFaces = 28,
+        parallelism = 4,
+        targetTypes = target
+      )
+    // (a) no leakage: every constrained tiling lies within the target type-set
+    constrained.values.foreach((types, _) =>
+      withClue(s"$types leaked: ")(types.subsetOf(target) shouldBe true)
+    )
+    // (b) no valid loss: the unconstrained run's on-target tilings are all reached by the constrained run
+    val uncT          = unconstrained.filter(_._2._1 == target).keySet
+    val conT          = constrained.filter(_._2._1 == target).keySet
+    withClue(s"unconstrained on-target $uncT not ⊆ constrained $conT: ")(uncT.subsetOf(conT) shouldBe true)
+    conT should not be empty
+
   behavior of "enumerateAllSeedsParallel (work-stealing — sound, finds the budget-stable core)"
 
   // CONCURRENCY correctness, budget-robust. Exact parallel==sequential equality holds only for BUDGET-COMPLETE

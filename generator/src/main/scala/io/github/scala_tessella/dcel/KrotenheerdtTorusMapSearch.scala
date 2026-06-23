@@ -1056,7 +1056,8 @@ object KrotenheerdtTorusMapSearch:
       faces: List[FaceZ],
       n: Int,
       rot: ZetaPoint => ZetaPoint,
-      m: Int
+      m: Int,
+      targetTypes: Set[VertexSignature] = Set.empty
   ): List[List[FaceZ]] =
     val centroid   = faces.flatMap(_.corners).distinct.map(_.toBigPoint).centroid
     val incomplete = faces.flatMap(_.corners).distinct.flatMap: p =>
@@ -1086,7 +1087,14 @@ object KrotenheerdtTorusMapSearch:
             var i     = 0
             while i < m do { orbit ++= acc; acc = acc.map(f => rotateFace(rot, f)); i += 1 }
             val next  = dedupFaces(orbit.toList ++ faces)
-            Option.when(isPlanarConsistent(next) && isSound(next, n))(next)
+            // TYPE-SET CONSTRAINT (when targetTypes non-empty): drop a child the moment it COMPLETES a vertex
+            // whose type is outside the target set. Sound — a valid tiling of that type-set never completes an
+            // off-target vertex — and it collapses the otherwise-exponential growth tree to the paths that can
+            // actually build a tiling of `targetTypes` (the bounded-V-style pruning, kept with the cell/m win).
+            Option.when(
+              isPlanarConsistent(next) && isSound(next, n) &&
+                (targetTypes.isEmpty || completeVertexTypes(next).subsetOf(targetTypes))
+            )(next)
 
   /** Diagnostic: the distinct COMPLETE vertex types (360°-covered) present in a patch — to see, during a
     * symmetric grow, which vertex configurations are actually forming.
@@ -1351,7 +1359,8 @@ object KrotenheerdtTorusMapSearch:
       parallelism: Int = math.max(1, Runtime.getRuntime.availableProcessors - 1),
       log: String => Unit = _ => (),
       logEveryMs: Long = 10000L,
-      maxMillis: Long = Long.MaxValue
+      maxMillis: Long = Long.MaxValue,
+      targetTypes: Set[VertexSignature] = Set.empty
   ): Map[String, (Set[VertexSignature], Set[(String, Int)])] =
     val deadlineNanos                                                                           =
       val now = System.nanoTime()
@@ -1389,15 +1398,24 @@ object KrotenheerdtTorusMapSearch:
         val closed    = committed &&
           (closeCellWithCentres(faces, maxN) match
             case Some((_, types, key, centres, pcov)) =>
-              if pcov <= cov then results.putIfAbsent(key, (types, centres))
+              // record only ON-TARGET closures when constrained: a patch can close into an OFF-target tiling
+              // whose extra vertex type completes only via Λ-wraparound (planar-invisible to the growth filter),
+              // so this closure-level type-set check is what makes the constrained result leak-free. Still
+              // `closed=true` (stop growing — a complete cell only replicates) regardless of on/off target.
+              if pcov <= cov && (targetTypes.isEmpty || types.subsetOf(targetTypes)) then
+                results.putIfAbsent(key, (types, centres))
               true
             case None                                 => false)
         if !closed && faces.sizeIs < maxFaces && System.nanoTime() < deadlineNanos then
-          growBySymmetry(faces, maxN, seed.rot, seed.m).foreach: child =>
+          growBySymmetry(faces, maxN, seed.rot, seed.m, targetTypes).foreach: child =>
             if visited.add((seedIdx, canonicalKey(child))) then submit(seedIdx, seed, seedCorners, child)
       )
     try
-      for (seed, seedIdx) <- allSeeds.zipWithIndex do
+      // when constrained, skip seeds whose own germ already completes an off-target vertex (cheap pre-filter)
+      val seeds0 =
+        if targetTypes.isEmpty then allSeeds
+        else allSeeds.filter(s => completeVertexTypes(s.faces).subsetOf(targetTypes))
+      for (seed, seedIdx) <- seeds0.zipWithIndex do
         val seedCorners = seed.faces.flatMap(_.corners).toSet
         if isPlanarConsistent(seed.faces) && isSound(seed.faces, maxN) &&
           visited.add((seedIdx, canonicalKey(seed.faces)))
