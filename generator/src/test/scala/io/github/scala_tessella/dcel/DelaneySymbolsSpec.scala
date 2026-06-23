@@ -124,6 +124,19 @@ class DelaneySymbolsSpec extends AnyFlatSpec with Matchers:
       d.count(t => DelaneySymbols.edgeMidpointRotationOnly(t._3)) should be > 0
     )
 
+  behavior of "DelaneySymbols.enumerateSymbolsParallel (parallel == sequential)"
+
+  // The parallel generate-all must return the SAME distinct tilings (canonical-key set) as the sequential
+  // enumerateSymbols — no race-dropped or duplicated symbols. maxSize 16 is a fast but non-trivial slice.
+  it should "return the same distinct tilings as enumerateSymbols (keys + count)" in:
+    val seq = DelaneySymbols.enumerateSymbols(3, 16).map(t => DelaneySymbols.canonicalKey(t._3)).toSet
+    val par =
+      DelaneySymbols.enumerateSymbolsParallel(3, 16, parallelism = 4).map(t =>
+        DelaneySymbols.canonicalKey(t._3)
+      ).toSet
+    par shouldBe seq
+    par should not be empty
+
   behavior of "DelaneySymbols completeness & element-for-element agreement (slow — run on demand)"
 
   // parse the reference's compact Wikipedia notation: "3^2.4.3.4" -> 3.3.4.3.4, "3.4^2.6" -> 3.4.4.6, etc.

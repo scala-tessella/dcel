@@ -828,6 +828,50 @@ object DelaneySymbols:
                 out += ((sigs.length, sigs, dsym))
     out.result()
 
+  /** PARALLEL (work-stealing) twin of [[enumerateSymbols]]: the generate-all D-set tree is split across
+    * `parallelism` threads via the shared [[BackTracker.parallelForeach]], each running the same per-dset
+    * pipeline (euclidean gate → DSymGenerator → regular + minimal + distinct-types), DEDUPED by canonical key
+    * into a concurrent set. Returns the DISTINCT tilings (one minimal symbol per key) ⇒ its key-set equals
+    * `enumerateSymbols(...)` deduped (tested). The downstream functions are pure on their inputs; only the
+    * concurrent `seen`/`out` are shared — so this is sound (same pattern as
+    * [[orientedRegularSymbolsParallel]]). Buys a ~`parallelism`× constant factor; the generation tree stays
+    * exponential in `maxSize`. Live `log`.
+    */
+  def enumerateSymbolsParallel(
+      maxN: Int,
+      maxSize: Int,
+      parallelism: Int = math.max(1, Runtime.getRuntime.availableProcessors - 1),
+      log: String => Unit = _ => ()
+  ): List[(Int, List[VertexSignature], DSymbol)] =
+    val seen                      = ConcurrentHashMap.newKeySet[String]()
+    val out                       = new ConcurrentLinkedQueue[(Int, List[VertexSignature], DSymbol)]()
+    val dsets                     = new AtomicLong(0)
+    val t0                        = System.nanoTime()
+    def process(dset: DSet): Unit =
+      dsets.incrementAndGet()
+      if euclideanFeasible(dset) then
+        DSymGenerator(dset).foreach: dsym =>
+          if isEuclidean(dsym) then
+            regularPolygonVertices(dsym).foreach: sigs =>
+              if sigs.length == sigs.toSet.size && sigs.length <= maxN && isMinimal(dsym) then
+                val key = canonicalKey(dsym)
+                if seen.add(key) then out.add((sigs.length, sigs, dsym))
+    val running                   = new AtomicBoolean(true)
+    val logger                    = new Thread(() =>
+      while running.get do
+        try Thread.sleep(15000)
+        catch case _: InterruptedException => ()
+        if running.get then
+          val secs = math.max(1e-3, (System.nanoTime() - t0) / 1e9)
+          val d    = dsets.get
+          log(f"  [maxSize=$maxSize] ${secs}%.0fs  dsets=$d (${(d / secs).toLong}/s)  distinct=${seen.size}")
+    )
+    logger.setDaemon(true)
+    logger.start()
+    try DSetGenerator(maxSize).parallelForeach(parallelism, process)
+    finally { running.set(false); logger.interrupt() }
+    out.iterator.asScala.toList
+
   /** Quantifies the orbifold approach's potential: how many COMPLETE D-sets the generate-all generator walks
     * vs how many are euclidean-feasible (curvature ≥ 0 achievable). The euclidean fraction is the slice an
     * orbifold-directed generator would visit; `1 - fraction` is the hyperbolic universe it would skip.

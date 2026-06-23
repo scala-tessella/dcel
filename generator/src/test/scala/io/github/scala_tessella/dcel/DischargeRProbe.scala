@@ -6,19 +6,25 @@ package io.github.scala_tessella.dcel
   * rotation). If the per-n counts match A068600 (11, 20, 39) AND every tiling has a rotation, then R is
   * PROVEN for n ≤ 3 by exhaustive rotation-blind enumeration — independent of Galebach.
   *
-  * Run: `generator/Test/runMain io.github.scala_tessella.dcel.DischargeRProbe [maxSize]`
+  * Run: `generator/Test/runMain io.github.scala_tessella.dcel.DischargeRProbe [maxN] [maxSize]` (n≤3
+  * discharges at maxSize 24; n=4 is an exploratory push — likely plateaus below 33 at feasible sizes.)
   */
 object DischargeRProbe:
   def main(args: Array[String]): Unit =
-    val maxSize  = args.headOption.map(_.toInt).getOrElse(12)
-    val expected = Map(1 -> 11, 2 -> 20, 3 -> 39) // A068600(1..3)
-    println(s"DischargeRProbe: generate-all oracle enumerateSymbols(maxN=3, maxSize=$maxSize) ...")
-    val syms     = DelaneySymbols.enumerateSymbols(3, maxSize)
+    val maxN     = args.headOption.map(_.toInt).getOrElse(3)
+    val maxSize  = args.lift(1).map(_.toInt).getOrElse(24)
+    val expected = Map(1 -> 11, 2 -> 20, 3 -> 39, 4 -> 33, 5 -> 15, 6 -> 10, 7 -> 7) // A068600
+    val t0       = System.nanoTime()
+    println(
+      s"DischargeRProbe: PARALLEL generate-all enumerateSymbolsParallel(maxN=$maxN, maxSize=$maxSize) ..."
+    )
+    val syms     = DelaneySymbols.enumerateSymbolsParallel(maxN, maxSize, log = println)
     // dedup by canonical key (the oracle may emit several isomorphic minimal symbols per tiling)
     val distinct = syms.groupBy((_, _, ds) => DelaneySymbols.canonicalKey(ds)).values.map(_.head).toList
+    println(f"  (enumerated in ${(System.nanoTime() - t0) / 1e9}%.0fs)")
     var allOk    = true
     var edgeOnly = 0
-    for n <- 1 to 3 do
+    for n <- 1 to maxN do
       val tilings  = distinct.filter(_._1 == n)
       val without  = tilings.filterNot((_, _, ds) => DelaneySymbols.hasRotation(ds))
       edgeOnly += tilings.count((_, _, ds) => DelaneySymbols.edgeMidpointRotationOnly(ds))
@@ -38,12 +44,11 @@ object DischargeRProbe:
         "                 ⇒ the (0,2) edge term is load-bearing and hasRotation is discriminating, not vacuous."
     )
     if allOk then
-      println(
-        "=== R DISCHARGED for n ≤ 3: complete oracle reproduces 11/20/39 AND every tiling has a rotation."
-      )
-      println("    (rotation-agnostic enumeration ⇒ no rotation-free Krötenheerdt tiling exists for n ≤ 3.)")
+      println(s"=== R DISCHARGED for n ≤ $maxN: complete oracle reproduces the A068600 counts AND every")
+      println("    tiling has a rotation ⇒ no rotation-free Krötenheerdt tiling exists for these n.")
     else
       println(
-        "=== NOT discharged: either a count is short (raise maxSize) or a rotation-free tiling was found."
+        s"=== NOT (yet) discharged for n ≤ $maxN: a count is short (raise maxSize — generation wall) " +
+          "OR a rotation-free tiling was found (would be ⚠-flagged above). Reached counts are rotation-blind LOWER bounds."
       )
     println("\n[done]")
