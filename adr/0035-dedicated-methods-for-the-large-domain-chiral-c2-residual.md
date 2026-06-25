@@ -1,6 +1,8 @@
 # ADR-0035: Dedicated methods for the large-domain chiral C₂ residual
 
-- **Status:** Proposed (options enumerated; orbifold-domain growth to be de-risked first).
+- **Status:** Accepted (options enumerated + de-risked). **Orbifold-domain growth (#1) measured the WRONG fix
+  — the n=3 residual is a grower growth-path gap, not depth (see Spike conclusion). Decision: pursue the
+  type-targeted combinatorial oracle (#2) next.**
 - **Date:** 2026-06-25
 - **Follows:** [[0034-fair-enumeration-principle-and-closure-directed-growth]] (closure-directed best-first
   growth built + measured ineffective + rejected; the residual is a sharply-defined hard family).
@@ -70,13 +72,18 @@ search to that bound **certifies** the count (turns every lower bound into a pro
 is the path that connects to proving Conjecture R, and the only one that yields *certified* counts rather than
 sound-lower-bounds-matching-Galebach. Math/literature, not code.
 
-## Plan
+## Plan (original — then overtaken by the spike below)
 
-De-risk **#1** first because it is cheapest and reuses the grower — but, per the re-analysis, the de-risk is a
+De-risk **#1** first because it is cheapest and reuses the grower — the de-risk being a
 **reachability-at-depth measurement** with the *existing* grower (run the n=3 deficit type-sets at high
 `maxFaces`): if depth alone reaches them, orbifold-domain growth is a worthwhile 2× and we build it; if the tree
 explodes first, no growth method works and we move to **#2** (type-targeted oracle, the different tree) and/or
 **#3** (SAT, the different engine). **#4** runs in parallel as the route to certified (not just matched) counts.
+
+**Outcome of that de-risk (see Spike sections below): #1 ABANDONED — the residual is a grower growth-path gap,
+not depth, so a depth/cap lever cannot help. The rotation-agnostic oracle already has these cells. ⇒ Revised
+plan: pursue #2 (type-targeted oracle) next; #3 (SAT) is the fallback if #2 hits the chamber wall; #4 remains
+the certification route.**
 
 ## Spike result (2026-06-25): the residual SPLITS into cap-bound vs tree-walled
 
