@@ -78,6 +78,29 @@ De-risk **#1** first because it is cheapest and reuses the grower — but, per t
 explodes first, no growth method works and we move to **#2** (type-targeted oracle, the different tree) and/or
 **#3** (SAT, the different engine). **#4** runs in parallel as the route to certified (not just matched) counts.
 
+## Spike result (2026-06-25): the residual SPLITS into cap-bound vs tree-walled
+
+`DeepReachProbe` ran the existing DFS grower, constrained, on the three n=3 deficit type-sets at **maxFaces=160,
+12 min/set** (the reachability-at-depth gate). **None closed at 160**, but for two distinct reasons:
+
+| deficit type-set | maxFaces=96 | maxFaces=160 | diagnosis |
+|---|---|---|---|
+| {3².6²; 3.4².6; 3.6.3.6} | 2/3 | 2/3, **quiesced 14 s** | **cap-bound** — tiny tree, cell simply > 160 faces |
+| {3².6²; 3.6.3.6; 6³} | 1/2 | 1/2, hit 12-min cap | **tree-walled** — tree did not quiesce |
+| {3⁶; 3.3.3.3.6; 3².6²} | 2/3 | 2/3, hit 13-min cap | **tree-walled** |
+
+**Interpretation.** The cap-bound set (1) *exhaustively* searched its (tiny) tree at maxFaces=160 and the
+missing cell wasn't there ⇒ its translation cell exceeds 160 faces; the tree is small, so the only barrier is
+the face cap. **This is precisely the case orbifold-domain growth fixes** — storing the C₂ *sector* (cell/2)
+reaches cells up to ~2× the face cap at the same tiny tree, so orbifold-growth has a concrete, evidence-backed
+shot at the cap-bound sub-class. The tree-walled sets (2, 3) did not quiesce in ~12 min; orbifold-growth's 2×
+per-state is only marginal there — they need a different *tree* (#2 type-targeted oracle) or *engine* (#3 SAT).
+
+⇒ **The residual is not one wall but two.** A complete answer needs (a) orbifold-domain growth for the
+cap-bound sub-class AND (b) #2/#3 for the tree-walled sub-class. Caveat for #2: these cells have large minimal
+D-symbols (chambers ∝ domain size), so a type-targeted oracle may itself hit the chamber-tree wall — making #3
+(SAT, which solves rather than enumerates, and can prove UNSAT) the stronger bet for the tree-walled cells.
+
 ## Consequences
 
 - **Positive:** replaces "it's a compute wall, give up" with a ranked menu of genuinely-unexplored paradigms and
