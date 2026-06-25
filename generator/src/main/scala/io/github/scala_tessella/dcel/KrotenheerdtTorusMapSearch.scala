@@ -4,7 +4,7 @@ import io.github.scala_tessella.dcel.VertexTypes.*
 import io.github.scala_tessella.dcel.geometry.{AngleDegree, BigPoint}
 
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong, AtomicReference}
-import java.util.concurrent.{ConcurrentHashMap, Executors, ForkJoinPool, TimeUnit}
+import java.util.concurrent.{ConcurrentHashMap, Executors, ForkJoinPool, PriorityBlockingQueue, TimeUnit}
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.*
 
@@ -1420,6 +1420,123 @@ object KrotenheerdtTorusMapSearch:
       running.set(false)
       logger.interrupt()
       pool.shutdown()
+    results.asScala.toMap
+
+  /** The closure-proximity score of a patch (lower = explore FIRST), for [[symmetryClosureDirectedParallel]].
+    * A patch that is about to CLOSE into a torus cell is a compact disk whose boundary is short relative to
+    * its area (the boundary edges all glue away into the period identification); a sprawling or thin patch
+    * has a long boundary per face. So the boundary-to-area ratio is small for near-closing patches and large
+    * for far-from-closing ones. Crucially it REWARDS GROWTH — a naive "few incomplete vertices / short
+    * boundary" score is non-monotone (you must grow, temporarily adding boundary, before gluing closes), so
+    * it stalls at the seed; the RATIO falls as a patch grows compactly (perimeter ~ √area), driving the
+    * search toward a closed cell instead of fanning out.
+    */
+  private def closureScore(faces: List[FaceZ]): Double =
+    boundaryHalfEdges(faces).size.toDouble / (faces.size + 1.0)
+
+  /** CLOSURE-DIRECTED (best-first) twin of [[symmetryRotationReferenceParallel]] (ADR-0034 §4). IDENTICAL
+    * search space, soundness gate ([[closeCellWithCentres]]), per-seed `visited` dedup and D-symbol keys —
+    * only the EXPLORATION ORDER differs: a global priority frontier ([[closureScore]]) expands the patch
+    * nearest to closing first, instead of DFS. Still EXHAUSTIVE under quiescence (a reordering ⇒ identical
+    * results to the DFS driver — tested); under a `maxStates` / `maxMillis` / `maxFaces` cut it is a sound
+    * LOWER BOUND that should reach the DEEP large-domain C₂ residual cells (n ≥ 3) with far fewer states than
+    * the DFS order, which burns the budget on shallow non-closing patches. `maxStates` caps total patches
+    * popped (for states-to-reach measurement vs the DFS driver). Workers pull from a `PriorityBlockingQueue`;
+    * the search ends when `pending` (queued-or-processing) hits 0 (quiescence) or a budget bound trips.
+    */
+  def symmetryClosureDirectedParallel(
+      maxN: Int,
+      maxFaces: Int,
+      maxCovolume: Double = Double.MaxValue,
+      parallelism: Int = math.max(1, Runtime.getRuntime.availableProcessors - 1),
+      log: String => Unit = _ => (),
+      logEveryMs: Long = 10000L,
+      maxMillis: Long = Long.MaxValue,
+      maxStates: Long = Long.MaxValue,
+      targetTypes: Set[VertexSignature] = Set.empty
+  ): Map[String, (Set[VertexSignature], Set[(String, Int)])] =
+    val deadlineNanos =
+      val now = System.nanoTime()
+      if maxMillis >= Long.MaxValue / 2000000L then Long.MaxValue else now + maxMillis * 1000000L
+    val results       = new ConcurrentHashMap[String, (Set[VertexSignature], Set[(String, Int)])]()
+    val visited       = ConcurrentHashMap.newKeySet[(Int, Vector[Long])]()
+    val statesA       = new AtomicLong(0)
+    val pending       = new AtomicLong(0) // items queued-or-processing; search ends when this hits 0
+    val maxFacesA     = new AtomicLong(0)
+    val running       = new AtomicBoolean(true)
+    val t0            = System.nanoTime()
+    val cov           = BigDecimal(maxCovolume) + BigDecimal("1e-6")
+
+    final case class Item(
+        score: Double,
+        seedIdx: Int,
+        seed: Seed,
+        corners: Set[ZetaPoint],
+        faces: List[FaceZ]
+    )
+    val pq                                                                                = new PriorityBlockingQueue[Item](256, java.util.Comparator.comparingDouble[Item](_.score))
+    def push(seedIdx: Int, seed: Seed, corners: Set[ZetaPoint], faces: List[FaceZ]): Unit =
+      pending.incrementAndGet()
+      pq.put(Item(closureScore(faces), seedIdx, seed, corners, faces))
+
+    val logger = new Thread(() =>
+      while running.get do
+        try Thread.sleep(logEveryMs)
+        catch case _: InterruptedException => ()
+        if running.get then
+          val secs = math.max(1e-3, (System.nanoTime() - t0) / 1e9)
+          val st   = statesA.get
+          log(
+            f"  [${secs}%5.0fs] states=$st%-8d (${(st / secs).toLong}%d/s)  frontier~${pq.size}" +
+              f"  maxfaces=${maxFacesA.get} tilings=${results.size}"
+          )
+    )
+    logger.setDaemon(true)
+
+    def processOne(it: Item): Unit =
+      statesA.incrementAndGet()
+      val fc        = it.faces.size
+      if fc > maxFacesA.get then maxFacesA.set(fc)
+      val committed = it.corners.forall(p => coveredSlots(planarFan(it.faces, p)).sizeIs == 12)
+      val closed    = committed &&
+        (closeCellWithCentres(it.faces, maxN) match
+          case Some((_, types, key, centres, pcov)) =>
+            if pcov <= cov && (targetTypes.isEmpty || types.subsetOf(targetTypes)) then
+              results.putIfAbsent(key, (types, centres))
+            true
+          case None                                 => false)
+      if !closed && it.faces.sizeIs < maxFaces && statesA.get < maxStates && System.nanoTime() < deadlineNanos
+      then
+        growBySymmetry(it.faces, maxN, it.seed.rot, it.seed.m, targetTypes).foreach: child =>
+          if visited.add((it.seedIdx, canonicalKey(child))) then push(it.seedIdx, it.seed, it.corners, child)
+
+    val workers = (0 until parallelism).map: _ =>
+      val th = new Thread(() =>
+        var done = false
+        while !done do
+          val it = pq.poll(50, TimeUnit.MILLISECONDS)
+          if it == null then { if pending.get == 0 then done = true }
+          else
+            try processOne(it)
+            finally pending.decrementAndGet()
+      )
+      th.setDaemon(true)
+      th
+    try
+      val seeds0 =
+        if targetTypes.isEmpty then allSeeds
+        else allSeeds.filter(s => completeVertexTypes(s.faces).subsetOf(targetTypes))
+      for (seed, seedIdx) <- seeds0.zipWithIndex do
+        val corners = seed.faces.flatMap(_.corners).toSet
+        if isPlanarConsistent(seed.faces) && isSound(seed.faces, maxN) &&
+          visited.add((seedIdx, canonicalKey(seed.faces)))
+        then push(seedIdx, seed, corners, seed.faces)
+      logger.start()
+      workers.foreach(_.start())
+      workers.foreach(_.join())
+    finally
+      running.set(false)
+      logger.interrupt()
     results.asScala.toMap
 
   /** Profiling variant of [[enumerateFromSeed]] (single seed, own results/visited): runs the SAME DFS but

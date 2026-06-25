@@ -76,6 +76,23 @@ shortest path rather than wandering. It is **still exhaustive** (a reordering of
 cap, a sound lower bound), so it sacrifices no fairness or completeness — it only reaches deep closures with
 far fewer states. This is ADR-0033 lever #2, now promoted after lever #1 (arc prune) was rejected.
 
+> **MEASURED INEFFECTIVE — lever REJECTED (2026-06-25).** Built `symmetryClosureDirectedParallel` (a global
+> priority frontier scored by closure-proximity = boundary-to-area ratio, a sound reordering ⇒ identical
+> results to the DFS driver at quiescence, tested), and de-risked head-to-head vs the DFS driver at n=3,
+> maxFaces=96/120, equal time budget. **Best-first LOST decisively, both unconstrained (n=3 4/39 vs DFS 30/39 —
+> a strict subset) and constrained to a deep deficit type-set (n=3 0/3 vs DFS 2/3).** Root cause: a tiling
+> closes only when ONE branch is grown all the way to its fundamental domain; **DFS's depth-first commitment is
+> precisely what produces closures.** A global best-first frontier interleaves many branches, growing each
+> partway to the face cap without ever finishing one (the heartbeats show the frontier stuck ~130 patches at
+> maxfaces while `tilings` flatlines). Neither the compactness score nor the per-type-set constraint rescues it
+> — the failure is structural to best-first, not the score. Moreover the *useful* form of closure-direction
+> (ordering each vertex's completions + the compact-disk MRV tie-break) **already lives in the DFS grower** at
+> the child level; the new global reordering only removes the commitment that was working. ⇒ The "reorder the
+> frontier" lever is exhausted. Kept the driver + its soundness tests as the measurement artifact (it could be
+> revived only with a *hard branch-commitment* + a fair target-covolume bound, which reduces to a pruned DFS,
+> not a best-first frontier). **Remaining levers for n≥4 are now raw compute (distribution, ADR-0033 #5) and
+> the targeted oracle run for n=4 R — not a smarter grower ordering.**
+
 ## Consequences
 
 - **Positive:** keeps the result scientifically honest (counts are evidence, not transcription); gives a clear,

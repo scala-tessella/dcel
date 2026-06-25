@@ -314,6 +314,36 @@ class SymmetryGrowerSpec extends AnyFlatSpec with Matchers:
     withClue(s"unconstrained on-target $uncT not ⊆ constrained $conT: ")(uncT.subsetOf(conT) shouldBe true)
     conT should not be empty
 
+  behavior of "symmetryClosureDirectedParallel (best-first — same tilings as DFS, different order)"
+
+  // CLOSURE-DIRECTED (best-first) growth (ADR-0034 §4) reorders the SAME search space by closure-proximity.
+  // Under full quiescence it must return the IDENTICAL tilings as the DFS driver (a reordering loses nothing).
+  // Tested two ways: (a) EXACT equality on a tiny FULLY-QUIESCED target ({6.6.6}: the hexagon closes at 7 faces,
+  // far under maxFaces, so both drivers exhaust the same space ⇒ identical keys, types AND centres); (b) the
+  // order-independent invariant on the n=1 cheap core (agrees with DFS on shared keys, sound, finds the core).
+  it should "equal the DFS driver exactly on a fully-quiesced target ({6.6.6})" in:
+    val t   = Set(sig("6.6.6"))
+    val dfs =
+      KrotenheerdtTorusMapSearch.symmetryRotationReferenceParallel(1, 12, parallelism = 4, targetTypes = t)
+    val bf  =
+      KrotenheerdtTorusMapSearch.symmetryClosureDirectedParallel(1, 12, parallelism = 4, targetTypes = t)
+    bf should not be empty
+    bf.keySet shouldBe dfs.keySet
+    bf.foreach((k, v) => withClue(s"key $k: ")(v shouldBe dfs(k)))
+
+  it should "agree with the DFS driver on shared keys + be sound + find the cheap core (best-first)" in:
+    val dfs                                                              = KrotenheerdtTorusMapSearch.symmetryRotationReferenceParallel(1, 16, parallelism = 4)
+    val bf                                                               = KrotenheerdtTorusMapSearch.symmetryClosureDirectedParallel(1, 16, parallelism = 4)
+    val shared                                                           = bf.keySet intersect dfs.keySet
+    shared should not be empty
+    shared.foreach(k => withClue(s"key $k: ")(bf(k) shouldBe dfs(k)))
+    bf.values.foreach((_, centres) =>
+      centres should not be empty
+      centres.foreach((_, o) => withClue(s"order $o: ")(Set(2, 3, 4, 6) should contain(o)))
+    )
+    def core(m: Map[String, (Set[VertexSignature], Set[(String, Int)])]) = m.values.map(_._1).toSet
+    Set("6.6.6", "4.4.4.4").map(s => Set(sig(s))).subsetOf(core(bf)) shouldBe true
+
   behavior of "enumerateAllSeedsParallel (work-stealing — sound, finds the budget-stable core)"
 
   // CONCURRENCY correctness, budget-robust. Exact parallel==sequential equality holds only for BUDGET-COMPLETE
