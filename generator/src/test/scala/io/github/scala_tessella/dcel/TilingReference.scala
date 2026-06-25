@@ -140,7 +140,10 @@ object TilingReference:
         "3^2.6^2; 3.4^2.6; 3.6.3.6",
         "3^2.6^2; 3.4^2.6; 3.6.3.6",
         "3^4.6; 3^3.4^2; 3.4^2.6",
-        "3^2.6^2; 3.4^2.6; 3.6.3.6",
+        // AUDIT-CORRECTED (ReferenceAuditProbe, 2026-06-25): this row was a 3rd copy of
+        // "3^2.6^2; 3.4^2.6; 3.6.3.6", but the sound+complete n≤3 oracle finds that type-set has only 2 cells
+        // and {3^6;3^3.4^2;4^4} has 4 (not 3) — a compensating Wikipedia transcription error (totals stayed 39).
+        "3^6; 3^3.4^2; 4^4",
         "3^2.6^2; 3.6.3.6; 6^3",
         "3^2.6^2; 3.6.3.6; 6^3",
         "3^4.6; 3^2.6^2; 6^3",
