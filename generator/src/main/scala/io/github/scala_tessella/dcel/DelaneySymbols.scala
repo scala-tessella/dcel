@@ -1009,6 +1009,15 @@ object DelaneySymbols:
       orbits(ds.dset, 1, 2).exists(o => ds.v(1, 2, o.elements.head) > 1) ||
       orbits(ds.dset, 0, 2).exists(o => ds.v(0, 2, o.elements.head) > 1)
 
+  /** The MAXIMUM rotation order (cone order > 1) over all three orbit families — faces (0,1), vertices (1,2),
+    * edge-midpoints (0,2). 2 = C₂-max (the single-direction-banded symmetry signature), 3/4/6 = higher. 1
+    * would mean rotation-free (none for n ≤ 3, R discharged).
+    */
+  def maxConeOrder(ds: DSymbol): Int =
+    def mx(i: Int, j: Int): Int =
+      orbits(ds.dset, i, j).map(o => ds.v(i, j, o.elements.head)).maxOption.getOrElse(1)
+    math.max(mx(0, 1), math.max(mx(1, 2), mx(0, 2)))
+
   /** True iff the tiling has a rotation but ONLY via an edge-midpoint 2-fold (a `(0,2)`-orbit cone), with no
     * face `(0,1)` or vertex `(1,2)` cone. These are exactly the cells a face/vertex-only test (reading only
     * [[orbifoldSignature]]'s cone-tile/cone-vert) would misclassify as rotation-free — so a non-zero count

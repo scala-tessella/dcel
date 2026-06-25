@@ -53,3 +53,4 @@ shared/src/test/resources/generator/
 .scalex/
 /paper scan.pdf
 sweep-logs/
+generator/results/
