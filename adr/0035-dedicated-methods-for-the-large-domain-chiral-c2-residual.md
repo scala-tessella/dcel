@@ -3,6 +3,13 @@
 - **Status:** Accepted (options enumerated + de-risked). **Orbifold-domain growth (#1) measured the WRONG fix
   — the n=3 residual is a grower growth-path gap, not depth (see Spike conclusion). Decision: pursue the
   type-targeted combinatorial oracle (#2) next.**
+- **RETRACTION (2026-06-25):** the premise "the residual is *large-domain chiral C₂*" was an ARTIFACT of
+  `TilingReference` transcription errors + measuring the grower against wrong multiplicities. The reference
+  audit (oracle vs reference, n≤3) found 2 compensating n=3 errors; corrected, the grower's true n=3 reach is
+  **32/39** (not 36), and the 7 missed cells are mostly **SMALL** (D=11–18, all with seedable C₂/C₃/C₆ rotations
+  + mirrors), not large. ⇒ the grower has a real, NOT-depth completeness bug to be investigated (not an
+  abandon-the-grower conclusion). The orbifold-growth de-risk conclusion below still stands (depth is not the
+  cause); only the "large-domain" characterization is withdrawn.
 - **Date:** 2026-06-25
 - **Follows:** [[0034-fair-enumeration-principle-and-closure-directed-growth]] (closure-directed best-first
   growth built + measured ineffective + rejected; the residual is a sharply-defined hard family).
