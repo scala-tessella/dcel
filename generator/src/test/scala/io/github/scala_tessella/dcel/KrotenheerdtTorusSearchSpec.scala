@@ -84,6 +84,53 @@ class KrotenheerdtTorusSearchSpec extends AnyFlatSpec with Matchers:
     ).tilings.map(_._2).toSet
     withClue(s"maxBandLen=1 keys not ⊆ maxBandLen=6 keys: ")(short.subsetOf(long) shouldBe true)
 
+  private def sig(s: String): VertexSignature = normalize(s.split('.').map(_.toInt).toList)
+
+  // THE assumption that bit a probe: enumerateBanded emits the fixed-Λ GEOMETRIC content key, which is a
+  // DIFFERENT canonicalization from the oracle's D-symbol key — so the two are NOT key-comparable, and
+  // cross-engine comparison must be by type-set. Lock it: on the shared n=1 tilings the key sets are disjoint.
+  it should
+    "emit the GEOMETRIC content key (disjoint from the oracle's D-symbol keys — compare by type-set)" in:
+      val bandedKeys     =
+        KrotenheerdtTorusSearch.enumerateBanded(1, 3, 2.6, parallelism = 4).tilings.map(_._2).toSet
+      val oracleDsymKeys = DelaneySymbols.keyedTilings(1, 12).map(_._3).toSet
+      bandedKeys should not be empty
+      oracleDsymKeys should not be empty
+      withClue("banded geometric keys overlap oracle D-symbol keys — the comparison-scheme assumption: ")(
+        (bandedKeys intersect oracleDsymKeys) shouldBe empty
+      )
+
+  // Validates the comparison the probe DOES use (by type-set): every type-set enumerateBanded emits at n=2 is a
+  // real 2-uniform type-set (the audit confirmed TilingReference.n2 is correct), so type-set counts are a sound
+  // basis for reach. (Reach magnitude itself is a probe measurement, not asserted here.)
+  it should "emit only genuine 2-uniform type-sets at n=2 (type-set-sound)" in:
+    val out         = KrotenheerdtTorusSearch.enumerateBanded(2, 5, 8.0, maxBandLen = 3, parallelism = 4)
+    val refTypeSets = TilingReference.n2.toSet
+    out.tilings.map(_._1).toSet.foreach(ts =>
+      withClue(s"spurious n=2 type-set $ts: ")(refTypeSets should contain(ts))
+    )
+
+  // The onGeometry callback (visual rendering): fires once per found tiling and hands back well-formed geometry
+  // — every face a {3,4,6,12}-gon with `size` corners, and a non-degenerate lattice basis.
+  it should "hand back valid geometry per tiling via onGeometry" in:
+    var calls = 0
+    val out   = KrotenheerdtTorusSearch.enumerateBanded(
+      1,
+      3,
+      2.6,
+      parallelism = 1, // serial so `calls` is race-free
+      onGeometry = (_, _, faces, bV, bW) =>
+        calls += 1
+        faces should not be empty
+        faces.foreach: (sz, pts) =>
+          Set(3, 4, 6, 12) should contain(sz)
+          pts should have size sz // a face has `size` corners
+        withClue("degenerate lattice basis: ")(
+          math.abs(bV._1 * bW._2 - bV._2 * bW._1) should be > 0.1
+        )
+    )
+    calls shouldBe out.tilings.size // exactly one geometry per distinct tiling
+
   behavior of "TilingReference n=3 audit correction (ReferenceAuditProbe, 2026-06-25)"
 
   // The oracle (sound + complete for n≤3) corrected two compensating Wikipedia transcription errors in the n=3

@@ -278,7 +278,17 @@ object KrotenheerdtTorusSearch:
       maxCovolume: Double,
       maxBandLen: Int = 6,
       parallelism: Int = 1,
-      log: String => Unit = _ => ()
+      log: String => Unit = _ => (),
+      // per distinct tiling: (types, geometric key, faces as (size, Double corners), basisV, basisW) — for
+      // SVG rendering. NB the `key` is the fixed-Λ GEOMETRIC content key, NOT the oracle's D-symbol key, so
+      // cross-engine comparison must be by type-set count (or re-keyed via the geometry), not by this key.
+      onGeometry: (
+          Set[VertexSignature],
+          String,
+          List[(Int, Vector[(Double, Double)])],
+          (Double, Double),
+          (Double, Double)
+      ) => Unit = (_, _, _, _, _) => ()
   ): Outcome =
     import java.util.concurrent.ConcurrentHashMap
     import java.util.concurrent.atomic.AtomicLong
@@ -294,6 +304,7 @@ object KrotenheerdtTorusSearch:
         math.abs(x * sy - y * sx) < 1e-6 && math.abs(len - math.round(len)) < 1e-6
     val bases                                      = candidateBasesZeta(k, maxCovolume).filter((vz, wz) => alongEdge(vz) || alongEdge(wz))
     val found                                      = new ConcurrentHashMap[String, Set[VertexSignature]]()
+    val geo                                        = new ConcurrentHashMap[String, (List[FaceZ], BigPoint, BigPoint)]()
     val states                                     = new AtomicLong(0)
     val faceCap                                    = sys.props.get("krot.facecap").map(_.toInt).getOrElse(64)
     val perCap                                     = sys.props.get("krot.percap").map(_.toLong).getOrElse(100000L)
@@ -310,7 +321,15 @@ object KrotenheerdtTorusSearch:
         perCap,
         grower,
         true,
-        (f, v, w, o) => classify(f, v, w, o, n),
+        // capture the verifying patch + basis per emitted (geometric) key, for rendering — wrapping the
+        // classifyFn I pass, so no change to the shared runLattice/enumerate.
+        (f, v, w, o) =>
+          val verd = classify(f, v, w, o, n)
+          verd match
+            case Verdict.Emit(_, _, key) => geo.putIfAbsent(key, (f, v, w)): Unit
+            case _                       => ()
+          verd
+        ,
         (_, t, key) => found.putIfAbsent(key, t): Unit
       )
       states.addAndGet(count)
@@ -319,7 +338,12 @@ object KrotenheerdtTorusSearch:
       val pool = java.util.concurrent.Executors.newFixedThreadPool(parallelism)
       try bases.foreach((vz, wz) => pool.submit(new Runnable { def run(): Unit = runOne(vz, wz) }))
       finally { pool.shutdown(); pool.awaitTermination(7, java.util.concurrent.TimeUnit.DAYS) }
-    Outcome(found.asScala.toList.map((key, t) => (t, key)).sortBy(_._2), bases.size, states.get)
+    val result                                     = Outcome(found.asScala.toList.map((key, t) => (t, key)).sortBy(_._2), bases.size, states.get)
+    result.tilings.foreach: (types, key) =>
+      geo.asScala.get(key).foreach: (faces, vB, wB) =>
+        val pub = faces.map(f => (f.size, f.corners.map(dxy)))
+        onGeometry(types, key, pub, (vB.x.toDouble, vB.y.toDouble), (wB.x.toDouble, wB.y.toDouble))
+    result
 
   /** Combined all-n pass: one search over the candidate lattices that keeps EVERY Krotenheerdt tiling with
     * `n ≤ maxN` (accepted via [[classifyAnyN]] when orbits = types), tagged by its `n`. Growth uses the loose
