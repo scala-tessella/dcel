@@ -54,6 +54,7 @@ decision. Each file has:
 | 0032 | [Symmetry-first geometric grower — the scatter wall falls](0032-symmetry-first-geometric-grower.md) | Accepted (n=1 complete, n=2 15/20; parallel) |
 | 0033 | [Closing the depth residual — n≤7 feasibility + speed levers](0033-closing-the-depth-residual-feasibility-and-speed-levers.md) | Accepted (arc-prune lever built + measured ineffective, rejected) |
 | 0034 | [Fairness principle — Galebach is a validation oracle, not a source](0034-fair-enumeration-principle-and-closure-directed-growth.md) | Accepted; Conjecture R DISCHARGED for n≤3 (open n=4-7) |
+| 0035 | [Dedicated methods for the large-domain chiral C₂ residual](0035-dedicated-methods-for-the-large-domain-chiral-c2-residual.md) | Proposed (orbifold-domain growth de-risked first) |
 
 ## When to add an ADR
 
