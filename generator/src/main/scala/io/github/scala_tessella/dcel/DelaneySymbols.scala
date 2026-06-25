@@ -204,7 +204,8 @@ object DelaneySymbols:
 
   final private case class DSetGenState(ds: DSet, isRemapStart: Array[Boolean])
 
-  final private class DSetGenerator(maxSize: Int) extends BackTracker[DSet, DSetGenState]:
+  final private class DSetGenerator(maxSize: Int, prune: Boolean = true)
+      extends BackTracker[DSet, DSetGenState]:
     def root: DSetGenState = DSetGenState(DSet.empty1, Array.fill(maxSize + 1)(false))
 
     def extract(st: DSetGenState): Option[DSet] =
@@ -227,7 +228,9 @@ object DelaneySymbols:
               var ok                   = true
               if gap == 1 then dset.set(k, head, tail)
               else if gap == 0 && head != tail then ok = false
-              if ok && regularFeasible(dset) && checkCanonicity(dset, isRemapStart) then
+              if ok && regularFeasible(dset) && (!prune || partialEuclideanFeasible(dset, maxSize)) &&
+                checkCanonicity(dset, isRemapStart)
+              then
                 out += DSetGenState(dset, isRemapStart)
             e += 1
           out.result()
@@ -281,6 +284,60 @@ object DelaneySymbols:
         else if len > 2 * maxR then return false // open orbit already too long to ever be admissible
       d += 1
     true
+
+  /** PRUNE the generation tree on PARTIAL curvature: an upper bound on the curvature κ of ANY completion of
+    * this partial D-set to `≤ maxSize` chambers. `κ_upper < 0` ⇒ every completion is hyperbolic, so the whole
+    * subtree can never yield a euclidean (flat) tiling and is dropped. The exact [[euclideanFeasible]] still
+    * runs on the completed D-sets — this only avoids GENERATING provably-hyperbolic subtrees (the
+    * generate-all cost wall: today only completed D-sets are curvature-filtered, after the entire tree is
+    * walked).
+    *
+    * SOUND bound, in integer twelfths. For a complete set κ = Σ_orbits contrib(O), contrib(O) = k/minV −
+    * len/4 (k = 1 chain, 2 otherwise) — exact, since the (0,1)- and (1,2)-orbits each partition the s
+    * chambers. That splits per chamber per orbit-family as `1/(minV·r) − 1/4 ≤ 1/12` (max at r = 1, 3). So
+    * per side (tiles (0,1), vertices (1,2)) every NOT-yet-closed chamber adds ≤ 1/12, giving
+    * `κ_upper = Σ_side [ Σ_closed contrib + (maxSize − closedChambers)/12 ]`. The closed orbits' contrib is
+    * fixed and is where the bound bites deep in the tree (a closed r ≥ 5 vertex or a big polygon is strongly
+    * negative). 12·contrib is integral: non-chain `24/minV − 6r`, chain `12/minV − 3r`. A prefix of a
+    * feasible D-set E always has `κ_upper ≥ κ_max(E) ≥ 0` (E's extra orbits cover ≤ maxSize − closedChambers
+    * chambers, each ≤ 1/12 per side) ⇒ a feasible tiling is NEVER pruned — soundness is exact.
+    */
+  private def partialEuclideanFeasible(ds: DSet, maxSize: Int): Boolean =
+    sideBoundTimes12(ds, 0, 1, maxSize) + sideBoundTimes12(ds, 1, 2, maxSize) >= 0
+
+  /** `12 · [ Σ_closed contrib + (maxSize − closedChambers)/12 ]` for the `(i, j)`-orbit family — one side of
+    * the [[partialEuclideanFeasible]] bound. Walks the orbits once (like [[feasibleOrbits]]), summing
+    * `12·contrib` over CLOSED orbits and counting their chambers; open orbits contribute only via the budget.
+    */
+  private def sideBoundTimes12(ds: DSet, i: Int, j: Int, maxSize: Int): Long =
+    val seen           = Array.fill(ds.size + 1)(false)
+    var closedContrib  = 0L
+    var closedChambers = 0
+    var d              = 1
+    while d <= ds.size do
+      if !seen(d) then
+        var e        = d
+        var k        = i
+        var len      = 0
+        var isChain  = false
+        var complete = true
+        var go       = true
+        while go do
+          if !seen(e) then { seen(e) = true; len += 1 }
+          val ek = ds.get(k, e)
+          if ek == 0 then { complete = false; go = false }
+          else
+            if ek == e then isChain = true
+            e = ek
+            k = i + j - k
+            if e == d && k == i then go = false
+        if complete then
+          val r    = if isChain then len else (len + 1) / 2
+          val minV = if r >= 3 then 1 else if r == 2 then 2 else 3
+          closedContrib += (if isChain then 12 / minV - 3 * r else 24 / minV - 6 * r)
+          closedChambers += len
+      d += 1
+    closedContrib + (maxSize - closedChambers)
 
   /** Scan the alternating 0,2-orbit from `d`; returns (head, tail, gap, k) — the manifold-closure helper. */
   private def scan02Orbit(ds: DSet, d: Int): (Int, Int, Int, Int) =
@@ -818,8 +875,20 @@ object DelaneySymbols:
     * orbifold-directed enumerator can inspect the symbols it must reproduce.
     */
   def enumerateSymbols(maxN: Int, maxSize: Int): List[(Int, List[VertexSignature], DSymbol)] =
+    enumerateSymbolsPrunable(maxN, maxSize, prune = true)
+
+  /** Test seam: [[enumerateSymbols]] with the partial-curvature generation prune toggleable. With `prune =
+    * false` the generator walks the FULL D-set tree (no [[partialEuclideanFeasible]] cut). A
+    * `prune == !prune` canonical-key-set equality test then proves the prune drops no tiling (soundness of
+    * the cut) directly, rather than only via the slow complete-count check.
+    */
+  private[dcel] def enumerateSymbolsPrunable(
+      maxN: Int,
+      maxSize: Int,
+      prune: Boolean
+  ): List[(Int, List[VertexSignature], DSymbol)] =
     val out = List.newBuilder[(Int, List[VertexSignature], DSymbol)]
-    DSetGenerator(maxSize).foreach: dset =>
+    DSetGenerator(maxSize, prune).foreach: dset =>
       if euclideanFeasible(dset) then
         DSymGenerator(dset).foreach: dsym =>
           if isEuclidean(dsym) then

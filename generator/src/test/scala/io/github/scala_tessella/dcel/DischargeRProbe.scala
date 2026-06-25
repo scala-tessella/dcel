@@ -13,12 +13,15 @@ object DischargeRProbe:
   def main(args: Array[String]): Unit =
     val maxN     = args.headOption.map(_.toInt).getOrElse(3)
     val maxSize  = args.lift(1).map(_.toInt).getOrElse(24)
+    // SAFEGUARD: cap parallelism BELOW core count (default leaves only 1 core ⇒ a long run pins every
+    // core on GC and the desktop becomes unresponsive). Pass e.g. 12 on a 16-core box to keep it usable.
+    val par      = args.lift(2).map(_.toInt).getOrElse(math.max(1, Runtime.getRuntime.availableProcessors - 1))
     val expected = Map(1 -> 11, 2 -> 20, 3 -> 39, 4 -> 33, 5 -> 15, 6 -> 10, 7 -> 7) // A068600
     val t0       = System.nanoTime()
     println(
-      s"DischargeRProbe: PARALLEL generate-all enumerateSymbolsParallel(maxN=$maxN, maxSize=$maxSize) ..."
+      s"DischargeRProbe: PARALLEL generate-all enumerateSymbolsParallel(maxN=$maxN, maxSize=$maxSize, parallelism=$par) ..."
     )
-    val syms     = DelaneySymbols.enumerateSymbolsParallel(maxN, maxSize, log = println)
+    val syms     = DelaneySymbols.enumerateSymbolsParallel(maxN, maxSize, parallelism = par, log = println)
     // dedup by canonical key (the oracle may emit several isomorphic minimal symbols per tiling)
     val distinct = syms.groupBy((_, _, ds) => DelaneySymbols.canonicalKey(ds)).values.map(_.head).toList
     println(f"  (enumerated in ${(System.nanoTime() - t0) / 1e9}%.0fs)")

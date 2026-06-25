@@ -124,6 +124,30 @@ class DelaneySymbolsSpec extends AnyFlatSpec with Matchers:
       d.count(t => DelaneySymbols.edgeMidpointRotationOnly(t._3)) should be > 0
     )
 
+  behavior of "DelaneySymbols partial-curvature generation prune (sound — drops no tiling)"
+
+  // The DSetGenerator prune (partialEuclideanFeasible) cuts subtrees whose EVERY completion is provably
+  // hyperbolic. It must therefore change NOTHING in the output: the pruned and un-pruned generators must yield
+  // the IDENTICAL set of distinct tilings (canonical keys) AND the same per-n counts. This is the direct
+  // soundness guard — any over-prune (a feasible D-set wrongly cut) would shrink the pruned key set. maxSize 18
+  // exercises real pruning across n ≤ 3 in a few seconds (the FULL discharge at maxSize 24 is the slow guard).
+  it should "yield the identical distinct-tiling key set as the un-pruned generator (maxSize 18)" in:
+    def keys(prune: Boolean) =
+      DelaneySymbols.enumerateSymbolsPrunable(3, 18, prune)
+        .map(t => DelaneySymbols.canonicalKey(t._3)).toSet
+    val pruned               = keys(true)
+    val unpruned             = keys(false)
+    withClue("prune dropped tilings the full tree finds: ")((unpruned -- pruned) shouldBe empty)
+    withClue("prune invented tilings the full tree lacks: ")((pruned -- unpruned) shouldBe empty)
+    pruned should not be empty
+
+  it should "give the same per-n counts pruned vs un-pruned (maxSize 18)" in:
+    def byN(prune: Boolean) =
+      DelaneySymbols.enumerateSymbolsPrunable(3, 18, prune)
+        .groupBy(t => DelaneySymbols.canonicalKey(t._3)).values.map(_.head).toList
+        .groupBy(_._1).view.mapValues(_.size).toMap
+    byN(true) shouldBe byN(false)
+
   behavior of "DelaneySymbols.enumerateSymbolsParallel (parallel == sequential)"
 
   // The parallel generate-all must return the SAME distinct tilings (canonical-key set) as the sequential
