@@ -261,6 +261,66 @@ object KrotenheerdtTorusSearch:
       )
     Outcome(found.asScala.toList.map((key, t) => (t, key)).sortBy(_._2), bases.size, states.get)
 
+  /** STRIP-STACKING enumerator (ADR-0037): the exact fixed-Λ engine RESTRICTED to lattices that have a short
+    * EDGE-ALIGNED basis vector — the in-band period of a BANDED tiling (single-direction strips ⇒ C₂-max),
+    * the other basis vector being the stacking period. This is exactly the family the symmetry grower misses
+    * (its compact-disk growth + shortest-period closure are biased against anisotropic, elongated cells);
+    * fixing the band period skips the expensive isotropic high-covolume lattices, so the (often elongated)
+    * banded cells are reached cheaply. SOUND + complete-for-covolume by inheritance from [[enumerate]] (same
+    * `runLattice` / `classify`); keys are in the shared D-symbol space, so results dedup with the oracle /
+    * grower / bounded-V. `maxBandLen` bounds the in-band period length considered. Fair / answer-blind (it
+    * finds every banded tiling with an edge-aligned period ≤ maxBandLen and covolume ≤ maxCovolume, not
+    * specific known ones).
+    */
+  def enumerateBanded(
+      n: Int,
+      k: Int,
+      maxCovolume: Double,
+      maxBandLen: Int = 6,
+      parallelism: Int = 1,
+      log: String => Unit = _ => ()
+  ): Outcome =
+    import java.util.concurrent.ConcurrentHashMap
+    import java.util.concurrent.atomic.AtomicLong
+    import scala.jdk.CollectionConverters.*
+    // band-aligned: a basis vector is a positive integer multiple of a unit edge direction, length ≤ maxBandLen
+    def alongEdge(p: ZetaPoint): Boolean           =
+      val (x, y) = dxy(p)
+      val len    = math.hypot(x, y)
+      if len < 0.5 || len > maxBandLen + 1e-6 then false
+      else
+        val slot     = math.round(((math.toDegrees(math.atan2(y, x)) + 360) % 360) / 30).toInt % 12
+        val (sx, sy) = dxy(ZetaPoint.step(slot))
+        math.abs(x * sy - y * sx) < 1e-6 && math.abs(len - math.round(len)) < 1e-6
+    val bases                                      = candidateBasesZeta(k, maxCovolume).filter((vz, wz) => alongEdge(vz) || alongEdge(wz))
+    val found                                      = new ConcurrentHashMap[String, Set[VertexSignature]]()
+    val states                                     = new AtomicLong(0)
+    val faceCap                                    = sys.props.get("krot.facecap").map(_.toInt).getOrElse(64)
+    val perCap                                     = sys.props.get("krot.percap").map(_.toLong).getOrElse(100000L)
+    val grower                                     = (f: List[FaceZ], v: BigPoint, w: BigPoint) => growByCompletion(f, v, w, n)
+    log(
+      s"banded n=$n k=$k maxCovol=$maxCovolume maxBandLen=$maxBandLen: ${bases.size}/${candidateBasesZeta(k, maxCovolume).size} band-aligned lattices"
+    )
+    def runOne(vz: ZetaPoint, wz: ZetaPoint): Unit =
+      val (count, _) = runLattice(
+        n,
+        vz,
+        wz,
+        faceCap,
+        perCap,
+        grower,
+        true,
+        (f, v, w, o) => classify(f, v, w, o, n),
+        (_, t, key) => found.putIfAbsent(key, t): Unit
+      )
+      states.addAndGet(count)
+    if parallelism <= 1 then bases.foreach((vz, wz) => runOne(vz, wz))
+    else
+      val pool = java.util.concurrent.Executors.newFixedThreadPool(parallelism)
+      try bases.foreach((vz, wz) => pool.submit(new Runnable { def run(): Unit = runOne(vz, wz) }))
+      finally { pool.shutdown(); pool.awaitTermination(7, java.util.concurrent.TimeUnit.DAYS) }
+    Outcome(found.asScala.toList.map((key, t) => (t, key)).sortBy(_._2), bases.size, states.get)
+
   /** Combined all-n pass: one search over the candidate lattices that keeps EVERY Krotenheerdt tiling with
     * `n ≤ maxN` (accepted via [[classifyAnyN]] when orbits = types), tagged by its `n`. Growth uses the loose
     * `≤ maxN` type prune, so the expensive near-miss/lattice work is done ONCE instead of once per n — the

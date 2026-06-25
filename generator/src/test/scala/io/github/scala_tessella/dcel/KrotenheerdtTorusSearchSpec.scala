@@ -1,6 +1,6 @@
 package io.github.scala_tessella.dcel
 
-import io.github.scala_tessella.dcel.VertexTypes.VertexSignature
+import io.github.scala_tessella.dcel.VertexTypes.{VertexSignature, normalize}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -44,3 +44,53 @@ class KrotenheerdtTorusSearchSpec extends AnyFlatSpec with Matchers:
       val fixedKeys    = KrotenheerdtTorusSearch.enumerate(n, k, covol, parallelism = 4).tilings.map(_._2).toSet
       val combinedKeys = combined.collect { case (m, _, key) if m == n => key }.toSet
       withClue(s"n=$n: ")(combinedKeys shouldBe fixedKeys)
+
+  behavior of "KrotenheerdtTorusSearch.enumerateBanded (strip-stacking — ADR-0037)"
+
+  // enumerateBanded is `enumerate` RESTRICTED to band-aligned lattices, so by construction its keys must be a
+  // SUBSET of the full engine's (no new/spurious tilings — the restriction can only drop lattices) and it must
+  // still REACH the band-aligned cells (the short-edge-period ones). Fast at n=1, covol 2.6.
+  it should "emit only a subset of the full fixed-Λ engine's keys (sound, no spurious)" in:
+    val full   = KrotenheerdtTorusSearch.enumerate(1, 3, 2.6, parallelism = 4).tilings.map(_._2).toSet
+    val banded = KrotenheerdtTorusSearch.enumerateBanded(1, 3, 2.6, parallelism = 4).tilings.map(_._2).toSet
+    banded should not be empty
+    withClue(s"banded keys not ⊆ full engine keys (spurious!): ")(banded.subsetOf(full) shouldBe true)
+
+  it should "reach the short-edge-period banded n=1 cells (4⁴, 3³.4², 3⁶)" in:
+    val typeSets = KrotenheerdtTorusSearch.enumerateBanded(
+      1,
+      3,
+      2.6,
+      parallelism = 4
+    ).tilings.map(_._1.map(_.sorted)).toSet
+    typeSets should contain(Set(List(4, 4, 4, 4)))    // square grid — rows of squares, period 1
+    typeSets should contain(Set(List(3, 3, 3, 4, 4))) // elongated triangular — the archetypal banded tiling
+    typeSets should contain(Set(List(3, 3, 3, 3, 3, 3))) // triangular — period 1 along an edge
+
+  it should "be monotone in maxBandLen (a longer in-band period reaches a superset)" in:
+    val short = KrotenheerdtTorusSearch.enumerateBanded(
+      1,
+      3,
+      2.6,
+      maxBandLen = 1,
+      parallelism = 4
+    ).tilings.map(_._2).toSet
+    val long  = KrotenheerdtTorusSearch.enumerateBanded(
+      1,
+      3,
+      2.6,
+      maxBandLen = 6,
+      parallelism = 4
+    ).tilings.map(_._2).toSet
+    withClue(s"maxBandLen=1 keys not ⊆ maxBandLen=6 keys: ")(short.subsetOf(long) shouldBe true)
+
+  behavior of "TilingReference n=3 audit correction (ReferenceAuditProbe, 2026-06-25)"
+
+  // The oracle (sound + complete for n≤3) corrected two compensating Wikipedia transcription errors in the n=3
+  // list. Lock the corrected multiplicities so the fix can't silently regress.
+  private def n3sig(s: String): Set[VertexSignature] =
+    s.split(';').map(v => normalize(v.trim.split('.').map(_.toInt).toList)).toSet
+  it should "have the audit-corrected n=3 multiplicities (oracle is authority)" in:
+    TilingReference.counts(3) shouldBe 39
+    UnionDriver.multiplicity(3, n3sig("3.3.3.3.3.3; 3.3.3.4.4; 4.4.4.4")) shouldBe 4 // was 3 (corrected)
+    UnionDriver.multiplicity(3, n3sig("3.3.6.6; 3.4.4.6; 3.6.3.6")) shouldBe 2 // was 3 (corrected)

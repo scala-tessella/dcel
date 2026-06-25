@@ -108,6 +108,18 @@ class DelaneySymbolsSpec extends AnyFlatSpec with Matchers:
     d1 should have size 11
     all(d1.map(t => DelaneySymbols.hasRotation(t._3))) shouldBe true
 
+  // maxConeOrder reads the MAX rotation order off the minimal symbol — the C₂(=banded)/higher signature used by
+  // the banded-family characterization (ADR-0037). Checked on the complete n=1 set against textbook symmetry.
+  it should "report the correct max rotation order for n=1 tilings (incl. C₂ for the banded 3³.4²)" in:
+    val d1                 = distinctSyms(1, 12)
+    def orderOf(t: String) = d1.find(_._2.toSet == Set(sig(t))).map(c => DelaneySymbols.maxConeOrder(c._3))
+    orderOf("4.4.4.4") shouldBe Some(4)     // square grid, C₄
+    orderOf("3.3.3.3.3.3") shouldBe Some(6) // triangular, C₆
+    orderOf("6.6.6") shouldBe Some(6)       // hexagonal, C₆
+    orderOf("3.3.3.4.4") shouldBe Some(2)   // elongated triangular — BANDED, C₂-only (the signature)
+    // every n=1 tiling is rotation-bearing (R), so the order is a crystallographic 2/3/4/6
+    all(d1.map(c => DelaneySymbols.maxConeOrder(c._3))) should (be >= 2 and be <= 6)
+
   // ON DEMAND (~minutes, maxSize 24): the FULL discharge of Conjecture R for n ≤ 3. The rotation-AGNOSTIC
   // generate-all oracle reproduces the complete 11/20/39 (counts stable at maxSize 24 = 26 ⇒ complete; also
   // matches A068600) AND every tiling has a rotation. 4 of them are rotation-bearing ONLY via an edge-midpoint
