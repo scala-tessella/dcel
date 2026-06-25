@@ -941,6 +941,25 @@ object DelaneySymbols:
     finally { running.set(false); logger.interrupt() }
     out.iterator.asScala.toList
 
+  /** Profiling seam: walk the generate-all D-set tree in PARALLEL and count complete D-sets + how many pass
+    * the exact `euclideanFeasible` gate — WITHOUT running `DSymGenerator`/`isMinimal`/`canonicalKey`. Timing
+    * this against [[enumerateSymbolsParallel]] (same maxSize/parallelism) splits the generate-all wall into
+    * its two halves: this call ≈ generation + canonical-tree (`checkCanonicity` O(size²)/node) + curvature
+    * gate; the difference ≈ euclidean-symbol PROCESSING (the v-assignment + minimal-symbol + key work on the
+    * survivors). Tells which half to attack.
+    */
+  private[dcel] def countDSetsParallel(maxSize: Int, parallelism: Int): (Long, Long) =
+    val complete = new AtomicLong(0)
+    val eucl     = new AtomicLong(0)
+    DSetGenerator(maxSize).parallelForeach(
+      parallelism,
+      dset => {
+        complete.incrementAndGet()
+        if euclideanFeasible(dset) then eucl.incrementAndGet()
+      }
+    )
+    (complete.get, eucl.get)
+
   /** Quantifies the orbifold approach's potential: how many COMPLETE D-sets the generate-all generator walks
     * vs how many are euclidean-feasible (curvature ≥ 0 achievable). The euclidean fraction is the slice an
     * orbifold-directed generator would visit; `1 - fraction` is the hyperbolic universe it would skip.
