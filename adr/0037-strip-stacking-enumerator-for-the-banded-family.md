@@ -56,6 +56,36 @@ This reuses the exact ℤ[ζ₁₂] primitives (`polygon`, `FaceZ`, `isPlanarCon
    — should recover all 17, including the 6 the grower misses).
 5. Then extend to n≥4 to size + capture the banded class there.
 
+## CORRECTED band/profile model (2026-06-25, user visual inspection) + build state
+
+The "cylinder model" above was realized as `KrotenheerdtTorusSearch.enumerateBanded` (the fixed-Λ engine
+restricted to band-aligned lattices). **It is NOT a strip builder** — it finds whole banded tilings as torus
+cells and emits the fixed-Λ GEOMETRIC content key (TESTED disjoint from the oracle's D-symbol key in
+`KrotenheerdtTorusSearchSpec` ⇒ compare cross-engine by TYPE-SET, not key). It is built, tested (subset-of-full
+soundness, n=1 reach, n=2 type-set-soundness, monotone-maxBandLen, onGeometry validity) and has an `onGeometry`
+callback exposing per-tiling geometry for SVG. `StripStackProbe` (reach-by-type-set + SVG) is written but NOT
+yet run (gated on the genuine strip model below).
+
+**The genuine strip-stacking abstraction (user-confirmed):** a band is a layer of unit regular polygons
+between two **profiles**, where a *profile* = a periodic polyline of unit edges (ANY 30°-multiple turns —
+straight runs, 120°/60° zig-zags) PLUS the partial vertex-fan consumed on each side at every vertex on it. Two
+bands stack iff `lower.topProfile == upper.bottomProfile` as polylines AND at each shared vertex
+`lower-fan + upper-fan` is a valid 360° vertex. Critically (twice corrected by eye):
+
+- boundaries are NOT always straight — hexagon↔hexagon / hexagon↔triangle boundaries **zig-zag at 120°/60°**
+  along shared hexagon edges (e.g. results/n3-gap-svg hex `0f6ee8d2`, snub `73b3ea33`);
+- a STRAIGHT profile is not one polygon type — 3.6.3.6 has a straight line made of **alternating hexagon AND
+  triangle edges**. So "straight vs zig-zag" is just the polyline; the model is polyline + per-vertex fans.
+
+⇒ the straight-only fault detector in `CharacterizeBandedProbe` UNDERCOUNTED banded (zig-zag bands were called
+"non-banded"); it must be replaced by a general periodic-polyline boundary test, and the family re-characterized.
+
+**Build plan for the genuine generator (test-first, NEXT):** (1) a `Profile` type (periodic edge-polyline +
+per-vertex fans); (2) fill-above-a-profile → band; (3) tests pinning the four canonical bands — square row,
+triangle row, 120° hexagon zig-zag row, 3.6.3.6 straight hex+triangle row — each `verifyCell`-consistent with
+the right profiles; (4) SVG catalogue of band types for visual inspection; THEN (5) the stacking graph
+(profile-match) → cyclic stacks → banded tilings, deduped/keyed in the shared D-symbol space, validated at n=3.
+
 ## Consequences
 
 - **Positive:** a dedicated engine for exactly the class that breaks the grower; fair/answer-blind; sound +
