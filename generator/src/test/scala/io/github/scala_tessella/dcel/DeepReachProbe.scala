@@ -27,10 +27,12 @@ object DeepReachProbe:
   def main(args: Array[String]): Unit =
     val maxFaces = args.headOption.map(_.toInt).getOrElse(160)
     val perSetMs = args.lift(1).map(_.toLong).getOrElse(12L) * 60000L
+    val only     = args.lift(2).map(_.toInt) // optional: run ONLY this deficit index (0,1,2)
+    val sets     = only.fold(deficits)(i => List(deficits(i)))
     println(
-      s"DeepReachProbe: maxFaces=$maxFaces perSet=${perSetMs / 60000}min — ${deficits.size} n=3 deficit sets"
+      s"DeepReachProbe: maxFaces=$maxFaces perSet=${perSetMs / 60000}min — ${sets.size} n=3 deficit set(s)"
     )
-    for (t, mult, was96) <- deficits do
+    for (t, mult, was96) <- sets do
       val b0       = System.nanoTime()
       val reached  = KrotenheerdtTorusMapSearch.symmetryRotationReferenceParallel(
         maxN = 3,

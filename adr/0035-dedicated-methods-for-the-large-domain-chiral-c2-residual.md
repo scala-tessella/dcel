@@ -101,6 +101,29 @@ cap-bound sub-class AND (b) #2/#3 for the tree-walled sub-class. Caveat for #2: 
 D-symbols (chambers ∝ domain size), so a type-targeted oracle may itself hit the chamber-tree wall — making #3
 (SAT, which solves rather than enumerates, and can prove UNSAT) the stronger bet for the tree-walled cells.
 
+### Spike CONCLUSION (2026-06-25): orbifold-growth is the WRONG fix — it's a grower growth-path gap
+
+Pushed the cap-bound set ({3².6²; 3.4².6; 3.6.3.6}) much further to distinguish "deep but reachable" from
+"never reached":
+
+- **maxFaces ladder 220 / 300 / 380:** quiesced at **2/3 every time** (31 s / 61 s / 123 s), growing patches
+  right up to the cap (~296 faces at 300). A real n=3 translation cell cannot plausibly exceed ~40 faces, let
+  alone 380 ⇒ **this is NOT depth.**
+- **Widening closure candidates** (`boundaryGlueBases` `take(8)→take(40)`, sound, 34 grower/union tests still
+  green): **still 2/3**, and 66× slower ⇒ **NOT a closure-detection / candidate-limit gap either.** Reverted.
+
+Both depth and closure ruled out ⇒ the grower **structurally never builds the 3rd cell's patch** — a
+growth-path / germination gap (confirmed not a constraint artifact: the *unconstrained* grower also stalls at
+36/39). **Orbifold-domain growth — a depth/cap lever — therefore cannot help, and is abandoned.**
+
+**The reframe that matters:** the rotation-AGNOSTIC generate-all oracle *already finds all 39 n=3 tilings*
+(R discharged, 11/20/39 at maxSize 24-26) — including these three. So they are not intrinsically hard to find;
+they are hard *for the grower specifically*. For n ≤ 3 the count is already complete via the oracle; the
+grower's 36/39 is a grower-only incompleteness. For **n ≥ 4** (where the generate-all oracle is walled) this
+same growth-path gap is the real barrier — so the right lever is the **rotation-agnostic, growth-path-free
+method: the TYPE-TARGETED ORACLE (#2)**, the very machinery that already nails n ≤ 3, constrained to the target
+types to push past the chamber wall. ⇒ **Pursue #2 next, not orbifold-growth.**
+
 ## Consequences
 
 - **Positive:** replaces "it's a compute wall, give up" with a ranked menu of genuinely-unexplored paradigms and
