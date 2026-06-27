@@ -51,7 +51,7 @@ object KrotenheerdtTorusMapSearch:
   private val sides: List[Int] = List(3, 4, 6, 12)
 
   /** Interior angle of an `m`-gon in 30° slots (triangle 2, square 3, hexagon 4, dodecagon 5). */
-  private val gSlots: Map[Int, Int] =
+  private[dcel] val gSlots: Map[Int, Int] =
     sides.map(m => m -> (interiorAngle(m).toRational.toDouble / 30.0).toInt).toMap
 
   /** CCW exterior-turn between consecutive edges of an `m`-gon, in 30° slots: `δ = 6 − g`. */
@@ -60,7 +60,7 @@ object KrotenheerdtTorusMapSearch:
   private val area: Map[Int, BigDecimal] =
     sides.map(m => m -> BigDecimal(m / (4.0 * math.tan(math.Pi / m)))).toMap
 
-  private val slotOfUnit: Map[ZetaPoint, Int] = (0 until 12).map(s => ZetaPoint.unit(s) -> s).toMap
+  private[dcel] val slotOfUnit: Map[ZetaPoint, Int] = (0 until 12).map(s => ZetaPoint.unit(s) -> s).toMap
 
   private val sqrt3d = math.sqrt(3.0)
 
@@ -73,7 +73,7 @@ object KrotenheerdtTorusMapSearch:
     ((2 * z.a0 + z.a2 + z.a1 * sqrt3d) / 2.0, (2 * z.a3 + z.a1 + z.a2 * sqrt3d) / 2.0)
 
   /** The CCW corners of a unit `m`-gon rooted at `p` whose first edge leaves `p` along 30°-slot `s`. */
-  private def polygon(p: ZetaPoint, s: Int, m: Int): Vector[ZetaPoint] =
+  private[dcel] def polygon(p: ZetaPoint, s: Int, m: Int): Vector[ZetaPoint] =
     val buf = Vector.newBuilder[ZetaPoint]
     var cur = p
     var dir = s
@@ -148,7 +148,7 @@ object KrotenheerdtTorusMapSearch:
       .sum
 
   /** Dedup a cell's faces by Double residue, then take the exact BigDecimal centroid of the distinct few. */
-  private def distinctFacesOf(faces: List[FaceZ], aB: BigPoint, bB: BigPoint): List[(Int, BigPoint)] =
+  private[dcel] def distinctFacesOf(faces: List[FaceZ], aB: BigPoint, bB: BigPoint): List[(Int, BigPoint)] =
     val ax  = aB.x.toDouble; val ay = aB.y.toDouble; val bx = bB.x.toDouble; val by = bB.y.toDouble
     val det = ax * by - ay * bx
     faces.distinctBy(f => (f.size, tkeyD(f.cD._1, f.cD._2, ax, ay, bx, by, det))).map(f =>
@@ -614,18 +614,39 @@ object KrotenheerdtTorusMapSearch:
   private def planarFan(faces: List[FaceZ], p: ZetaPoint): List[(Int, Int)] =
     faces.filter(_.corners.contains(p)).map(f => (outSlot(f, p), f.size)).sortBy(_._1)
 
-  private def coveredSlots(fan: List[(Int, Int)]): Set[Int] =
+  /** Incident fans per vertex, keyed by a vertex-identity `vid` (`identity` ⇒ exact universal-cover vertex; a
+    * mod-⟨h⟩ fold ⇒ a cylinder vertex). One groupBy pass — `(representative corner, sorted (slot, size))` per
+    * identified vertex. Shared by [[isSoundBy]]/[[growByCompletionBy]] (replacing the per-vertex `planarFan`
+    * filter, so soundness/growth are O(faces) not O(faces²)) and the cylinder automaton.
+    */
+  private[dcel] def vertexFansBy[K](
+      faces: List[FaceZ],
+      vid: ZetaPoint => K
+  ): Map[K, (ZetaPoint, List[(Int, Int)])] =
+    faces
+      .flatMap(f => f.corners.map(p => (vid(p), p, f)))
+      .groupBy(_._1)
+      .view
+      .mapValues(inc => (inc.map(_._2).min, inc.map((_, p, f) => (outSlot(f, p), f.size)).sortBy(_._1)))
+      .toMap
+
+  private[dcel] def coveredSlots(fan: List[(Int, Int)]): Set[Int] =
     fan.flatMap((start, m) => (0 until gSlots(m)).map(kk => (start + kk) % 12)).toSet
 
   /** Planar (Λ-free) consistency: at every developed vertex, the incident faces occupy a conflict-free set of
     * 30° slots — the analogue of the fixed-Λ `isConsistent`, but keyed by EXACT ZetaPoint identity (no Λ
     * residue), since here the patch is a genuine non-overlapping planar chunk of the universal cover.
     */
-  private def isPlanarConsistent(faces: List[FaceZ]): Boolean =
-    val coverage = mutable.Map.empty[ZetaPoint, mutable.Map[Int, (Int, Int)]]
+  /** Consistency keyed by a vertex-identity `vid`: at every identified vertex the incident faces occupy a
+    * conflict-free 30°-slot set. `vid = identity` is the Λ-free planar check ([[isPlanarConsistent]]); a
+    * mod-⟨h⟩ fold is the cylinder check. Generalises the original (which keyed coverage by the exact
+    * ZetaPoint) — identical for the identity case, one extra trivial `vid(p)` call per corner.
+    */
+  private[dcel] def isConsistentBy[K](faces: List[FaceZ], vid: ZetaPoint => K): Boolean =
+    val coverage = mutable.Map.empty[K, mutable.Map[Int, (Int, Int)]]
     faces.forall: f =>
       f.corners.forall: p =>
-        val slotMap = coverage.getOrElseUpdate(p, mutable.Map.empty)
+        val slotMap = coverage.getOrElseUpdate(vid(p), mutable.Map.empty)
         val start   = outSlot(f, p)
         (0 until gSlots(f.size)).forall: kk =>
           val slot = (start + kk) % 12
@@ -633,14 +654,21 @@ object KrotenheerdtTorusMapSearch:
             case Some(owner) if owner != ((start, f.size)) => false
             case _                                         => slotMap(slot) = (start, f.size); true
 
+  private def isPlanarConsistent(faces: List[FaceZ]): Boolean = isConsistentBy(faces, identity[ZetaPoint])
+
   /** Sound iff every developed vertex's fan is a valid completed vertex or an extendable partial fan, AND the
     * patch's *completed* vertices show at most `n` distinct types — `KrotenheerdtTorusSearch.isSound`
     * verbatim (it is already Λ-free). The main prune that keeps the planar growth on real n-uniform tilings.
     */
-  private def isSound(faces: List[FaceZ], n: Int): Boolean =
+  /** Soundness keyed by a vertex-identity `vid`: every identified vertex is a complete valid vertex or an
+    * extendable partial fan, and completed vertices show ≤ `n` distinct types. `vid = identity` is the planar
+    * check ([[isSound]]); a mod-⟨h⟩ fold is the cylinder check. Routes through [[vertexFansBy]] (one groupBy)
+    * instead of a `planarFan` filter per vertex — same fans, O(faces) instead of O(faces²).
+    */
+  private[dcel] def isSoundBy[K](faces: List[FaceZ], n: Int, vid: ZetaPoint => K): Boolean =
     val completeTypes = mutable.Set.empty[VertexSignature]
-    faces.flatMap(_.corners).distinct.forall: p =>
-      val fan     = planarFan(faces, p)
+    vertexFansBy(faces, vid).forall: (_, repFan) =>
+      val fan     = repFan._2
       val covered = coveredSlots(fan)
       if covered.sizeIs == 12 then
         isCompleteVertex(fan.map(_._2)) && {
@@ -648,10 +676,12 @@ object KrotenheerdtTorusMapSearch:
         }
       else isExtendableFan(fan.map(_._2))
 
+  private def isSound(faces: List[FaceZ], n: Int): Boolean = isSoundBy(faces, n, identity[ZetaPoint])
+
   /** Every way to fill a vertex's remaining `gap` (30° slots) so `fan ++ completion`, read CCW, is a valid
     * complete vertex type — `KrotenheerdtTorusSearch.completions` verbatim.
     */
-  private def completions(fan: List[Int], gap: Int): List[List[Int]] =
+  private[dcel] def completions(fan: List[Int], gap: Int): List[List[Int]] =
     if gap == 0 then if isCompleteVertex(fan) then List(Nil) else Nil
     else
       sides.flatMap: m =>
@@ -662,22 +692,37 @@ object KrotenheerdtTorusMapSearch:
           val ok       = if g == gap then isCompleteVertex(extended) else isExtendableFan(extended)
           if !ok then Nil else completions(extended, gap - g).map(m :: _)
 
-  /** Planar constraint-propagation growth: commit the WHOLE most-constrained (MRV) incomplete vertex,
-    * branching over its valid completions — `KrotenheerdtTorusSearch.growByCompletion` with the Λ-consistency
-    * gate replaced by the Λ-free [[isPlanarConsistent]]. Develops the patch outward in the universal cover.
-    *
-    * MRV ties are broken by distance to the patch centroid (then by exact coordinates for determinism) so the
-    * patch grows as a compact DISK, not a 1-D strip. This matters here in a way it does not for the fixed-Λ
-    * engine: with no Λ to bound the patch, Λ is discovered by gluing the patch boundary in two *independent*
-    * directions ([[boundaryGlueBases]]); strip growth keeps the boundary collinear, so the rank-2 gluing —
-    * and single-face cells like `4⁴`/`6.6.6` — would never appear. Compact growth surfaces it within a disk.
+  /** Constraint-propagation growth keyed by a vertex-identity `vid`, placed faces normalised by `canon`, and
+    * the incomplete vertex chosen by `selKey` (smallest first; a 3-key tuple, then exact coords for
+    * determinism). Generalises [[growByCompletionPlanar]]:
+    *   - `vid = identity`, `canon = identity`, `selKey = (completions, distance-to-centroid, _)` ⇒ the
+    *     compact-DISK MRV planar grower (byte-identical: same vertex, same children, same order);
+    *   - `vid = fold mod ⟨h⟩`, `canon = fold into the strip`, `selKey = (y, x, _)` (strict lowest-leftmost) ⇒
+    *     the cylinder automaton's TAUT scanline front, whose skyline stays bounded ⇒ a finite state space
+    *     (the MRV order would leave a ragged, unbounded boundary). See [[CylinderAutomaton]].
+    * Incomplete-vertex detection routes through [[vertexFansBy]] (one groupBy, O(faces)) rather than a
+    * `planarFan` filter per vertex (O(faces²)). The original disk-growth rationale: with no Λ to bound the
+    * patch, the period is discovered by gluing the boundary in two independent directions
+    * ([[boundaryGlueBases]]); a compact disk surfaces single-face cells (`4⁴`/`6.6.6`) a 1-D strip never
+    * would.
     */
-  private def growByCompletionPlanar(faces: List[FaceZ], n: Int): List[List[FaceZ]] =
+  private[dcel] def growByCompletionBy[K](
+      faces: List[FaceZ],
+      n: Int,
+      vid: ZetaPoint => K,
+      canon: FaceZ => FaceZ,
+      selKey: (ZetaPoint, Int, BigPoint) => (BigDecimal, BigDecimal, BigDecimal),
+      admit: (ZetaPoint, List[(Int, Int)]) => Boolean = (_, _) => true,
+      dedup: List[FaceZ] => List[FaceZ] = identity
+  ): List[List[FaceZ]] =
     val centroid   = faces.flatMap(_.corners).distinct.map(_.toBigPoint).centroid
-    val incomplete = faces.flatMap(_.corners).distinct.flatMap: p =>
-      val fan     = planarFan(faces, p)
-      val covered = coveredSlots(fan)
-      Option.when(covered.sizeIs < 12):
+    val incomplete = vertexFansBy(faces, vid).toList.flatMap: (_, repFan) =>
+      val (p, fan) = repFan
+      val covered  = coveredSlots(fan)
+      // `admit` restricts which incomplete vertices may be grown (default: all). The cylinder admits only
+      // UP-FACING frontier vertices, so growth advances in one direction and the bottom cut is left fixed —
+      // keeping the front a bounded skyline (a finite profile state space).
+      Option.when(covered.sizeIs < 12 && admit(p, fan)):
         val free     = 12 - covered.size
         val b        = (0 until 12).find(s => covered((s + 11) % 12) && !covered(s)).getOrElse(0)
         val arcStart = (b + free) % 12
@@ -685,16 +730,28 @@ object KrotenheerdtTorusMapSearch:
         (p, b, completions(ordered, free))
     if incomplete.isEmpty then Nil
     else
-      val (p, b, comps) =
-        incomplete.minBy((p, _, cs) => (cs.size, p.toBigPoint.distanceTo(centroid), p.a0, p.a1, p.a2, p.a3))
+      val (p, b, comps) = incomplete.minBy: (p, _, cs) =>
+        val (k1, k2, k3) = selKey(p, cs.size, centroid)
+        (k1, k2, k3, p.a0, p.a1, p.a2, p.a3)
       comps.flatMap: comp =>
         var slot     = b
         val newFaces = comp.map: m =>
-          val f = FaceZ(m, polygon(p, slot, m))
+          val f = canon(FaceZ(m, polygon(p, slot, m)))
           slot += gSlots(m)
           f
-        val next     = newFaces ++ faces
-        Option.when(isPlanarConsistent(next) && isSound(next, n))(next)
+        // dedup defaults to identity (no-op, zero cost on the planar disk where faces are never duplicated);
+        // the cylinder passes `_.distinct` so a face folded onto an existing h-translate collapses to one.
+        val next     = dedup(newFaces ++ faces)
+        Option.when(isConsistentBy(next, vid) && isSoundBy(next, n, vid))(next)
+
+  private def growByCompletionPlanar(faces: List[FaceZ], n: Int): List[List[FaceZ]] =
+    growByCompletionBy(
+      faces,
+      n,
+      identity[ZetaPoint],
+      identity[FaceZ],
+      (p, cs, c) => (BigDecimal(cs), p.toBigPoint.distanceTo(c), BigDecimal(0))
+    )
 
   /** The patch's directed boundary half-edges `(p, slot)` (edge `p → p+step(slot)`, CCW so the patch is on
     * its left): a face edge whose REVERSE half-edge `(p+step(slot), slot+6)` is not also a face edge, i.e.
