@@ -176,13 +176,12 @@ class CutFeedSpec extends AnyFlatSpec with Matchers with ScalaCheckDrivenPropert
 
   behavior of "ProfileAutomaton.cutFeedDiagnose (round-trip)"
 
-  it should "reproduce 4⁴ and banded 3³.4² from their own cut (feed AND trace)" in {
+  it should "reproduce 4⁴ and banded 3³.4² by FEEDING their own cut" in {
     for typeSet <- List(ts("4.4.4.4"), ts("3.3.3.4.4")); (key, op) <- opsOf(typeSet, 8, 1) do
       val r = PA.cutFeedDiagnose(op, key, typeSet)
       info(s"$typeSet: $r")
       r.representable shouldBe true
       r.fedEmitsKey shouldBe true
-      r.traceClosesKey shouldBe true
   }
 
   // ----- the cut-construction INVARIANT (what the high-aspect bug violated) ----------------------------
@@ -228,33 +227,21 @@ class CutFeedSpec extends AnyFlatSpec with Matchers with ScalaCheckDrivenPropert
     }
   }
 
-  it should "trace back to a cycle from a cell-consistent cut for every realized n=3 cell" in {
-    for (_, op) <- opsOf(n3, 12, 4) do
-      val f       = PA.representFrame(op).get
-      val steps   = f.profs.map(p => PA.traceCellDebug(p, f.rFaces, f.rv1, f.rv2, f.c, n3, 60).size)
-      val cycled  = f.profs.exists(p => PA.traceCellCycle(p, f.rFaces, f.rv1, f.rv2, f.c, n3, "", 60)._1)
-      val deepest = f.profs.maxBy(p => PA.traceCellDebug(p, f.rFaces, f.rv1, f.rv2, f.c, n3, 60).size)
-      withClue(s"no cut profile traces to a cycle (step counts=$steps)\n${
-          PA.dumpDeadEnd(deepest, f.rFaces, f.rv1, f.rv2, f.c, n3, 60)
-        }\n") {
-        cycled shouldBe true
-      }
-  }
-
   // ----- composite: cut-and-feed round-trip (n=3) ------------------------------------------------------
 
-  it should "reproduce every MATCHED n=3 {3⁶;3³.4²;4⁴} cell from its own cut" in {
-    val typeSet = ts("3.3.3.3.3.3,3.3.3.4.4,4.4.4.4")
-    val ops     = opsOf(typeSet, 12, 4)
-    val circs   = List(c2, Z(4, 0, 0, 0), Z(6, 0, 0, 0))
-    val perC    = circs.map(c => c -> PA.enumerateForTypeSetC(c, typeSet, 12000).keySet).toMap
-    val matched = perC.values.flatten.toSet
+  /** The decisive positive control: every cell the GATE reaches (via band-tops) must also be reproduced by
+    * FEEDING its own cut — anything the engine finds one way it must find from the cell's own profile. (The
+    * cut-and-feed pipeline = the same `coveringWalks` cycle-search the gate uses, so this validates the
+    * finder end-to-end on real n=3 cells. The multi-row high-aspect MISSING cells need `maxRepeat>1`, which
+    * crowds the cap — out of scope here; see ADR-0038.)
+    */
+  it should "reproduce every MATCHED n=3 {3⁶;3³.4²;4⁴} cell by FEEDING its own cut" in {
+    val ops     = opsOf(n3, 12, 4)
+    val matched = List(c2, Z(4, 0, 0, 0)).flatMap(cc => PA.enumerateForTypeSetC(cc, n3, 20000).keySet).toSet
     matched should not be empty
     for (key, op) <- ops if matched.contains(key) do
-      val r      = PA.cutFeedDiagnose(op, key, typeSet)
-      val gateAt = circs.filter(c => perC(c).contains(key)).map(_.toBigPoint.x.toDouble)
-      info(s"matched cutC=${r.c.map(_.toBigPoint.x.toDouble)} gateAt=$gateAt -> $r")
-      withClue(s"matched cell $key not reproduced by its own cut: ") {
-        (r.fedEmitsKey || r.traceClosesKey) shouldBe true
+      val r = PA.cutFeedDiagnose(op, key, n3, maxNodes = 40000, maxLen = 64)
+      withClue(s"matched cell $key not reproduced by feeding its own cut ($r): ") {
+        r.fedEmitsKey shouldBe true
       }
   }

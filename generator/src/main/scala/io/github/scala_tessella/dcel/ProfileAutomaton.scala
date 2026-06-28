@@ -141,11 +141,14 @@ object ProfileAutomaton:
     * congruent by translation (e.g. the same shape one period higher) key identically — the basis of cycle
     * detection.
     */
-  private[dcel] def canonKey(p: Profile): List[(Long, Long, Long, Long, List[Int])] =
+  private[dcel] def canonKey(p: Profile): List[(Long, Long, Long, Long, List[(Int, Int)])] =
     import scala.math.Ordering.Implicits.seqOrdering
     val a = anchor(p)
+    // the fan must key by (slot, size) sorted by SLOT — NOT just sorted sizes: two vertices with the same fan
+    // SIZES but different slot arrangements are geometrically distinct profiles; keying on sizes alone collapses
+    // them, collapsing a cell's period-cycle into a non-simple loop the simple-cycle finder cannot traverse.
     p.verts.map { v =>
-      val d = v.pos - a; (d.a0, d.a1, d.a2, d.a3, v.fan.map(_._2).sorted)
+      val d = v.pos - a; (d.a0, d.a1, d.a2, d.a3, v.fan.sortBy(_._1))
     }.sorted.toList
 
   private def dedupFaces(faces: List[FaceZ]): List[FaceZ] =
@@ -165,7 +168,7 @@ object ProfileAutomaton:
         prof: Profile,
         faces: List[FaceZ],
         types: Set[VertexSignature],
-        seen: Map[List[(Long, Long, Long, Long, List[Int])], (ZetaPoint, Int)],
+        seen: Map[CK, (ZetaPoint, Int)],
         steps: Int
     ): Unit =
       if steps > maxSteps || prof.verts.isEmpty then ()
@@ -293,15 +296,14 @@ object ProfileAutomaton:
   // ---- cut-and-feed diagnostic: localise the recall ceiling for a KNOWN cell --------------------------
   //
   // For a known cell (its closed-map `op` + oracle key), this answers WHY the engine does/doesn't reach it by
-  // constructing the cell's OWN cut profile and observing the engine on it — separating four hypotheses:
+  // constructing the cell's OWN cut profile and observing the engine on it:
   //   (representable?) the band axis is a 30°-multiple direction ⇒ expressible at a horizontal ℤ[ζ₁₂]
   //       circumference at all (else the profile automaton is fundamentally blind to it — a REPRESENTATION gap);
-  //   (fedEmitsKey?)   feeding the cut as a SEED, the engine emits the cell's key ⇒ the only gap was SEED
-  //       GENERATION (band-tops/`completeSeeds` just didn't produce this profile);
-  //   (traceCycles?)   following the cell's OWN faces, `fillLowest` returns to the start profile ⇒ the
-  //       combinatorial profile + transition rule DO represent the band as a cycle (GROWTH rule is adequate);
-  //   (traceClosesKey?) that traced cycle closes to the cell's key ⇒ representation+transition+close all sound,
-  //       so any feed-failure is purely the cycle-SEARCH heuristic (`coveringCyclesFrom`), not growth.
+  //   (fedEmitsKey?)   feeding the cut as a SEED, the engine emits the cell's key ⇒ the cut+grow+close pipeline
+  //       reproduces the cell. This is the TRUSTWORTHY signal (the actual engine path).
+  // (The earlier greedy `traceClosesKey`/`traceCycles` were unreliable — the trace picks the FIRST cell-consistent
+  //  successor, which can follow a wrong sub-cycle — so they were deleted; `feedDebug`/`graphForensics` are the
+  //  decomposition diagnostics.)
 
   final case class CutFeedResult(
       realized: Boolean,
@@ -310,8 +312,6 @@ object ProfileAutomaton:
       c: Option[ZetaPoint],
       cutProfiles: Int,
       fedEmitsKey: Boolean,
-      traceCycles: Boolean,
-      traceClosesKey: Boolean,
       note: String
   )
 
@@ -398,17 +398,6 @@ object ProfileAutomaton:
   ): Boolean =
     p.verts.forall(v => v.fan.forall((s, m) => faceInCell(FaceZ(m, G.polygon(v.pos, s, m)), funds, a, b)))
 
-  /** Diagnostic for [[faceInCell]]: per same-size fund, the centroid-difference, whether it divides, the
-    * `latticeSolve` result, and whether `f0+t` matches `f`. Pinpoints WHY a genuine cell face is rejected.
-    */
-  private[dcel] def faceInCellWhy(f: FaceZ, funds: List[FaceZ], a: ZetaPoint, b: ZetaPoint): String =
-    funds.filter(_.size == f.size).map { f0 =>
-      divExactZ(centroidZ(f) - centroidZ(f0), f.size) match
-        case None    => "notDiv"
-        case Some(t) =>
-          s"solve=${latticeSolve(t, a, b)} same=${sameFaceZ(FaceZ(f0.size, f0.corners.map(_ + t)), f)}"
-    }.mkString(" | ")
-
   /** Cut profiles of the cell: tile the fundamentals over a vertical window (folding mod `c` happens in
     * `seedFromFaces`), then cut at several interior heights — the up-facing vertices on each cut line form a
     * candidate seed profile.
@@ -481,30 +470,24 @@ object ProfileAutomaton:
       targetKey: String,
       ts: Set[VertexSignature],
       maxNodes: Int = 12000,
-      maxLen: Int = 64,
-      maxSteps: Int = 80
+      maxLen: Int = 64
   ): CutFeedResult =
     representFrame(op) match
-      case None                                                => CutFeedResult(
+      case None                                       =>
+        CutFeedResult(
           false,
           false,
           false,
           None,
           0,
           false,
-          false,
-          false,
           "not representable (realize/basis/30°-aligned failed)"
         )
-      case Some(Frame(c, rFaces, rv1, rv2, hLen, cLen, profs)) =>
-        val bandH         = math.abs(cLen - hLen) < 1e-6 // the GLOBAL shortest vector is itself horizontalizable
-        // Test A — feed the cut profiles as seeds
-        val fed           = profs.nonEmpty &&
+      case Some(Frame(c, _, _, _, hLen, cLen, profs)) =>
+        val bandH = math.abs(cLen - hLen) < 1e-6 // the GLOBAL shortest vector is itself horizontalizable
+        // feed the cut profiles as seeds and check the engine emits the cell's key (the trustworthy signal)
+        val fed   = profs.nonEmpty &&
           enumerateFromSeeds(c, ts, profs, maxNodes, maxLen).keySet.contains(targetKey)
-        // Test B — explicit trace: follow the cell's own faces from a cut profile
-        val (cyc, closes) = profs.iterator
-          .map(p0 => traceCellCycle(p0, rFaces, rv1, rv2, c, ts, targetKey, maxSteps))
-          .find(_._1).getOrElse((false, false))
         CutFeedResult(
           true,
           true,
@@ -512,8 +495,6 @@ object ProfileAutomaton:
           Some(c),
           profs.size,
           fed,
-          cyc,
-          closes,
           f"|h|=${hLen}%.3f c=${cLen}%.3f profiles=${profs.size}"
         )
 
@@ -555,119 +536,12 @@ object ProfileAutomaton:
           val periodY = covol / cLen
           Frame(c, rFaces, rv1, rv2, hLen, cLen, buildCutProfiles(rFaces, rv1, rv2, c, periodY))
 
-  /** From cut profile `p0`, repeatedly fill the lowest vertex taking the UNIQUE successor whose placed faces
-    * all lie in the cell, until the profile recurs (a cycle). Then close the accumulated period faces and
-    * compare to `targetKey`. Returns (cycledBack, closedToTargetKey).
-    */
-  private[dcel] def traceCellCycle(
-      p0: Profile,
-      funds: List[FaceZ],
-      rv1: ZetaPoint,
-      rv2: ZetaPoint,
-      c: ZetaPoint,
-      ts: Set[VertexSignature],
-      targetKey: String,
-      maxSteps: Int
-  ): (Boolean, Boolean) =
-    val startKey = canonKey(p0)
-    val startA   = anchor(p0)
-    var cur      = p0
-    val acc      = mutable.ListBuffer.empty[FaceZ]
-    var step     = 0
-    var result   = (false, false)
-    var stop     = false
-    while step < maxSteps && !stop do
-      val cands = fillLowest(cur).filter: (q, t, f) =>
-        ts.contains(t) && f.forall(face => faceInCell(face, funds, rv1, rv2))
-      cands match
-        case Nil            => stop = true // dead-end: the transition rule has no cell-consistent continuation
-        case (q, _, f) :: _ =>
-          acc ++= f
-          step += 1
-          if step > 0 && canonKey(q) == startKey then
-            val delta  = anchor(q) - startA
-            val closed =
-              if delta.isOrigin then false
-              else
-                CylinderAutomaton.close(dedupFaces(acc.toList), c, delta, ts.size).exists(_._3 == targetKey)
-            result = (true, closed); stop = true
-          else cur = q
-    result
-
-  /** Diagnostic: per trace step, `(totalSuccessors, ts-valid, cell-consistent)` until the cell-following
-    * trace dead-ends or cycles. A step with `total>0` but `cell-consistent=0` localises the failure to
-    * `faceInCell` (the cell's own completion is rejected ⇒ lattice-basis / membership bug), not the
-    * transition rule.
-    */
-  private[dcel] def traceCellDebug(
-      p0: Profile,
-      funds: List[FaceZ],
-      rv1: ZetaPoint,
-      rv2: ZetaPoint,
-      c: ZetaPoint,
-      ts: Set[VertexSignature],
-      maxSteps: Int
-  ): List[(Int, Int, Int)] =
-    val startKey = canonKey(p0)
-    var cur      = p0
-    val log      = mutable.ListBuffer.empty[(Int, Int, Int)]
-    var step     = 0
-    var stop     = false
-    while step < maxSteps && !stop do
-      val all  = fillLowest(cur)
-      val tsOk = all.filter((_, t, _) => ts.contains(t))
-      val cell = tsOk.filter((_, _, f) => f.forall(face => faceInCell(face, funds, rv1, rv2)))
-      log += ((all.size, tsOk.size, cell.size))
-      if cell.isEmpty then stop = true
-      else
-        val (q, _, _) = cell.head
-        step += 1
-        if canonKey(q) == startKey then stop = true else cur = q
-    log.toList
-
-  /** Trace cell-consistently to the dead-end, then dump the stuck profile: its lowest vertex (pos, fan, open
-    * arc) and every `fillLowest` option with type + per-face `faceInCell`. Reveals why no continuation is
-    * cell-consistent (e.g. the cell's completion is overlap-rejected, or a placed face folds off-lattice).
-    */
-  private[dcel] def dumpDeadEnd(
-      p0: Profile,
-      funds: List[FaceZ],
-      rv1: ZetaPoint,
-      rv2: ZetaPoint,
-      c: ZetaPoint,
-      ts: Set[VertexSignature],
-      maxSteps: Int
-  ): String =
-    val startKey        = canonKey(p0)
-    var cur             = p0
-    var step            = 0
-    var stop            = false
-    while step < maxSteps && !stop do
-      val all  = fillLowest(cur)
-      val cell =
-        all.filter((_, t, f) => ts.contains(t) && f.forall(face => faceInCell(face, funds, rv1, rv2)))
-      if cell.isEmpty then stop = true
-      else
-        val (q, _, _) = cell.head; step += 1
-        if canonKey(q) == startKey then stop = true else cur = q
-    val L               = cur.verts(cur.verts.indices.minBy(i => (yD(cur.verts(i).pos), xD(cur.verts(i).pos))))
-    def cs(face: FaceZ) = face.corners.map(z => (z.a0, z.a1, z.a2, z.a3)).mkString(",")
-    val opts            = fillLowest(cur).map: (q, t, f) =>
-      val inCell = f.map(face => s"${face.size}:${faceInCell(face, funds, rv1, rv2)}")
-      val why    =
-        if ts.contains(t) then
-          s"\n      placed0=${cs(f.head)}\n      funds(sz${f.head.size})=${funds.filter(_.size == f.head.size).map(cs).mkString(" ; ")}"
-        else ""
-      s"  type=${t.mkString(".")} tsOk=${ts.contains(t)} faces=[${inCell.mkString(",")}]$why"
-    s"DEAD-END after $step steps; lowest L pos=(${xD(L.pos)}%.2f,${yD(L.pos)}%.2f) fan=${L.fan} " +
-      s"openArc=${openArc(L.fan)}\n  ${fillLowest(cur).size} fillLowest options:\n${opts.mkString("\n")}"
-
   // ---- efficient transfer-matrix cycle-finder, restricted per type-set (the n≥3 driver) ---------------
 
   // Per TARGET n-type-set `ts`: build the PLAIN profile graph restricted to fills completing a vertex of `ts`
   // (finite & small — only those polygons), then find cycles COVERING all n types (the tiling's period). A
   // single graph keyed by canonical profile; cycles found by BFS over (profile, types-used-this-cycle).
-  private type CK = List[(Long, Long, Long, Long, List[Int])]
+  private type CK = List[(Long, Long, Long, Long, List[(Int, Int)])]
   final private case class PEdge(to: CK, delta: ZetaPoint, faces: List[FaceZ], typ: VertexSignature)
 
   private def anchored(p: Profile): Profile =
@@ -702,10 +576,48 @@ object ProfileAutomaton:
       graph(k) = edges
     graph
 
-  /** Up to `cap` covering cycles from `start` back to `start` (BFS over `(profile, types-used)` — efficient,
-    * bounded, no exponential; depth ≤ `maxLen`), each as `(Δ, period faces)`. Collecting several covering
-    * cycles ⇒ the several distinct tilings of one type-set (shortest-only found just one); a DFS to `maxLen`
-    * explodes.
+  /** Generic COVERING-WALK finder: every closed walk `start → … → start` whose edge COLORS union to EXACTLY
+    * `colors`, as the ordered edge list. A WALK (not a simple cycle) — it may revisit non-start nodes, which
+    * is ESSENTIAL: a homogeneous row (e.g. a pure-square `4⁴` band) maps the profile to a translate of
+    * itself, a SELF-LOOP in the graph; a simple-cycle finder forbids that revisit and so can never cover such
+    * a colour, and a TALL band of `k` such rows needs the self-loop traversed `k` times. So a `(node,
+    * colorset)` state is allowed up to `maxRepeat` visits PER BRANCH — enough for a band of that height,
+    * while bounding each branch (no infinite self-loop spinning) and staying NON-LOSSY across branches (the
+    * old `(node, colorset)` BFS visited each state once GLOBALLY and lost distinct walks). Different repeat
+    * counts ⇒ different vertical periods ⇒ genuinely different tilings, all enumerated (deduped downstream by
+    * face-set). `maxLen`/`cap`/`budget` are hard backstops. Pure graph algorithm ⇒ unit-testable on synthetic
+    * `Int` graphs.
+    */
+  private[dcel] def coveringWalks[N, E, C](
+      start: N,
+      edgesOf: N => List[E],
+      toOf: E => N,
+      colorOf: E => C,
+      colors: Set[C],
+      maxLen: Int,
+      cap: Int,
+      maxRepeat: Int = 1,
+      budget: Int = 500000
+  ): List[List[E]] =
+    val out                                                                               = mutable.ListBuffer.empty[List[E]]
+    var steps                                                                             = 0
+    def dfs(node: N, used: Set[C], visits: Map[(N, Set[C]), Int], pathRev: List[E]): Unit =
+      edgesOf(node).foreach: e =>
+        if out.sizeIs < cap && steps < budget && pathRev.lengthIs < maxLen then
+          steps += 1
+          val nxt   = toOf(e)
+          val used2 = used + colorOf(e)
+          if used2.subsetOf(colors) then
+            if nxt == start then { if used2 == colors then out += (e :: pathRev).reverse }
+            else
+              val v = visits.getOrElse((nxt, used2), 0)
+              if v < maxRepeat then dfs(nxt, used2, visits.updated((nxt, used2), v + 1), e :: pathRev)
+    dfs(start, Set.empty, Map.empty, Nil)
+    out.toList
+
+  /** Up to `cap` covering cycles from `start` back to `start`, each as `(Δ, period faces)`: the covering
+    * walks (via [[coveringWalks]]) whose edge-types are exactly `target`, with the period faces accumulated
+    * in the source-anchored frame and a non-zero vertical period `Δ`.
     */
   private def coveringCyclesFrom(
       graph: mutable.Map[CK, List[PEdge]],
@@ -714,21 +626,21 @@ object ProfileAutomaton:
       maxLen: Int,
       cap: Int
   ): List[(ZetaPoint, List[FaceZ])] =
-    val out     = mutable.ListBuffer.empty[(ZetaPoint, List[FaceZ])]
-    val visited = mutable.HashSet.empty[(CK, Set[VertexSignature])]
-    val queue   = mutable.Queue.empty[(CK, Set[VertexSignature], ZetaPoint, List[FaceZ], Int)]
-    queue += ((start, Set.empty, ZetaPoint.origin, Nil, 0)); visited += ((start, Set.empty))
-    while queue.nonEmpty && out.sizeIs < cap do
-      val (k, used, sh, fs, d) = queue.dequeue()
-      if d < maxLen then
-        graph.getOrElse(k, Nil).foreach: e =>
-          val used2 = used + e.typ
-          if used2.subsetOf(target) then
-            val nf = fs ++ shiftFaces(e.faces, sh)
-            val ns = sh + e.delta
-            if e.to == start && used2 == target && !ns.isOrigin then out += ((ns, nf))
-            if visited.add((e.to, used2)) then queue += ((e.to, used2, ns, nf, d + 1))
-    out.toList
+    coveringWalks[CK, PEdge, VertexSignature](
+      start,
+      k => graph.getOrElse(k, Nil),
+      _.to,
+      _.typ,
+      target,
+      maxLen,
+      cap
+    ).flatMap: edges =>
+      var sh    = ZetaPoint.origin
+      var faces = List.empty[FaceZ]
+      edges.foreach: e =>
+        faces = faces ++ shiftFaces(e.faces, sh)
+        sh = sh + e.delta
+      Option.when(!sh.isOrigin)((sh, faces))
 
   private def faceSetKey(faces: List[FaceZ]): List[(Int, List[(Long, Long, Long, Long)])] =
     import scala.math.Ordering.Implicits.seqOrdering
@@ -780,6 +692,54 @@ object ProfileAutomaton:
         s"    [pa] c.x=${xD(c)}, seeds=${seedProfiles.size}, nodes=${graph.size}, distinctCycles=$nCyc, closedOk=$nClosed, emitted=${out.size}"
       )
     out.toMap
+
+  /** Forensics for a feed failure: dump the reachable graph from `seeds` — per node, its out-edge types and
+    * `to`-nodes — plus the UNION of all edge types in the graph and each node's self-reachability. The
+    * decisive fact is whether the reachable graph even CONTAINS all `target` types (else no covering cycle
+    * can exist — the growth from these seeds never produces a vertex of some target type).
+    */
+  private[dcel] def graphForensics(
+      c: ZetaPoint,
+      ts: Set[VertexSignature],
+      seeds: List[Profile],
+      maxNodes: Int = 40000
+  ): String =
+    val graph    = buildGraphForC(c, ts, maxNodes, seeds)
+    val allTypes = graph.values.flatten.map(_.typ).toSet
+    val lines    = graph.toList.zipWithIndex.map: (kv, i) =>
+      val (k, edges) = kv
+      val outs       = edges.map(e => s"${e.typ.mkString(".")}→${graph.keysIterator.indexOf(e.to)}").mkString(", ")
+      s"  node$i (verts=${k.size}): [$outs]"
+    s"nodes=${graph.size} allEdgeTypes={${allTypes.map(_.mkString(".")).mkString("; ")}} " +
+      s"coversTarget=${ts.subsetOf(allTypes)}\n${lines.mkString("\n")}"
+
+  /** Feed diagnostic: from explicit seeds, report graph size, #distinct cycles found, how many CLOSE at all,
+    * the distinct keys they close to, and whether `targetKey` is among them. Decomposes a feed failure into
+    * graph-build vs cycle-search vs close.
+    */
+  private[dcel] def feedDebug(
+      c: ZetaPoint,
+      ts: Set[VertexSignature],
+      seedProfiles: List[Profile],
+      targetKey: String,
+      maxNodes: Int = 30000,
+      maxLen: Int = 64,
+      capPerNode: Int = 16
+  ): String =
+    val graph   = buildGraphForC(c, ts, maxNodes, seedProfiles)
+    val seenCyc = mutable.HashSet.empty[List[(Int, List[(Long, Long, Long, Long)])]]
+    var nCyc    = 0
+    val keys    = mutable.Set.empty[String]
+    var closes  = 0
+    graph.keysIterator.foreach: start =>
+      coveringCyclesFrom(graph, start, ts, maxLen, capPerNode).foreach: (delta, faces) =>
+        val df = dedupFaces(faces)
+        if seenCyc.add(faceSetKey(df)) then
+          nCyc += 1
+          CylinderAutomaton.close(df, c, delta, ts.size).foreach: (_, _, key) =>
+            closes += 1; keys += key
+    s"seeds=${seedProfiles.size} nodes=${graph.size} cycles=$nCyc closed=$closes distinctKeys=${keys.size} " +
+      s"hasTarget=${keys.contains(targetKey)}"
 
   /** Integer-circumference convenience. */
   def enumerateForTypeSet(

@@ -3,12 +3,10 @@ package io.github.scala_tessella.dcel
 import io.github.scala_tessella.dcel.VertexTypes.{VertexSignature, normalize}
 
 /** Run the VALIDATED cut-and-feed diagnostic ([[ProfileAutomaton.cutFeedDiagnose]], positive-controlled in
-  * `CutFeedSpec`) on every n=3 gap cell, to localise WHY the 7 missing banded cells elude the engine. Per
-  * cell: representable — band axis is 30°-aligned (else a REPRESENTATION gap: the profile automaton is blind
-  * to it) fed — feeding the cell's own cut as a seed, the engine emits its key (else SEED was not the gap)
-  * traceCycles — following the cell's own faces, fillLowest returns to the start profile (GROWTH adequate)
-  * traceClosesKey — that traced cycle closes to the cell's key (only the cycle-SEARCH heuristic is at fault)
-  * Cross-tabbed against engine MATCHED/MISSING (the gate over the √3-aware circumferences).
+  * `CutFeedSpec`) on every n=3 gap cell, to localise WHY the missing banded cells elude the engine. Per cell:
+  * representable — band axis is 30°-aligned (else a REPRESENTATION gap); fed — feeding the cell's own cut as
+  * a seed, the engine emits its key (the trustworthy cut+grow+close signal). Cross-tabbed against engine
+  * MATCHED/MISSING (the gate over the √3-aware circumferences).
   *
   * Run: `…CutFeedGapProbe [oracleMaxSize] [maxV] [maxNodes]`
   */
@@ -44,7 +42,7 @@ object CutFeedGapProbe:
       .groupBy(t => DelaneySymbols.canonicalKey(t._3))
       .values.map(_.head).toList.filter(_._1 == 3)
 
-    var repr, fed, traced, closed, miss = 0
+    var repr, fed, miss = 0
     for t <- gaps do
       val cells  = oracle.filter(_._2.toSet == t)
       val engine = circs.flatMap(c => ProfileAutomaton.enumerateForTypeSetC(c, t, maxNodes).keySet).toSet
@@ -61,12 +59,8 @@ object CutFeedGapProbe:
             if !got then miss += 1
             if r.representable then repr += 1
             if r.fedEmitsKey then fed += 1
-            if r.traceCycles then traced += 1
-            if r.traceClosesKey then closed += 1
             println(f"  ${if got then "MATCHED" else "MISSING"}  repr=${r.representable}%-5s bandH=${
                 r.bandAxisHorizontal
-              }%-5s fed=${r.fedEmitsKey}%-5s trace=${r.traceCycles}%-5s closes=${r.traceClosesKey}%-5s  ${r.note}")
-    println(
-      f"\n=== TOTALS: missing=$miss | representable=$repr fed=$fed traceCycles=$traced traceCloses=$closed ==="
-    )
+              }%-5s fed=${r.fedEmitsKey}%-5s  ${r.note}")
+    println(f"\n=== TOTALS: missing=$miss | representable=$repr fed=$fed ===")
     println("[done]")
