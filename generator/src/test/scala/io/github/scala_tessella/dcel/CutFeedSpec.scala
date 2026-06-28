@@ -227,6 +227,21 @@ class CutFeedSpec extends AnyFlatSpec with Matchers with ScalaCheckDrivenPropert
     }
   }
 
+  /** MULTI-ROW finder (the band-height `expandBands` + `replayCycle` path, all leaves unit-tested in
+    * `CycleFinderSpec`): correct in principle, but MEASURED performance-prohibitive — feeding all realized
+    * n=3 cuts at `maxBand=8` took ~15 min (the close-count of tall-band variants explodes, the same wall as
+    * `coveringWalks`) and STILL did not close the largest (30-dart) cell. So `maxBand` defaults to 1
+    * (multi-row off; the gate stays fast at 6/13) and is an OPT-IN capability. The high-aspect multi-row
+    * cells remain the open frontier — they need a cheaper band-height resolution than close-every-variant.
+    * HEAVY ⇒ `ignore`d.
+    */
+  ignore should "reproduce the high-aspect MULTI-ROW n=3 cells by FEEDING their own cut (maxBand>1, HEAVY)" in {
+    val ops = opsOf(n3, 12, 4)
+    for (key, op) <- ops do
+      val r = PA.cutFeedDiagnose(op, key, n3, maxNodes = 40000, maxLen = 64, maxBand = 8)
+      withClue(s"cell $key not reproduced by feeding its own cut ($r): ")(r.fedEmitsKey shouldBe true)
+  }
+
   // ----- composite: cut-and-feed round-trip across ALL gap type-sets -----------------------------------
 
   /** The 4 n=3 banded GAP type-sets (the families the grower misses). Both integer-`c` (square/triangle) and

@@ -1,5 +1,6 @@
 package io.github.scala_tessella.dcel
 
+import io.github.scala_tessella.dcel.KrotenheerdtTorusMapSearch.FaceZ
 import io.github.scala_tessella.dcel.ProfileAutomaton as PA
 import org.scalacheck.Gen
 import org.scalatest.flatspec.AnyFlatSpec
@@ -117,6 +118,62 @@ class CycleFinderSpec extends AnyFlatSpec with Matchers with ScalaCheckDrivenPro
 
   it should "return empty when start has no edges" in {
     find(Map.empty[Int, List[E]], 0, Set('a')) shouldBe empty
+  }
+
+  // ----- multi-row finder leaves: band (sub-cycle) detection + band-height expansion --------------------
+
+  behavior of "ProfileAutomaton.bandSegments / expandBands"
+  private def to1(e: E): Int = e._1
+
+  it should "find the SELF-LOOP band (period 1)" in {
+    // 0-a->1, 1-b->1(self), 1-c->0 : the self-loop edge (index 1) is the band; the rest is the spine
+    PA.bandSegments(0, List((1, 'a'), (1, 'b'), (0, 'c')), to1) shouldBe List((1, 1))
+  }
+
+  it should "find the 2-CYCLE band (period 2, e.g. a 3⁶ triangle band)" in {
+    // 0-a->1, 1-b->2, 2-c->1, 1-d->0 : edges 1..2 (1->2->1) are the band
+    PA.bandSegments(0, List((1, 'a'), (2, 'b'), (1, 'c'), (0, 'd')), to1) shouldBe List((1, 2))
+  }
+
+  it should "find BOTH bands in the aspect-5.6 structure (a 3⁶ 2-cycle AND a 4⁴ self-loop)" in {
+    // node3→1, 1→2, 2→1, 1→0, 0→0(self), 0→3 : bands = [1..2] (3⁶) and [4..4] (4⁴ self); spine excluded
+    val path = List((1, 'a'), (2, 'b'), (1, 'b'), (0, 'a'), (0, 'c'), (3, 'a'))
+    PA.bandSegments(3, path, to1) shouldBe List((1, 2), (4, 4))
+  }
+
+  it should "find NO band in a simple cycle (only the spine)" in {
+    PA.bandSegments(0, List((1, 'a'), (0, 'b')), to1) shouldBe Nil
+  }
+
+  it should "expand a single band to 1..maxRepeat consecutive traversals" in {
+    val path = List((1, 'a'), (1, 'b'), (0, 'c')) // self-loop band at index 1
+    PA.expandBands(0, path, to1, maxRepeat = 3) shouldBe List(
+      List((1, 'a'), (1, 'b'), (0, 'c')),                    // k=1
+      List((1, 'a'), (1, 'b'), (1, 'b'), (0, 'c')),          // k=2
+      List((1, 'a'), (1, 'b'), (1, 'b'), (1, 'b'), (0, 'c')) // k=3
+    )
+    PA.expandBands(0, List((1, 'a'), (0, 'b')), to1, 5) shouldBe List(List((1, 'a'), (0, 'b'))) // no band
+  }
+
+  it should "expand TWO bands as the cartesian of their heights (the multi-row case)" in {
+    val path = List((1, 'a'), (2, 'b'), (1, 'b'), (0, 'a'), (0, 'c'), (3, 'a')) // bands [1..2] and [4..4]
+    val vs   = PA.expandBands(3, path, to1, maxRepeat = 2)
+    vs should have size 4 // 2×2
+    // the (k1=2, k2=2) variant: 3⁶ band twice + 4⁴ band twice
+    vs should
+      contain(List((1, 'a'), (2, 'b'), (1, 'b'), (2, 'b'), (1, 'b'), (0, 'a'), (0, 'c'), (0, 'c'), (3, 'a')))
+  }
+
+  it should "replayCycle accumulate Δ and STACK each edge's faces shifted by the cumulative Δ" in {
+    val faceA          = FaceZ(3, Vector(ZetaPoint.origin, ZetaPoint.step(0), ZetaPoint.step(2)))
+    val faceB          = FaceZ(4, Vector(ZetaPoint.origin, ZetaPoint.step(0), ZetaPoint.step(3)))
+    val up             = ZetaPoint(0, 0, 0, 1) // a vertical step
+    val e1             = PA.PEdge(Nil, up, List(faceA), List(3))
+    val e2             = PA.PEdge(Nil, up, List(faceB), List(4))
+    val (delta, faces) = PA.replayCycle(List(e1, e2))
+    delta shouldBe ZetaPoint(0, 0, 0, 2) // Δ = e1.delta + e2.delta
+    faces shouldBe List(faceA, FaceZ(4, faceB.corners.map(_ + up))) // faceA at 0, faceB shifted by e1.Δ
+    PA.replayCycle(Nil) shouldBe (ZetaPoint.origin, Nil)
   }
 
   // ----- property-based: SOUNDNESS over random graphs --------------------------------------------------

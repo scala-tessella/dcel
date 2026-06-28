@@ -470,7 +470,8 @@ object ProfileAutomaton:
       targetKey: String,
       ts: Set[VertexSignature],
       maxNodes: Int = 12000,
-      maxLen: Int = 64
+      maxLen: Int = 64,
+      maxBand: Int = 1
   ): CutFeedResult =
     representFrame(op) match
       case None                                       =>
@@ -487,7 +488,7 @@ object ProfileAutomaton:
         val bandH = math.abs(cLen - hLen) < 1e-6 // the GLOBAL shortest vector is itself horizontalizable
         // feed the cut profiles as seeds and check the engine emits the cell's key (the trustworthy signal)
         val fed   = profs.nonEmpty &&
-          enumerateFromSeeds(c, ts, profs, maxNodes, maxLen).keySet.contains(targetKey)
+          enumerateFromSeeds(c, ts, profs, maxNodes, maxLen, maxBand = maxBand).keySet.contains(targetKey)
         CutFeedResult(
           true,
           true,
@@ -542,7 +543,7 @@ object ProfileAutomaton:
   // (finite & small — only those polygons), then find cycles COVERING all n types (the tiling's period). A
   // single graph keyed by canonical profile; cycles found by BFS over (profile, types-used-this-cycle).
   private type CK = List[(Long, Long, Long, Long, List[(Int, Int)])]
-  final private case class PEdge(to: CK, delta: ZetaPoint, faces: List[FaceZ], typ: VertexSignature)
+  private[dcel] case class PEdge(to: CK, delta: ZetaPoint, faces: List[FaceZ], typ: VertexSignature)
 
   private def anchored(p: Profile): Profile =
     val a = anchor(p); Profile(p.c, p.verts.map(v => PV(v.pos - a, v.fan)))
@@ -615,6 +616,46 @@ object ProfileAutomaton:
     dfs(start, Set.empty, Map.empty, Nil)
     out.toList
 
+  /** The REPEATABLE BAND segments of a closed walk `start → e0 → … → start`, as edge-index ranges `[i..j]`:
+    * the SIMPLE sub-cycles (a node recurs, with no inner recurrence) — each a homogeneous band of one period
+    * that maps the profile to a translate of itself and so can be repeated `k` times for a `k`-row band. A
+    * self-loop is the period-1 case; a 2-cycle (e.g. a `3⁶` triangle band node↔node) the period-2 case, etc.
+    * The outermost cycle spanning the whole walk (the period "spine", traversed once) is EXCLUDED.
+    * Walk-decomposition by last-occurrence positions; pure ⇒ unit-testable.
+    */
+  private[dcel] def bandSegments[N, E](start: N, path: List[E], toOf: E => N): List[(Int, Int)] =
+    val nodes  = (start :: path.map(toOf)).toVector // nodes(i) = node BEFORE edge i; last = return to start
+    val pos    = mutable.Map.empty[N, Int]
+    val cycles = mutable.ListBuffer.empty[(Int, Int)]
+    nodes.indices.foreach: i =>
+      pos.get(nodes(i)) match
+        case Some(p) => cycles += ((p, i - 1)); (p + 1 until i).foreach(k => pos.remove(nodes(k)))
+        case None    => pos(nodes(i)) = i
+    cycles.toList.filterNot((i, j) => i == 0 && j == path.length - 1) // drop the whole-walk spine
+
+  /** Band-HEIGHT variants of a closed walk: each repeatable band ([[bandSegments]]) traversed `1..maxRepeat`
+    * times (cartesian over the disjoint bands). A walk with no band expands to just itself. Replaying a
+    * variant gives the `(Δ,faces)` of a multi-row-band tiling; `close`/`primitiveBasis` then resolves which
+    * heights form a valid cell. Bounded by `maxRepeat^(#bands)`. Pure ⇒ unit-testable.
+    */
+  private[dcel] def expandBands[N, E](start: N, path: List[E], toOf: E => N, maxRepeat: Int): List[List[E]] =
+    val bands = bandSegments(start, path, toOf).sortBy(_._1) // disjoint, left-to-right
+    if bands.isEmpty then List(path)
+    else
+      def repsOf(bs: List[(Int, Int)], acc: List[Int]): List[List[Int]] = bs match
+        case Nil       => List(acc.reverse)
+        case _ :: rest => (1 to maxRepeat).toList.flatMap(k => repsOf(rest, k :: acc))
+      repsOf(bands, Nil).map: reps =>
+        val buf = mutable.ListBuffer.empty[E]
+        var idx = 0
+        bands.zip(reps).foreach { case ((i, j), k) =>
+          buf ++= path.slice(idx, i)
+          (0 until k).foreach(_ => buf ++= path.slice(i, j + 1))
+          idx = j + 1
+        }
+        buf ++= path.slice(idx, path.length)
+        buf.toList
+
   /** Up to `cap` covering cycles from `start` back to `start`, each as `(Δ, period faces)`: a BFS over
     * `(profile, types-used)` that records every edge back to `start` whose accumulated types == `target` and
     * Δ≠0. Each state visited ONCE — so it is O(states)=O(nodes·2^|target|) per call (FAST on the gate's large
@@ -632,22 +673,34 @@ object ProfileAutomaton:
       target: Set[VertexSignature],
       maxLen: Int,
       cap: Int
-  ): List[(ZetaPoint, List[FaceZ])] =
-    val out     = mutable.ListBuffer.empty[(ZetaPoint, List[FaceZ])]
+  ): List[List[PEdge]] =
+    val out     = mutable.ListBuffer.empty[List[PEdge]]
     val visited = mutable.HashSet.empty[(CK, Set[VertexSignature])]
-    val queue   = mutable.Queue.empty[(CK, Set[VertexSignature], ZetaPoint, List[FaceZ], Int)]
+    // carry the EDGE PATH (references — cheap) so the multi-row finder can spot self-loops and vary band height
+    val queue   = mutable.Queue.empty[(CK, Set[VertexSignature], ZetaPoint, List[PEdge], Int)]
     queue += ((start, Set.empty, ZetaPoint.origin, Nil, 0)); visited += ((start, Set.empty))
     while queue.nonEmpty && out.sizeIs < cap do
-      val (k, used, sh, fs, d) = queue.dequeue()
+      val (k, used, sh, edgesRev, d) = queue.dequeue()
       if d < maxLen then
         graph.getOrElse(k, Nil).foreach: e =>
           val used2 = used + e.typ
           if used2.subsetOf(target) then
-            val nf = fs ++ shiftFaces(e.faces, sh)
             val ns = sh + e.delta
-            if e.to == start && used2 == target && !ns.isOrigin then out += ((ns, nf))
-            if visited.add((e.to, used2)) then queue += ((e.to, used2, ns, nf, d + 1))
+            if e.to == start && used2 == target && !ns.isOrigin then out += (e :: edgesRev).reverse
+            if visited.add((e.to, used2)) then queue += ((e.to, used2, ns, e :: edgesRev, d + 1))
     out.toList
+
+  /** Accumulate `(Δ, period faces)` from a cycle's edge path: each edge's faces are placed in the
+    * source-anchored frame, shifted up by the cumulative Δ so far. (Replaying an [[expandBands]] variant
+    * gives the faces+period of a multi-row-band tiling.)
+    */
+  private[dcel] def replayCycle(edges: List[PEdge]): (ZetaPoint, List[FaceZ]) =
+    var sh    = ZetaPoint.origin
+    var faces = List.empty[FaceZ]
+    edges.foreach: e =>
+      faces = faces ++ shiftFaces(e.faces, sh)
+      sh = sh + e.delta
+    (sh, faces)
 
   private def faceSetKey(faces: List[FaceZ]): List[(Int, List[(Long, Long, Long, Long)])] =
     import scala.math.Ordering.Implicits.seqOrdering
@@ -663,11 +716,12 @@ object ProfileAutomaton:
       ts: Set[VertexSignature],
       maxNodes: Int = 30000,
       maxLen: Int = 48,
-      capPerNode: Int = 16
+      capPerNode: Int = 16,
+      maxBand: Int = 1
   ): Map[String, (Int, Set[VertexSignature])] =
     // band-top seeds (fast); the COMPLETE enumerator `completeSeeds` was measured NOT to improve recall and
     // explodes at large c — the recall ceiling is growth/cycle-finding for high-aspect cells, not seeds.
-    enumerateFromSeeds(c, ts, seedsC(c), maxNodes, maxLen, capPerNode)
+    enumerateFromSeeds(c, ts, seedsC(c), maxNodes, maxLen, capPerNode, maxBand)
 
   /** Like [[enumerateForTypeSetC]] but from an EXPLICIT seed-profile set (e.g. for diagnosing seed coverage:
     * feed a known cell's own cut-profile and check whether the engine closes it).
@@ -678,22 +732,28 @@ object ProfileAutomaton:
       seedProfiles: List[Profile],
       maxNodes: Int = 30000,
       maxLen: Int = 48,
-      capPerNode: Int = 16
+      capPerNode: Int = 16,
+      maxBand: Int = 1
   ): Map[String, (Int, Set[VertexSignature])] =
     val graph         = buildGraphForC(c, ts, maxNodes, seedProfiles)
     val out           = mutable.Map.empty[String, (Int, Set[VertexSignature])]
     val seenCyc       = mutable.HashSet.empty[List[(Int, List[(Long, Long, Long, Long)])]]
     var nCyc, nClosed = 0
     // start covering cycles from EVERY node: a cell's cycle need not pass through a band-top seed profile, so
-    // seed-only starts miss cells. Cycles are deduped by face-set before the (costly) close.
+    // seed-only starts miss cells. Each cycle is expanded to its band-HEIGHT variants (a self-loop = a
+    // homogeneous row, repeated 1..maxBand times — the MULTI-ROW finder), replayed, deduped by face-set before
+    // the (costly) close. `close`/`primitiveBasis` resolves which height `k` is a valid cell.
     graph.keysIterator.foreach: start =>
-      coveringCyclesFrom(graph, start, ts, maxLen, capPerNode).foreach: (delta, faces) =>
-        val df = dedupFaces(faces)
-        if seenCyc.add(faceSetKey(df)) then
-          nCyc += 1
-          CylinderAutomaton.close(df, c, delta, ts.size).foreach: (n, types, key) =>
-            nClosed += 1
-            if types == ts then out.getOrElseUpdate(key, (n, types))
+      coveringCyclesFrom(graph, start, ts, maxLen, capPerNode).foreach: cycle =>
+        expandBands[CK, PEdge](start, cycle, _.to, maxBand).foreach: variant =>
+          val (delta, faces) = replayCycle(variant)
+          if !delta.isOrigin then
+            val df = dedupFaces(faces)
+            if seenCyc.add(faceSetKey(df)) then
+              nCyc += 1
+              CylinderAutomaton.close(df, c, delta, ts.size).foreach: (n, types, key) =>
+                nClosed += 1
+                if types == ts then out.getOrElseUpdate(key, (n, types))
     if sys.props.contains("pa.debug") then
       println(
         s"    [pa] c.x=${xD(c)}, seeds=${seedProfiles.size}, nodes=${graph.size}, distinctCycles=$nCyc, closedOk=$nClosed, emitted=${out.size}"
@@ -731,7 +791,8 @@ object ProfileAutomaton:
       targetKey: String,
       maxNodes: Int = 30000,
       maxLen: Int = 64,
-      capPerNode: Int = 16
+      capPerNode: Int = 16,
+      maxBand: Int = 1
   ): String =
     val graph   = buildGraphForC(c, ts, maxNodes, seedProfiles)
     val seenCyc = mutable.HashSet.empty[List[(Int, List[(Long, Long, Long, Long)])]]
@@ -739,12 +800,15 @@ object ProfileAutomaton:
     val keys    = mutable.Set.empty[String]
     var closes  = 0
     graph.keysIterator.foreach: start =>
-      coveringCyclesFrom(graph, start, ts, maxLen, capPerNode).foreach: (delta, faces) =>
-        val df = dedupFaces(faces)
-        if seenCyc.add(faceSetKey(df)) then
-          nCyc += 1
-          CylinderAutomaton.close(df, c, delta, ts.size).foreach: (_, _, key) =>
-            closes += 1; keys += key
+      coveringCyclesFrom(graph, start, ts, maxLen, capPerNode).foreach: cycle =>
+        expandBands[CK, PEdge](start, cycle, _.to, maxBand).foreach: variant =>
+          val (delta, faces) = replayCycle(variant)
+          if !delta.isOrigin then
+            val df = dedupFaces(faces)
+            if seenCyc.add(faceSetKey(df)) then
+              nCyc += 1
+              CylinderAutomaton.close(df, c, delta, ts.size).foreach: (_, _, key) =>
+                closes += 1; keys += key
     s"seeds=${seedProfiles.size} nodes=${graph.size} cycles=$nCyc closed=$closes distinctKeys=${keys.size} " +
       s"hasTarget=${keys.contains(targetKey)}"
 
