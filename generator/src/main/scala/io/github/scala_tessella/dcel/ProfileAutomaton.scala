@@ -315,16 +315,28 @@ object ProfileAutomaton:
       note: String
   )
 
-  private def rotZk(z: ZetaPoint, k: Int): ZetaPoint             =
+  /** Rotate by `ζ^k` (k·30° CCW), exact. */
+  private[dcel] def rotZk(z: ZetaPoint, k: Int): ZetaPoint =
     var r = z; var i = ((k % 12) + 12) % 12; while i > 0 do { r = r.timesZeta; i -= 1 }; r
-  private def lenD(z: ZetaPoint): Double                         = math.hypot(xD(z), yD(z))
-  private def collinear(u: ZetaPoint, v: ZetaPoint): Boolean     = math.abs(xD(u) * yD(v) - yD(u) * xD(v)) < 1e-7
-  private def centroidZ(f: FaceZ): ZetaPoint                     = f.corners.reduce(_ + _)
-  private def divExactZ(z: ZetaPoint, d: Int): Option[ZetaPoint] =
+
+  /** Euclidean length of the planar embedding. */
+  private[dcel] def lenD(z: ZetaPoint): Double = math.hypot(xD(z), yD(z))
+
+  /** True iff `u,v` are parallel (zero 2-D cross product). */
+  private[dcel] def collinear(u: ZetaPoint, v: ZetaPoint): Boolean = math.abs(xD(u) * yD(v) - yD(u) * xD(v)) <
+    1e-7
+
+  /** Sum of a face's corners (= `size ×` its centroid; exact). */
+  private[dcel] def centroidZ(f: FaceZ): ZetaPoint = f.corners.reduce(_ + _)
+
+  /** Exact division of every component by `d` (None unless all divide). */
+  private[dcel] def divExactZ(z: ZetaPoint, d: Int): Option[ZetaPoint] =
     if d != 0 && z.a0 % d == 0 && z.a1 % d == 0 && z.a2 % d == 0 && z.a3 % d == 0
     then Some(ZetaPoint(z.a0 / d, z.a1 / d, z.a2 / d, z.a3 / d))
     else None
-  private def sameFaceZ(f: FaceZ, g: FaceZ): Boolean             =
+
+  /** True iff two faces have the same size and the same corner multiset (order-independent). */
+  private[dcel] def sameFaceZ(f: FaceZ, g: FaceZ): Boolean =
     f.size == g.size && {
       val a = f.corners.map(z => (z.a0, z.a1, z.a2, z.a3)).sorted
       val b = g.corners.map(z => (z.a0, z.a1, z.a2, z.a3)).sorted
@@ -335,7 +347,7 @@ object ProfileAutomaton:
     * independent lattice vectors are a basis (successive minima ⇒ basis), so brute-force the small integer
     * combos and pick them. `pts` (all combos within range) is also returned for the horizontal-vector search.
     */
-  private def latticeBasisZ(
+  private[dcel] def latticeBasisZ(
       gens: List[ZetaPoint],
       R: Int = 6
   ): Option[(ZetaPoint, ZetaPoint, List[ZetaPoint])] =
@@ -355,7 +367,8 @@ object ProfileAutomaton:
         val v1  = all.minBy(lenD)
         all.filterNot(p => collinear(p, v1)).minByOption(lenD).map(v2 => (v1, v2, all))
 
-  private def latticeSolve(t: ZetaPoint, a: ZetaPoint, b: ZetaPoint): Option[(Int, Int)] =
+  /** The unique integer `(m,n)` with `t = m·a + n·b` (exact-verified), or None if `t ∉ ⟨a,b⟩`. */
+  private[dcel] def latticeSolve(t: ZetaPoint, a: ZetaPoint, b: ZetaPoint): Option[(Int, Int)] =
     val det = xD(a) * yD(b) - yD(a) * xD(b)
     if math.abs(det) < 1e-9 then None
     else
@@ -366,16 +379,83 @@ object ProfileAutomaton:
   /** True iff face `f` is a lattice-translate of one of the cell's fundamental faces (membership in the cell
     * tiling, mod Λ = ⟨a,b⟩).
     */
-  private def faceInCell(f: FaceZ, funds: List[FaceZ], a: ZetaPoint, b: ZetaPoint): Boolean =
+  private[dcel] def faceInCell(f: FaceZ, funds: List[FaceZ], a: ZetaPoint, b: ZetaPoint): Boolean =
     funds.exists: f0 =>
       f0.size == f.size && divExactZ(centroidZ(f) - centroidZ(f0), f.size).exists: t =>
         latticeSolve(t, a, b).isDefined && sameFaceZ(FaceZ(f0.size, f0.corners.map(_ + t)), f)
+
+  /** A profile is a VALID cut of the cell iff every face implied by every vertex's below-fan is a cell face:
+    * reconstruct `FaceZ(m, polygon(v.pos, s, m))` for each `(s,m)` entry and check [[faceInCell]]. The
+    * malformed high-aspect cut (a deep slab keeping spurious floor/interior rows) violates this — its floor
+    * vertices' fans reconstruct to off-lattice faces — so this is the invariant the cut construction must
+    * satisfy.
+    */
+  private[dcel] def profileCellConsistent(
+      p: Profile,
+      funds: List[FaceZ],
+      a: ZetaPoint,
+      b: ZetaPoint
+  ): Boolean =
+    p.verts.forall(v => v.fan.forall((s, m) => faceInCell(FaceZ(m, G.polygon(v.pos, s, m)), funds, a, b)))
+
+  /** Diagnostic for [[faceInCell]]: per same-size fund, the centroid-difference, whether it divides, the
+    * `latticeSolve` result, and whether `f0+t` matches `f`. Pinpoints WHY a genuine cell face is rejected.
+    */
+  private[dcel] def faceInCellWhy(f: FaceZ, funds: List[FaceZ], a: ZetaPoint, b: ZetaPoint): String =
+    funds.filter(_.size == f.size).map { f0 =>
+      divExactZ(centroidZ(f) - centroidZ(f0), f.size) match
+        case None    => "notDiv"
+        case Some(t) =>
+          s"solve=${latticeSolve(t, a, b)} same=${sameFaceZ(FaceZ(f0.size, f0.corners.map(_ + t)), f)}"
+    }.mkString(" | ")
 
   /** Cut profiles of the cell: tile the fundamentals over a vertical window (folding mod `c` happens in
     * `seedFromFaces`), then cut at several interior heights — the up-facing vertices on each cut line form a
     * candidate seed profile.
     */
-  private def buildCutProfiles(
+  /** Fold a face mod `c` so its LEFTMOST corner sits in `[0,|c|)` (exact integer shift). Used to dedup
+    * c-translates that would otherwise double-count into a vertex's fan when `seedFromFaces` accumulates.
+    */
+  private[dcel] def foldFaceModC(f: FaceZ, c: ZetaPoint): FaceZ =
+    val j = math.floor(f.corners.map(xD).min / xD(c) + 1e-7).toInt
+    if j == 0 then f else FaceZ(f.size, f.corners.map(_ - mul(c, j)))
+
+  /** The cell's faces tiled over a `(2K+1)²` window of lattice translates, each folded mod `c` and DEDUPED by
+    * corner-set — one representative per cylinder face-orbit (no horizontal double-cover).
+    */
+  private[dcel] def tiledBandFaces(
+      rFaces: List[FaceZ],
+      rv1: ZetaPoint,
+      rv2: ZetaPoint,
+      c: ZetaPoint,
+      K: Int = 5
+  ): List[FaceZ] =
+    val seenF = mutable.HashSet.empty[List[(Long, Long, Long, Long)]]
+    (for m <- -K to K; n <- -K to K; f <- rFaces
+    yield foldFaceModC(FaceZ(f.size, f.corners.map(_ + mul(rv1, m) + mul(rv2, n))), c))
+      .filter(f => seenF.add(f.corners.map(z => (z.a0, z.a1, z.a2, z.a3)).sorted.toList))
+      .toList
+
+  /** One cut profile of `tiled` at height `Y`: feed the slab of faces fully BELOW `Y` to `seedFromFaces` (so
+    * interior vertices complete and drop out), then keep EXACTLY the vertices that STRADDLE `Y` — those also
+    * incident to a face reaching above `Y`. This precise straddle test (no depth/window heuristic) is what
+    * makes the cut a genuine monotone front: a y-window keeps spurious non-straddling interior vertices for
+    * slanted / high-aspect cells, whose partial fans then have no valid completion (the `fillLowest`
+    * dead-end).
+    */
+  private[dcel] def cutProfileAt(tiled: List[FaceZ], c: ZetaPoint, Y: Double): Option[Profile] =
+    val below       = tiled.filter(_.corners.forall(z => yD(z) < Y - 1e-9))
+    // folded corners of faces that reach above Y — the vertices a cut vertex must also touch to truly straddle
+    val aboveFolded = tiled.filter(_.corners.exists(z => yD(z) > Y + 1e-9))
+      .flatMap(_.corners.map(z => foldPos(z, c)))
+      .map(z => (z.a0, z.a1, z.a2, z.a3)).toSet
+    seedFromFaces(below, c)
+      .map(p =>
+        Profile(c, p.verts.filter(v => aboveFolded.contains((v.pos.a0, v.pos.a1, v.pos.a2, v.pos.a3))))
+      )
+      .filter(_.verts.nonEmpty)
+
+  private[dcel] def buildCutProfiles(
       rFaces: List[FaceZ],
       rv1: ZetaPoint,
       rv2: ZetaPoint,
@@ -383,39 +463,15 @@ object ProfileAutomaton:
       periodY: Double,
       K: Int = 5
   ): List[Profile] =
-    // fold each face mod c (leftmost corner into [0,|c|)) and dedup: the band is over-tiled horizontally, and
-    // c-translates of one face would otherwise DOUBLE-count into a vertex's fan (seedFromFaces accumulates).
-    def foldFace(f: FaceZ): FaceZ =
-      val j = math.floor(f.corners.map(xD).min / xD(c) + 1e-7).toInt
-      if j == 0 then f else FaceZ(f.size, f.corners.map(_ - mul(c, j)))
-    val seenF                     = mutable.HashSet.empty[List[(Long, Long, Long, Long)]]
-    val tiled                     =
-      (for m <- -K to K; n <- -K to K; f <- rFaces
-      yield foldFace(FaceZ(f.size, f.corners.map(_ + mul(rv1, m) + mul(rv2, n)))))
-        .filter(f => seenF.add(f.corners.map(z => (z.a0, z.a1, z.a2, z.a3)).sorted.toList))
-    // `periodY` = the tiling's vertical period (independent of horizontal wrapping). The cut keeps faces in the
-    // BAND (Y−period, Y], NOT the whole slab below Y — a slab leaves a spurious up-facing FLOOR row; a band's
-    // floor vertices see only their upper faces ⇒ down-facing ⇒ correctly dropped, leaving just the cut row.
-    val ysAll                     = tiled.flatMap(_.corners.map(yD)).distinct.sorted
+    val tiled = tiledBandFaces(rFaces, rv1, rv2, c, K)
+    val ysAll = tiled.flatMap(_.corners.map(yD)).distinct.sorted
     if ysAll.length < 4 || periodY <= 1e-6 then Nil
     else
       // interior cut heights: midpoints between consecutive vertex rows in the central third
-      val lo    = ysAll(ysAll.length / 3); val hi = ysAll(2 * ysAll.length / 3)
-      val rows  = ysAll.filter(y => y >= lo && y <= hi)
-      val cuts  = rows.sliding(2).collect { case Seq(p, q) if q - p > 1e-6 => (p + q) / 2 }.toList
-      // band depth ~1.5 periods: enough for the cut row's full below-coronas, shallow enough that the floor
-      // row faces DOWN (dropped). (One exact period grazes the cut row's centroid — hence the 1.5× + tol.)
-      val depth = 1.5 * periodY + 1e-6
-      cuts
-        .flatMap(Y =>
-          seedFromFaces(
-            tiled.filter(f =>
-              f.corners.forall(z => yD(z) < Y - 1e-9) && yD(centroidZ(f)) / f.size > Y - depth
-            ).toList,
-            c
-          )
-        )
-        .distinctBy(canonKey)
+      val lo   = ysAll(ysAll.length / 3); val hi = ysAll(2 * ysAll.length / 3)
+      val rows = ysAll.filter(y => y >= lo && y <= hi)
+      val cuts = rows.sliding(2).collect { case Seq(p, q) if q - p > 1e-6 => (p + q) / 2 }.toList
+      cuts.flatMap(Y => cutProfileAt(tiled, c, Y)).distinctBy(canonKey)
 
   /** The decisive diagnostic — see the section header. `targetKey` = the oracle's
     * `DelaneySymbols.canonicalKey` (the same key space the engine emits).
@@ -476,15 +532,18 @@ object ProfileAutomaton:
       profs: List[Profile]
   )
 
+  /** Among lattice points `pts`, the SHORTEST that becomes horizontal (+x) under some `ζ^k` rotation, as
+    * `(length, k, vector)`. None if no lattice vector is a 30°-multiple direction (a representation gap).
+    */
+  private[dcel] def shortestHorizontal(pts: List[ZetaPoint]): Option[(Double, Int, ZetaPoint)] =
+    (for p <- pts; k <- 0 until 12 if math.abs(yD(rotZk(p, k))) < 1e-7 && xD(rotZk(p, k)) > 1e-9
+    yield (lenD(p), k, p)).minByOption(_._1)
+
   private[dcel] def representFrame(op: Array[Array[Int]]): Option[Frame] =
     G.realizeCellZ(op).flatMap: (faces, deck, _, _) =>
       latticeBasisZ(deck).flatMap: (v1, v2, pts) =>
-        val hLen  = pts.map(lenD).min
-        // shortest lattice vector that becomes horizontal under SOME ζ^k rotation
-        val horiz =
-          for p <- pts; k <- 0 until 12 if math.abs(yD(rotZk(p, k))) < 1e-7 && xD(rotZk(p, k)) > 1e-9
-          yield (lenD(p), k, p)
-        horiz.minByOption(_._1).map: (cLen, k, p) =>
+        val hLen = pts.map(lenD).min
+        shortestHorizontal(pts).map: (cLen, k, p) =>
           // the band period is |p|=cLen; the engine needs |c| ≥ 2 (a unit edge must not wrap the cylinder),
           // so use the smallest integer multiple of the period with |c| ≥ 2.
           val reps    = math.max(1, math.ceil(2.0 / cLen - 1e-9).toInt)
@@ -500,7 +559,7 @@ object ProfileAutomaton:
     * all lie in the cell, until the profile recurs (a cycle). Then close the accumulated period faces and
     * compare to `targetKey`. Returns (cycledBack, closedToTargetKey).
     */
-  private def traceCellCycle(
+  private[dcel] def traceCellCycle(
       p0: Profile,
       funds: List[FaceZ],
       rv1: ZetaPoint,
@@ -534,6 +593,74 @@ object ProfileAutomaton:
             result = (true, closed); stop = true
           else cur = q
     result
+
+  /** Diagnostic: per trace step, `(totalSuccessors, ts-valid, cell-consistent)` until the cell-following
+    * trace dead-ends or cycles. A step with `total>0` but `cell-consistent=0` localises the failure to
+    * `faceInCell` (the cell's own completion is rejected ⇒ lattice-basis / membership bug), not the
+    * transition rule.
+    */
+  private[dcel] def traceCellDebug(
+      p0: Profile,
+      funds: List[FaceZ],
+      rv1: ZetaPoint,
+      rv2: ZetaPoint,
+      c: ZetaPoint,
+      ts: Set[VertexSignature],
+      maxSteps: Int
+  ): List[(Int, Int, Int)] =
+    val startKey = canonKey(p0)
+    var cur      = p0
+    val log      = mutable.ListBuffer.empty[(Int, Int, Int)]
+    var step     = 0
+    var stop     = false
+    while step < maxSteps && !stop do
+      val all  = fillLowest(cur)
+      val tsOk = all.filter((_, t, _) => ts.contains(t))
+      val cell = tsOk.filter((_, _, f) => f.forall(face => faceInCell(face, funds, rv1, rv2)))
+      log += ((all.size, tsOk.size, cell.size))
+      if cell.isEmpty then stop = true
+      else
+        val (q, _, _) = cell.head
+        step += 1
+        if canonKey(q) == startKey then stop = true else cur = q
+    log.toList
+
+  /** Trace cell-consistently to the dead-end, then dump the stuck profile: its lowest vertex (pos, fan, open
+    * arc) and every `fillLowest` option with type + per-face `faceInCell`. Reveals why no continuation is
+    * cell-consistent (e.g. the cell's completion is overlap-rejected, or a placed face folds off-lattice).
+    */
+  private[dcel] def dumpDeadEnd(
+      p0: Profile,
+      funds: List[FaceZ],
+      rv1: ZetaPoint,
+      rv2: ZetaPoint,
+      c: ZetaPoint,
+      ts: Set[VertexSignature],
+      maxSteps: Int
+  ): String =
+    val startKey        = canonKey(p0)
+    var cur             = p0
+    var step            = 0
+    var stop            = false
+    while step < maxSteps && !stop do
+      val all  = fillLowest(cur)
+      val cell =
+        all.filter((_, t, f) => ts.contains(t) && f.forall(face => faceInCell(face, funds, rv1, rv2)))
+      if cell.isEmpty then stop = true
+      else
+        val (q, _, _) = cell.head; step += 1
+        if canonKey(q) == startKey then stop = true else cur = q
+    val L               = cur.verts(cur.verts.indices.minBy(i => (yD(cur.verts(i).pos), xD(cur.verts(i).pos))))
+    def cs(face: FaceZ) = face.corners.map(z => (z.a0, z.a1, z.a2, z.a3)).mkString(",")
+    val opts            = fillLowest(cur).map: (q, t, f) =>
+      val inCell = f.map(face => s"${face.size}:${faceInCell(face, funds, rv1, rv2)}")
+      val why    =
+        if ts.contains(t) then
+          s"\n      placed0=${cs(f.head)}\n      funds(sz${f.head.size})=${funds.filter(_.size == f.head.size).map(cs).mkString(" ; ")}"
+        else ""
+      s"  type=${t.mkString(".")} tsOk=${ts.contains(t)} faces=[${inCell.mkString(",")}]$why"
+    s"DEAD-END after $step steps; lowest L pos=(${xD(L.pos)}%.2f,${yD(L.pos)}%.2f) fan=${L.fan} " +
+      s"openArc=${openArc(L.fan)}\n  ${fillLowest(cur).size} fillLowest options:\n${opts.mkString("\n")}"
 
   // ---- efficient transfer-matrix cycle-finder, restricted per type-set (the n≥3 driver) ---------------
 
