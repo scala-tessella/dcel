@@ -359,6 +359,17 @@ object KrotenheerdtTorusMapSearch:
     * grower's reach.
     */
   def realizeCell(op: Array[Array[Int]], maxN: Int = 7): Option[(List[FaceZ], BigPoint, BigPoint)] =
+    realizeCellZ(op, maxN).map((faces, _, pvB, pwB) => (faces, pvB, pwB))
+
+  /** As [[realizeCell]], but ALSO returns the EXACT ℤ[ζ₁₂] deck (lattice-generating) vectors — the genuine
+    * period vectors developed at non-tree edges, before the `BigPoint` `primitiveBasis` reduction. The
+    * profile/cut-and-feed machinery needs an exact ζ lattice to find a horizontal circumference vector
+    * (rotating the cell by `ζ^k`), which the reduced `BigPoint` basis cannot supply unambiguously.
+    */
+  def realizeCellZ(
+      op: Array[Array[Int]],
+      maxN: Int = 7
+  ): Option[(List[FaceZ], List[ZetaPoint], BigPoint, BigPoint)] =
     val D = (op.length - 1) / 2
     if D <= 0 then None
     else
@@ -377,7 +388,7 @@ object KrotenheerdtTorusMapSearch:
       alpha: Int => Int,
       succ: Array[Int],
       maxN: Int
-  ): Option[(List[FaceZ], BigPoint, BigPoint)] =
+  ): Option[(List[FaceZ], List[ZetaPoint], BigPoint, BigPoint)] =
     val faceOf                                                  = Array.fill(D)(-1)
     val faceDarts                                               = mutable.ArrayBuffer.empty[Vector[Int]]
     var g0                                                      = 0
@@ -438,7 +449,7 @@ object KrotenheerdtTorusMapSearch:
         if pcov > BigDecimal("1e-9") && distinctArea(faces, pvB, pwB) >= pcov - BigDecimal("1e-6")
           && tilesWithoutOverlap(faces, g1, g2)
         then if best.forall(pcov < _._3) then best = Some((pvB, pwB, pcov))
-      best.map((pvB, pwB, _) => (faces, pvB, pwB))
+      best.map((pvB, pwB, _) => (faces, deck.distinct.toList, pvB, pwB))
 
   /** GROUND-TRUTH rotational-symmetry reference for a closed torus cell (faces + lattice Λ = (pv, pw)): the
     * set of `(centre-type, order)` rotation centres, type ∈ {"face","vertex","edge"} (polygon-centre / vertex
