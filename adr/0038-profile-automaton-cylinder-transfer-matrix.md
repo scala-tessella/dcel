@@ -28,6 +28,16 @@
   soundness): more circumferences (3, 3√3, …) + higher `maxNodes`/`capPerNode`/`maxLen`; PERFORMANCE — the `2√3`
   graph *build* (`fillLowest`×nodes) is the slow path (a full 4-set sweep at maxNodes 30000 doesn't finish in
   ~18min; 8000 does). Soundness holds throughout.
+- **Perf + recall diagnosis (2026-06-28, cont.):** `fillLowest` was dominated by BigDecimal `toBigPoint`
+  (`foldPos`'s while-loop + `lowestIndex`); replaced with a fast Double embedding (`xD`/`yD`) and an O(1) exact
+  `foldPos` — a full **6-circumference** sweep ({2,3,4,6,2√3,3√3}) now runs in **~3.5 min** (was: 3 circs didn't
+  finish in 18min). BUT recall PLATEAUED at **6/13** even at maxNodes 40000 / capPerNode 48 / maxLen 72 — so the
+  7 holdouts are STRUCTURAL, not bounds. `pa.debug` per (type-set, c) shows: the pure-hexagon set
+  `3.3.6.6;3.6.3.6;6.6.6` GROWS only **12 nodes / 0 cycles at its correct `c=2√3`** (growth stalls), while the
+  hexagon-MIXED `3⁶;3⁵.6;3.3.6.6` grows fine there (63 nodes / 76 cycles / 2 emitted); integer `c` just cap at
+  12000 nodes with 0 cycles (wrong period). ⇒ the holdout is **hexagon-heavy growth/seed coverage at √3** (the
+  restricted fills or StripBand hexagon seeds can't continue a `6.6.6`/`3.6.3.6` tiling), NOT √3-precision and
+  NOT bounds. NEXT: debug hexagon seeds/fills at `2√3` (why growth stalls after 12 profiles). Soundness intact.
 - **Reframes:** [[0037-strip-stacking-enumerator-for-the-banded-family]]. The band *generator* (`StripBand.fillAbove`
   / `bandValid`, exact ℤ[ζ₁₂], test-verified) is kept, but its **organization** changes: bands are no longer
   catalogued in a vacuum (that produced 55 layer-types, most irrelevant), they become the **transitions of a

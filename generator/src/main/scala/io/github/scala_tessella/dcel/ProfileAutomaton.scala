@@ -313,17 +313,24 @@ object ProfileAutomaton:
       maxLen: Int = 48,
       capPerNode: Int = 16
   ): Map[String, (Int, Set[VertexSignature])] =
-    val graph   = buildGraphForC(c, ts, maxNodes)
-    val out     = mutable.Map.empty[String, (Int, Set[VertexSignature])]
-    val seenCyc = mutable.HashSet.empty[List[(Int, List[(Long, Long, Long, Long)])]]
+    val graph         = buildGraphForC(c, ts, maxNodes)
+    val out           = mutable.Map.empty[String, (Int, Set[VertexSignature])]
+    val seenCyc       = mutable.HashSet.empty[List[(Int, List[(Long, Long, Long, Long)])]]
+    var nCyc, nClosed = 0
     // start covering cycles from EVERY node: a cell's cycle need not pass through a band-top seed profile, so
     // seed-only starts miss cells. Cycles are deduped by face-set before the (costly) close.
     graph.keysIterator.foreach: start =>
       coveringCyclesFrom(graph, start, ts, maxLen, capPerNode).foreach: (delta, faces) =>
         val df = dedupFaces(faces)
         if seenCyc.add(faceSetKey(df)) then
+          nCyc += 1
           CylinderAutomaton.close(df, c, delta, ts.size).foreach: (n, types, key) =>
+            nClosed += 1
             if types == ts then out.getOrElseUpdate(key, (n, types))
+    if sys.props.contains("pa.debug") then
+      println(
+        s"    [pa] c.x=${xD(c)}%, seeds=${seedsC(c).size}, nodes=${graph.size}, distinctCycles=$nCyc, closedOk=$nClosed, emitted=${out.size}"
+      )
     out.toMap
 
   /** Integer-circumference convenience. */
