@@ -263,9 +263,10 @@ object ProfileAutomaton:
       graph(k) = edges
     graph
 
-  /** All simple cycles from `start` back to `start` that COVER `target` (DFS, path-local visited ⇒ simple,
-    * depth ≤ `maxLen`, ≤ `cap`), each as `(Δ, period faces)`. Multiple cycles ⇒ the several distinct tilings
-    * of one type-set (shortest-only found just one).
+  /** Up to `cap` covering cycles from `start` back to `start` (BFS over `(profile, types-used)` — efficient,
+    * bounded, no exponential; depth ≤ `maxLen`), each as `(Δ, period faces)`. Collecting several covering
+    * cycles ⇒ the several distinct tilings of one type-set (shortest-only found just one); a DFS to `maxLen`
+    * explodes.
     */
   private def coveringCyclesFrom(
       graph: mutable.Map[CK, List[PEdge]],
@@ -274,24 +275,20 @@ object ProfileAutomaton:
       maxLen: Int,
       cap: Int
   ): List[(ZetaPoint, List[FaceZ])] =
-    val out = mutable.ListBuffer.empty[(ZetaPoint, List[FaceZ])]
-    def dfs(
-        k: CK,
-        used: Set[VertexSignature],
-        sh: ZetaPoint,
-        fs: List[FaceZ],
-        depth: Int,
-        path: Set[CK]
-    ): Unit =
-      if out.sizeIs < cap && depth <= maxLen then
+    val out     = mutable.ListBuffer.empty[(ZetaPoint, List[FaceZ])]
+    val visited = mutable.HashSet.empty[(CK, Set[VertexSignature])]
+    val queue   = mutable.Queue.empty[(CK, Set[VertexSignature], ZetaPoint, List[FaceZ], Int)]
+    queue += ((start, Set.empty, ZetaPoint.origin, Nil, 0)); visited += ((start, Set.empty))
+    while queue.nonEmpty && out.sizeIs < cap do
+      val (k, used, sh, fs, d) = queue.dequeue()
+      if d < maxLen then
         graph.getOrElse(k, Nil).foreach: e =>
           val used2 = used + e.typ
           if used2.subsetOf(target) then
             val nf = fs ++ shiftFaces(e.faces, sh)
             val ns = sh + e.delta
-            if e.to == start then { if used2 == target && !ns.isOrigin then out += ((ns, nf)) }
-            else if !path.contains(e.to) then dfs(e.to, used2, ns, nf, depth + 1, path + e.to)
-    dfs(start, Set.empty, ZetaPoint.origin, Nil, 0, Set(start))
+            if e.to == start && used2 == target && !ns.isOrigin then out += ((ns, nf))
+            if visited.add((e.to, used2)) then queue += ((e.to, used2, ns, nf, d + 1))
     out.toList
 
   private def faceSetKey(faces: List[FaceZ]): List[(Int, List[(Long, Long, Long, Long)])] =
@@ -308,13 +305,14 @@ object ProfileAutomaton:
       ts: Set[VertexSignature],
       maxNodes: Int = 30000,
       maxLen: Int = 48,
-      capPerNode: Int = 80
+      capPerNode: Int = 16
   ): Map[String, (Int, Set[VertexSignature])] =
-    val graph    = buildGraphForC(c, ts, maxNodes)
-    val out      = mutable.Map.empty[String, (Int, Set[VertexSignature])]
-    val seedKeys = seedsC(c).map(s => canonKey(anchored(s))).distinct.filter(graph.contains)
-    val seenCyc  = mutable.HashSet.empty[List[(Int, List[(Long, Long, Long, Long)])]]
-    seedKeys.foreach: start =>
+    val graph   = buildGraphForC(c, ts, maxNodes)
+    val out     = mutable.Map.empty[String, (Int, Set[VertexSignature])]
+    val seenCyc = mutable.HashSet.empty[List[(Int, List[(Long, Long, Long, Long)])]]
+    // start covering cycles from EVERY node: a cell's cycle need not pass through a band-top seed profile, so
+    // seed-only starts miss cells. Cycles are deduped by face-set before the (costly) close.
+    graph.keysIterator.foreach: start =>
       coveringCyclesFrom(graph, start, ts, maxLen, capPerNode).foreach: (delta, faces) =>
         val df = dedupFaces(faces)
         if seenCyc.add(faceSetKey(df)) then
