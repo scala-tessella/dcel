@@ -250,3 +250,42 @@ diagnostic-only; `fed` is the trustworthy discriminator.)
 recurrence-based cycle finder like `enumerateFrom` (canonKey recurs on a fill path) seeded by the cut, or relax
 the `(CK, types-used)` visited pruning / raise the graph budget — then re-run the gate to confirm recall lifts
 past 6/13. The cut-trace is the oracle for "this cycle is reachable"; the search must match it.
+
+## Cycle-finder investigation: the search was NOT the ceiling (2026-06-28, corrects the above)
+
+The "RESUME" hypothesis above was **wrong**, overturned by ground-up testing + decomposition diagnostics
+(`feedDebug`, `graphForensics` — graph-level, reliable; the greedy cut-`trace` and its `traceClosesKey` were
+deleted as UNRELIABLE — the trace picks the first cell-consistent successor and can follow a wrong sub-cycle).
+
+- **A real bug WAS found — in `canonKey`, not the finder.** It keyed each vertex fan by `fan.map(_._2).sorted`
+  (sizes only, dropping the SLOT arrangement), so geometrically-distinct profiles collided and a cell's period
+  collapsed into a non-simple loop. Fixed to key `(slot,size)` sorted by slot. `CanonKeySpec`: congruence
+  (translation/order-invariance) holds either way; the slot-distinction test is RED on the old key, GREEN on the
+  new. This is a genuine correctness fix — but it did NOT change recall.
+- **`coveringCyclesFrom` (the BFS over `(profile, types-used)`) already handles self-loops.** A homogeneous row
+  (e.g. a pure-square `4⁴` band) maps the profile to a translate of itself = a SELF-LOOP in the graph;
+  `graphForensics` on the hardest cell showed exactly this (a 4-node graph, the only `4⁴` edge a self-loop). The
+  BFS traverses it (the row's colour makes a NEW `(node,colorset)` state). Its only flaw is mild LOSSINESS (one
+  path per state) — which costs COMPLETENESS (the multiplicity/count), NOT recall.
+- **The generic non-lossy `coveringWalks` is correct but a PERFORMANCE catastrophe.** Built + property-tested
+  (`CycleFinderSpec`: 11 examples + ScalaCheck soundness & monotonicity). It is O(paths)-per-node (vs the BFS's
+  O(states)) and, run from every node of the gate's large band-top graphs, **timed the gate out at 15 min** (vs
+  ~4 min) producing zero output — and found NO extra cells. ⇒ reverted `coveringCyclesFrom` to the BFS; kept
+  `coveringWalks` as a tested building block for small-graph diagnostics / future completeness work; added a
+  PERF-GUARD test (`enumerateForTypeSetC` at `2√3` completes < 90 s).
+- **The high-aspect MISSING cells need MULTI-ROW bands** (the `4⁴` self-loop traversed `k>1` times — a band of
+  `k` square rows). `coveringWalks(maxRepeat>1)` can enumerate them but the variants CROWD the per-node `cap`
+  (crowding the closing walk out) and explode the close-count; the ScalaCheck monotonicity property documents the
+  cap-crowding. The BFS (maxRepeat≡1) finds only the 1-row variant (a different, wrong-key tiling). So neither
+  finds the multi-row cells affordably — this, plus the pure-hexagon family `{3.3.6.6;3.6.3.6;6.6.6}` needing a
+  finer/larger √3, is the real ceiling.
+
+**GATE RESULT (faithful canonKey + BFS): recall UNCHANGED at 6/13, spurious=0, ~4 min** — matched 2/2/0/2 across
+the four gap families, identical to before. Net: the canonKey fix is a correctness gain that doesn't move recall;
+the cycle-search is exonerated as the ceiling.
+
+**REVISED RESUME (the real ceiling):** (a) MULTI-ROW bands — an efficient finder that picks the cell's actual
+self-loop multiplicity `k` (not enumerate-all-`k`-then-close), e.g. detect the self-loop at graph-build and let
+`primitiveBasis`/close resolve `k` from one structural walk; (b) the pure-hexagon family — a finer/larger √3
+circumference sweep. Validate any change with the HEAVY `CutFeedSpec` all-gap reproduction guard (ignored) + the
+gate. `coveringWalks` + its properties are the tested substrate to build the efficient multi-row finder on.
