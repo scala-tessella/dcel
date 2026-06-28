@@ -6,8 +6,17 @@
   square row (new top vertex's below-fan, neighbour absorption); Rung 2 — driving from the square-row profile
   CLOSES `4⁴` key-for-key vs the oracle (cycle ⇒ `CylinderAutomaton.close`); Rung 3 — finds `3⁶` (triangle row)
   and DISCOVERS `3³.4²` from the square-row seed's triangle-fill branch (not hand-fed). The DRY refactor
-  (generalized grower `*By` + exposed primitives) is regression-clean (67 tests). REMAINING: automatic seed
-  enumeration, the `c` sweep, and the n=3 gate (the 6 grower-missed cells).
+  (generalized grower `*By` + exposed primitives) is regression-clean (67 tests).
+- **Build state (cont.):** automatic seeds done (StripBand band tops, `ProfileAutomaton.seeds`); efficient
+  cycle-finder done. The naive path-local DFS explodes at n=3 (cycles ~10–40 fills, exponential branching). FIX =
+  a transfer-matrix structure: **per target n-type-set**, build the PLAIN profile graph restricted to fills of
+  that type-set (finite & small; the type-set is the bound), then find cycles COVERING all n types (BFS over
+  `(profile, types-used)`) and close each (`enumerateForTypeSet`/`enumerate`). GATE (`ProfileGateProbe`,
+  c∈{2,4}) on the 4 banded gap type-sets: the engine closes oracle cells **key-for-key with ZERO spurious**
+  (sound!), but RECALL is low (2/13 gap cells): (a) shortest-covering-cycle-per-node finds only one cell per
+  node — need multi-cycle enumeration; (b) hexagon type-sets need `c = √3·k` (non-integer) — at integer `c`
+  hexagons wrap/don't fit. ⇒ NEXT: enumerate multiple covering cycles per type-set + add √3 circumferences +
+  tune bounds. Soundness (the hard part) is proven.
 - **Reframes:** [[0037-strip-stacking-enumerator-for-the-banded-family]]. The band *generator* (`StripBand.fillAbove`
   / `bandValid`, exact ℤ[ζ₁₂], test-verified) is kept, but its **organization** changes: bands are no longer
   catalogued in a vacuum (that produced 55 layer-types, most irrelevant), they become the **transitions of a

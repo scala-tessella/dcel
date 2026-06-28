@@ -60,3 +60,15 @@ class ProfileAutomatonSpec extends AnyFlatSpec with Matchers:
     // vertices, and that branch closes to a different oracle tiling
     val emitted = ProfileAutomaton.enumerateFrom(sqRow, maxN = 1, maxSteps = 90)
     emitted.keySet should contain(oracle1(Set(normalize(List(3, 3, 3, 4, 4)))))
+
+  behavior of "ProfileAutomaton.enumerate (Rung 4 — automatic seeds from the StripBand catalogue)"
+
+  it should "reach the integer-period banded 1-uniform tilings at c=4 with NO hand-built seeds" in:
+    // c=4 (integer) reaches the period-1 banded tilings; 3.6.3.6 / 6.6.6 have period √3 and need c=2√3 (a later
+    // non-integer leg of the sweep). The n=3 GATE cells all have integer |h|∈{1,2}, so integer c covers them.
+    val emitted = ProfileAutomaton.enumerate(cInt = 4, maxN = 1)
+    val want    = List(List(4, 4, 4, 4), List(3, 3, 3, 3, 3, 3), List(3, 3, 3, 4, 4))
+    want.foreach: sig =>
+      withClue(s"${sig.mkString(".")} not reached: ")(
+        emitted.keySet should contain(oracle1(Set(normalize(sig))))
+      )

@@ -179,3 +179,146 @@ object ProfileAutomaton:
               if types2.sizeIs <= maxN then dfs(next, faces ++ newFaces, types2, seen2, steps + 1)
     dfs(seed, Nil, Set.empty, Map.empty, 0)
     out.toMap
+
+  // ---- seeds (the StripBand catalogue IS the set of lower structures) ---------------------------------
+
+  private def mul(p: ZetaPoint, k: Int): ZetaPoint = ZetaPoint(p.a0 * k, p.a1 * k, p.a2 * k, p.a3 * k)
+
+  /** The seed profile carried by a band of `faces` below it: its UP-FACING incomplete vertices (the top
+    * boundary) with their below-fans, positions folded to one period of `c`. The down-facing bottom of the
+    * band is external. `None` if the faces expose no up-facing frontier.
+    */
+  def seedFromFaces(faces: List[FaceZ], c: ZetaPoint): Option[Profile] =
+    val w     = c.toBigPoint.x.toDouble
+    val byPos = mutable.Map.empty[ZetaPoint, List[(Int, Int)]]
+    G.vertexFansBy(faces, identity[ZetaPoint]).foreach: (_, repFan) =>
+      val (p, fan) = repFan
+      if G.coveredSlots(fan).sizeIs < 12 && upFacing(fan) then
+        val fp = foldPos(p, c)
+        byPos.keysIterator.find(k => samePos(k, fp)) match
+          case Some(k) => byPos(k) = byPos(k) ++ fan
+          case None    => byPos(fp) = fan
+    val verts = byPos.toList.collect:
+      case (p, fan) if G.coveredSlots(fan).sizeIs < 12 && upFacing(fan) => PV(p, fan.sortBy(_._1))
+    Option.when(verts.nonEmpty)(Profile(c, verts.toVector))
+
+  /** Seed profiles at integer circumference `c`: each [[StripBand]] band whose period divides `c` is
+    * replicated to width `c` and its top profile taken as a seed (the band = the lower structure to grow
+    * above).
+    */
+  def seeds(cInt: Int, maxLen: Int = 4): List[Profile] =
+    val c = ZetaPoint(cInt.toLong, 0, 0, 0)
+    StripBand
+      .catalogue(maxLen)
+      .flatMap: band =>
+        val bp   = band.period.toBigPoint.x.toDouble
+        val reps = math.round(cInt / bp).toInt
+        if bp > 0.5 && math.abs(reps * bp - cInt) < 1e-6 && reps >= 1 then
+          val facesC = (0 until reps).toList.flatMap(k =>
+            band.faces.map(f => FaceZ(f.size, f.corners.map(_ + mul(band.period, k))))
+          )
+          seedFromFaces(facesC, c)
+        else None
+      .distinctBy(canonKey)
+
+  // ---- efficient transfer-matrix cycle-finder, restricted per type-set (the n≥3 driver) ---------------
+
+  // Per TARGET n-type-set `ts`: build the PLAIN profile graph restricted to fills completing a vertex of `ts`
+  // (finite & small — only those polygons), then find cycles COVERING all n types (the tiling's period). A
+  // single graph keyed by canonical profile; cycles found by BFS over (profile, types-used-this-cycle).
+  private type CK = List[(Long, Long, Long, Long, List[Int])]
+  final private case class PEdge(to: CK, delta: ZetaPoint, faces: List[FaceZ], typ: VertexSignature)
+
+  private def anchored(p: Profile): Profile =
+    val a = anchor(p); Profile(p.c, p.verts.map(v => PV(v.pos - a, v.fan)))
+
+  private def shiftFaces(faces: List[FaceZ], s: ZetaPoint): List[FaceZ] =
+    if s.isOrigin then faces else faces.map(f => FaceZ(f.size, f.corners.map(_ + s)))
+
+  /** BFS the FINITE profile graph restricted to fills whose completed vertex type is in `ts` (each canonical
+    * profile expanded once). Edges carry the vertical shift `δ`, the placed faces (source-anchored frame),
+    * and the completed type. Capped at `maxNodes`.
+    */
+  private def buildGraphFor(
+      cInt: Int,
+      ts: Set[VertexSignature],
+      maxNodes: Int
+  ): mutable.Map[CK, List[PEdge]] =
+    val graph               = mutable.Map.empty[CK, List[PEdge]]
+    val queue               = mutable.Queue.empty[(CK, Profile)]
+    def enq(p: Profile): CK =
+      val r = anchored(p); val k = canonKey(r)
+      if !graph.contains(k) then { graph(k) = Nil; queue += ((k, r)) }
+      k
+    seeds(cInt).foreach(enq)
+    while queue.nonEmpty && graph.size < maxNodes do
+      val (k, rep) = queue.dequeue()
+      val edges    = fillLowest(rep).flatMap: (q, t, f) =>
+        Option.when(ts.contains(t)):
+          val to = if graph.size < maxNodes then enq(q) else canonKey(anchored(q))
+          PEdge(to, anchor(q), f, t)
+      graph(k) = edges
+    graph
+
+  /** Shortest cycle from `start` back to `start` that COVERS all of `target` (BFS over
+    * `(profile, types-used)`), reassembled as `(Δ, period faces)`. Covering ⇒ the closed cell uses every one
+    * of the `n` types.
+    */
+  private def coveringCycle(
+      graph: mutable.Map[CK, List[PEdge]],
+      start: CK,
+      target: Set[VertexSignature],
+      maxLen: Int
+  ): Option[(ZetaPoint, List[FaceZ])] =
+    import scala.util.boundary, boundary.break
+    val visited = mutable.HashSet.empty[(CK, Set[VertexSignature])]
+    val queue   = mutable.Queue.empty[(CK, Set[VertexSignature], ZetaPoint, List[FaceZ], Int)]
+    queue += ((start, Set.empty, ZetaPoint.origin, Nil, 0)); visited += ((start, Set.empty))
+    boundary:
+      while queue.nonEmpty do
+        val (k, used, sh, fs, d) = queue.dequeue()
+        if d < maxLen then
+          graph.getOrElse(k, Nil).foreach: e =>
+            val used2 = used + e.typ
+            val nf    = fs ++ shiftFaces(e.faces, sh)
+            val ns    = sh + e.delta
+            if e.to == start && used2 == target && !ns.isOrigin then break(Some((ns, nf)))
+            else if visited.add((e.to, used2)) then queue += ((e.to, used2, ns, nf, d + 1))
+      None
+
+  /** All banded tilings of EXACTLY the type-set `ts` at integer circumference `c`: build the restricted
+    * graph, close a covering cycle through each node via the proven [[CylinderAutomaton.close]], keep cells
+    * whose types are exactly `ts`. (`primitiveBasis` reduces a period-`p|c` cell to its primitive.)
+    */
+  def enumerateForTypeSet(
+      cInt: Int,
+      ts: Set[VertexSignature],
+      maxNodes: Int = 30000,
+      maxLen: Int = 48
+  ): Map[String, (Int, Set[VertexSignature])] =
+    val cz    = ZetaPoint(cInt, 0, 0, 0)
+    val graph = buildGraphFor(cInt, ts, maxNodes)
+    val out   = mutable.Map.empty[String, (Int, Set[VertexSignature])]
+    graph.keysIterator.foreach: start =>
+      coveringCycle(graph, start, ts, maxLen).foreach: (delta, faces) =>
+        CylinderAutomaton.close(dedupFaces(faces), cz, delta, ts.size).foreach: (n, types, key) =>
+          if types == ts then out.getOrElseUpdate(key, (n, types))
+    out.toMap
+
+  /** Candidate n-type-sets: every `maxN`-subset of the octagon-free valid vertex types. */
+  private def candidateTypeSets(maxN: Int): List[Set[VertexSignature]] =
+    VertexTypes.validSignatures.filterNot(_.contains(8)).toList.combinations(maxN).map(_.toSet).toList
+
+  /** Enumerate the banded tilings of EXACTLY `maxN` types at circumference `c`: union over every candidate
+    * `maxN`-type-set. (For a targeted gate, call [[enumerateForTypeSet]] on specific type-sets directly.)
+    */
+  def enumerate(
+      cInt: Int,
+      maxN: Int,
+      maxNodes: Int = 30000,
+      maxLen: Int = 48
+  ): Map[String, (Int, Set[VertexSignature])] =
+    val out = mutable.Map.empty[String, (Int, Set[VertexSignature])]
+    candidateTypeSets(maxN).foreach: ts =>
+      enumerateForTypeSet(cInt, ts, maxNodes, maxLen).foreach((k, v) => out.getOrElseUpdate(k, v))
+    out.toMap
