@@ -218,3 +218,35 @@ whether the engine *closes* it. This isolates the two remaining hypotheses — (
 not generate that specific cut (enumerator incompleteness), vs (b) the cut IS reachable as a seed but the
 taut growth / covering-cycle BFS cannot close its cycle (growth-rule limitation). Until that test runs, the
 plateau is attributed to growth/cycle-finding, NOT seeds.
+
+## Cut-and-feed RESULT: the ceiling is the CYCLE-SEARCH, not growth/seeds/representation (2026-06-28)
+
+The cut-and-feed harness (`ProfileAutomaton.cutFeedDiagnose`) was built GROUND-UP and validated (`CutFeedSpec`,
+28 green incl. a ScalaCheck property + the decisive control "every MATCHED n=3 `{3⁶;3³.4²;4⁴}` cell is
+reproduced from its own cut"). It realizes a cell (`realizeCellZ` → exact ζ deck), finds a horizontal
+circumference (try the 12 `ζ^k` rotations), cuts the cell's own tiling at height `Y` keeping EXACTLY the vertices
+that STRADDLE `Y` (incident to a face below AND above — a precise test; the earlier band/window heuristic kept
+spurious deep rows whose fans were off-lattice, the bug that fooled the 1-uniform-only control), then (A) feeds
+the cut as a seed and (B) traces the cell's own faces via `fillLowest`.
+
+Run over all 13 n=3 gap cells (`CutFeedGapProbe`), the columns are unambiguous:
+- **representable = bandAxisHorizontal = TRUE for ALL** (matched and missing) ⇒ NOT a representation gap; every
+  banded gap cell lives at a horizontal ℤ[ζ₁₂] circumference, band axis 30°-aligned.
+- **traceCycles = TRUE for ALL 11** ⇒ the taut lowest-vertex `fillLowest` transition CAN traverse every cell's
+  band back to a recurring profile — the GROWTH RULE is adequate even for the high-aspect missing cells.
+- **fed = TRUE ⟺ MATCHED, exactly** (5 matched fed / 6 missing not-fed) ⇒ feeding the cell's OWN exact cut as a
+  seed reproduces its key for the MATCHED cells and FAILS for the MISSING ones.
+
+So the missing cells are representable, their cut is a valid seed, and their cycle is reachable by `fillLowest`
+(the trace proves it) — yet `enumerateFromSeeds` does not emit them. ⇒ **the recall ceiling is the FEED
+pipeline's cycle-search (`buildGraphForC` + `coveringCyclesFrom`), NOT growth, NOT seed coverage, NOT
+representation.** This finally localises the gap to ONE fixable component: the covering-cycle BFS-over-(profile,
+types-used) (likely its visited-set pruning or the ts-restricted/capped graph build) fails to find the
+longer/higher-aspect covering cycles that the greedy cell-trace reaches. (Caveat: `traceClosesKey` is unreliable
+— true for 4, false for others incl. some matched — a secondary delta/close bug in the *trace's own* close path,
+diagnostic-only; `fed` is the trustworthy discriminator.)
+
+**RESUME:** fix/replace `coveringCyclesFrom` so it finds the cycles the cut-trace proves exist — e.g. a
+recurrence-based cycle finder like `enumerateFrom` (canonKey recurs on a fill path) seeded by the cut, or relax
+the `(CK, types-used)` visited pruning / raise the graph budget — then re-run the gate to confirm recall lifts
+past 6/13. The cut-trace is the oracle for "this cycle is reachable"; the search must match it.
