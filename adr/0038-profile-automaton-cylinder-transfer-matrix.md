@@ -187,3 +187,34 @@ tests). Results:
   growth). Non-banded misses (the single C₆ outlier) remain out of scope — handled elsewhere.
 - The ADR-0037 `StripBand` catalogue is **demoted** from "the search" to a **test oracle**: the transition
   alphabet at small `h`, used to check the automaton's transitions against hand-verified canonical bands.
+
+## Recall ceiling: NOT seed coverage (decisive, 2026-06-28)
+
+The engine plateaus at **6/13 banded gap cells**. Two independent seed-enrichment attempts were measured and
+**both failed to lift recall**, which rules out seed coverage as the cause:
+
+1. **Undeduped band-tops** (`StripBand.allBands`, every fillAbove of every polyline, not just the smallest per
+   type): no change.
+2. **The complete direct profile enumerator** (`ProfileAutomaton.enumerateProfiles` / `completeSeeds`):
+   enumerates EVERY profile at circumference `c` — every x-monotone polyline summing to `c` (any rotation) ×
+   every edge-consistent below-fan over the type-set's polygons, reaching the irreducible period-`c` profiles
+   that band-top replication (sub-period) cannot. It generates **vastly** more seeds (e.g. `c=6`: 46 k vs 23)
+   yet recall is **unchanged at 6/13**.
+
+`pa.debug` localises the wall: at `c=2` for `{3⁶;3³.4²;4⁴}` the COMPLETE 12-profile seed set grows to only
+**14 nodes / 7 cycles**, and the high-aspect cells `D=13` (aspect 4.6) and `D=15` (5.6) are never closed — their
+~9–11-profile covering cycles **do not grow** even from a comprehensive seed set. So the ceiling lives in
+**growth / cycle-finding for high-aspect cells, not seed generation**:
+
+- the taut *lowest-vertex, up-facing* `fillLowest` growth, from a comprehensive seed set, does not reach the full
+  cycle of the tallest (highest-aspect) banded cells — its forward-reachable, type-restricted graph stays small;
+- `completeSeeds` also **explodes at large `c`** (46 k–72 k seeds, exceeding `maxNodes` so the BFS cannot grow at
+  all), so it is *worse* than band-tops as a default. ⇒ the default seed source stays `seedsC` (band-tops);
+  `enumerateProfiles`/`completeSeeds` are kept as **diagnostic** entry points, NOT wired in.
+
+**Decisive next diagnostic (not yet run): cut-and-feed.** Realize a known-missing cell (e.g. `D=13`), cut its
+exact ℤ[ζ₁₂] tiling at circumference `c=2|h|` into a profile, feed it via `enumerateFromSeeds`, and observe
+whether the engine *closes* it. This isolates the two remaining hypotheses — (a) `enumerateProfiles` still does
+not generate that specific cut (enumerator incompleteness), vs (b) the cut IS reachable as a seed but the
+taut growth / covering-cycle BFS cannot close its cycle (growth-rule limitation). Until that test runs, the
+plateau is attributed to growth/cycle-finding, NOT seeds.

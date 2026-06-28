@@ -230,6 +230,66 @@ object ProfileAutomaton:
   /** Integer-circumference convenience. */
   def seeds(cInt: Int, maxLen: Int = 4): List[Profile] = seedsC(ZetaPoint(cInt.toLong, 0, 0, 0), maxLen)
 
+  // ---- the COMPLETE profile-seed enumerator -----------------------------------------------------------
+
+  private def cartesian(alphabet: List[Int], len: Int): List[List[Int]] =
+    if len == 0 then List(Nil) else for h <- alphabet; t <- cartesian(alphabet, len - 1) yield h :: t
+
+  /** EVERY valid profile at circumference `c` whose polygons are drawn from `sizes` — not just band-top
+    * replications. A profile = a periodic polyline (edge slots summing to `c`, x-monotone so the open arc
+    * faces up) + a per-vertex BELOW-fan; enumerate all polylines up to `maxEdges` and all edge-consistent
+    * below-fan assignments (the below polygon shared on each edge: `belowFan(i).last == belowFan(i+1).head`).
+    * This reaches the irreducible period-`c` profiles that `StripBand.fillAbove` + replication (sub-period
+    * band tops) miss — the cut-profiles of the harder banded cells. Finite; deduped by canonical profile.
+    */
+  def enumerateProfiles(c: ZetaPoint, sizes: Set[Int], maxEdges: Int): List[Profile] =
+    val alphabet                               = List(10, 11, 0, 1, 2) // x-monotone edges (cos ≥ ½) ⇒ the open arc faces up
+    // 1. polylines: slot sequences summing to c, length 1..maxEdges, deduped up to cyclic rotation
+    val seen                                   = mutable.HashSet.empty[Vector[Int]]
+    val polys                                  = mutable.ListBuffer.empty[Vector[Int]]
+    def rots(v: Vector[Int]): Set[Vector[Int]] = (0 until v.length).map(i => v.drop(i) ++ v.take(i)).toSet
+    for len <- 1 to maxEdges; seq <- cartesian(alphabet, len) do
+      val v = seq.toVector
+      if v.foldLeft(ZetaPoint.origin)((p, s) => p + ZetaPoint.step(s)) == c &&
+        rots(v).forall(!seen.contains(_))
+      then { seen ++= rots(v); polys += v }
+    // 2. per polyline: enumerate edge-consistent below-fans, build the profile
+    polys.toList.flatMap: edges =>
+      val len   = edges.length
+      val verts = edges.scanLeft(ZetaPoint.origin)((p, s) => p + ZetaPoint.step(s)).init
+      // below arc (start, width) per vertex: complement of the (up-facing) above arc
+      val arcs  = (0 until len).map: i =>
+        val sIn    = edges((i - 1 + len) % len); val sOut = edges(i)
+        val aboveW = ((sIn + 6 - sOut) % 12 + 12) % 12
+        ((sIn + 6) % 12, 12 - aboveW)
+      val perV  = arcs.map((_, w) => StripBand.fanOptions(w).filter(_.forall(sizes.contains)))
+      if perV.exists(_.isEmpty) then Nil
+      else
+        // choose a below-fan per vertex with the cyclic edge glue belowFan(i).last == belowFan(i+1).head
+        def choose(i: Int, acc: Vector[List[Int]]): List[Vector[List[Int]]] =
+          if i == len then if acc(len - 1).last == acc(0).head then List(acc) else Nil
+          else
+            perV(i).flatMap(fan =>
+              if i == 0 || acc(i - 1).last == fan.head then choose(i + 1, acc :+ fan) else Nil
+            )
+        choose(0, Vector.empty).flatMap: fans =>
+          val pvs  = (0 until len).map: i =>
+            var slot = arcs(i)._1
+            val ents = fans(i).map { m =>
+              val e = (slot, m); slot += StripBand.gSlots(m); e
+            }
+            PV(foldPos(verts(i), c), ents)
+          val prof = Profile(c, pvs.toVector)
+          Option.when(prof.verts.forall(v => upFacing(v.fan)))(prof)
+    .distinctBy(canonKey)
+
+  /** The complete seed set for a type-set at `c`: every profile whose polygons are the type-set's polygons.
+    */
+  def completeSeeds(c: ZetaPoint, ts: Set[VertexSignature]): List[Profile] =
+    val sizes    = ts.flatten.toSet
+    val maxEdges = math.ceil(xD(c)).toInt + 4
+    enumerateProfiles(c, sizes, maxEdges)
+
   // ---- efficient transfer-matrix cycle-finder, restricted per type-set (the n≥3 driver) ---------------
 
   // Per TARGET n-type-set `ts`: build the PLAIN profile graph restricted to fills completing a vertex of `ts`
@@ -314,6 +374,8 @@ object ProfileAutomaton:
       maxLen: Int = 48,
       capPerNode: Int = 16
   ): Map[String, (Int, Set[VertexSignature])] =
+    // band-top seeds (fast); the COMPLETE enumerator `completeSeeds` was measured NOT to improve recall and
+    // explodes at large c — the recall ceiling is growth/cycle-finding for high-aspect cells, not seeds.
     enumerateFromSeeds(c, ts, seedsC(c), maxNodes, maxLen, capPerNode)
 
   /** Like [[enumerateForTypeSetC]] but from an EXPLICIT seed-profile set (e.g. for diagnosing seed coverage:
