@@ -17,6 +17,17 @@
   node — need multi-cycle enumeration; (b) hexagon type-sets need `c = √3·k` (non-integer) — at integer `c`
   hexagons wrap/don't fit. ⇒ NEXT: enumerate multiple covering cycles per type-set + add √3 circumferences +
   tune bounds. Soundness (the hard part) is proven.
+- **Recall progress (2026-06-28, cont.):** (a) multiple covering cycles per type-set via **BFS over
+  `(profile, types-used)`** — a DFS to `maxLen` explodes and found 0 (regression); BFS is bounded and efficient;
+  (b) start cycles from EVERY graph node (a cell's cycle need not pass a band-top seed); (c) generalize `c` to
+  any horizontal ℤ[ζ₁₂] vector for the **√3-family** (`seedsC`/`buildGraphForC`/`enumerateForTypeSetC`); hexagons
+  need `c = 2√3` (minimal above their extent 2). GATE (`ProfileGateProbe`, c∈{2,4,2√3}, maxNodes 8000): **6/13
+  banded gap cells matched key-for-key, ZERO spurious** (up from 2/13): the square/triangle gap sets give 2/4
+  each, the hexagon-heavy `3⁶;3⁵.6;3.3.6.6` gives 2/3; the pure-hexagon `3.3.6.6;3.6.3.6;6.6.6` is still 0
+  (every type is √3-period; needs larger/finer √3 circumferences than `2√3@8000`). REMAINING LEVERS (recall, not
+  soundness): more circumferences (3, 3√3, …) + higher `maxNodes`/`capPerNode`/`maxLen`; PERFORMANCE — the `2√3`
+  graph *build* (`fillLowest`×nodes) is the slow path (a full 4-set sweep at maxNodes 30000 doesn't finish in
+  ~18min; 8000 does). Soundness holds throughout.
 - **Reframes:** [[0037-strip-stacking-enumerator-for-the-banded-family]]. The band *generator* (`StripBand.fillAbove`
   / `bandValid`, exact ℤ[ζ₁₂], test-verified) is kept, but its **organization** changes: bands are no longer
   catalogued in a vacuum (that produced 55 layer-types, most irrelevant), they become the **transitions of a
