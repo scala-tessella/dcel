@@ -615,9 +615,16 @@ object ProfileAutomaton:
     dfs(start, Set.empty, Map.empty, Nil)
     out.toList
 
-  /** Up to `cap` covering cycles from `start` back to `start`, each as `(Δ, period faces)`: the covering
-    * walks (via [[coveringWalks]]) whose edge-types are exactly `target`, with the period faces accumulated
-    * in the source-anchored frame and a non-zero vertical period `Δ`.
+  /** Up to `cap` covering cycles from `start` back to `start`, each as `(Δ, period faces)`: a BFS over
+    * `(profile, types-used)` that records every edge back to `start` whose accumulated types == `target` and
+    * Δ≠0. Each state visited ONCE — so it is O(states)=O(nodes·2^|target|) per call (FAST on the gate's large
+    * band-top graphs), and it DOES traverse self-loops (a homogeneous row adds its colour, a NEW state). It
+    * is slightly LOSSY (one path per state — distinct cycles sharing a `(node, colorset)` can be missed),
+    * which costs COMPLETENESS not the recall ceiling: the generic non-lossy [[coveringWalks]] is correct but
+    * O(paths) per node and TIMED OUT the gate (15min vs ~4min), without finding more cells — the missing
+    * cells are multi-row bands needing `maxRepeat>1`, expensive for either finder. So the engine uses this
+    * BFS; the tested `coveringWalks` is kept for small-graph diagnostics / future completeness work.
+    * (ADR-0038.)
     */
   private def coveringCyclesFrom(
       graph: mutable.Map[CK, List[PEdge]],
@@ -626,21 +633,21 @@ object ProfileAutomaton:
       maxLen: Int,
       cap: Int
   ): List[(ZetaPoint, List[FaceZ])] =
-    coveringWalks[CK, PEdge, VertexSignature](
-      start,
-      k => graph.getOrElse(k, Nil),
-      _.to,
-      _.typ,
-      target,
-      maxLen,
-      cap
-    ).flatMap: edges =>
-      var sh    = ZetaPoint.origin
-      var faces = List.empty[FaceZ]
-      edges.foreach: e =>
-        faces = faces ++ shiftFaces(e.faces, sh)
-        sh = sh + e.delta
-      Option.when(!sh.isOrigin)((sh, faces))
+    val out     = mutable.ListBuffer.empty[(ZetaPoint, List[FaceZ])]
+    val visited = mutable.HashSet.empty[(CK, Set[VertexSignature])]
+    val queue   = mutable.Queue.empty[(CK, Set[VertexSignature], ZetaPoint, List[FaceZ], Int)]
+    queue += ((start, Set.empty, ZetaPoint.origin, Nil, 0)); visited += ((start, Set.empty))
+    while queue.nonEmpty && out.sizeIs < cap do
+      val (k, used, sh, fs, d) = queue.dequeue()
+      if d < maxLen then
+        graph.getOrElse(k, Nil).foreach: e =>
+          val used2 = used + e.typ
+          if used2.subsetOf(target) then
+            val nf = fs ++ shiftFaces(e.faces, sh)
+            val ns = sh + e.delta
+            if e.to == start && used2 == target && !ns.isOrigin then out += ((ns, nf))
+            if visited.add((e.to, used2)) then queue += ((e.to, used2, ns, nf, d + 1))
+    out.toList
 
   private def faceSetKey(faces: List[FaceZ]): List[(Int, List[(Long, Long, Long, Long)])] =
     import scala.math.Ordering.Implicits.seqOrdering

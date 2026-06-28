@@ -245,3 +245,17 @@ class CutFeedSpec extends AnyFlatSpec with Matchers with ScalaCheckDrivenPropert
         r.fedEmitsKey shouldBe true
       }
   }
+1
+  // ----- performance guard: the gate's hot path must not blow up (the coveringWalks regression) ---------
+
+  /** The gate's slowest circumference (`2√3`, the largest band-top graph) must complete within a generous
+    * bound. Guards against a cycle-finder that is O(paths)-per-node — `coveringWalks` timed the gate out at
+    * 15min; the BFS `coveringCyclesFrom` is O(states)-per-node. A wall-clock cap is the regression tripwire.
+    */
+  it should "complete enumerateForTypeSetC at 2√3 within the time budget (no O(paths) blow-up)" in {
+    import org.scalatest.concurrent.TimeLimits.failAfter
+    import org.scalatest.time.SpanSugar.*
+    failAfter(90.seconds) {
+      PA.enumerateForTypeSetC(Z(0, 4, 0, -2), n3, maxNodes = 15000).size should be >= 0
+    }
+  }
