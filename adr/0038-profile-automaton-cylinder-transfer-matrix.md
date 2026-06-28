@@ -38,6 +38,17 @@
   12000 nodes with 0 cycles (wrong period). ⇒ the holdout is **hexagon-heavy growth/seed coverage at √3** (the
   restricted fills or StripBand hexagon seeds can't continue a `6.6.6`/`3.6.3.6` tiling), NOT √3-precision and
   NOT bounds. NEXT: debug hexagon seeds/fills at `2√3` (why growth stalls after 12 profiles). Soundness intact.
+- **CORRECTED finding (2026-06-28, `HexStallProbe` + `GapClassifyProbe`):** (i) growth does NOT stall — pure
+  `6.6.6`/`3.6.3.6` cuts grow fine and `fillLowest` CAN mix types; the "12 nodes / 0 cycles" means the reachable
+  graph has no cycle COVERING all 3 types. (ii) a WIDER circumference (`4√3`, `6√3`) does NOT help either. (iii)
+  the earlier "isotropic" hypothesis is WRONG: `GapClassifyProbe` (lattice aspect = orthogonal-extent/|h|)
+  classifies EVERY drawable gap cell as BANDED (aspect 1.7–5.6, isotropic 0/0); the engine reaches **5–6 of the
+  11–13 banded cells**, missing genuinely-banded ones incl. the most anisotropic (`D=13` asp 4.6, `D=15` asp 5.6,
+  both |h|=1) and the hexagon `D=9` (asp 2.0). Since escalating bounds AND widening circumferences both fail on
+  `|h|∈{1,√3}` cells whose circumferences ARE swept, the gap is **REACHABILITY / SEED COVERAGE**: the missing
+  cells' profiles aren't reached from the StripBand band-top seeds via type-restricted growth. ⇒ NEXT: enrich
+  seeds (the StripBand catalogue lacks cuts of the harder banded cells) and/or make growth reach more profiles.
+  Soundness intact (zero spurious throughout).
 - **Reframes:** [[0037-strip-stacking-enumerator-for-the-banded-family]]. The band *generator* (`StripBand.fillAbove`
   / `bandValid`, exact ℤ[ζ₁₂], test-verified) is kept, but its **organization** changes: bands are no longer
   catalogued in a vacuum (that produced 55 layer-types, most irrelevant), they become the **transitions of a
