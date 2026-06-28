@@ -22,10 +22,18 @@ object ProfileGateProbe:
 
   def main(args: Array[String]): Unit =
     val oracleSize = args.headOption.map(_.toInt).getOrElse(24)
-    val maxNodes   = args.lift(1).map(_.toInt).getOrElse(30000)
+    val maxNodes   = args.lift(1).map(_.toInt).getOrElse(15000)
     val maxLen     = args.lift(2).map(_.toInt).getOrElse(48)
-    val circs      = args.lift(3).map(_.split(',').map(_.toInt).toList).getOrElse(List(2, 4))
-    println(s"ProfileGateProbe: oracle=$oracleSize maxNodes=$maxNodes maxLen=$maxLen circs=$circs")
+    // circumference sweep: integers 2,4 (period-1,2 cells) + √3-family 2√3 (hexagon cells, no edge-wrap; the
+    // minimal √3 circumference above the hexagon's extent 2)
+    val circs      = List(
+      ("2", ZetaPoint(2, 0, 0, 0)),
+      ("4", ZetaPoint(4, 0, 0, 0)),
+      ("2√3", ZetaPoint(0, 4, 0, -2))
+    )
+    println(
+      s"ProfileGateProbe: oracle=$oracleSize maxNodes=$maxNodes maxLen=$maxLen circs=${circs.map(_._1)}"
+    )
 
     val oracle = DelaneySymbols
       .enumerateSymbolsParallel(3, oracleSize, parallelism = 12)
@@ -35,11 +43,12 @@ object ProfileGateProbe:
     for t <- gaps do
       val oracleKeys = oracle.filter(_._2.toSet == t).map(c => DelaneySymbols.canonicalKey(c._3)).toSet
       val engineKeys =
-        circs.flatMap(c => ProfileAutomaton.enumerateForTypeSet(c, t, maxNodes, maxLen).keySet).toSet
+        circs.flatMap((_, c) => ProfileAutomaton.enumerateForTypeSetC(c, t, maxNodes, maxLen).keySet).toSet
       val matched    = oracleKeys & engineKeys
       val spurious   = engineKeys -- oracle.map(c => DelaneySymbols.canonicalKey(c._3)).toSet
       val label      = t.map(_.mkString(".")).toList.sorted.mkString("; ")
       println(
         f"  ${label}%-48s oracle=${oracleKeys.size} engine=${engineKeys.size} matched=${matched.size} spurious=${spurious.size}"
       )
+      System.out.flush()
     println("[done]")
