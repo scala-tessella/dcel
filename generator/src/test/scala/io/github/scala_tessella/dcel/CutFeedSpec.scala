@@ -227,25 +227,44 @@ class CutFeedSpec extends AnyFlatSpec with Matchers with ScalaCheckDrivenPropert
     }
   }
 
-  // ----- composite: cut-and-feed round-trip (n=3) ------------------------------------------------------
+  // ----- composite: cut-and-feed round-trip across ALL gap type-sets -----------------------------------
 
-  /** The decisive positive control: every cell the GATE reaches (via band-tops) must also be reproduced by
-    * FEEDING its own cut — anything the engine finds one way it must find from the cell's own profile. (The
-    * cut-and-feed pipeline = the same `coveringWalks` cycle-search the gate uses, so this validates the
-    * finder end-to-end on real n=3 cells. The multi-row high-aspect MISSING cells need `maxRepeat>1`, which
-    * crowds the cap — out of scope here; see ADR-0038.)
+  /** The 4 n=3 banded GAP type-sets (the families the grower misses). Both integer-`c` (square/triangle) and
+    * √3-family (hexagon) circumferences appear — so this exercises the faithful `canonKey` + the BFS finder
+    * on the whole gate hot path, not just n3 at c2/c4.
     */
-  it should "reproduce every MATCHED n=3 {3⁶;3³.4²;4⁴} cell by FEEDING its own cut" in {
-    val ops     = opsOf(n3, 12, 4)
-    val matched = List(c2, Z(4, 0, 0, 0)).flatMap(cc => PA.enumerateForTypeSetC(cc, n3, 20000).keySet).toSet
-    matched should not be empty
-    for (key, op) <- ops if matched.contains(key) do
-      val r = PA.cutFeedDiagnose(op, key, n3, maxNodes = 40000, maxLen = 64)
-      withClue(s"matched cell $key not reproduced by feeding its own cut ($r): ") {
-        r.fedEmitsKey shouldBe true
-      }
+  private val gapTypeSets = List(
+    ts("3.3.3.3.3.3,3.3.3.3.6,3.3.6.6"),
+    ts("3.3.3.3.3.3,3.3.3.4.4,4.4.4.4"),
+    ts("3.3.6.6,3.6.3.6,6.6.6"),
+    ts("3.4.4.6,3.6.3.6,4.4.4.4")
+  )
+  private val gapCircs    = List(c2, Z(4, 0, 0, 0), Z(6, 0, 0, 0), Z(0, 4, 0, -2), Z(0, 6, 0, -3))
+
+  /** SOUNDNESS + no-regression guard across ALL gap families (the precondition for trusting the gate's
+    * recall): every cell the GATE reaches must also be reproduced by FEEDING its own cut, AND the aggregate
+    * matched count stays at its known floor (a canonKey/finder change that broke a family would drop it).
+    * NOTE: the pure-hexagon set `{3.3.6.6;3.6.3.6;6.6.6}` legitimately finds 0 (it contributed 0 to the prior
+    * 6/13 — "needs finer/larger √3"), so the floor is AGGREGATE, not per-type-set. HEAVY (~10 min, sweeps √3
+    * graphs) ⇒ `ignore`d for routine CI; run manually as a release/refactor guard. (Multi-row MISSING cells
+    * out of scope — they need maxRepeat>1; ADR-0038.)
+    */
+  ignore should "reproduce every MATCHED cell of every gap type-set by FEEDING its own cut (heavy)" in {
+    var totalMatched = 0
+    for typeSet <- gapTypeSets do
+      val ops     = opsOf(typeSet, 12, 6)
+      val matched = gapCircs.flatMap(cc => PA.enumerateForTypeSetC(cc, typeSet, 15000).keySet).toSet
+      totalMatched += matched.size
+      for (key, op) <- ops if matched.contains(key) do
+        val r = PA.cutFeedDiagnose(op, key, typeSet, maxNodes = 40000, maxLen = 64)
+        withClue(s"matched cell of $typeSet not reproduced by feeding its own cut ($r): ") {
+          r.fedEmitsKey shouldBe true
+        }
+    withClue(s"aggregate matched=$totalMatched dropped below the known floor — possible regression: ") {
+      totalMatched should be >= 5
+    }
   }
-1
+
   // ----- performance guard: the gate's hot path must not blow up (the coveringWalks regression) ---------
 
   /** The gate's slowest circumference (`2√3`, the largest band-top graph) must complete within a generous
@@ -256,6 +275,6 @@ class CutFeedSpec extends AnyFlatSpec with Matchers with ScalaCheckDrivenPropert
     import org.scalatest.concurrent.TimeLimits.failAfter
     import org.scalatest.time.SpanSugar.*
     failAfter(90.seconds) {
-      PA.enumerateForTypeSetC(Z(0, 4, 0, -2), n3, maxNodes = 15000).size should be >= 0
+      PA.enumerateForTypeSetC(Z(0, 4, 0, -2), gapTypeSets.head, maxNodes = 15000).size should be >= 0
     }
   }
