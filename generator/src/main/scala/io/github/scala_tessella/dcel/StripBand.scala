@@ -254,6 +254,13 @@ object StripBand:
     if len == 0 then List(Nil)
     else for h <- alphabet; t <- cartesian(alphabet, len - 1) yield h :: t
 
+  /** ALL bands over the candidate polylines, UNdeduplicated — every fill of every polyline. Used as the
+    * profile-automaton SEED source: the deduped [[catalogue]] keeps only the smallest band per type and so
+    * discards the longer-period / phase-variant band tops that are cuts of the harder banded cells.
+    */
+  def allBands(maxLen: Int = 4): List[Band] =
+    candidatePolylines(maxLen).flatMap(fillAbove)
+
   /** The band-type catalogue: every distinct band over the candidate polylines, deduplicated by
     * flip-invariant band type ([[Band.typeKey]]) so the two profile-views of one band collapse, smallest
     * first. The genuine answer-blind enumeration of the banded layers — square rows, triangle rows, hexagon

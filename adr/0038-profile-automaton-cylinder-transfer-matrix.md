@@ -49,6 +49,16 @@
   cells' profiles aren't reached from the StripBand band-top seeds via type-restricted growth. ⇒ NEXT: enrich
   seeds (the StripBand catalogue lacks cuts of the harder banded cells) and/or make growth reach more profiles.
   Soundness intact (zero spurious throughout).
+- **Seed enrichment attempt + confirmed cause (2026-06-28):** seeded from the UNdeduplicated band set
+  (`StripBand.allBands`, vs the deduped `catalogue` which keeps only the smallest band per type) — **recall
+  unchanged at 6/13** (honest negative). The cause is now pinned by `pa.debug`: at `c=2` for `{3⁶;3³.4²;4⁴}` the
+  type-restricted up-facing growth reaches only **68 profiles total (NOT capped)**, and the missing cells' cuts
+  are not among them. So up-facing taut growth is DIRECTIONAL and reaches only a *subset* (one connected
+  component) of the profile graph; the missing banded cells' cut-profiles live in unreached components, and
+  `StripBand.fillAbove` doesn't generate them as seeds. ⇒ the real fix is a more COMPLETE answer-blind
+  seed/profile generator (direct enumeration of valid profiles at `c`, or bidirectional growth to connect
+  components) — a focused sub-task. Added `ProfileAutomaton.enumerateFromSeeds` (explicit-seed hook) to later
+  confirm seed-coverage by feeding a known cell's own cut-profile. Soundness intact.
 - **Reframes:** [[0037-strip-stacking-enumerator-for-the-banded-family]]. The band *generator* (`StripBand.fillAbove`
   / `bandValid`, exact ℤ[ζ₁₂], test-verified) is kept, but its **organization** changes: bands are no longer
   catalogued in a vacuum (that produced 55 layer-types, most irrelevant), they become the **transitions of a

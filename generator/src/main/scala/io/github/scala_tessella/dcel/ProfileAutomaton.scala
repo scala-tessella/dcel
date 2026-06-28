@@ -215,7 +215,7 @@ object ProfileAutomaton:
   def seedsC(c: ZetaPoint, maxLen: Int = 4): List[Profile] =
     val cx = c.toBigPoint.x.toDouble
     StripBand
-      .catalogue(maxLen)
+      .allBands(maxLen)
       .flatMap: band =>
         val bp   = band.period.toBigPoint.x.toDouble
         val reps = math.round(cx / bp).toInt
@@ -251,7 +251,8 @@ object ProfileAutomaton:
   private def buildGraphForC(
       c: ZetaPoint,
       ts: Set[VertexSignature],
-      maxNodes: Int
+      maxNodes: Int,
+      seedProfiles: List[Profile]
   ): mutable.Map[CK, List[PEdge]] =
     val graph               = mutable.Map.empty[CK, List[PEdge]]
     val queue               = mutable.Queue.empty[(CK, Profile)]
@@ -259,7 +260,7 @@ object ProfileAutomaton:
       val r = anchored(p); val k = canonKey(r)
       if !graph.contains(k) then { graph(k) = Nil; queue += ((k, r)) }
       k
-    seedsC(c).foreach(enq)
+    seedProfiles.foreach(enq)
     while queue.nonEmpty && graph.size < maxNodes do
       val (k, rep) = queue.dequeue()
       val edges    = fillLowest(rep).flatMap: (q, t, f) =>
@@ -313,7 +314,20 @@ object ProfileAutomaton:
       maxLen: Int = 48,
       capPerNode: Int = 16
   ): Map[String, (Int, Set[VertexSignature])] =
-    val graph         = buildGraphForC(c, ts, maxNodes)
+    enumerateFromSeeds(c, ts, seedsC(c), maxNodes, maxLen, capPerNode)
+
+  /** Like [[enumerateForTypeSetC]] but from an EXPLICIT seed-profile set (e.g. for diagnosing seed coverage:
+    * feed a known cell's own cut-profile and check whether the engine closes it).
+    */
+  def enumerateFromSeeds(
+      c: ZetaPoint,
+      ts: Set[VertexSignature],
+      seedProfiles: List[Profile],
+      maxNodes: Int = 30000,
+      maxLen: Int = 48,
+      capPerNode: Int = 16
+  ): Map[String, (Int, Set[VertexSignature])] =
+    val graph         = buildGraphForC(c, ts, maxNodes, seedProfiles)
     val out           = mutable.Map.empty[String, (Int, Set[VertexSignature])]
     val seenCyc       = mutable.HashSet.empty[List[(Int, List[(Long, Long, Long, Long)])]]
     var nCyc, nClosed = 0
@@ -329,7 +343,7 @@ object ProfileAutomaton:
             if types == ts then out.getOrElseUpdate(key, (n, types))
     if sys.props.contains("pa.debug") then
       println(
-        s"    [pa] c.x=${xD(c)}%, seeds=${seedsC(c).size}, nodes=${graph.size}, distinctCycles=$nCyc, closedOk=$nClosed, emitted=${out.size}"
+        s"    [pa] c.x=${xD(c)}, seeds=${seedProfiles.size}, nodes=${graph.size}, distinctCycles=$nCyc, closedOk=$nClosed, emitted=${out.size}"
       )
     out.toMap
 
