@@ -28,8 +28,11 @@ object ProfileGateProbe:
     // minimal √3 circumference above the hexagon's extent 2)
     val circs      = List(
       ("2", ZetaPoint(2, 0, 0, 0)),
+      ("3", ZetaPoint(3, 0, 0, 0)),
       ("4", ZetaPoint(4, 0, 0, 0)),
-      ("2√3", ZetaPoint(0, 4, 0, -2))
+      ("6", ZetaPoint(6, 0, 0, 0)),
+      ("2√3", ZetaPoint(0, 4, 0, -2)),
+      ("3√3", ZetaPoint(0, 6, 0, -3))
     )
     println(
       s"ProfileGateProbe: oracle=$oracleSize maxNodes=$maxNodes maxLen=$maxLen circs=${circs.map(_._1)}"

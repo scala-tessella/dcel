@@ -40,13 +40,19 @@ object ProfileAutomaton:
   private def cslot(poly: Vector[ZetaPoint], i: Int): Int =
     G.slotOfUnit(poly((i + 1) % poly.length) - poly(i))
 
-  /** Fold a position to x ∈ [0, |c|) by integer multiples of `c` (c horizontal). */
+  // Fast Double embedding of a ZetaPoint (the hot path — replaces the BigDecimal `toBigPoint` in the graph
+  // build, which dominated `fillLowest`). `2x = (2a₀+a₂) + a₁√3`, `2y = (2a₃+a₁) + a₂√3`.
+  private val sqrt3                    = math.sqrt(3.0)
+  private def xD(z: ZetaPoint): Double = (2.0 * z.a0 + z.a2 + z.a1 * sqrt3) / 2.0
+  private def yD(z: ZetaPoint): Double = (2.0 * z.a3 + z.a1 + z.a2 * sqrt3) / 2.0
+
+  /** Fold a position to x ∈ [0, |c|) by integer multiples of `c` (c horizontal) — O(1): the integer count is
+    * read off the Double x-ratio, the subtraction stays exact integer (so congruent points fold to the SAME
+    * exact ZetaPoint).
+    */
   private def foldPos(p: ZetaPoint, c: ZetaPoint): ZetaPoint =
-    val w = c.toBigPoint.x.toDouble
-    var q = p
-    while q.toBigPoint.x.toDouble >= w - 1e-7 do q = q - c
-    while q.toBigPoint.x.toDouble < -1e-7 do q = q + c
-    q
+    val k = math.floor(xD(p) / xD(c) + 1e-7).toInt
+    if k == 0 then p else p - mul(c, k)
 
   private def samePos(a: ZetaPoint, b: ZetaPoint): Boolean =
     val d = a - b; d.a0 == 0 && d.a1 == 0 && d.a2 == 0 && d.a3 == 0
@@ -67,7 +73,7 @@ object ProfileAutomaton:
 
   /** The lowest profile vertex (min y, then min x) — the taut scanline choice. */
   private def lowestIndex(p: Profile): Int =
-    p.verts.indices.minBy(i => (p.verts(i).pos.toBigPoint.y.toDouble, p.verts(i).pos.toBigPoint.x.toDouble))
+    p.verts.indices.minBy(i => (yD(p.verts(i).pos), xD(p.verts(i).pos)))
 
   // ---- the transition: fill the lowest vertex ---------------------------------------------------------
 
