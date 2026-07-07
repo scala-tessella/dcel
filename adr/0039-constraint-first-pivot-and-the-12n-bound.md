@@ -189,6 +189,54 @@ deliverable is reframed: derive the candidate type-set inventory (with the m ≤
 facts as fixture tests); the n=8 ceiling is a Phase-2 (solver / UNSAT) result, as is honest — Krötenheerdt
 himself needed the full case analysis for n > 7, not just compatibility counting.
 
+### The 12n bound — statement, proof, tests (Phase 0, 2026-07-07)
+
+> **Theorem.** Let T be an edge-to-edge tiling of E² by regular polygons whose symmetry group G has exactly
+> n vertex orbits (in particular, any Krötenheerdt n-uniform tiling). Then the minimal Delaney–Dress symbol
+> of T has at most **12n** chambers.
+
+**Proof** (in this codebase's terms — `DelaneySymbols`). The minimal symbol's elements are the chamber
+orbits of T's barycentric subdivision under G, with involutions σ₀, σ₁, σ₂.
+
+1. *Partition.* The orbits of ⟨σ₁, σ₂⟩ on the symbol (the `(1,2)`-orbits) are in bijection with T's vertex
+   orbits: every chamber has exactly one vertex among its three corners, so it belongs to exactly one vertex
+   orbit, and σ₁, σ₂ preserve that vertex. Hence the `(1,2)`-orbits partition the chambers:
+   `size = Σ_orbits length`, and #orbits = n.
+2. *Per-orbit bound.* Fix a `(1,2)`-orbit O with rotational length r (`Orbit.r`) and m-value
+   `m₁₂ = r·v` (v ≥ 1 the branching number). If O is a cycle, walking σ₁σ₂ alternates two chamber flavours,
+   so `length ≤ 2r`; if O is a chain (contains a σ-fixed chamber, i.e. a mirror through the vertex),
+   `length = r ≤ 2r`. And `r ≤ r·v = m₁₂`. Finally `m₁₂` is the geometric vertex degree, and a regular
+   polygon's interior angle is ≥ 60° (the triangle), so at most six polygons meet at a vertex: `m₁₂ ≤ 6`.
+3. *Sum.* `size = Σ length ≤ Σ 2·m₁₂ ≤ 12·n`. ∎
+
+**Corollary (covolume).** The primitive translation cell of T has
+`V_cell = Σᵢ [G:Λ]/|stabᵢ| ≤ 12n` vertices, since a wallpaper point group has order ≤ 12 (p6m). So the
+bounded-V sweep has a provable stopping rule at `V = 12n` — retroactively certifying ADR-0025/0030's engine
+frame, and bounding the fallback dart-SAT encoding.
+
+**Instances.** n=3 → 36, n=4 → 48, n=7 → **84**. Both bounds are exercised by real tilings:
+- covolume TIGHT: `4.6.12` (chiral vertex figure ⇒ trivial vertex stabilizer) has V_cell = 12 = 12·1 — the
+  existing `BucketAssemblySpec.reproducesK1("4.6.12", 12)` is the standing witness (its minimal SYMBOL is
+  only 6 chambers: 72 flags/cell over the order-12 point group);
+- per-orbit symbol bound ATTAINED (`length = 2·m₁₂`): the snub `3.3.3.3.6` (p6, chiral, trivial stabilizer)
+  has minimal symbol 10 = 2·deg(5) chambers at n=1 — pinned as a characterization test. The constant-12
+  per-orbit form needs a trivial-stabilizer degree-6 orbit, which occurs only in mixed (n ≥ 2) tilings.
+  High-symmetry tilings sit far below (3⁶: 1 chamber ≤ 12).
+
+**Tests** (`TwelveNBoundSpec`, green): each proof step is a checked property — partition, the per-orbit
+chain `length ≤ 2r ≤ 2·m₁₂ ≤ 12` (with `m₁₂` cross-read from the vertex signature), and
+`size ≤ 2·Σdeg ≤ 12n` — verified EXHAUSTIVELY over every tiling the oracle budget reaches (fast: maxSize 12,
+n=1 complete; deep, `ignore`d after a verified green run: the COMPLETE n ≤ 3 oracle at maxSize 24 —
+11/20/39, all steps hold, max chambers < 36).
+
+**Why this is the pivot's keystone.** The bound is intrinsic to n and contains NO covolume term: enumerating
+euclidean regular-polygon minimal symbols with exactly n vertex orbits up to size 12n is a *certified*
+complete enumeration of A068600(n). Every prior wall was the cost of searching a superset of this ≤84-element
+space. **Prior art check:** Chavey (1984b) bounds relate the orbit counts of vertices/edges/tiles to one
+another (e.g. tilings with ≤3 orbit classes) — adjacent, but not the chamber-count form; the flag-orbit bound
+as a search-space certification appears to be this project's observation (verify against the paper when
+obtainable).
+
 ### Originality + literature to pull for the 12n bound
 
 - Delgado-Friedrichs (pers. comm. in Lenngren, 2009): the Delaney–Dress approach "has yet to be applied to
