@@ -616,22 +616,33 @@ object ProfileAutomaton:
     dfs(start, Set.empty, Map.empty, Nil)
     out.toList
 
-  /** The REPEATABLE BAND segments of a closed walk `start → e0 → … → start`, as edge-index ranges `[i..j]`:
-    * the SIMPLE sub-cycles (a node recurs, with no inner recurrence) — each a homogeneous band of one period
-    * that maps the profile to a translate of itself and so can be repeated `k` times for a `k`-row band. A
-    * self-loop is the period-1 case; a 2-cycle (e.g. a `3⁶` triangle band node↔node) the period-2 case, etc.
-    * The outermost cycle spanning the whole walk (the period "spine", traversed once) is EXCLUDED.
-    * Walk-decomposition by last-occurrence positions; pure ⇒ unit-testable.
+  /** The REPEATABLE BAND segments of a closed walk `start → e0 → … → start`, as a maximal set of PAIRWISE-
+    * DISJOINT edge-index ranges `[i..j]`: the SIMPLE sub-cycles (a node recurs) — each a homogeneous band of
+    * one period that maps the profile to a translate of itself and so can be repeated `k` times for a `k`-row
+    * band. A self-loop is the period-1 case; a 2-cycle (e.g. a `3⁶` triangle band node↔node) the period-2
+    * case, etc. The outermost cycle spanning the whole walk (the period "spine", traversed once) is EXCLUDED.
+    * DISJOINTNESS is essential: [[expandBands]] varies the bands independently by index range, so overlapping
+    * or NESTED bands (e.g. consecutive self-loops `0→0→0`, or a self-loop inside a longer loop) would make it
+    * duplicate/drop edges and break the maxBand=1 identity (a silent recall regression — pinned by the k=1
+    * identity property). Candidates are found by last-occurrence, then reduced to a maximal disjoint set by
+    * interval scheduling (earliest-ending first). Pure ⇒ unit-testable.
     */
   private[dcel] def bandSegments[N, E](start: N, path: List[E], toOf: E => N): List[(Int, Int)] =
-    val nodes  = (start :: path.map(toOf)).toVector // nodes(i) = node BEFORE edge i; last = return to start
-    val pos    = mutable.Map.empty[N, Int]
-    val cycles = mutable.ListBuffer.empty[(Int, Int)]
+    val nodes      = (start :: path.map(toOf)).toVector // nodes(i) = node BEFORE edge i; last = return to start
+    val pos        = mutable.Map.empty[N, Int]
+    val cycles     = mutable.ListBuffer.empty[(Int, Int)]
     nodes.indices.foreach: i =>
       pos.get(nodes(i)) match
         case Some(p) => cycles += ((p, i - 1)); (p + 1 until i).foreach(k => pos.remove(nodes(k)))
         case None    => pos(nodes(i)) = i
-    cycles.toList.filterNot((i, j) => i == 0 && j == path.length - 1) // drop the whole-walk spine
+    // drop the whole-walk spine, then pick a MAXIMAL DISJOINT subset (interval scheduling: sort by end, keep a
+    // band only if it starts after the last kept band ends) so expandBands can reconstruct/repeat by ranges.
+    val candidates = cycles.toList.filterNot((i, j) => i == 0 && j == path.length - 1).sortBy(_._2)
+    val chosen     = mutable.ListBuffer.empty[(Int, Int)]
+    var lastEnd    = -1
+    candidates.foreach: (i, j) =>
+      if i > lastEnd then chosen += ((i, j)); lastEnd = j
+    chosen.toList
 
   /** Band-HEIGHT variants of a closed walk: each repeatable band ([[bandSegments]]) traversed `1..maxRepeat`
     * times (cartesian over the disjoint bands). A walk with no band expands to just itself. Replaying a

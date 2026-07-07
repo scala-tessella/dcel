@@ -164,6 +164,19 @@ class CycleFinderSpec extends AnyFlatSpec with Matchers with ScalaCheckDrivenPro
       contain(List((1, 'a'), (2, 'b'), (1, 'b'), (2, 'b'), (1, 'b'), (0, 'a'), (0, 'c'), (0, 'c'), (3, 'a')))
   }
 
+  // The IDENTITY invariant that makes maxBand=1 behave EXACTLY like the pre-multi-row engine: with no repeats,
+  // expandBands must reproduce the input walk edge-for-edge (else replayCycle sees a corrupted path and the
+  // cell fails to close — a silent recall regression). Overlapping/adjacent bands would break this.
+  private val walkGen: Gen[List[E]] =
+    Gen.choose(0, 9).flatMap(n => Gen.listOfN(n, Gen.zip(Gen.choose(0, 2), Gen.oneOf("ab"))))
+
+  it should "expandBands at maxRepeat=1 be the IDENTITY (returns exactly [path]) for ANY walk" in
+    forAll(walkGen, Gen.choose(0, 2)) { (path, start) =>
+      withClue(s"start=$start path=$path bands=${PA.bandSegments(start, path, to1)}: ")(
+        PA.expandBands[Int, E](start, path, to1, maxRepeat = 1) shouldBe List(path)
+      )
+    }
+
   it should "replayCycle accumulate Δ and STACK each edge's faces shifted by the cumulative Δ" in {
     val faceA          = FaceZ(3, Vector(ZetaPoint.origin, ZetaPoint.step(0), ZetaPoint.step(2)))
     val faceB          = FaceZ(4, Vector(ZetaPoint.origin, ZetaPoint.step(0), ZetaPoint.step(3)))

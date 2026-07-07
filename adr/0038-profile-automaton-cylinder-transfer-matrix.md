@@ -289,3 +289,64 @@ self-loop multiplicity `k` (not enumerate-all-`k`-then-close), e.g. detect the s
 `primitiveBasis`/close resolve `k` from one structural walk; (b) the pure-hexagon family — a finer/larger √3
 circumference sweep. Validate any change with the HEAVY `CutFeedSpec` all-gap reproduction guard (ignored) + the
 gate. `coveringWalks` + its properties are the tested substrate to build the efficient multi-row finder on.
+
+## Multi-row finder + n≥4 de-risk (2026-06-28)
+
+- **Multi-row finder BUILT, every leaf unit-tested** (`CycleFinderSpec`): `bandSegments` (the repeatable SIMPLE
+  sub-cycles of a covering walk — self-loop = period-1 row, 2-cycle = period-2 row like a `3⁶` triangle band),
+  `expandBands` (band-height variants, cartesian over disjoint bands), `replayCycle` (Δ + face-stacking). Wired
+  into `enumerateFromSeeds`/`feedDebug` behind a `maxBand` knob: per covering cycle → expand bands → replay →
+  dedup by face-set → close (`close`/`primitiveBasis` resolves which height `k` is a valid cell).
+- **n≥4 de-risk = POSITIVE.** `BandN4Spec` (green): the validated cut machinery is SOUND on realized n=4 cells.
+  `BandN4DerisProbe` on tri/hex `{3⁶;3⁴.6;3².6²;6³}`: 5 realized, ALL 5 banded (aspect 2.6–3.8), ALL 5
+  representable + 30°-aligned (|h|=√3, c=2√3), and **1 FULLY FEEDS** (cut→grow→close→emits key). ⇒ the band
+  machinery is n-INDEPENDENT and extends to n≥4 (no new representation obstacle); completing the n=3 obstacles
+  carries to n=4.
+- **Cost verdict:** feeding all realized n=3 cuts at `maxBand=8` took ~15 min and STILL missed the largest
+  (30-dart) cell — the close-count of tall-band variants explodes (`primitiveBasis` is O(faces²) on tall bands).
+  So `maxBand` DEFAULTS TO 1 (gate fast, perf guard green); multi-row is OPT-IN, heavy demo test `ignore`d.
+
+## Affordable-band measurement (b) + a regression it flushed out (2026-07-07)
+
+Question: what does the CHEAP `maxBand=2/3` recover, before investing in an analytic band-height resolver?
+
+- **Test-first (the discipline paid off).** Before probing, added 3 protecting tests (`ProfileAutomatonSpec`
+  maxBand section): (T1) band expansion fires end-to-end (`feedDebug` reports more distinct cycles at
+  `maxBand=2`); (T2) the emitted key set is MONOTONE in `maxBand` (a taller band never drops a cell ⇒ the
+  measured `matched` is a true floor); (T3) the pure-square set emits EXACTLY the `4⁴` key at every `maxBand` (a
+  doubled band folds back via `primitiveBasis`, no spurious). A NON-NO-OP fixture matters: `maxBand` is correctly
+  a NO-OP on a covering cycle that is a single self-loop (the whole-walk spine, dropped) — it only multiplies
+  INTERIOR bands, so T1 must use a genuine multi-band set.
+- **A silent REGRESSION, found by A/B, not by trust.** The fresh gate gave `maxBand=1` = **4/13**, contradicting
+  the documented 6/13. Rather than accept it, A/B'd commit `9362ecea` in an isolated checkout → it gave 6/13. So
+  the multi-row commit `e1aaf1c7` had **silently regressed the default engine 6→4.** Root cause: `bandSegments`
+  emitted OVERLAPPING/NESTED bands (consecutive self-loops `0→0→0` → `[(0,0),(0,1)]`; a self-loop nested inside a
+  longer loop), and `expandBands` reconstructs by index range, so even at `maxBand=1` it duplicated/dropped edges
+  → `replayCycle` produced wrong faces → the cell silently failed to close. Masked because the existing tests
+  only exercised `expandBands` at `maxRepeat=2/3`, never the **`k=1` identity**.
+- **Fix:** a new ScalaCheck property — *"`expandBands` at `maxRepeat=1` is the IDENTITY for any walk"* — shrank it
+  to the minimal counterexample; `bandSegments` now reduces its band candidates to a maximal PAIRWISE-DISJOINT set
+  by interval scheduling (earliest-end). All specs green (Cycle/Profile/CutFeed/CanonKey), incl. the cut-feed
+  round-trip control.
+- **CORRECTED (b) RESULT (gate, oracle=24, 6 circs {2,3,4,6,2√3,3√3}):**
+
+  | maxBand | matched | time  | Δ                          |
+  |---------|---------|-------|----------------------------|
+  | 1       | 6/13    | 73 s  | baseline restored          |
+  | 2       | 8/13    | 79 s  | **+2, ZERO spurious**      |
+  | 3       | 8/13    | 89 s  | no further gain            |
+
+  The +2 both land in gap set `{3⁶;3³.4²;4⁴}` (2→4 = **now COMPLETE** for that set). Affordable multi-row is
+  CHEAP (+7 s, NOT the 15-min wall — that was `maxBand=8` on the heavy full reproduction). `maxBand=3` adds
+  nothing ⇒ the remaining 5 gap cells are **NOT taller-band-reachable at all**: set `{3.3.6.6;3.6.3.6;6³}` stays
+  0/2 (pure-hexagon √3 family — needs finer √3, not bands); sets `{3⁶;3⁴.6;3.3.6.6}` and `{3.4.4.6;3.6.3.6;4⁴}`
+  miss 1 & 2 to some other lever.
+- **Strategic consequence:** the analytic band-height resolver's ceiling on this gate is ~8/13, and `maxBand=2`
+  already reaches it for ~free ⇒ building it to chase TALL bands is misdirected. The higher-leverage next step is
+  the **√3-family circumference** (set #3, pure hexagon, 0/2) + diagnosing sets #1/#4 — not multi-row.
+
+**REVISED RESUME (2026-07-07):** the √3-family gap `{3.3.6.6;3.6.3.6;6³}` (0/2, every type √3-period) — sweep
+finer/larger √3 circumferences and diagnose why its restricted graph has no 3-type covering cycle at `2√3`
+(`pa.debug`: 12 nodes / 0 cycles). Keep `maxBand=2` as the cheap multi-row default candidate (it completes one
+gap set at negligible cost). The band machinery is sound and n-independent; the frontier is circumference
+coverage + sets #1/#4, not band height.
