@@ -200,6 +200,10 @@ object SymbolAssembly:
       if c == 0 then 0
       else stars(stars.indices.find(i => c < offsets(i + 1)).get).degree
     }
+    val starOf: Vector[Int]   = Vector.tabulate(size + 1) { c =>
+      if c == 0 then -1
+      else stars.indices.find(i => c < offsets(i + 1)).get
+    }
 
   /** All σ₀ involutions of the frame satisfying the three constraints, via SAT4J CDCL + `ModelIterator`.
     * Variables: one per unordered chamber pair (self allowed) with equal m₀₁; exactly-one per chamber; binary
@@ -238,6 +242,16 @@ object SymbolAssembly:
         pv(frame.s2(a), frame.s2(b)) match
           case Some(w) => if w != v then clause(-v, w)
           case None    => clause(-v)
+      // star-cut connectivity: a real tiling is connected and stars are internally σ₁σ₂-connected, so every
+      // proper star-cut must be crossed by some σ₀ pair. Kills the DISCONNECTED product solutions that
+      // flooded the symmetric n=5 sets with 10⁵+ models (an empty cut clause = the frame is unrealizable).
+      val k = frame.stars.size
+      if k >= 2 then
+        for mask <- 0 until ((1 << (k - 1)) - 1) do
+          def inS(i: Int) = i == 0 || ((mask >> (i - 1)) & 1) == 1
+          clause(pairVar.collect {
+            case ((a, b), v) if inS(frame.starOf(a)) != inS(frame.starOf(b)) => v
+          }.toSeq*)
       // face closure: for each σ₁-representative c with p = m₀₁(c), the (σ₀σ₁)-path returns to c at step p
       for c <- 1 to m if c <= frame.s1(c) do
         val p      = frame.m01(c)
