@@ -27,7 +27,8 @@ object G2DiagProbe:
       for (d, i) <- toFrame do s0f(i) = toFrame(ds.get(0, d))
       val cls              = classify(frame, s0f)
       println(
-        s"   classify(frame, its own σ₀) = ${cls.map(_ => "KEY").getOrElse("NONE")}, matches=${cls.contains(key)}"
+        s"   classify(frame, its own σ₀) = ${cls.map(_ => "KEY").getOrElse("NONE")}, matches=${cls.exists(_._1 ==
+            key)}"
       )
       val (models, capped) = enumerateSigma0(frame)
       val hit              = models.exists(_.sameElements(s0f))

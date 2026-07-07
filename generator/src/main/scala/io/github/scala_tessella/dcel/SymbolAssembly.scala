@@ -294,7 +294,7 @@ object SymbolAssembly:
     * assembly is a connected, euclidean, MINIMAL regular-polygon symbol realizing exactly the frame's types
     * (non-minimal solutions are duplicates of a more-folded assembly and are dropped).
     */
-  def classify(frame: Frame, s0: Array[Int]): Option[String] =
+  def classify(frame: Frame, s0: Array[Int]): Option[(String, DSymbol)] =
     val m    = frame.size
     val op   = Array.ofDim[Int](m + 1, 3)
     for c <- 1 to m do
@@ -326,12 +326,14 @@ object SymbolAssembly:
         if !DelaneySymbols.isEuclidean(dsym) then None
         else
           DelaneySymbols.regularPolygonVertices(dsym) match
-            case Some(_) if DelaneySymbols.isMinimal(dsym) => Some(DelaneySymbols.canonicalKey(dsym))
+            case Some(_) if DelaneySymbols.isMinimal(dsym) =>
+              Some(DelaneySymbols.canonicalKey(dsym) -> dsym)
             case _                                         => None
 
   // ---- the per-type-set driver ------------------------------------------------------------------------
 
-  final case class SetResult(keys: Set[String], models: Int, capped: Boolean)
+  final case class SetResult(tilings: Map[String, DSymbol], models: Int, capped: Boolean):
+    def keys: Set[String] = tilings.keySet
 
   /** Enumerate every tiling whose vertex-type set is exactly `ts`: sweep all folding combinations, solve each
     * frame, classify, dedup by canonical key.
@@ -339,7 +341,7 @@ object SymbolAssembly:
   def solveTypeSet(ts: Set[VertexSignature], maxModels: Int = 20000): SetResult =
     val types                                     = ts.toVector.map(normalize).sortBy(s => (s.size, s.mkString(".")))
     val foldings                                  = types.map(starFoldings)
-    val keys                                      = mutable.Set.empty[String]
+    val tilings                                   = mutable.Map.empty[String, DSymbol]
     var models                                    = 0
     var capped                                    = false
     def sweep(i: Int, chosen: Vector[Star]): Unit =
@@ -348,13 +350,20 @@ object SymbolAssembly:
         val (sols, capd) = enumerateSigma0(frame, maxModels)
         capped |= capd
         models += sols.size
-        sols.foreach(s0 => classify(frame, s0).foreach(keys += _))
+        sols.foreach(s0 => classify(frame, s0).foreach((k, sym) => tilings.getOrElseUpdate(k, sym)))
       else foldings(i).foreach(st => sweep(i + 1, chosen :+ st))
     sweep(0, Vector.empty)
-    SetResult(keys.toSet, models, capped)
+    SetResult(tilings.toMap, models, capped)
 
   /** The gate driver: solve every fair candidate type-set of size `n` (ADR-0040) and return the deduped
-    * canonical keys — comparable key-for-key with `DelaneySymbols.keyedTilings`.
+    * canonical keys — comparable key-for-key with `DelaneySymbols.keyedTilings`. Candidate sets are
+    * independent, so `parallelism > 1` fans them over a fixed pool (each solve owns its solver; the shared
+    * derivations are immutable). Keep pool x heap within the machine limits (31 GiB RAM, 1 GiB swap).
     */
-  def enumerate(n: Int, maxModels: Int = 20000): Map[Set[VertexSignature], SetResult] =
-    TypeCompatibility.candidates(n).map(ts => ts -> solveTypeSet(ts, maxModels)).toMap
+  def enumerate(n: Int, maxModels: Int = 20000, parallelism: Int = 1): Map[Set[VertexSignature], SetResult] =
+    val cands = TypeCompatibility.candidates(n).toVector
+    if parallelism <= 1 then cands.map(ts => ts -> solveTypeSet(ts, maxModels)).toMap
+    else
+      val pool = java.util.concurrent.Executors.newFixedThreadPool(parallelism)
+      try cands.map(ts => pool.submit(() => ts -> solveTypeSet(ts, maxModels))).map(_.get()).toMap
+      finally pool.shutdown()
