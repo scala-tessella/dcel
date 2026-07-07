@@ -247,6 +247,39 @@ obtainable).
   also the documented 3-uniform enumeration (edge-type lemmata, strip/dissection arguments) — a second
   documented method source beyond Krötenheerdt.
 
+## Phase-2 BUILD + GATES (2026-07-07, same day): G1–G4 ALL PASS — first complete n=4 ever
+
+`SymbolAssembly` (SAT4J baseline, user-approved): a minimal symbol = n vertex STARS (each `(1,2)`-orbit's
+internal σ₁/σ₂/m₀₁ fixed by its TYPE and a FOLDING = a stabilizer-subgroup quotient of the unfolded 2d-star;
+all subgroups of the figure's ≤ order-24 symmetry enumerated and quotiented) + one unknown involution σ₀.
+Per fair candidate set (ADR-0040) × folding combination, SAT4J's `ModelIterator` enumerates every σ₀
+satisfying m₀₁-equality, σ₂-equivariance ((σ₀σ₂)² = id) and face closure ((σ₀σ₁)^p = id, one-hot path
+encoding, clauses streamed to the solver — buffering OOM'd). Classification reuses the ORACLE tail
+(`isEuclidean` / `regularPolygonVertices` / `isMinimal` / `canonicalKey`, widened `private[dcel]`):
+soundness inherited, results dedup in the shared key space; non-minimal models are duplicates of
+more-folded assemblies and are discarded.
+
+**Fixture-first held (and paid off twice).** Every oracle symbol decomposes into enumerated foldings and
+satisfies every encoded σ₀ constraint (tested BEFORE any solver run). The G2 gate then caught a REAL bug the
+fast fixture could not: the canonical star key was OP-BLIND — it recorded `(m₀₁, fixed?)` per walk step but
+not WHICH involution, conflating the two mirror 4-chains of 4⁴ (σ₁-fixed ends = mirror through faces vs
+σ₂-fixed ends = mirror along edges), so `distinctBy` dropped the folding the size-9 `{3³.4²;4⁴}` sibling
+needs → 19/20. Diagnosed by feeding the sibling's own frame + σ₀ (classify ✓, SAT-contains ✓ ⇒ the folding
+inventory was the gap); fixed by recording the op per step; pinned by a regression test. Note the fixture's
+key-based matching inherits the key's weakness — gates against complete counts are the stronger net.
+
+| gate | level | result | time |
+|---|---|---|---|
+| G1 | n=1 | **11/11** key-for-key vs oracle, one key per candidate | ~1 s |
+| G2 | n=2 | **20/20**, multiplicity multiset EXACT vs reference | ~1 s |
+| G3 | n=3 | **39/39**, multiset EXACT (the tree oracle needs 17 min for this) | ~7 s |
+| G4 | n=4 | **33/33**, multiset EXACT, zero spurious, no caps hit | **108 s** |
+
+G4 is the level EVERY prior engine failed (ADR-0031 union ceiling ~30/33; the both-walled 4.6.12-mixed
+cells) — closed sequentially, single-threaded, on the pure-JVM solver. `SymbolAssemblySpec` (14 green)
+carries the leaves, the fixture, the star-key regression, and gates G1–G3 as fast tests. n=5–8 running
+(n=8 must return 0 — the fair ceiling derivation); results to be appended.
+
 ## Alternatives considered (this session)
 
 - **Finish the band engine first** (glide fix + sets #1/#4): reaches ≤ 2 + unknown n=3 gap cells, core-engine
