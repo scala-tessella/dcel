@@ -150,6 +150,29 @@ object SymbolAssembly:
         )
       }
 
+  /** All structure-preserving self-maps of a (folded) star — σ₁/σ₂/m₀₁-preserving chamber permutations. The
+    * star is σ₁σ₂-connected, so a map is FORCED by the image of chamber 0 (propagate `map(σᵢx) = σᵢ(map x)`);
+    * at most `size` candidates, each kept iff propagation is consistent and m₀₁-preserving. Rotations AND
+    * reflections both arise this way. Used as SAT symmetry-breaking targets (ADR-0041).
+    */
+  def starAutomorphisms(star: Star): Vector[Vector[Int]] =
+    val n = star.size
+    (0 until n).toVector.flatMap: c0 =>
+      val map  = Array.fill(n)(-1)
+      map(0) = c0
+      var ok   = true
+      val todo = mutable.Queue(0)
+      while todo.nonEmpty && ok do
+        val x = todo.dequeue()
+        if star.m01(map(x)) != star.m01(x) then ok = false
+        else
+          for (sx, smx) <- List((star.s1(x), star.s1(map(x))), (star.s2(x), star.s2(map(x)))) do
+            if map(sx) < 0 then
+              map(sx) = smx
+              todo.enqueue(sx)
+            else if map(sx) != smx then ok = false
+      if ok && map.forall(_ >= 0) then Some(map.toVector) else None
+
   // ---- σ₀ constraint predicates (shared by the oracle FIXTURE tests and the post-solve assertions) -----
 
   /** The three σ₀ requirements over global 1-based arrays (σ fixed points stored as self). Every euclidean
@@ -211,7 +234,11 @@ object SymbolAssembly:
     * position after k steps; unit-forced back to the start at layer p). `maxModels` is a flood-guard — a
     * capped result is reported, never silent.
     */
-  def enumerateSigma0(frame: Frame, maxModels: Int = 20000): (List[Array[Int]], Boolean) =
+  def enumerateSigma0(
+      frame: Frame,
+      maxModels: Int = 20000,
+      symmetries: Vector[Vector[Int]] = Vector.empty
+  ): (List[Array[Int]], Boolean) =
     val m                               = frame.size
     val pairs                           =
       for
@@ -267,6 +294,27 @@ object SymbolAssembly:
           pv(frame.s1(d), d2).foreach(x => clause(-y(k)(d), -x, y(k + 1)(d2)))
         for k <- 1 to p do exactly1(domain.map(y(k)))
         clause(y(p)(c))
+
+      // symmetry breaking (ADR-0041): each π is a constraint symmetry of the x-projection (star
+      // automorphism / identical-star swap), so requiring x ≤lex x∘π (fixed pair-var order, eq-prefix
+      // chain) keeps at least the orbit-lex-min of every solution class — sound, kills swap floods
+      for pi <- symmetries do
+        def img(c: Int) = pi(c)
+        var ePrev       = 0 // 0 = "prefix equal" is vacuously true so far
+        for (pr, v) <- pairs.map(pr => pr -> pairVar(pr)) do
+          val (a, b) = pr
+          val w      = pv(img(a), img(b)).getOrElse(0)
+          if w != 0 && w != v then
+            // prefix-equal ∧ x_v → x_w  (forbid first-difference 1→0)
+            if ePrev == 0 then clause(-v, w) else clause(-ePrev, -v, w)
+            nextVar += 1
+            val e = nextVar
+            if ePrev == 0 then
+              clause(-e, -v, w); clause(-e, v, -w); clause(-v, -w, e); clause(v, w, e)
+            else
+              clause(-e, ePrev); clause(-e, -v, w); clause(-e, v, -w)
+              clause(-ePrev, -v, -w, e); clause(-ePrev, v, w, e)
+            ePrev = e
 
       var go = true
       while go && out.size <= maxModels && solver.isSatisfiable do
@@ -335,25 +383,87 @@ object SymbolAssembly:
   final case class SetResult(tilings: Map[String, DSymbol], models: Int, capped: Boolean):
     def keys: Set[String] = tilings.keySet
 
-  /** Enumerate every tiling whose vertex-type set is exactly `ts`: sweep all folding combinations, solve each
-    * frame, classify, dedup by canonical key.
+  /** Non-decreasing k-selections from `xs` (combinations with repetition, by index). */
+  private def combosWithRep[A](xs: Vector[A], k: Int): Vector[Vector[A]] =
+    if k == 0 then Vector(Vector.empty)
+    else xs.zipWithIndex.flatMap((x, i) => combosWithRep(xs.drop(i), k - 1).map(x +: _))
+
+  /** ADR-0041: enumerate every tiling whose vertex-type MULTISET is exactly `types` — n orbits over
+    * possibly-repeated types (m-Archimedean n-uniform; the Krotenheerdt case is the all-distinct special
+    * case). One star per orbit; folding choices for IDENTICAL stars are swept as combinations-with-repetition
+    * (frame-level swap dedup — permuting identical stars yields isomorphic frames). The sigma_0 enumeration
+    * and classify tail are unchanged: classify never required distinct types, and a same-type orbit pair
+    * merged by the true symmetry shows up as a NON-minimal symbol here (discarded) and as the minimal symbol
+    * of the smaller multiset (counted there) — exactly the (n, m) bookkeeping the table needs.
     */
-  def solveTypeSet(ts: Set[VertexSignature], maxModels: Int = 20000): SetResult =
-    val types                                     = ts.toVector.map(normalize).sortBy(s => (s.size, s.mkString(".")))
-    val foldings                                  = types.map(starFoldings)
-    val tilings                                   = mutable.Map.empty[String, DSymbol]
-    var models                                    = 0
-    var capped                                    = false
-    def sweep(i: Int, chosen: Vector[Star]): Unit =
-      if i == types.size then
+  def solveMultiset(types: Seq[VertexSignature], maxModels: Int = 20000): SetResult =
+    val sorted                                                                   = types.map(normalize).toList.sortBy(s => (s.size, s.mkString(".")))
+    val groups                                                                   = sorted.distinct.map(t => t -> sorted.count(_ == t))
+    val perGroup                                                                 = groups.map((t, k) => combosWithRep(starFoldings(t), k)).toVector
+    val tilings                                                                  = mutable.Map.empty[String, DSymbol]
+    var models                                                                   = 0
+    var capped                                                                   = false
+    def frameSymmetries(frame: Frame, chosen: Vector[Star]): Vector[Vector[Int]] =
+      val perStar = chosen.indices.toVector.flatMap: i =>
+        val off = frame.offsets(i)
+        starAutomorphisms(chosen(i)).filter(a => a != a.indices.toVector).map: a =>
+          Vector.tabulate(frame.size + 1)(c =>
+            if c >= off && c < off + chosen(i).size then a(c - off) + off else c
+          )
+      val swaps   = (0 until chosen.size - 1).toVector
+        .filter(i =>
+          canonicalStarKey(chosen(i)) == canonicalStarKey(chosen(i + 1)) && chosen(i) == chosen(i + 1)
+        )
+        .map: i =>
+          val (o1, o2, sz) = (frame.offsets(i), frame.offsets(i + 1), chosen(i).size)
+          Vector.tabulate(frame.size + 1)(c =>
+            if c >= o1 && c < o1 + sz then c + sz else if c >= o2 && c < o2 + sz then c - sz else c
+          )
+      perStar ++ swaps
+    def sweep(i: Int, chosen: Vector[Star]): Unit                                =
+      if i == perGroup.size then
         val frame        = Frame(chosen)
-        val (sols, capd) = enumerateSigma0(frame, maxModels)
+        val (sols, capd) = enumerateSigma0(frame, maxModels, frameSymmetries(frame, chosen))
         capped |= capd
         models += sols.size
         sols.foreach(s0 => classify(frame, s0).foreach((k, sym) => tilings.getOrElseUpdate(k, sym)))
-      else foldings(i).foreach(st => sweep(i + 1, chosen :+ st))
+      else perGroup(i).foreach(fs => sweep(i + 1, chosen ++ fs))
     sweep(0, Vector.empty)
     SetResult(tilings.toMap, models, capped)
+
+  /** Enumerate every tiling whose vertex-type set is exactly `ts` (all types distinct — the Krotenheerdt
+    * case): [[solveMultiset]] with multiplicity 1 everywhere.
+    */
+  def solveTypeSet(ts: Set[VertexSignature], maxModels: Int = 20000): SetResult =
+    solveMultiset(ts.toList, maxModels)
+
+  /** ADR-0041 cell driver: all m-Archimedean n-uniform tilings — every fair support of size m (the ADR-0040
+    * filters are multiplicity-blind necessities on the realized type SET) x every positive multiplicity
+    * assignment summing to n. Cells are disjoint (a tiling's type multiset is intrinsic), so the table value
+    * is the summed key count.
+    */
+  def solveCell(
+      n: Int,
+      m: Int,
+      maxModels: Int = 20000,
+      parallelism: Int = 1
+  ): Map[List[VertexSignature], SetResult] =
+    require(m >= 1 && n >= m, s"need 1 <= m <= n, got m=$m n=$n")
+    def comps(total: Int, parts: Int): Vector[Vector[Int]] =
+      if parts == 1 then Vector(Vector(total))
+      else (1 to total - parts + 1).toVector.flatMap(h => comps(total - h, parts - 1).map(h +: _))
+    val jobs                                               =
+      for
+        support <- TypeCompatibility.candidates(m).toVector
+        order    = support.toVector.sortBy(s => (s.size, s.mkString(".")))
+        c       <- comps(n, order.size)
+      yield order.lazyZip(c).flatMap((t, k) => Vector.fill(k)(t)).toList
+    def run(ms: List[VertexSignature])                     = ms -> solveMultiset(ms, maxModels)
+    if parallelism <= 1 then jobs.map(run).toMap
+    else
+      val pool = java.util.concurrent.Executors.newFixedThreadPool(parallelism)
+      try jobs.map(ms => pool.submit(() => run(ms))).map(_.get()).toMap
+      finally pool.shutdown()
 
   /** The gate driver: solve every fair candidate type-set of size `n` (ADR-0040) and return the deduped
     * canonical keys — comparable key-for-key with `DelaneySymbols.keyedTilings`. Candidate sets are
