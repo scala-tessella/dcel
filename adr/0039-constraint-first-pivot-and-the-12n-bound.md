@@ -149,6 +149,56 @@ it is the last untried one, and the only one whose cost model is bounded by n ra
 - **If the paradigm walls:** the honest position is then "six paradigms measured" and the redefinition
   discussion happens with complete evidence — never a transcribed count.
 
+## Phase-0 findings (2026-07-07, same session — literature read, method extracted, one ADR-0036 correction)
+
+Lenngren 2009 read END-TO-END (diva-portal FULLTEXT01, saved locally); A068600 verified against OEIS (JSON
+API) AND Galebach's own site table. Krötenheerdt's originals (Wiss. Z. Halle 18/19, 1969–70) are NOT freely
+digitized — the survey-level method description below is what we have unless the user obtains scans.
+
+### Krötenheerdt's documented method (via Lenngren §9)
+
+- His "n-homogeneous" = edge-to-edge + n non-empty vertex classes by TYPE + classes coincide with symmetry
+  ORBITS — i.e. exactly n-uniform AND n-Archimedean = the A068600 condition ✓ (definitions align).
+- **1969:** proves the number of n-homogeneous tilings is FINITE, via "regulärer Vieleckskomplex" — an
+  INDUCTIVE growth of regular vertex figures attached along edges (a corona-style induction); enumerates
+  n=1,2. **1970a/b:** enumerates n=3..7 "using a rather intricate division into various cases"; proves NO
+  n-homogeneous tilings for n > 7.
+- His scaffolding theorems (all derivable, fair to reuse as METHOD): no n-uniform m-Archimedean with n < m;
+  **no m-Archimedean tiling with m > 14** (only 15 vertex figures can occur in tilings at all, and 4.8² only
+  in its own 1-uniform tiling ⇒ ≤ 14 types can ever coexist).
+- So the documented human method IS vertex-figure compatibility case analysis + inductive growth — validating
+  the Phase-1 architecture as a faithful (and mechanizable) reconstruction.
+
+### Structural facts Phase 1 must DERIVE (now with documented provenance, still answer-blind)
+
+21 arithmetic vertex figures (angle equation Σ(1−2/nᵢ)=2, 3 ≤ k ≤ 6 polygons); 6 of them cannot occur in ANY
+edge-to-edge regular-polygon tiling (Sommerville 1905 — adjacency propagation forces impossible angles);
+4 more (3².4.12, 3².6², 3.4.3.12, 3.4².6) cannot tile ALONE but occur in mixed tilings; 4.8² occurs ONLY in
+its 1-uniform tiling (Krötenheerdt 1969). These are the fixture tests for the compatibility enumerator.
+
+### CORRECTION to ADR-0036 (important, from Galebach's table + OEIS)
+
+A068600(n≥8) = 0 is CONFIRMED (OEIS comment + Galebach's table diagonal: (8,8)=0). **But ADR-0036's stated
+mechanism — "n=8 is a combinatorial ceiling: no 8 compatible types coexist" — is WRONG.** Galebach's
+(m-Archimedean × n-uniform) table shows 8 and 9 distinct types DO coexist in n-uniform tilings:
+(m=7,n=8)=20, (m=8,n=9)=8, (m=8,n=10)=27, (m=9,n=11)=1. The n=8 zero comes from the **types-must-equal-
+orbits rigidity** (no tiling has 8 types AND only 8 vertex orbits), NOT from type-set compatibility.
+⇒ Phase 1's "derive n=8 = ∅" gate CANNOT fall out of the compatibility enumerator alone — deriving the
+ceiling needs the realization stage (Phase 2) refuting every 8-type candidate set at 8 orbits. The Phase-1
+deliverable is reframed: derive the candidate type-set inventory (with the m ≤ 14 ceiling and the ~15-figure
+facts as fixture tests); the n=8 ceiling is a Phase-2 (solver / UNSAT) result, as is honest — Krötenheerdt
+himself needed the full case analysis for n > 7, not just compatibility counting.
+
+### Originality + literature to pull for the 12n bound
+
+- Delgado-Friedrichs (pers. comm. in Lenngren, 2009): the Delaney–Dress approach "has yet to be applied to
+  k-uniform tilings" — corroborating this project's originality claim for the D-symbol route.
+- **Chavey (1984b), "Periodic tilings and tilings by regular polygons I: Bounds on the number of orbits of
+  vertices, edges and tiles" (Mitt. Math. Seminar Giessen 164)** — literature exactly in the 12n bound's
+  family; check it (and his 1984a thesis, online) when writing the bound's proof section. Chavey 1984a is
+  also the documented 3-uniform enumeration (edge-type lemmata, strip/dissection arguments) — a second
+  documented method source beyond Krötenheerdt.
+
 ## Alternatives considered (this session)
 
 - **Finish the band engine first** (glide fix + sets #1/#4): reaches ≤ 2 + unknown n=3 gap cells, core-engine
