@@ -5,7 +5,6 @@ import io.github.scala_tessella.dcel.VertexTypes.{VertexSignature, normalize}
 import org.sat4j.core.VecInt
 import org.sat4j.minisat.SolverFactory
 import org.sat4j.specs.ContradictionException
-import org.sat4j.tools.ModelIterator
 
 import scala.collection.mutable
 
@@ -220,8 +219,11 @@ object SymbolAssembly:
     def pv(a: Int, b: Int): Option[Int] = pairVar.get(if a <= b then (a, b) else (b, a))
     var nextVar                         = pairs.size
 
-    // clauses are STREAMED into the solver as generated — buffering them OOM'd on n=4-sized frames
-    val solver = new ModelIterator(SolverFactory.newDefault())
+    // clauses are STREAMED into the solver as generated — buffering them OOM'd on n=4-sized frames.
+    // Enumeration is hand-rolled (NOT ModelIterator): blocking only the true σ₀ pair-variables keeps each
+    // blocking clause ≤ #chambers wide; ModelIterator blocks the FULL model incl. thousands of face-path
+    // auxiliaries, which OOM'd a 10g heap on the symmetric-rich n=5 sets (tens of thousands of models).
+    val solver = SolverFactory.newDefault()
     solver.setTimeout(3600)
     val out    = mutable.ListBuffer.empty[Array[Int]]
     var capped = false
@@ -252,14 +254,20 @@ object SymbolAssembly:
         for k <- 1 to p do exactly1(domain.map(y(k)))
         clause(y(p)(c))
 
-      while out.size <= maxModels && solver.isSatisfiable do
-        val model = solver.model()
-        val trues = model.filter(_ > 0).toSet
-        val s0    = Array.fill(m + 1)(0)
+      var go = true
+      while go && out.size <= maxModels && solver.isSatisfiable do
+        val model  = solver.model()
+        val trues  = model.filter(_ > 0).toSet
+        val s0     = Array.fill(m + 1)(0)
+        val chosen = mutable.ArrayBuffer.empty[Int]
         for ((a, b), v) <- pairVar if trues(v) do
           s0(a) = b
           s0(b) = a
+          chosen += v
         out += s0
+        // block THIS σ₀ (a distinct one must flip at least one chosen pair); adding may hit contradiction
+        try solver.addClause(new VecInt(chosen.map(-_).toArray))
+        catch case _: ContradictionException => go = false
     catch case _: ContradictionException => () // trivially UNSAT
     if out.size > maxModels then
       capped = true
