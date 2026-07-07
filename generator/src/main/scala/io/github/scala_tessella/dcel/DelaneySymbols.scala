@@ -412,7 +412,7 @@ object DelaneySymbols:
     /** `m_{i,i+1}` through `d` — the polygon side-count (i=0) or vertex degree (i=1). */
     def m(i: Int, j: Int, d: Int): Int = rOf(i, j, d) * v(i, j, d)
 
-  private def collectOrbits(ds: DSet): (Vector[Orbit], Array[Array[Int]]) =
+  private[dcel] def collectOrbits(ds: DSet): (Vector[Orbit], Array[Array[Int]]) =
     val all   = Vector.newBuilder[Orbit]
     val index = Array.fill(Dim + 1, ds.size + 1)(0)
     var built = Vector.empty[Orbit]
@@ -584,7 +584,7 @@ object DelaneySymbols:
   /** True iff the symbol is a euclidean tiling by regular polygons `{3,4,6,8,12}` with every vertex a valid
     * 360° type. Returns the vertex type signatures (one per 12-orbit) when valid, else None.
     */
-  private def regularPolygonVertices(ds: DSymbol): Option[List[VertexSignature]] =
+  private[dcel] def regularPolygonVertices(ds: DSymbol): Option[List[VertexSignature]] =
     // tiles: every 01-orbit's m₀₁ must be an admissible polygon
     val faceOK = orbits(ds.dset, 0, 1).forall(o => polygonSides.contains(ds.m(0, 1, o.elements.head)))
     if !faceOK then None
@@ -642,7 +642,7 @@ object DelaneySymbols:
     * genuine covering), the symbol covers that smaller quotient and is therefore NOT minimal. A non-minimal
     * symbol is the same geometric tiling carrying a subgroup of its symmetry (more vertex orbits than n).
     */
-  private def isMinimal(ds: DSymbol): Boolean =
+  private[dcel] def isMinimal(ds: DSymbol): Boolean =
     val n  = ds.size
     var d0 = 2
     while d0 <= n do
@@ -679,7 +679,7 @@ object DelaneySymbols:
       d0 += 1
     true
 
-  private def isEuclidean(ds: DSymbol): Boolean =
+  private[dcel] def isEuclidean(ds: DSymbol): Boolean =
     var result = Frac(-ds.size, 2)
     val all    = orbits(ds.dset, 0, 1) ++ orbits(ds.dset, 1, 2)
     var idx    = 0

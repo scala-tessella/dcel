@@ -151,9 +151,11 @@ lazy val generator = project
     name           := "dcel-generator",
     publish / skip := true,
     libraryDependencies ++= Seq(
-      "org.scalatest"     %% "scalatest"       % "3.2.20"   % Test,
-      "org.scalacheck"    %% "scalacheck"      % "1.19.0"   % Test,
-      "org.scalatestplus" %% "scalacheck-1-19" % "3.2.20.0" % Test
+      // CDCL SAT solver (pure JVM, Java-17-safe) — the ADR-0039 Phase-2 constraint engine baseline
+      "org.ow2.sat4j"     % "org.ow2.sat4j.core" % "2.3.6",
+      "org.scalatest"     %% "scalatest"         % "3.2.20"   % Test,
+      "org.scalacheck"    %% "scalacheck"        % "1.19.0"   % Test,
+      "org.scalatestplus" %% "scalacheck-1-19"   % "3.2.20.0" % Test
     )
   )
 
