@@ -35,13 +35,40 @@ the multiset permutations, on top of per-star automorphisms). Canonical-key dedu
 correctness; if floods appear, the levers are (a) lex-ordering between identical stars (sound symmetry
 breaking: fix a canonical order of the k copies' σ₀ signatures), then (b) per-star automorphism lex breaking.
 
-## Validation plan (the gate ladder — no unknown is touched before it)
+## PRIOR-ART CHECK (2026-07-08, user-mandated before building) — Galebach's "?" are largely STALE
 
-The known off-diagonal cells are ten exact gates: (3,2)=22, (4,2)=33, (4,3)=85, (5,2)=74, (5,3)=149,
-(5,4)=94, (6,2)=100, (6,3)=284, (6,4)=187, (6,5)=92. All ten must reproduce EXACTLY (count level; the n ≤ 3
-cells also key-for-key vs the oracle relaxed the same way) before any "?" cell is computed. Then row 7
-left-to-right ((7,2)...(7,6)), then rows 8+. Row totals for n = 7+ extend A068599 — a publishable result if
-it holds; ADR-0042's DRAT certification applies to the terminal-UNSAT exhaustiveness of each cell.
+- **Čtrnáct's k ≤ 12 extension fills the breakdown** (published on Wikipedia's "Euclidean tilings by convex
+  regular polygons" table; raw wikitext verified): row 7 = 175/572/426/218/74/**7**; row 8 =
+  298/1037/795/537/203/**20**; row 9 = 424/1992/1608/1278/570/80/**8**; row 10 = 663/3772/2979/2745/1468/
+  212/**27**; row 11 = 1086/7171/5798/5993/3711/647/52/**1**; row 12 = 1607/13762/11006/12309/9230/1736/
+  129/15. Row totals to k=13 are in OEIS **A068599** (…, 1472, 2850, 5960, 11866, 24459, 49794, 103082).
+  The diagonal-adjacent values match Galebach's page ((8,7)=20, (9,8)=8, (10,8)=27, (11,9)=1) ✓.
+- **⚠ Wikipedia's ROW 8 DOES NOT SUM: 298+1037+795+537+203+20 = 2890 ≠ 2850** (= the row total AND
+  A068599(8)). Rows 7 and 9–12 sum exactly (each verified by hand). So the published data carries an
+  isolated 40-tiling inconsistency — either one breakdown cell or the total is wrong. **Settling this is a
+  genuinely decidable open question and the first live target.**
+- No OEIS sequences exist for the columns (searched; zero results for the 2-Archimedean column
+  22, 33, 74, 100, 175, …) — candidate new sequences if our numbers confirm.
+- Čtrnáct's method (like Galebach's) is UNDOCUMENTED — no published algorithm or completeness argument. So
+  even for the cells his data fills, an independent, documented, sound derivation has scientific value
+  (agreement between two independent methods effectively certifies both; disagreement finds a bug in one).
+- Genuinely unenumerated: the **k=13 breakdown** (all unknown on Wikipedia; only the total 103082 and
+  (13,10)=0 are recorded) and **everything k ≥ 14**.
+
+## Validation plan (the gate ladder — revised after the prior-art check)
+
+Known cells now give a ~35-gate ladder. Order: the ten cells of rows 3–6 ((3,2)=22, (4,2)=33, (4,3)=85,
+(5,2)=74, (5,3)=149, (5,4)=94, (6,2)=100, (6,3)=284, (6,4)=187, (6,5)=92 — the n ≤ 3 cells also key-for-key
+vs the oracle relaxed the same way), then row 7 (175/572/426/218/74) as the scale gate. **Then the live
+targets in value order: (a) recompute ROW 8 independently and settle the 2890-vs-2850 discrepancy; (b) rows
+9–12 as independent certification of Čtrnáct's undocumented data (as budget allows — counts reach 10⁴); (c)
+the k=13 breakdown (new numbers, if row-12-scale costs permit).** ADR-0042's DRAT certification applies to
+the terminal-UNSAT exhaustiveness of each cell.
+
+**Scale expectation:** identical stars introduce a swap-symmetry flood factor up to k! for a type repeated k
+times ((7,2) has up to 6 copies ⇒ ≤ 720×) on top of per-star automorphisms. Frame-level dedup (foldings as
+combinations-with-repetition for identical stars) is free; σ₀-level lex breaking between identical star
+blocks is the prepared lever if the gate runs measure floods.
 
 ## Consequences
 
