@@ -134,6 +134,17 @@ class SymbolAssemblySpec extends AnyFlatSpec with Matchers:
     val found   = results.toList.flatMap((ts, r) => List.fill(r.keys.size)(ts))
     found should contain theSameElementsAs TilingReference.n2
 
+  // ≈20 min total on 8 workers (VERIFIED GREEN 2026-07-07 via G4GateProbe: n=4 = 33 EXACT multiset in 108 s
+  // sequential / faster parallel, n=5 = 15 EXACT multiset 26 s, n=6 = 10 in 139 s, n=7 = 7 in 712 s — the
+  // complete A068600 = 11,20,39,33,15,10,7 — all capped=0). Un-ignore for the full endgame regression;
+  // G4GateProbe runs it with progress + parallelism.
+  ignore should "complete A068600: n = 4..7 = 33, 15, 10, 7 across the fair candidates" in:
+    for (n, expected) <- List(4 -> 33, 5 -> 15, 6 -> 10, 7 -> 7) do
+      val results = enumerate(n)
+      withClue(s"n=$n: "):
+        results.values.exists(_.capped) shouldBe false
+        results.values.map(_.keys.size).sum shouldBe expected
+
   behavior of "gate G3 (n = 3): the solver vs A068600(3) = 39"
 
   it should "find exactly the 39 3-uniform tilings across the 95 fair candidates, multiplicities included" in:

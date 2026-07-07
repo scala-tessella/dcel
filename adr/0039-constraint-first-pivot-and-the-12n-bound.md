@@ -277,8 +277,56 @@ key-based matching inherits the key's weakness — gates against complete counts
 
 G4 is the level EVERY prior engine failed (ADR-0031 union ceiling ~30/33; the both-walled 4.6.12-mixed
 cells) — closed sequentially, single-threaded, on the pure-JVM solver. `SymbolAssemblySpec` (14 green)
-carries the leaves, the fixture, the star-key regression, and gates G1–G3 as fast tests. n=5–8 running
-(n=8 must return 0 — the fair ceiling derivation); results to be appended.
+carries the leaves, the fixture, the star-key regression, and gates G1–G3 as fast tests.
+
+## ENDGAME (2026-07-07, same day): 🏆 THE COMPLETE SEQUENCE — A068600 = 11, 20, 39, 33, 15, 10, 7, 0
+
+Two scale fixes were needed past n=4, each measured, root-caused, and re-gated on G1–G3 before relaunch:
+
+1. **Blocking width.** SAT4J's `ModelIterator` blocks each model with a clause over ALL variables (incl.
+   thousands of face-path auxiliaries); on symmetric-rich n=5 sets (10⁴–10⁵ models) that OOM'd a 10 GB heap.
+   Fix: hand-rolled enumeration blocking only the TRUE σ₀ pair-variables (width ≤ #chambers, ~100× smaller;
+   the auxiliaries are σ₀-determined so no solutions are lost or duplicated).
+2. **Star-cut connectivity.** The floods themselves were DISCONNECTED product solutions (a k-star frame
+   admits component-wise sub-tilings, multiplying counts). Sound kill: a real tiling is connected and stars
+   are internally σ₁σ₂-connected, so EVERY proper star-cut must be crossed by some σ₀ pair — ≤ 2^(k−1)−1
+   clauses; an empty cut proves the frame unrealizable outright. n=5 went from hours-with-caps to 26 s.
+
+(Operational note: the first endgame attempt with a 24 GB heap + 14 workers thrashed the 31 GiB / 1 GiB-swap
+box and crashed the IDE — see `reference_machine_memory_limits`; runs now use ≤ 10 GB + 8 workers.)
+
+**The complete run (`G4GateProbe`, 8 workers, zero model caps at every level):**
+
+| n | candidates | found | expected | validation | time |
+|--:|--:|--:|--:|---|--:|
+| 1 | 11 | **11** | 11 | key-for-key vs oracle | ~1 s |
+| 2 | 25 | **20** | 20 | multiset EXACT vs reference | ~1 s |
+| 3 | 95 | **39** | 39 | multiset EXACT vs reference | ~7 s |
+| 4 | 289 | **33** | 33 | multiset EXACT vs reference | 108 s |
+| 5 | 686 | **15** | 15 | multiset EXACT vs reference | 26 s |
+| 6 | 1224 | **10** | 10 | count (no reference rows exist) | 139 s |
+| 7 | 1624 | **7** | 7 | count; fine structure: 6 distinct type-sets, one ×2 | 712 s |
+| 8 | 1617 | **0** | 0 | **the ceiling DERIVED: 1617 solver refutations** | 2564 s |
+
+Total endgame compute ≈ **1 hour on 8 cores** — vs the ≤ 1-week budget, vs Galebach's month of 2002 compute
+for k ≤ 6, vs ~40 ADRs of measured walls. The n=8 = 0 result completes the ADR-0036→Phase-0 correction
+honestly: the ceiling is NOT type-set incompatibility (1617 compatible 8-sets exist) but the
+types-must-equal-orbits rigidity, established here by exhaustive per-set refutation — the first fair,
+machine-checked derivation of Krötenheerdt's n > 7 theorem in this project.
+
+**Completeness argument (the certification):** every n-uniform Krötenheerdt tiling's type-set passes the
+provably-necessary Phase-1 filters (candidates ⊇ realizable); its minimal symbol's stars are stabilizer
+quotients of unfolded stars (all subgroups swept; oracle-fixture-verified); its σ₀ satisfies every encoded
+constraint (fixture-verified necessity) and every solver enumeration ran uncapped to exhaustion; the
+classify tail only discards non-minimal duplicates and non-euclidean/non-regular non-tilings. Soundness is
+the oracle's own validated filter set. Dedup is the shared canonical key. The 12n bound is not even needed
+as a budget here — the star construction bounds every frame by Σ 2dᵢ ≤ 12n intrinsically.
+
+**Deliverable status: the ADR-0018 goal — an ORIGINAL, SOUND, FAIR algorithm replicating A068600 for
+n = 1..7 in ≤ 1 week — is MET, with the n=8 ceiling as a bonus.** Residual hardening (optional): the heavy
+`enumerate(4..7)` endgame regression is an `ignore`d test (verified green this session); key-for-key deep
+cross-validation vs the maxSize-24 oracle at n=2..3 (multiset-validated today); star-automorphism lex
+symmetry breaking if future runs (n≤7 re-runs, variants) need more speed.
 
 ## Alternatives considered (this session)
 

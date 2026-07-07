@@ -58,7 +58,7 @@ decision. Each file has:
 | 0036 | [Non-monotonic difficulty + top-down fair type-set derivation](0036-non-monotonic-difficulty-and-top-down-type-set-derivation.md) | Proposed (constraint-first, derive type-sets fairly; diagnose n=3 grower gap first) |
 | 0037 | [Strip-stacking enumerator for the banded family](0037-strip-stacking-enumerator-for-the-banded-family.md) | Proposed (build in progress; all grower n=3 misses are banded) |
 | 0038 | [Profile automaton — cylinder transfer matrix for the banded family](0038-profile-automaton-cylinder-transfer-matrix.md) | Accepted (sound, n-independent; 8/13 of the n=3 banded gap; blockers diagnosed + banked; PARKED by ADR-0039) |
-| 0039 | [Full-project reassessment — the 12n bound + constraint-first (SAT/CP) pivot](0039-constraint-first-pivot-and-the-12n-bound.md) | Accepted (user-approved pivot; Phase 0 DONE: 12n bound proved+tested, method literature read) |
+| 0039 | [Full-project reassessment — the 12n bound + constraint-first (SAT/CP) pivot](0039-constraint-first-pivot-and-the-12n-bound.md) | Accepted — **GOAL MET: complete A068600 = 11,20,39,33,15,10,7 (+ n=8=0 ceiling), all exact, ~1 h on 8 cores** |
 | 0040 | [Fair top-down type-set derivation (Phase 1)](0040-fair-type-set-derivation.md) | Accepted (BUILT + measured: 21→15 derived, candidates(1)=11 exact, n≤5 no-false-negative green) |
 
 ## When to add an ADR
