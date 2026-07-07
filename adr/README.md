@@ -57,6 +57,8 @@ decision. Each file has:
 | 0035 | [Dedicated methods for the large-domain chiral C₂ residual](0035-dedicated-methods-for-the-large-domain-chiral-c2-residual.md) | Accepted (orbifold-growth de-risked → WRONG fix: grower growth-path gap; pursue type-targeted oracle #2) |
 | 0036 | [Non-monotonic difficulty + top-down fair type-set derivation](0036-non-monotonic-difficulty-and-top-down-type-set-derivation.md) | Proposed (constraint-first, derive type-sets fairly; diagnose n=3 grower gap first) |
 | 0037 | [Strip-stacking enumerator for the banded family](0037-strip-stacking-enumerator-for-the-banded-family.md) | Proposed (build in progress; all grower n=3 misses are banded) |
+| 0038 | [Profile automaton — cylinder transfer matrix for the banded family](0038-profile-automaton-cylinder-transfer-matrix.md) | Accepted (sound, n-independent; 8/13 of the n=3 banded gap; blockers diagnosed + banked; PARKED by ADR-0039) |
+| 0039 | [Full-project reassessment — the 12n bound + constraint-first (SAT/CP) pivot](0039-constraint-first-pivot-and-the-12n-bound.md) | Accepted (user-approved pivot; Phases 0–2, gates G1–G4) |
 
 ## When to add an ADR
 
