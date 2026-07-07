@@ -350,3 +350,36 @@ finer/larger √3 circumferences and diagnose why its restricted graph has no 3-
 (`pa.debug`: 12 nodes / 0 cycles). Keep `maxBand=2` as the cheap multi-row default candidate (it completes one
 gap set at negligible cost). The band machinery is sound and n-independent; the frontier is circumference
 coverage + sets #1/#4, not band height.
+
+## √3-family gap DIAGNOSED: it is the CLOSE step, NOT circumference resolution (2026-07-07)
+
+`Set3HexProbe` (composes only validated pieces: `representFrame`/`graphForensics`/`feedDebug`) feeds each
+bounded-V-realized set-#3 cell's OWN exact cut and decomposes the failure. For BOTH oracle cells of
+`{3.3.6.6;3.6.3.6;6.6.6}`:
+
+- **`coversTarget=true`** — type-restricted growth from the cut produces edges of all 3 types.
+- the profile graph is small and **FULLY built** (22 / 54 nodes ≪ maxNodes — not capped);
+- **covering cycles ARE found** (6–36, rising with `maxBand`), but **`closed=0` at every bound × every
+  `maxBand`** — `verifyCell`/`tilesWithoutOverlap` rejects EVERY found cycle as a NON-tiling. `hasTarget=false`
+  throughout.
+
+So the earlier "needs a finer/larger √3 circumference" framing is **WRONG** — the cut is fed at the wrap-safe
+`c=2√3` (cell 2) and growth+cycle-finding both work; the wall is **CLOSING**. Mechanism (hypothesis, not yet
+test-pinned): hexagon rows are **OFFSET**, so the profile recurs after ONE row shifted horizontally by half a
+period (a GLIDE); `canonKey` is FULLY translation-invariant (x AND y) so it matches that shifted profile and the
+cycle closes at a **glide recurrence** whose faces don't tile under `(c, Δ_diagonal)` — a FALSE PERIOD, correctly
+rejected by the overlap gate (cf. [[project_torus_overlap_soundness]]). The TRUE lattice period (offset realigns
+after ≥2 rows) is either not reached or blocked by the `(profile, types-used)` visited-set already marked at the
+false recurrence. Note `deltaCandidates` (the spike's OWN proposer) restricts to PURELY-VERTICAL Δ (`|d.x|<1e-6`)
+— the ProfileAutomaton path lost that constraint by computing Δ from `replayCycle` (accumulated). Separately,
+set-#3 cell 1 has integer circumference **5**, not in the gate's swept set `{2,3,4,6,2√3,3√3}` — a distinct
+smaller gap.
+
+**FIX DIRECTION (deferred — banked, not started):** the period-detection / closure condition, NOT more
+circumferences. Require the recurrence's accumulated Δ to be a TRUE lattice period (horizontal component ≡ 0
+mod `c`, i.e. reject glide recurrences), matching `deltaCandidates`' vertical-Δ constraint — a change to
+`coveringCyclesFrom`'s closure guard / `canonKey` invariance that the whole engine relies on, so it needs the
+full regression net. TEST-FIRST plan (per [[feedback_rigorous_test_first]]): a characterization test that grows a
+known offset tiling (`6.6.6`/`3.6.3.6`) on the cylinder and asserts its first `canonKey` recurrence's Δ IS a
+glide (horizontal component ≠ 0) and that closure must require a TILING Δ — pinning the invariant before the fix.
+This reaches only 2 of 13 gap cells; weigh against the broader A068600 frontier before investing.
