@@ -86,7 +86,15 @@ blocks is the prepared lever if the gate runs measure floods.
   A068599(7) ✓. 16/16 known cells, zero caps throughout.** Row 8 (the live 2890-vs-2850 target) running —
   expect row-7-scale × 2–4 per cell.
 
-## Consequences
+## THE ROW-8 VERDICT (2026-07-08, live target — preliminary pending remaining cells)
+
+**(8,2) = 258 (ours, uncapped, 131 min) vs Wikipedia's 298 — a mismatch of EXACTLY the 40 that made the
+published row inconsistent.** With 258 the breakdown sums: 258+1037+795+537+203+20 = **2850 = the published
+row total = A068599(8)**. So the two published numbers that disagreed are reconciled by our value: the
+Wikipedia breakdown cell (8,2) is a transcription error (plausibly a single digit, 258 → 298); Čtrnáct's row
+total stands. Confidence: the m=2 column is the ladder's most-validated ((3,2)…(7,2) all exact), and the
+engine is 16/16 on every known cell. Remaining cells (8,3..6) running — if they match 1037/795/537/203 the
+correction is fully localized to (8,2).
 
 - **Positive:** fills genuinely unpublished cells with the same soundness/fairness standard as the A068600
   result; near-zero new theory (multisets + one relaxed filter); a strong ten-cell validation ladder exists.
