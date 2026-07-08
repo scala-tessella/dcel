@@ -81,7 +81,10 @@ blocks is the prepared lever if the gate runs measure floods.
   theorem, as solver refutations.
 - **Gate ladder (all EXACT, zero caps):** (3,2)=22, (4,2)=33, (4,3)=85 (spec, ~20 s); (5,2)=74, (5,3)=149,
   (5,4)=94 (~1 min each); (6,2)=100, (6,3)=284, (6,4)=187, (6,5)=92 (~5–11 min each). Diagonal regression
-  (2,2)=20, (3,3)=39 intact. **11/11 known cells so far.** Row 7 running; row 8 (the live target) queued.
+  (2,2)=20, (3,3)=39 intact. **Row 7 (the scale gate) ALL EXACT: (7,2)=175 (28 min), (7,3)=572 (66 min),
+  (7,4)=426 (102 min), (7,5)=218 (113 min), (7,6)=74 (62 min) — off-diagonal sum 1465 + diagonal 7 = 1472 =
+  A068599(7) ✓. 16/16 known cells, zero caps throughout.** Row 8 (the live 2890-vs-2850 target) running —
+  expect row-7-scale × 2–4 per cell.
 
 ## Consequences
 
