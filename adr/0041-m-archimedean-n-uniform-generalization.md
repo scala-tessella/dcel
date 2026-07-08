@@ -70,6 +70,19 @@ times ((7,2) has up to 6 copies ⇒ ≤ 720×) on top of per-star automorphisms.
 combinations-with-repetition for identical stars) is free; σ₀-level lex breaking between identical star
 blocks is the prepared lever if the gate runs measure floods.
 
+## BUILD + GATE RESULTS (2026-07-08, running log)
+
+- **Built:** `solveMultiset` (one star per orbit; identical-star foldings as combinations-with-repetition) +
+  `solveCell(n, m)` (fair supports × positive multiplicity compositions) + SOUND lex-leader symmetry
+  breaking (x ≤lex x∘π over the pair-vars, eq-prefix chains) for every star automorphism (forced propagation
+  from chamber 0's image) and adjacent identical-star swap — the identical-star floods had capped (3,1) and
+  (4,2); with breaking the whole fast spec runs ~20 s.
+- **Bonus derivation:** (n,1) = 0 for n = 2, 3 — Krötenheerdt's "no n-uniform 1-Archimedean beyond n=1"
+  theorem, as solver refutations.
+- **Gate ladder (all EXACT, zero caps):** (3,2)=22, (4,2)=33, (4,3)=85 (spec, ~20 s); (5,2)=74, (5,3)=149,
+  (5,4)=94 (~1 min each); (6,2)=100, (6,3)=284, (6,4)=187, (6,5)=92 (~5–11 min each). Diagonal regression
+  (2,2)=20, (3,3)=39 intact. **11/11 known cells so far.** Row 7 running; row 8 (the live target) queued.
+
 ## Consequences
 
 - **Positive:** fills genuinely unpublished cells with the same soundness/fairness standard as the A068600
