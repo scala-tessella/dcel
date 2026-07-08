@@ -93,8 +93,8 @@ published row inconsistent.** With 258 the breakdown sums: 258+1037+795+537+203+
 row total = A068599(8)**. So the two published numbers that disagreed are reconciled by our value: the
 Wikipedia breakdown cell (8,2) is a transcription error (plausibly a single digit, 258 → 298); Čtrnáct's row
 total stands. Confidence: the m=2 column is the ladder's most-validated ((3,2)…(7,2) all exact), and the
-engine is 16/16 on every known cell. Remaining cells (8,3..6) running — if they match 1037/795/537/203 the
-correction is fully localized to (8,2).
+engine is 16/16 on every known cell. Remaining cells running as confirmation: **(8,3) = 1037 ✓ EXACT (uncapped, 6.6 h)**; (8,4..6) pending — if
+they match 795/537/203 the correction is fully localized to (8,2).
 
 - **Positive:** fills genuinely unpublished cells with the same soundness/fairness standard as the A068600
   result; near-zero new theory (multisets + one relaxed filter); a strong ten-cell validation ladder exists.
