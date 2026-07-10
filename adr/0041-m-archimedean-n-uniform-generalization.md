@@ -93,9 +93,13 @@ published row inconsistent.** With 258 the breakdown sums: 258+1037+795+537+203+
 row total = A068599(8)**. So the two published numbers that disagreed are reconciled by our value: the
 Wikipedia breakdown cell (8,2) is a transcription error (plausibly a single digit, 258 → 298); Čtrnáct's row
 total stands. Confidence: the m=2 column is the ladder's most-validated ((3,2)…(7,2) all exact), and the
-engine is 16/16 on every known cell. Remaining cells running as confirmation: **(8,3) = 1037 ✓ EXACT (uncapped, 6.6 h); (8,4) = 795 ✓ EXACT
-(uncapped, 12.8 h); (8,5) = 537 ✓ EXACT (uncapped, 19.4 h — the job-count peak, 24 010 multiset jobs)**;
-(8,6) pending vs 203 — the last cell before the correction is fully localized to (8,2). (Operational note for future
+engine is 16/16 on every known cell. Confirmation cells ALL EXACT, uncapped: **(8,3) = 1037 (6.6 h),
+(8,4) = 795 (12.8 h), (8,5) = 537 (19.4 h — the job-count peak, 24 010 multiset jobs), (8,6) = 203
+(14.4 h)**. **FINAL VERDICT (2026-07-10): row 8 = 258, 1037, 795, 537, 203, [20], 0 — sum 2850 =
+A068599(8). Wikipedia's breakdown is wrong in exactly ONE cell: (8,2) = 258, not 298 (a single-digit
+transcription slip); Čtrnáct's row total stands. The engine matched all 21 other known cells of rows 3–8
+exactly.** (8,7) recomputation vs Galebach's 20 in flight — completes full row-8 independence.
+(Operational note for future
 rows: add per-job checkpointing so multi-hour cells are resumable and show progress; order jobs
 heaviest-first to pack the pool tail.)
 
