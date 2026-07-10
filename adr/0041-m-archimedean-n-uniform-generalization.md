@@ -98,7 +98,7 @@ engine is 16/16 on every known cell. Confirmation cells ALL EXACT, uncapped: **(
 (14.4 h)**. **FINAL VERDICT (2026-07-10): row 8 = 258, 1037, 795, 537, 203, [20], 0 — sum 2850 =
 A068599(8). Wikipedia's breakdown is wrong in exactly ONE cell: (8,2) = 258, not 298 (a single-digit
 transcription slip); Čtrnáct's row total stands. The engine matched all 21 other known cells of rows 3–8
-exactly.** (8,7) recomputation vs Galebach's 20 in flight — completes full row-8 independence.
+exactly.** **(8,7) = 20 ✓ EXACT (5.8 h) — the row is now FULLY independently derived: probe row sum 2850 = A068599(8), no published input anywhere.**
 (Operational note for future
 rows: add per-job checkpointing so multi-hour cells are resumable and show progress; order jobs
 heaviest-first to pack the pool tail.)
