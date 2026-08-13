@@ -11,6 +11,6 @@ addSbtPlugin("ch.epfl.scala" % "sbt-scalafix" % "0.14.7")
 addSbtPlugin("pl.project13.scala" % "sbt-jmh" % "0.4.8")
 addSbtPlugin("com.github.sbt" % "sbt-ci-release" % "1.12.0")
 addSbtPlugin("com.github.sbt" % "sbt-site" % "1.7.0")
-addSbtPlugin("com.github.sbt" % "sbt-ghpages" % "0.9.0")
+addSbtPlugin("com.github.sbt" % "sbt-ghpages" % "0.10.0")
 // Optional, but recommended. Start strict and dial back if needed.
 //addSbtPlugin("org.wartremover" % "sbt-wartremover" % "3.4.0")
